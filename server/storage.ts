@@ -66,11 +66,11 @@ export interface IStorage {
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
   
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any;
   
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
