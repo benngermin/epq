@@ -59,13 +59,16 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByEmail(req.body.email);
+    // Handle both username and email fields from frontend
+    const email = req.body.email || req.body.username;
+    const existingUser = await storage.getUserByEmail(email);
     if (existingUser) {
       return res.status(400).send("Email already exists");
     }
 
     const user = await storage.createUser({
-      ...req.body,
+      name: req.body.name,
+      email: email,
       password: await hashPassword(req.body.password),
     });
 
@@ -75,7 +78,13 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+  app.post("/api/login", (req, res, next) => {
+    // Handle both username and email fields from frontend
+    if (req.body.username && !req.body.email) {
+      req.body.email = req.body.username;
+    }
+    passport.authenticate("local")(req, res, next);
+  }, (req, res) => {
     res.status(200).json(req.user);
   });
 
