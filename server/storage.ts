@@ -8,7 +8,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -247,23 +247,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {
-    const query = `
-      SELECT 
-        COUNT(*) as total_answers,
-        SUM(CASE WHEN ua.is_correct THEN 1 ELSE 0 END) as correct_answers
-      FROM user_answers ua
-      JOIN user_test_runs utr ON ua.user_test_run_id = utr.id
-      JOIN practice_tests pt ON utr.practice_test_id = pt.id
-      WHERE utr.user_id = $1 AND pt.course_id = $2
-    `;
-    
-    const result = await db.execute({ sql: query, args: [userId, courseId] });
-    const row = result.rows[0] as any;
-    
-    return {
-      correctAnswers: parseInt(row.correct_answers) || 0,
-      totalAnswers: parseInt(row.total_answers) || 0,
-    };
+    try {
+      const result = await db.select({
+        totalAnswers: sql<number>`COUNT(*)::int`,
+        correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)::int`
+      })
+      .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+      .innerJoin(practiceTests, eq(userTestRuns.practiceTestId, practiceTests.id))
+      .where(and(
+        eq(userTestRuns.userId, userId),
+        eq(practiceTests.courseId, courseId)
+      ));
+
+      const row = result[0];
+      return {
+        correctAnswers: row?.correctAnswers || 0,
+        totalAnswers: row?.totalAnswers || 0,
+      };
+    } catch (error) {
+      console.error("Error getting user course progress:", error);
+      return { correctAnswers: 0, totalAnswers: 0 };
+    }
   }
 
   async getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }> {
