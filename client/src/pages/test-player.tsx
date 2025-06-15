@@ -162,8 +162,8 @@ export default function TestPlayer() {
         />
 
         {/* Main Question Area */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-8">
+        <div className="flex-1 flex flex-col relative">
+          <div className="flex-1 p-8 pb-24 overflow-y-auto">
             <div className="max-w-4xl mx-auto">
               <QuestionCard
                 question={currentQuestion}
@@ -176,27 +176,27 @@ export default function TestPlayer() {
 
           {/* Navigation Controls - Only show when question is answered */}
           {(currentQuestion as any)?.userAnswer && (
-            <div className="border-t bg-card p-6 sticky bottom-0 z-10">
+            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-4 shadow-lg">
               <div className="max-w-4xl mx-auto">
                 <div className="flex justify-between items-center gap-4">
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center gap-2 min-w-[120px]"
+                    className="flex items-center gap-2 min-w-[100px]"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
 
-                  <div className="text-sm text-muted-foreground text-center flex-shrink-0">
+                  <div className="text-sm text-muted-foreground text-center flex-shrink-0 px-4">
                     {answeredQuestions.length} of {totalQuestions} answered
                   </div>
 
                   <Button
                     onClick={handleNext}
                     disabled={completeTestMutation.isPending}
-                    className="flex items-center gap-2 min-w-[120px]"
+                    className="flex items-center gap-2 min-w-[100px]"
                   >
                     {currentQuestionIndex === totalQuestions - 1 ? (
                       completeTestMutation.isPending ? "Completing..." : "Complete Test"

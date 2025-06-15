@@ -69,13 +69,13 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   return (
     <Card className="bg-muted/30">
-      <CardContent className="p-6">
-        <div className="flex items-center mb-4">
-          <Bot className="h-5 w-5 text-primary mr-2" />
-          <span className="font-medium text-foreground">AI Tutor</span>
+      <CardContent className="p-4">
+        <div className="flex items-center mb-3">
+          <Bot className="h-4 w-4 text-primary mr-2" />
+          <span className="font-medium text-foreground text-sm">AI Tutor</span>
         </div>
 
-        <div className="space-y-3 h-64 overflow-y-auto mb-4">
+        <div className="space-y-2 h-48 overflow-y-auto mb-3 scrollbar-thin scrollbar-thumb-muted">
           {chatMutation.isPending && messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="flex items-center space-x-2">
@@ -89,13 +89,13 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             <div
               key={index}
               className={cn(
-                "p-3 rounded-lg shadow-sm max-w-[90%]",
+                "p-2 rounded-lg shadow-sm max-w-[90%] text-xs",
                 message.role === "assistant" 
                   ? "bg-card text-foreground mr-auto" 
                   : "bg-primary text-primary-foreground ml-auto"
               )}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
             </div>
           ))}
 

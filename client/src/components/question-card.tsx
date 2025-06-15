@@ -140,13 +140,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           {/* Question Back (Feedback & Chatbot) */}
           <div className="card-flip-back">
             <Card className="min-h-96">
-              <CardContent className="p-8">
-                <div className="mb-6">
-                  <div className="flex items-center mb-4">
-                    <XCircle className="h-6 w-6 text-red-500 mr-3" />
+              <CardContent className="p-6">
+                <div className="mb-4">
+                  <div className="flex items-center mb-3">
+                    <XCircle className="h-5 w-5 text-red-500 mr-2" />
                     <span className="text-lg font-semibold">Incorrect Answer</span>
                   </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-gray-700">
                       <strong>Your answer:</strong> {question.userAnswer?.chosenAnswer} - {
                         question.answerChoices.find((choice: string) => 
@@ -163,15 +163,17 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   </div>
                 </div>
 
-                {showChat && (
-                  <ChatInterface
-                    questionVersionId={question.id}
-                    chosenAnswer={question.userAnswer?.chosenAnswer}
-                    correctAnswer={question.correctAnswer}
-                  />
-                )}
+                <div className="max-h-[50vh] overflow-y-auto mb-4">
+                  {showChat && (
+                    <ChatInterface
+                      questionVersionId={question.id}
+                      chosenAnswer={question.userAnswer?.chosenAnswer}
+                      correctAnswer={question.correctAnswer}
+                    />
+                  )}
+                </div>
 
-                <div className="mt-6">
+                <div className="mt-4">
                   <Button onClick={handleContinue} className="w-full">
                     Continue
                   </Button>
