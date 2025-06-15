@@ -39,7 +39,7 @@ export function QuestionNavigation({
 
   return (
     <div className={cn(
-      "w-80 bg-card border-r shadow-sm overflow-y-auto transition-transform duration-300",
+      "w-64 bg-card border-r shadow-sm overflow-y-auto transition-transform duration-300",
       isCollapsed && "-translate-x-full"
     )}>
       <Card className="rounded-none border-0 border-b">
@@ -62,7 +62,7 @@ export function QuestionNavigation({
         </CardHeader>
         
         <CardContent>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-3">
             {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
