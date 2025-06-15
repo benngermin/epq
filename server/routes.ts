@@ -483,6 +483,65 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/admin/practice-tests", requireAdmin, async (req, res) => {
+    try {
+      const courses = await storage.getAllCourses();
+      const allTests = [];
+      
+      for (const course of courses) {
+        const tests = await storage.getPracticeTestsByCourse(course.id);
+        const testsWithCourse = tests.map(test => ({
+          ...test,
+          courseName: course.title
+        }));
+        allTests.push(...testsWithCourse);
+      }
+      
+      res.json(allTests);
+    } catch (error) {
+      console.error("Error fetching practice tests:", error);
+      res.status(500).json({ message: "Failed to fetch practice tests" });
+    }
+  });
+
+  app.get("/api/admin/questions", requireAdmin, async (req, res) => {
+    try {
+      const courses = await storage.getAllCourses();
+      const allQuestions = [];
+      
+      for (const course of courses) {
+        const questions = await storage.getQuestionsByCourse(course.id);
+        const questionsWithVersions = [];
+        
+        for (const question of questions) {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          questionsWithVersions.push({
+            ...question,
+            courseName: course.title,
+            versionCount: versions.length
+          });
+        }
+        allQuestions.push(...questionsWithVersions);
+      }
+      
+      res.json(allQuestions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      // This would need to be implemented in storage if we want to list all users
+      // For now, return empty array or basic info
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

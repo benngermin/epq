@@ -53,6 +53,18 @@ export default function AdminPanel() {
     queryKey: ["/api/admin/ai-settings"],
   });
 
+  const { data: practiceTests, isLoading: testsLoading } = useQuery({
+    queryKey: ["/api/admin/practice-tests"],
+  });
+
+  const { data: questions, isLoading: questionsLoading } = useQuery({
+    queryKey: ["/api/admin/questions"],
+  });
+
+  const { data: users, isLoading: usersLoading } = useQuery({
+    queryKey: ["/api/admin/users"],
+  });
+
   const createCourseMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/courses", data);
@@ -300,6 +312,166 @@ export default function AdminPanel() {
                                 <td className="py-2 text-muted-foreground">{course.description}</td>
                                 <td className="py-2">{course.testCount}</td>
                                 <td className="py-2">{course.questionCount}</td>
+                                <td className="py-2">
+                                  <Button variant="outline" size="sm" className="mr-2">
+                                    Edit
+                                  </Button>
+                                  <Button variant="destructive" size="sm">
+                                    Delete
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tests">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Practice Tests</h1>
+                  <p className="text-muted-foreground mt-2">View all practice tests across courses</p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All Practice Tests</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {testsLoading ? (
+                      <p>Loading practice tests...</p>
+                    ) : !practiceTests || practiceTests.length === 0 ? (
+                      <p className="text-muted-foreground">No practice tests found.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">Test Name</th>
+                              <th className="text-left py-2">Course</th>
+                              <th className="text-left py-2">Question Count</th>
+                              <th className="text-left py-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {practiceTests.map((test: any) => (
+                              <tr key={test.id} className="border-b">
+                                <td className="py-2 font-medium">{test.title}</td>
+                                <td className="py-2">{test.courseName}</td>
+                                <td className="py-2">{test.questionCount}</td>
+                                <td className="py-2">
+                                  <Button variant="outline" size="sm" className="mr-2">
+                                    Edit
+                                  </Button>
+                                  <Button variant="destructive" size="sm">
+                                    Delete
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="questions">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Questions</h1>
+                  <p className="text-muted-foreground mt-2">View all questions across courses</p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All Questions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {questionsLoading ? (
+                      <p>Loading questions...</p>
+                    ) : !questions || questions.length === 0 ? (
+                      <p className="text-muted-foreground">No questions found.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">ID</th>
+                              <th className="text-left py-2">Course</th>
+                              <th className="text-left py-2">Original #</th>
+                              <th className="text-left py-2">LOID</th>
+                              <th className="text-left py-2">Versions</th>
+                              <th className="text-left py-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {questions.map((question: any) => (
+                              <tr key={question.id} className="border-b">
+                                <td className="py-2 font-medium">{question.id}</td>
+                                <td className="py-2">{question.courseName}</td>
+                                <td className="py-2">{question.originalQuestionNumber}</td>
+                                <td className="py-2">{question.loid}</td>
+                                <td className="py-2">{question.versionCount}</td>
+                                <td className="py-2">
+                                  <Button variant="outline" size="sm" className="mr-2">
+                                    View
+                                  </Button>
+                                  <Button variant="destructive" size="sm">
+                                    Delete
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Users</h1>
+                  <p className="text-muted-foreground mt-2">Manage user accounts and permissions</p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {usersLoading ? (
+                      <p>Loading users...</p>
+                    ) : !users || users.length === 0 ? (
+                      <p className="text-muted-foreground">No users found. User management feature needs implementation.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">Name</th>
+                              <th className="text-left py-2">Email</th>
+                              <th className="text-left py-2">Role</th>
+                              <th className="text-left py-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.map((user: any) => (
+                              <tr key={user.id} className="border-b">
+                                <td className="py-2 font-medium">{user.name}</td>
+                                <td className="py-2">{user.email}</td>
+                                <td className="py-2">{user.isAdmin ? 'Admin' : 'User'}</td>
                                 <td className="py-2">
                                   <Button variant="outline" size="sm" className="mr-2">
                                     Edit
