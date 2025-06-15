@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const { toast } = useToast();
+  const hasInitialized = useRef(false);
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage?: string) => {
@@ -45,12 +46,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     },
   });
 
-  // Get initial explanation when component mounts
+  // Get initial explanation when component mounts or question changes
   useEffect(() => {
-    if (messages.length === 0) {
+    const currentKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
+    if (!hasInitialized.current || hasInitialized.current !== currentKey) {
+      hasInitialized.current = currentKey;
+      setMessages([]); // Clear previous messages
       chatMutation.mutate(undefined);
     }
-  }, [messages.length, chatMutation]);
+  }, [questionVersionId, chosenAnswer, correctAnswer]);
 
   const handleSendMessage = () => {
     if (!userInput.trim()) return;
@@ -70,19 +74,19 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   };
 
   return (
-    <Card className="bg-muted/30">
+    <Card className="bg-background border">
       <CardContent className="p-4">
-        <div className="flex items-center mb-3">
-          <Bot className="h-4 w-4 text-primary mr-2" />
-          <span className="font-medium text-foreground text-sm">AI Tutor</span>
+        <div className="flex items-center mb-4">
+          <Bot className="h-5 w-5 text-primary mr-2" />
+          <span className="font-medium text-foreground">AI Assistant</span>
         </div>
 
-        <div className="space-y-2 h-48 overflow-y-auto mb-3 scrollbar-thin scrollbar-thumb-muted">
+        <div className="space-y-4 h-56 overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin' }}>
           {chatMutation.isPending && messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="flex items-center space-x-2">
                 <Bot className="h-4 w-4 animate-pulse text-primary" />
-                <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                <span className="text-sm text-muted-foreground">Assistant is thinking...</span>
               </div>
             </div>
           )}
@@ -91,21 +95,35 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             <div
               key={index}
               className={cn(
-                "p-2 rounded-lg shadow-sm max-w-[90%] text-xs",
-                message.role === "assistant" 
-                  ? "bg-card text-foreground mr-auto" 
-                  : "bg-primary text-primary-foreground ml-auto"
+                "flex w-full",
+                message.role === "assistant" ? "justify-start" : "justify-end"
               )}
             >
-              <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-lg px-3 py-2 text-sm",
+                  message.role === "assistant"
+                    ? "bg-muted text-foreground rounded-tl-none"
+                    : "bg-primary text-primary-foreground rounded-tr-none"
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  {message.role === "assistant" && (
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                  )}
+                  <p className="whitespace-pre-wrap leading-relaxed flex-1">{message.content}</p>
+                </div>
+              </div>
             </div>
           ))}
 
           {chatMutation.isPending && messages.length > 0 && (
-            <div className="bg-card p-3 rounded-lg shadow-sm mr-auto max-w-[90%]">
-              <div className="flex items-center space-x-2">
-                <Bot className="h-4 w-4 animate-pulse text-primary" />
-                <span className="text-sm text-muted-foreground">Typing...</span>
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-lg rounded-tl-none px-3 py-2 max-w-[85%]">
+                <div className="flex items-center space-x-2">
+                  <Bot className="h-4 w-4 animate-pulse text-primary" />
+                  <span className="text-sm text-muted-foreground">Typing...</span>
+                </div>
               </div>
             </div>
           )}
