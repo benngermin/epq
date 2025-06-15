@@ -100,7 +100,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                               className="mt-0.5 sm:mt-1 mr-3 sm:mr-4 flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm sm:text-base text-foreground leading-relaxed">{choice}</span>
+                              <span className="text-sm sm:text-base text-foreground leading-relaxed">
+                                {choice.replace(/^[A-D]\.\s*/, '')}
+                              </span>
                               {hasAnswer && isCorrectChoice && (
                                 <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600" />
                               )}
@@ -153,13 +155,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                       <strong>Your answer:</strong> {question.userAnswer?.chosenAnswer} - {
                         question.answerChoices.find((choice: string) => 
                           choice.startsWith(question.userAnswer?.chosenAnswer + ".")
-                        )?.substring(3)
+                        )?.replace(/^[A-D]\.\s*/, '')
                       }
                       <br />
                       <strong>Correct answer:</strong> {question.correctAnswer} - {
                         question.answerChoices.find((choice: string) => 
                           choice.startsWith(question.correctAnswer + ".")
-                        )?.substring(3)
+                        )?.replace(/^[A-D]\.\s*/, '')
                       }
                     </p>
                   </div>
