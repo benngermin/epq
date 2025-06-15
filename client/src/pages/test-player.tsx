@@ -66,8 +66,8 @@ export default function TestPlayer() {
   });
 
   // Get answered questions for navigation
-  const answeredQuestions = testRun?.answers || [];
-  const totalQuestions = testRun?.questionOrder?.length || 85;
+  const answeredQuestions = (testRun as any)?.answers || [];
+  const totalQuestions = (testRun as any)?.questionOrder?.length || 85;
   const progress = Math.round((currentQuestionIndex / totalQuestions) * 100);
 
   const navigateToQuestion = (index: number) => {
@@ -93,7 +93,7 @@ export default function TestPlayer() {
     if (!currentQuestion) return;
     
     submitAnswerMutation.mutate({
-      questionVersionId: currentQuestion.id,
+      questionVersionId: (currentQuestion as any).id,
       chosenAnswer,
     });
   };
@@ -135,7 +135,7 @@ export default function TestPlayer() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <span className="font-semibold text-foreground">
-                {testRun.practiceTest?.title || "Practice Test"}
+                {(testRun as any)?.practiceTest?.title || "Practice Test"}
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -175,35 +175,39 @@ export default function TestPlayer() {
           </div>
 
           {/* Navigation Controls - Only show when question is answered */}
-          {currentQuestion?.userAnswer && (
-            <div className="border-t bg-card p-6">
-              <div className="max-w-4xl mx-auto flex justify-between items-center">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentQuestionIndex === 0}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
+          {(currentQuestion as any)?.userAnswer && (
+            <div className="border-t bg-card p-6 sticky bottom-0 z-10">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex justify-between items-center gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentQuestionIndex === 0}
+                    className="flex items-center gap-2 min-w-[120px]"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
 
-                <div className="text-sm text-muted-foreground">
-                  {answeredQuestions.length} of {totalQuestions} answered
+                  <div className="text-sm text-muted-foreground text-center flex-shrink-0">
+                    {answeredQuestions.length} of {totalQuestions} answered
+                  </div>
+
+                  <Button
+                    onClick={handleNext}
+                    disabled={completeTestMutation.isPending}
+                    className="flex items-center gap-2 min-w-[120px]"
+                  >
+                    {currentQuestionIndex === totalQuestions - 1 ? (
+                      completeTestMutation.isPending ? "Completing..." : "Complete Test"
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-
-                <Button
-                  onClick={handleNext}
-                  disabled={completeTestMutation.isPending}
-                >
-                  {currentQuestionIndex === totalQuestions - 1 ? (
-                    completeTestMutation.isPending ? "Completing..." : "Complete Test"
-                  ) : (
-                    <>
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
           )}
