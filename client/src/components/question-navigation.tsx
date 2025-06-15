@@ -39,8 +39,8 @@ export function QuestionNavigation({
 
   return (
     <div className={cn(
-      "w-64 bg-card border-r shadow-sm overflow-y-auto transition-transform duration-300",
-      isCollapsed && "-translate-x-full"
+      "w-64 bg-card border-r shadow-sm overflow-y-auto flex-shrink-0 transition-all duration-300",
+      isCollapsed && "w-0 overflow-hidden"
     )}>
       <Card className="rounded-none border-0 border-b">
         <CardHeader className="pb-4">

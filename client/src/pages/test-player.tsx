@@ -8,6 +8,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { QuestionCard } from "@/components/question-card";
 import { QuestionNavigation } from "@/components/question-navigation";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function TestPlayer() {
   const [match, params] = useRoute("/test/:runId");
