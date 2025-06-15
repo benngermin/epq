@@ -173,37 +173,39 @@ export default function TestPlayer() {
             </div>
           </div>
 
-          {/* Navigation Controls */}
-          <div className="border-t bg-card p-6">
-            <div className="max-w-4xl mx-auto flex justify-between items-center">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
+          {/* Navigation Controls - Only show when question is answered */}
+          {currentQuestion?.userAnswer && (
+            <div className="border-t bg-card p-6">
+              <div className="max-w-4xl mx-auto flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
 
-              <div className="text-sm text-muted-foreground">
-                {answeredQuestions.length} of {totalQuestions} answered
+                <div className="text-sm text-muted-foreground">
+                  {answeredQuestions.length} of {totalQuestions} answered
+                </div>
+
+                <Button
+                  onClick={handleNext}
+                  disabled={completeTestMutation.isPending}
+                >
+                  {currentQuestionIndex === totalQuestions - 1 ? (
+                    completeTestMutation.isPending ? "Completing..." : "Complete Test"
+                  ) : (
+                    <>
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
               </div>
-
-              <Button
-                onClick={handleNext}
-                disabled={completeTestMutation.isPending}
-              >
-                {currentQuestionIndex === totalQuestions - 1 ? (
-                  completeTestMutation.isPending ? "Completing..." : "Complete Test"
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
