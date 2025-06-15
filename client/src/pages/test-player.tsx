@@ -18,7 +18,7 @@ export default function TestPlayer() {
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);
 
   const { data: testRun, isLoading: testRunLoading, error: testRunError } = useQuery({
-    queryKey: ["/api/test-runs", runId],
+    queryKey: [`/api/test-runs/${runId}`],
     enabled: !!runId,
   });
 
@@ -28,7 +28,7 @@ export default function TestPlayer() {
   console.log("Test Player - testRunError:", testRunError);
 
   const { data: currentQuestion, isLoading: questionLoading } = useQuery({
-    queryKey: ["/api/test-runs", runId, "question", currentQuestionIndex],
+    queryKey: [`/api/test-runs/${runId}/question/${currentQuestionIndex}`],
     enabled: !!runId && currentQuestionIndex >= 0,
   });
 
@@ -38,8 +38,8 @@ export default function TestPlayer() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/test-runs", runId, "question", currentQuestionIndex] });
-      queryClient.invalidateQueries({ queryKey: ["/api/test-runs", runId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-runs/${runId}/question/${currentQuestionIndex}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-runs/${runId}`] });
     },
     onError: (error: Error) => {
       toast({
