@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -46,9 +46,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   });
 
   // Get initial explanation when component mounts
-  useState(() => {
-    chatMutation.mutate();
-  });
+  useEffect(() => {
+    if (messages.length === 0) {
+      chatMutation.mutate(undefined);
+    }
+  }, [messages.length, chatMutation]);
 
   const handleSendMessage = () => {
     if (!userInput.trim()) return;

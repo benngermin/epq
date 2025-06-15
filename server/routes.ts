@@ -202,6 +202,49 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Restart practice test endpoint
+  app.post("/api/practice-tests/:testId/restart", requireAuth, async (req, res) => {
+    try {
+      const testId = parseInt(req.params.testId);
+      const practiceTest = await storage.getPracticeTest(testId);
+      
+      if (!practiceTest) {
+        return res.status(404).json({ message: "Practice test not found" });
+      }
+
+      // Get all questions for the course
+      const questions = await storage.getQuestionsByCourse(practiceTest.courseId);
+      
+      if (questions.length < 85) {
+        return res.status(400).json({ message: "Not enough questions available for this test" });
+      }
+
+      // Shuffle questions and select random versions (same logic as start)
+      const shuffledQuestions = questions.sort(() => Math.random() - 0.5).slice(0, 85);
+      const questionOrder = [];
+
+      for (const question of shuffledQuestions) {
+        const versions = await storage.getQuestionVersionsByQuestion(question.id);
+        if (versions.length > 0) {
+          const randomVersion = versions[Math.floor(Math.random() * versions.length)];
+          questionOrder.push(randomVersion.id);
+        }
+      }
+
+      // Create a new test run (this effectively restarts the test)
+      const testRun = await storage.createUserTestRun({
+        userId: req.user.id,
+        practiceTestId: testId,
+        questionOrder,
+      });
+
+      res.status(201).json(testRun);
+    } catch (error) {
+      console.error("Error restarting test:", error);
+      res.status(500).json({ message: "Failed to restart test" });
+    }
+  });
+
   app.get("/api/test-runs/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

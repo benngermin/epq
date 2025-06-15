@@ -35,6 +35,27 @@ export default function Dashboard() {
     },
   });
 
+  const restartTestMutation = useMutation({
+    mutationFn: async (testId: number) => {
+      const res = await apiRequest("POST", `/api/practice-tests/${testId}/restart`);
+      return await res.json();
+    },
+    onSuccess: (testRun) => {
+      setLocation(`/test/${testRun.id}`);
+      toast({
+        title: "Test restarted",
+        description: "Starting fresh practice test",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to restart test",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const resumeTest = (testRun: any) => {
     console.log("Resuming test with run:", testRun);
     setLocation(`/test/${testRun.id}`);
@@ -160,22 +181,42 @@ export default function Dashboard() {
                               )}
                             </div>
                           </div>
-                          <div>
+                          <div className="flex gap-2">
                             {test.status === "Completed" ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => resumeTest(test.testRun)}
-                              >
-                                Review
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => resumeTest(test.testRun)}
+                                >
+                                  Review
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restartTestMutation.mutate(test.id)}
+                                  disabled={restartTestMutation.isPending}
+                                >
+                                  Restart
+                                </Button>
+                              </>
                             ) : test.status === "In Progress" ? (
-                              <Button
-                                size="sm"
-                                onClick={() => resumeTest(test.testRun)}
-                              >
-                                Continue
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => resumeTest(test.testRun)}
+                                >
+                                  Continue
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restartTestMutation.mutate(test.id)}
+                                  disabled={restartTestMutation.isPending}
+                                >
+                                  Start Over
+                                </Button>
+                              </>
                             ) : (
                               <Button
                                 size="sm"
