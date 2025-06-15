@@ -73,9 +73,9 @@ export function registerRoutes(app: Express): Server {
       const coursesWithProgress = await Promise.all(
         courses.map(async (course) => {
           const progress = await storage.getUserCourseProgress(req.user.id, course.id);
-          const progressPercentage = progress.totalAnswers > 0 
-            ? Math.round((progress.correctAnswers / progress.totalAnswers) * 100)
-            : 0;
+          // Calculate progress as total questions answered out of 85 (total questions in practice test)
+          const totalQuestionsInCourse = 85; // CPCU 500 has 85 questions
+          const progressPercentage = Math.round((progress.totalAnswers / totalQuestionsInCourse) * 100);
           
           const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const testsWithProgress = await Promise.all(

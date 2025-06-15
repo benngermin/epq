@@ -142,7 +142,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div className="space-y-4 sm:space-y-6">
             {courses.map((course: any) => (
               <Card key={course.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4">
