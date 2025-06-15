@@ -62,7 +62,7 @@ export function QuestionNavigation({
         </CardHeader>
         
         <CardContent>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="flex flex-col gap-1">
             {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
@@ -73,7 +73,7 @@ export function QuestionNavigation({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "w-10 h-10 p-0 text-sm font-medium",
+                    "w-full h-8 justify-start text-sm font-medium",
                     status === "correct" && "border-green-500 bg-green-500 text-white hover:bg-green-600",
                     status === "incorrect" && "border-red-500 bg-red-500 text-white hover:bg-red-600",
                     status === "unanswered" && "border-gray-300 bg-white text-gray-700 hover:border-gray-400",
@@ -81,7 +81,7 @@ export function QuestionNavigation({
                   )}
                   onClick={() => onQuestionClick(index)}
                 >
-                  {index + 1}
+                  Question {index + 1}
                 </Button>
               );
             })}
