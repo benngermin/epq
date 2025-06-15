@@ -39,10 +39,10 @@ export function QuestionNavigation({
 
   return (
     <div className={cn(
-      "w-64 bg-card border-r shadow-sm overflow-y-auto flex-shrink-0 transition-all duration-300",
+      "w-64 bg-card border-r shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
       isCollapsed && "w-0 overflow-hidden"
     )}>
-      <Card className="rounded-none border-0 border-b">
+      <Card className="rounded-none border-0 border-b flex-shrink-0">
         <CardHeader className="pb-4">
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Questions</CardTitle>
@@ -60,9 +60,11 @@ export function QuestionNavigation({
             <span className="text-gray-500 ml-1">Remaining: {remainingCount}</span>
           </div>
         </CardHeader>
-        
-        <CardContent>
-          <div className="flex flex-col gap-3">
+      </Card>
+      
+      <div className="flex-1 overflow-y-auto">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-2">
             {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
@@ -87,7 +89,7 @@ export function QuestionNavigation({
             })}
           </div>
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
