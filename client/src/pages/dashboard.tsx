@@ -86,20 +86,31 @@ export default function Dashboard() {
       <nav className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <GraduationCap className="h-6 w-6 text-primary mr-3" />
-              <span className="font-semibold text-foreground">CPC Practice Platform</span>
+            <div className="flex items-center min-w-0 flex-1">
+              <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary mr-2 sm:mr-3 flex-shrink-0" />
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">CPC Practice Platform</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome, {user?.name}</span>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
               {user?.isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setLocation("/admin")}
+                  className="hidden sm:flex"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Admin
+                </Button>
+              )}
+              {user?.isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/admin")}
+                  className="sm:hidden"
+                >
+                  <Settings className="h-4 w-4" />
                 </Button>
               )}
               <Button
@@ -114,42 +125,44 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">My Courses</h1>
-          <p className="text-muted-foreground mt-2">Continue your exam preparation journey</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Courses</h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Continue your exam preparation journey</p>
         </div>
 
         {!courses || courses.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
-              <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Courses Available</h3>
-              <p className="text-muted-foreground">
+              <BookOpen className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-2">No Courses Available</h3>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 No courses have been set up yet. Please contact your administrator.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {courses.map((course: any) => (
               <Card key={course.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center mb-4">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start sm:items-center mb-3 sm:mb-4 gap-3">
                     {course.title.toLowerCase().includes("property") ? (
-                      <BookOpen className="h-6 w-6 text-primary mr-3" />
+                      <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
                     ) : (
-                      <Shield className="h-6 w-6 text-primary mr-3" />
+                      <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
                     )}
-                    <CardTitle className="text-lg">{course.title}</CardTitle>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base sm:text-lg leading-tight">{course.title}</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm mt-1">{course.description}</CardDescription>
+                    </div>
                   </div>
-                  <CardDescription>{course.description}</CardDescription>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-0">
                   {/* Progress Indicator */}
                   <div>
-                    <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <div className="flex justify-between text-xs sm:text-sm text-muted-foreground mb-2">
                       <span>Overall Progress</span>
                       <span>{course.progress}%</span>
                     </div>
@@ -164,10 +177,10 @@ export default function Dashboard() {
                       <p className="text-sm text-muted-foreground">No practice tests available</p>
                     ) : (
                       course.practiceTests?.map((test: any) => (
-                        <div key={test.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                          <div>
-                            <span className="text-sm font-medium text-foreground">{test.title}</span>
-                            <div className="flex items-center mt-1">
+                        <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm font-medium text-foreground truncate">{test.title}</h5>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge
                                 variant="secondary"
                                 className={`text-xs text-white ${getStatusColor(test.status)}`}
@@ -175,19 +188,20 @@ export default function Dashboard() {
                                 {test.status}
                               </Badge>
                               {test.score && (
-                                <span className="text-xs text-muted-foreground ml-2">
+                                <span className="text-xs text-muted-foreground">
                                   Score: {test.score}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
                             {test.status === "Completed" ? (
                               <>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => resumeTest(test.testRun)}
+                                  className="w-full sm:w-auto"
                                 >
                                   Review
                                 </Button>
@@ -196,6 +210,7 @@ export default function Dashboard() {
                                   size="sm"
                                   onClick={() => restartTestMutation.mutate(test.id)}
                                   disabled={restartTestMutation.isPending}
+                                  className="w-full sm:w-auto"
                                 >
                                   Restart
                                 </Button>
@@ -205,6 +220,7 @@ export default function Dashboard() {
                                 <Button
                                   size="sm"
                                   onClick={() => resumeTest(test.testRun)}
+                                  className="w-full sm:w-auto"
                                 >
                                   Continue
                                 </Button>
@@ -213,6 +229,7 @@ export default function Dashboard() {
                                   size="sm"
                                   onClick={() => restartTestMutation.mutate(test.id)}
                                   disabled={restartTestMutation.isPending}
+                                  className="w-full sm:w-auto"
                                 >
                                   Start Over
                                 </Button>
@@ -222,6 +239,7 @@ export default function Dashboard() {
                                 size="sm"
                                 onClick={() => startTestMutation.mutate(test.id)}
                                 disabled={startTestMutation.isPending}
+                                className="w-full sm:w-auto"
                               >
                                 Start Test
                               </Button>

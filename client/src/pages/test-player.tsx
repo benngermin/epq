@@ -129,20 +129,20 @@ export default function TestPlayer() {
       {/* Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Button variant="ghost" size="sm" onClick={exitTest} className="mr-4">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center min-w-0 flex-1">
+              <Button variant="ghost" size="sm" onClick={exitTest} className="mr-2 sm:mr-4 flex-shrink-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <span className="font-semibold text-foreground">
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">
                 {(testRun as any)?.practiceTest?.title || "Practice Test"}
               </span>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">
-                Question {currentQuestionIndex + 1} of {totalQuestions}
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                Q {currentQuestionIndex + 1}/{totalQuestions}
               </span>
-              <div className="w-32">
+              <div className="w-16 sm:w-32">
                 <Progress value={progress} className="h-2" />
               </div>
             </div>
@@ -150,20 +150,22 @@ export default function TestPlayer() {
         </div>
       </nav>
 
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Question Navigation Rail */}
-        <QuestionNavigation
-          testRun={testRun}
-          currentQuestionIndex={currentQuestionIndex}
-          answeredQuestions={answeredQuestions}
-          onQuestionClick={navigateToQuestion}
-          isCollapsed={isRailCollapsed}
-          onToggleCollapse={() => setIsRailCollapsed(!isRailCollapsed)}
-        />
+      <div className="flex h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)]">
+        {/* Question Navigation Rail - Hidden on mobile */}
+        <div className="hidden lg:block">
+          <QuestionNavigation
+            testRun={testRun}
+            currentQuestionIndex={currentQuestionIndex}
+            answeredQuestions={answeredQuestions}
+            onQuestionClick={navigateToQuestion}
+            isCollapsed={isRailCollapsed}
+            onToggleCollapse={() => setIsRailCollapsed(!isRailCollapsed)}
+          />
+        </div>
 
         {/* Main Question Area */}
         <div className="flex-1 flex flex-col relative">
-          <div className="flex-1 p-8 pb-24 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-8 pb-20 sm:pb-24 overflow-y-auto">
             <div className="max-w-4xl mx-auto">
               <QuestionCard
                 question={currentQuestion}
@@ -176,27 +178,28 @@ export default function TestPlayer() {
 
           {/* Navigation Controls - Only show when question is answered */}
           {(currentQuestion as any)?.userAnswer && (
-            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-4 shadow-lg">
+            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-3 sm:p-4 shadow-lg">
               <div className="max-w-4xl mx-auto">
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center gap-2 min-w-[100px]"
+                    className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[100px] order-2 sm:order-1"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
 
-                  <div className="text-sm text-muted-foreground text-center flex-shrink-0 px-4">
-                    {answeredQuestions.length} of {totalQuestions} answered
+                  <div className="text-xs sm:text-sm text-muted-foreground text-center flex-shrink-0 order-1 sm:order-2">
+                    <span className="block sm:hidden">{answeredQuestions.length}/{totalQuestions} answered</span>
+                    <span className="hidden sm:block">{answeredQuestions.length} of {totalQuestions} answered</span>
                   </div>
 
                   <Button
                     onClick={handleNext}
                     disabled={completeTestMutation.isPending}
-                    className="flex items-center gap-2 min-w-[100px]"
+                    className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[100px] order-3"
                   >
                     {currentQuestionIndex === totalQuestions - 1 ? (
                       completeTestMutation.isPending ? "Completing..." : "Complete Test"

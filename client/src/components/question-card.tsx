@@ -50,18 +50,20 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="min-h-96">
-              <CardContent className="p-8">
-                <div className="mb-6">
-                  <Badge variant="secondary" className="mr-3">
-                    Question {question.questionIndex + 1}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {question.topicFocus}
-                  </span>
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <Badge variant="secondary" className="w-fit">
+                      Question {question.questionIndex + 1}
+                    </Badge>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
+                      {question.topicFocus}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="mb-8">
-                  <h2 className="text-xl font-medium text-foreground leading-relaxed">
+                <div className="mb-6 sm:mb-8">
+                  <h2 className="text-lg sm:text-xl font-medium text-foreground leading-relaxed">
                     {question.questionText}
                   </h2>
                 </div>
@@ -71,7 +73,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   onValueChange={setSelectedAnswer}
                   disabled={hasAnswer || isSubmitting}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {question.answerChoices.map((choice: string, index: number) => {
                       const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                       const isSelected = hasAnswer 
@@ -84,7 +86,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <Label
                             htmlFor={choiceLetter}
                             className={cn(
-                              "flex items-start p-4 rounded-lg border-2 cursor-pointer transition-colors",
+                              "flex items-start p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-colors",
                               "hover:border-primary",
                               isSelected && "border-primary bg-primary/5",
                               hasAnswer && isSelected && isCorrect && "border-green-500 bg-green-50",
@@ -95,10 +97,10 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                             <RadioGroupItem
                               value={choiceLetter}
                               id={choiceLetter}
-                              className="mt-1 mr-4"
+                              className="mt-0.5 sm:mt-1 mr-3 sm:mr-4 flex-shrink-0"
                             />
-                            <div className="flex-1">
-                              <span className="text-foreground">{choice}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm sm:text-base text-foreground leading-relaxed">{choice}</span>
                               {hasAnswer && isCorrectChoice && (
                                 <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600" />
                               )}
@@ -123,11 +125,11 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 )}
 
                 {!hasAnswer && (
-                  <div className="mt-8">
+                  <div className="mt-6 sm:mt-8">
                     <Button
                       onClick={handleSubmit}
                       disabled={!selectedAnswer || isSubmitting}
-                      className="w-full"
+                      className="w-full py-2 sm:py-3"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
