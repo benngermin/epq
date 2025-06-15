@@ -139,7 +139,9 @@ export const insertPracticeTestSchema = createInsertSchema(practiceTests);
 export const insertQuestionSchema = createInsertSchema(questions);
 export const insertQuestionVersionSchema = createInsertSchema(questionVersions);
 export const insertUserTestRunSchema = createInsertSchema(userTestRuns);
-export const insertUserAnswerSchema = createInsertSchema(userAnswers);
+export const insertUserAnswerSchema = createInsertSchema(userAnswers).omit({
+  isCorrect: true,
+});
 export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 
 // Types

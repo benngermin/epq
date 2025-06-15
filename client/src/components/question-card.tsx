@@ -185,7 +185,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         </div>
       </div>
 
-      <style jsx>{`
+      <style>
+        {`
         .card-flip {
           perspective: 1000px;
         }
@@ -209,7 +210,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         .card-flip-back {
           transform: rotateY(180deg);
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
