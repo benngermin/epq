@@ -23,7 +23,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const { toast } = useToast();
-  const hasInitialized = useRef(false);
+  const hasInitialized = useRef<string | null>(null);
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage?: string) => {
@@ -49,7 +49,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   // Get initial explanation when component mounts or question changes
   useEffect(() => {
     const currentKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
-    if (!hasInitialized.current || hasInitialized.current !== currentKey) {
+    if (hasInitialized.current !== currentKey) {
       hasInitialized.current = currentKey;
       setMessages([]); // Clear previous messages
       chatMutation.mutate(undefined);

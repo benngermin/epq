@@ -68,7 +68,7 @@ export default function TestPlayer() {
   // Get answered questions for navigation
   const answeredQuestions = (testRun as any)?.answers || [];
   const totalQuestions = (testRun as any)?.questionOrder?.length || 85;
-  const progress = Math.round((currentQuestionIndex / totalQuestions) * 100);
+  const progress = Math.round((answeredQuestions.length / totalQuestions) * 100);
 
   const navigateToQuestion = (index: number) => {
     if (index >= 0 && index < totalQuestions) {
