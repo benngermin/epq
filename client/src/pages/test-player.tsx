@@ -17,11 +17,38 @@ export default function TestPlayer() {
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);
+  const [hasInitializedIndex, setHasInitializedIndex] = useState(false);
 
   const { data: testRun, isLoading: testRunLoading, error: testRunError } = useQuery({
     queryKey: [`/api/test-runs/${runId}`],
     enabled: !!runId,
   });
+
+  // Initialize current question index to first unanswered question when test data loads
+  useEffect(() => {
+    if (testRun && !hasInitializedIndex) {
+      const answeredQuestions = (testRun as any)?.answers || [];
+      const questionOrder = (testRun as any)?.questionOrder || [];
+      
+      // Find first unanswered question
+      let firstUnansweredIndex = 0;
+      for (let i = 0; i < questionOrder.length; i++) {
+        const questionVersionId = questionOrder[i];
+        const hasAnswer = answeredQuestions.some((answer: any) => answer.questionVersionId === questionVersionId);
+        if (!hasAnswer) {
+          firstUnansweredIndex = i;
+          break;
+        }
+        // If we've answered all questions, stay at the last question
+        if (i === questionOrder.length - 1) {
+          firstUnansweredIndex = i;
+        }
+      }
+      
+      setCurrentQuestionIndex(firstUnansweredIndex);
+      setHasInitializedIndex(true);
+    }
+  }, [testRun, hasInitializedIndex]);
 
   console.log("Test Player - runId:", runId);
   console.log("Test Player - testRun:", testRun);
