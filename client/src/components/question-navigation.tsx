@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuestionNavigationProps {
@@ -73,15 +73,15 @@ export function QuestionNavigation({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "w-full h-8 justify-start text-sm font-medium",
-                    status === "correct" && "border-green-500 bg-green-500 text-white hover:bg-green-600",
-                    status === "incorrect" && "border-red-500 bg-red-500 text-white hover:bg-red-600",
-                    status === "unanswered" && "border-gray-300 bg-white text-gray-700 hover:border-gray-400",
+                    "w-full h-8 justify-between text-sm font-medium",
+                    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50",
                     isCurrent && "ring-2 ring-primary ring-offset-2"
                   )}
                   onClick={() => onQuestionClick(index)}
                 >
-                  Question {index + 1}
+                  <span>Question {index + 1}</span>
+                  {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
+                  {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
                 </Button>
               );
             })}
