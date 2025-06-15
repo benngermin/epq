@@ -36,6 +36,7 @@ export default function Dashboard() {
   });
 
   const resumeTest = (testRun: any) => {
+    console.log("Resuming test with run:", testRun);
     setLocation(`/test/${testRun.id}`);
   };
 

@@ -16,10 +16,15 @@ export default function TestPlayer() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);
 
-  const { data: testRun, isLoading: testRunLoading } = useQuery({
+  const { data: testRun, isLoading: testRunLoading, error: testRunError } = useQuery({
     queryKey: ["/api/test-runs", runId],
     enabled: !!runId,
   });
+
+  console.log("Test Player - runId:", runId);
+  console.log("Test Player - testRun:", testRun);
+  console.log("Test Player - testRunLoading:", testRunLoading);
+  console.log("Test Player - testRunError:", testRunError);
 
   const { data: currentQuestion, isLoading: questionLoading } = useQuery({
     queryKey: ["/api/test-runs", runId, "question", currentQuestionIndex],
