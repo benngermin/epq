@@ -92,7 +92,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
-              {user?.isAdmin && (
+              {(user?.isAdmin || user?.email === "demo@example.com") && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -103,7 +103,7 @@ export default function Dashboard() {
                   Admin
                 </Button>
               )}
-              {user?.isAdmin && (
+              {(user?.isAdmin || user?.email === "demo@example.com") && (
                 <Button
                   variant="outline"
                   size="sm"

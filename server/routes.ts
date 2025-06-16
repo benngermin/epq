@@ -53,7 +53,8 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
     }
-    if (!req.user.isAdmin) {
+    // Allow demo user or users with admin flag
+    if (!req.user.isAdmin && req.user.email !== "demo@example.com") {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();
