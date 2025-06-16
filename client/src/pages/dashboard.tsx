@@ -88,7 +88,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
               <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Question Set Practice</span>
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam question practice</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
@@ -171,10 +171,10 @@ export default function Dashboard() {
 
                   {/* Practice Tests */}
                   <div className="space-y-2">
-                    <h4 className="font-medium text-foreground text-sm">Practice Tests</h4>
+                    <h4 className="font-medium text-foreground text-sm">Exam Questions</h4>
                     
                     {course.practiceTests?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No practice tests available</p>
+                      <p className="text-sm text-muted-foreground">No exam questions available</p>
                     ) : (
                       course.practiceTests?.map((test: any) => (
                         <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">

@@ -218,7 +218,7 @@ export default function AdminPanel() {
                 </TabsTrigger>
                 <TabsTrigger value="tests" className="justify-start">
                   <FileText className="h-4 w-4 mr-2" />
-                  Practice Tests
+                  Exam Questions
                 </TabsTrigger>
                 <TabsTrigger value="questions" className="justify-start">
                   <HelpCircle className="h-4 w-4 mr-2" />
@@ -334,13 +334,13 @@ export default function AdminPanel() {
             <TabsContent value="tests">
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Practice Tests</h1>
-                  <p className="text-muted-foreground mt-2">View all practice tests across courses</p>
+                  <h1 className="text-2xl font-bold text-foreground">Exam Questions</h1>
+                  <p className="text-muted-foreground mt-2">View all exam questions across courses</p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>All Practice Tests</CardTitle>
+                    <CardTitle>All Exam Questions</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {testsLoading ? (
