@@ -123,6 +123,24 @@ export default function AdminPanel() {
     },
   });
 
+  const createQuestionSetMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/question-sets", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      toast({ title: "Question set created successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create question set",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const importQuestionsMutation = useMutation({
     mutationFn: async (data: { courseId: number; questions: any[] }) => {
       const res = await apiRequest("POST", "/api/admin/import-questions", data);
@@ -291,10 +309,7 @@ export default function AdminPanel() {
                   <FileText className="h-4 w-4 mr-2" />
                   Question Sets
                 </TabsTrigger>
-                <TabsTrigger value="questions" className="justify-start">
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Questions
-                </TabsTrigger>
+
                 <TabsTrigger value="import" className="justify-start">
                   <Upload className="h-4 w-4 mr-2" />
                   Bulk Import
@@ -481,21 +496,58 @@ export default function AdminPanel() {
                             <CardTitle>{course.title}</CardTitle>
                             <CardDescription>{course.description}</CardDescription>
                           </div>
-                          <Button size="sm">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Question Set
-                          </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Question Set
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Create Question Set</DialogTitle>
+                                <DialogDescription>
+                                  Add a new question set to {course.title}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const formData = new FormData(e.target as HTMLFormElement);
+                                onCreateQuestionSet({
+                                  courseId: course.id,
+                                  title: formData.get('title') as string,
+                                  description: formData.get('description') as string
+                                });
+                              }} className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="questionset-title">Question Set Title</Label>
+                                  <Input
+                                    id="questionset-title"
+                                    name="title"
+                                    placeholder="e.g., Chapter 1 - Risk Management"
+                                    required
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="questionset-description">Description</Label>
+                                  <Input
+                                    id="questionset-description"
+                                    name="description"
+                                    placeholder="Brief description of this question set"
+                                  />
+                                </div>
+                                <DialogFooter>
+                                  <Button type="submit" disabled={createQuestionSetMutation.isPending}>
+                                    {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
+                                  </Button>
+                                </DialogFooter>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-4">
-                          <div className="text-sm text-muted-foreground">
-                            {course.questionSetCount || 0} question sets • {course.questionCount || 0} total questions
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Question sets for this course will be displayed here. You can add question sets and import questions in bulk via JSON uploads.
-                          </div>
-                        </div>
+                        <QuestionSetsList courseId={course.id} />
                       </CardContent>
                     </Card>
                   ))
@@ -503,61 +555,7 @@ export default function AdminPanel() {
               </div>
             </TabsContent>
 
-            <TabsContent value="questions">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Questions</h1>
-                  <p className="text-muted-foreground mt-2">View all questions across courses</p>
-                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>All Questions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {questionsLoading ? (
-                      <p>Loading questions...</p>
-                    ) : !questions || questions.length === 0 ? (
-                      <p className="text-muted-foreground">No questions found.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2">ID</th>
-                              <th className="text-left py-2">Course</th>
-                              <th className="text-left py-2">Original #</th>
-                              <th className="text-left py-2">LOID</th>
-                              <th className="text-left py-2">Versions</th>
-                              <th className="text-left py-2">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {questions.map((question: any) => (
-                              <tr key={question.id} className="border-b">
-                                <td className="py-2 font-medium">{question.id}</td>
-                                <td className="py-2">{question.courseName}</td>
-                                <td className="py-2">{question.originalQuestionNumber}</td>
-                                <td className="py-2">{question.loid}</td>
-                                <td className="py-2">{question.versionCount}</td>
-                                <td className="py-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    View
-                                  </Button>
-                                  <Button variant="destructive" size="sm">
-                                    Delete
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
 
             <TabsContent value="users">
               <div className="space-y-6">
