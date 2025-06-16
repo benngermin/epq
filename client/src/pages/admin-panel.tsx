@@ -182,6 +182,7 @@ export default function AdminPanel() {
 
   // State for editing
   const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [questionSetDialogOpen, setQuestionSetDialogOpen] = useState(false);
 
   // Forms
   const courseForm = useForm({
@@ -200,7 +201,6 @@ export default function AdminPanel() {
     },
   });
 
-  const [questionSetDialogOpen, setQuestionSetDialogOpen] = useState(false);
   const [importData, setImportData] = useState({
     courseId: "",
     jsonData: "",
