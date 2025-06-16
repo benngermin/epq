@@ -409,7 +409,7 @@ export default function AdminPanel() {
     try {
       const questions = JSON.parse(importData.jsonData);
       importQuestionsMutation.mutate({
-        courseId: parseInt(importData.courseId),
+        questionSetId: parseInt(importData.courseId),
         questions,
       });
     } catch (error) {
@@ -728,7 +728,7 @@ export default function AdminPanel() {
                   <CardContent>
                     {usersLoading ? (
                       <p>Loading users...</p>
-                    ) : !users || users.length === 0 ? (
+                    ) : !users || !Array.isArray(users) || users.length === 0 ? (
                       <p className="text-muted-foreground">No users found. User management feature needs implementation.</p>
                     ) : (
                       <div className="overflow-x-auto">
@@ -742,7 +742,7 @@ export default function AdminPanel() {
                             </tr>
                           </thead>
                           <tbody>
-                            {users.map((user: any) => (
+                            {Array.isArray(users) && users.map((user: any) => (
                               <tr key={user.id} className="border-b">
                                 <td className="py-2 font-medium">{user.name}</td>
                                 <td className="py-2">{user.email}</td>
@@ -791,7 +791,7 @@ export default function AdminPanel() {
                           <SelectValue placeholder="Choose a course" />
                         </SelectTrigger>
                         <SelectContent>
-                          {courses?.map((course: any) => (
+                          {Array.isArray(courses) && courses.map((course: any) => (
                             <SelectItem key={course.id} value={course.id.toString()}>
                               {course.title}
                             </SelectItem>
