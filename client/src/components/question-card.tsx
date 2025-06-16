@@ -51,7 +51,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           <div className="card-flip-front">
             <Card className="min-h-96">
               <CardContent className="p-4 sm:p-6 lg:p-8">
-                <div className="mb-4 sm:mb-6">
+                <div className="mb-3 sm:mb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <Badge variant="secondary" className="w-fit">
                       Question {question.questionIndex + 1}
@@ -63,9 +63,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 </div>
 
                 <div className="mb-6 sm:mb-8">
-                  <h2 className="text-lg sm:text-xl font-medium text-foreground leading-relaxed">
+                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
                     {question.questionText}
-                  </h2>
+                  </p>
                 </div>
 
                 <RadioGroup
