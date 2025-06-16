@@ -344,9 +344,9 @@ export default function AdminPanel() {
                   </CardHeader>
                   <CardContent>
                     {testsLoading ? (
-                      <p>Loading practice tests...</p>
+                      <p>Loading exam questions...</p>
                     ) : !practiceTests || practiceTests.length === 0 ? (
-                      <p className="text-muted-foreground">No practice tests found.</p>
+                      <p className="text-muted-foreground">No exam questions found.</p>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full">
