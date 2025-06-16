@@ -89,7 +89,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <GraduationCap className="mx-auto h-12 w-12 text-primary mb-4" />
-            <h1 className="text-3xl font-bold text-foreground">Test Practice</h1>
+            <h1 className="text-3xl font-bold text-foreground">Question Set Practice</h1>
           </div>
 
           <div className="mb-6">
@@ -125,7 +125,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Welcome back</CardTitle>
                   <CardDescription>
-                    Sign in to continue your exam preparation
+                    Sign in to continue your question set preparation
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
