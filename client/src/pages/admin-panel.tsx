@@ -128,9 +128,11 @@ export default function AdminPanel() {
       const res = await apiRequest("POST", "/api/admin/question-sets", data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", variables.courseId] });
       toast({ title: "Question set created successfully" });
+      setQuestionSetDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -142,13 +144,14 @@ export default function AdminPanel() {
   });
 
   const importQuestionsMutation = useMutation({
-    mutationFn: async (data: { courseId: number; questions: any[] }) => {
+    mutationFn: async (data: { questionSetId: number; questions: any[] }) => {
       const res = await apiRequest("POST", "/api/admin/import-questions", data);
       return await res.json();
     },
     onSuccess: (data) => {
       toast({ title: data.message });
-      setImportData({ courseId: "", jsonData: "" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
     },
     onError: (error: Error) => {
       toast({
@@ -197,6 +200,7 @@ export default function AdminPanel() {
     },
   });
 
+  const [questionSetDialogOpen, setQuestionSetDialogOpen] = useState(false);
   const [importData, setImportData] = useState({
     courseId: "",
     jsonData: "",
@@ -239,6 +243,25 @@ export default function AdminPanel() {
       queryFn: () => fetch(`/api/admin/question-sets/${courseId}`).then(res => res.json()),
     });
 
+    const deleteQuestionSetMutation = useMutation({
+      mutationFn: async (id: number) => {
+        const res = await apiRequest("DELETE", `/api/admin/question-sets/${id}`);
+        return res;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+        toast({ title: "Question set deleted successfully" });
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Failed to delete question set",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+
     if (questionSetsLoading) {
       return <div className="text-sm text-muted-foreground">Loading question sets...</div>;
     }
@@ -267,15 +290,92 @@ export default function AdminPanel() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // Navigate to view questions for this question set
+                  toast({ title: "View Questions functionality coming soon" });
+                }}
+              >
                 View Questions
               </Button>
-              <Button variant="outline" size="sm">
-                Import Questions
-              </Button>
-              <Button variant="destructive" size="sm">
-                Delete
-              </Button>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Import Questions
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Import Questions</DialogTitle>
+                    <DialogDescription>
+                      Import questions to {questionSet.title}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target as HTMLFormElement);
+                    const jsonData = formData.get('jsonData') as string;
+                    
+                    try {
+                      const questions = JSON.parse(jsonData);
+                      importQuestionsMutation.mutate({
+                        questionSetId: questionSet.id,
+                        questions: questions
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Invalid JSON",
+                        description: "Please provide valid JSON data",
+                        variant: "destructive",
+                      });
+                    }
+                  }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="jsonData">Questions JSON Data</Label>
+                      <Textarea
+                        id="jsonData"
+                        name="jsonData"
+                        placeholder="Paste your questions JSON data here..."
+                        className="min-h-[200px]"
+                        required
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={importQuestionsMutation.isPending}>
+                        {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Question Set</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{questionSet.title}"? This action cannot be undone and will also delete all questions in this set.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteQuestionSetMutation.mutate(questionSet.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         ))}

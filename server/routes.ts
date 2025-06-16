@@ -558,15 +558,15 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/admin/import-questions", requireAdmin, async (req, res) => {
     try {
-      const { courseId, questions: questionsData } = req.body;
+      const { questionSetId, questions: questionsData } = req.body;
       
-      const course = await storage.getCourse(courseId);
-      if (!course) {
-        return res.status(404).json({ message: "Course not found" });
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
       }
 
       const validatedQuestions = z.array(questionImportSchema).parse(questionsData);
-      await storage.importQuestions(courseId, validatedQuestions);
+      await storage.importQuestions(questionSetId, validatedQuestions);
       
       res.json({ message: `Successfully imported ${validatedQuestions.length} questions` });
     } catch (error) {
