@@ -88,7 +88,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
               <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Test Practice</span>
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Question Set Practice</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>

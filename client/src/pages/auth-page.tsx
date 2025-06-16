@@ -177,7 +177,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Create account</CardTitle>
                   <CardDescription>
-                    Join thousands of successful exam candidates
+                    Join thousands of successful question set candidates
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -259,7 +259,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-1 bg-primary/5 items-center justify-center p-8">
         <div className="max-w-md text-center">
           <h2 className="text-3xl font-bold text-foreground mb-6">
-            Master Your Insurance Exams
+            Master Your Insurance Question Sets
           </h2>
           <p className="text-muted-foreground mb-8">
             Prepare with confidence using our comprehensive practice test platform featuring 
@@ -269,7 +269,7 @@ export default function AuthPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <Shield className="mx-auto h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold">Exam Proven</h3>
+              <h3 className="font-semibold">Question Set Proven</h3>
               <p className="text-sm text-muted-foreground">
                 Trusted by thousands of successful candidates
               </p>

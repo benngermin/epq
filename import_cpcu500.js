@@ -21,7 +21,7 @@ async function importCPCU500() {
     // Create a practice test for the course
     const testResult = await client.query(
       'INSERT INTO practice_tests (course_id, title, question_count) VALUES ($1, $2, $3) RETURNING id',
-      [courseId, 'CPCU 500 Practice Exam', 85]
+      [courseId, 'CPCU 500 Practice Question Set', 85]
     );
     const testId = testResult.rows[0].id;
     console.log(`Created practice test with ID: ${testId}`);
