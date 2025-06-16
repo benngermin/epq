@@ -52,14 +52,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
             <Card className="min-h-96">
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="mb-3 sm:mb-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                    <Badge variant="secondary" className="w-fit">
-                      Question {question.questionIndex + 1}
-                    </Badge>
-                    <span className="text-xs sm:text-sm text-muted-foreground">
-                      {question.topicFocus}
-                    </span>
-                  </div>
+                  <Badge variant="secondary" className="w-fit">
+                    Question {question.questionIndex + 1}
+                  </Badge>
                 </div>
 
                 <div className="mb-6 sm:mb-8">
