@@ -236,6 +236,26 @@ export default function AdminPanel() {
     createQuestionSetMutation.mutate(data);
   };
 
+  const onEditCourse = (course: any) => {
+    setEditingCourse(course);
+    editCourseForm.reset({
+      title: course.title,
+      description: course.description,
+    });
+  };
+
+  const onUpdateCourse = async (data: any) => {
+    if (editingCourse) {
+      updateCourseMutation.mutate({ id: editingCourse.id, data });
+    }
+  };
+
+  const onDeleteCourse = async (id: number) => {
+    deleteCourseMutation.mutate(id);
+  };
+
+
+
   // Component for displaying question sets within a course
   const QuestionSetsSection = ({ courseId }: { courseId: number }) => {
     const { data: questionSets, isLoading: questionSetsLoading } = useQuery({
@@ -383,26 +403,7 @@ export default function AdminPanel() {
     );
   };
 
-  const onEditCourse = (course: any) => {
-    setEditingCourse(course);
-    editCourseForm.reset({
-      title: course.title,
-      description: course.description,
-    });
-  };
 
-  const onUpdateCourse = (data: any) => {
-    if (editingCourse) {
-      updateCourseMutation.mutate({
-        id: editingCourse.id,
-        data,
-      });
-    }
-  };
-
-  const onDeleteCourse = (courseId: number) => {
-    deleteCourseMutation.mutate(courseId);
-  };
 
   const onImportQuestions = () => {
     try {
@@ -532,7 +533,7 @@ export default function AdminPanel() {
                   <CardContent>
                     {coursesLoading ? (
                       <p>Loading courses...</p>
-                    ) : !courses || courses.length === 0 ? (
+                    ) : !courses || !Array.isArray(courses) || courses.length === 0 ? (
                       <p className="text-muted-foreground">No courses created yet.</p>
                     ) : (
                       <div className="overflow-x-auto">
@@ -640,7 +641,7 @@ export default function AdminPanel() {
 
                 {coursesLoading ? (
                   <p>Loading courses...</p>
-                ) : !courses || courses.length === 0 ? (
+                ) : !courses || !Array.isArray(courses) || courses.length === 0 ? (
                   <p className="text-muted-foreground">No courses available. Create a course first.</p>
                 ) : (
                   courses.map((course: any) => (
