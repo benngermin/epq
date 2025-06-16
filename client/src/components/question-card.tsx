@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
+import { useQuestionContext } from "@/contexts/question-context";
 import { cn } from "@/lib/utils";
 
 interface QuestionCardProps {
@@ -17,8 +18,11 @@ interface QuestionCardProps {
 
 export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
-  const [isFlipped, setIsFlipped] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const { getQuestionState, setQuestionFlipped } = useQuestionContext();
+  
+  const questionState = getQuestionState(question.id);
+  const isFlipped = questionState.isFlipped;
 
   const hasAnswer = !!question.userAnswer;
   const isCorrect = question.userAnswer?.isCorrect;
@@ -31,16 +35,23 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
     // If incorrect, flip the card after a short delay
     setTimeout(() => {
       if (selectedAnswer !== question.correctAnswer) {
-        setIsFlipped(true);
+        setQuestionFlipped(question.id, true);
         setShowChat(true);
       }
     }, 1000);
   };
 
   const handleContinue = () => {
-    setIsFlipped(false);
+    setQuestionFlipped(question.id, false);
     setShowChat(false);
     setSelectedAnswer("");
+  };
+
+  const handleToggleFeedback = () => {
+    if (hasAnswer && !isCorrect) {
+      setQuestionFlipped(question.id, !isFlipped);
+      setShowChat(!isFlipped);
+    }
   };
 
   return (
@@ -118,6 +129,28 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                       <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                       <span className="font-medium text-green-800">Correct!</span>
                     </div>
+                  </div>
+                )}
+
+                {hasAnswer && !isCorrect && (
+                  <div className="mt-6">
+                    <Button
+                      onClick={handleToggleFeedback}
+                      variant="outline"
+                      className="w-full py-2 sm:py-3"
+                    >
+                      {isFlipped ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Hide Feedback
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Show Feedback
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
 
