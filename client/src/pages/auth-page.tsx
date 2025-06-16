@@ -89,10 +89,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <GraduationCap className="mx-auto h-12 w-12 text-primary mb-4" />
-            <h1 className="text-3xl font-bold text-foreground">CPC Exam Practice</h1>
-            <p className="text-muted-foreground mt-2">
-              Prepare for your CPC-500 series insurance exams
-            </p>
+            <h1 className="text-3xl font-bold text-foreground">Test Practice</h1>
           </div>
 
           <div className="mb-6">
@@ -258,7 +255,6 @@ export default function AuthPage() {
           </Tabs>
         </div>
       </div>
-
       {/* Right side - Hero */}
       <div className="hidden lg:flex flex-1 bg-primary/5 items-center justify-center p-8">
         <div className="max-w-md text-center">
