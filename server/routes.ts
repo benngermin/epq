@@ -177,15 +177,20 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Practice test not found" });
       }
 
-      // Get all questions for the course
-      const questions = await storage.getQuestionsByCourse(practiceTest.courseId);
+      // Get all questions for the course through question sets
+      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
+      let allQuestions = [];
+      for (const questionSet of questionSets) {
+        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+        allQuestions.push(...questions);
+      }
       
-      if (questions.length < 85) {
+      if (allQuestions.length < 85) {
         return res.status(400).json({ message: "Not enough questions available for this test" });
       }
 
       // Shuffle questions and select random versions
-      const shuffledQuestions = questions.sort(() => Math.random() - 0.5).slice(0, 85);
+      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
       const questionOrder = [];
 
       for (const question of shuffledQuestions) {
@@ -219,15 +224,20 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Practice test not found" });
       }
 
-      // Get all questions for the course
-      const questions = await storage.getQuestionsByCourse(practiceTest.courseId);
+      // Get all questions for the course through question sets
+      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
+      let allQuestions = [];
+      for (const questionSet of questionSets) {
+        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+        allQuestions.push(...questions);
+      }
       
-      if (questions.length < 85) {
+      if (allQuestions.length < 85) {
         return res.status(400).json({ message: "Not enough questions available for this test" });
       }
 
       // Shuffle questions and select random versions (same logic as start)
-      const shuffledQuestions = questions.sort(() => Math.random() - 0.5).slice(0, 85);
+      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
       const questionOrder = [];
 
       for (const question of shuffledQuestions) {
@@ -554,18 +564,21 @@ export function registerRoutes(app: Express): Server {
       const allQuestions = [];
       
       for (const course of courses) {
-        const questions = await storage.getQuestionsByCourse(course.id);
-        const questionsWithVersions = [];
+        const questionSets = await storage.getQuestionSetsByCourse(course.id);
         
-        for (const question of questions) {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          questionsWithVersions.push({
-            ...question,
-            courseName: course.title,
-            versionCount: versions.length
-          });
+        for (const questionSet of questionSets) {
+          const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+          
+          for (const question of questions) {
+            const versions = await storage.getQuestionVersionsByQuestion(question.id);
+            allQuestions.push({
+              ...question,
+              courseName: course.title,
+              questionSetName: questionSet.title,
+              versionCount: versions.length
+            });
+          }
         }
-        allQuestions.push(...questionsWithVersions);
       }
       
       res.json(allQuestions);
