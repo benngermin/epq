@@ -70,21 +70,25 @@ export function QuestionNavigation({
               const isCurrent = index === currentQuestionIndex;
               
               return (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-full h-8 justify-between text-sm font-medium",
-                    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50",
-                    isCurrent && "ring-2 ring-primary ring-offset-2"
-                  )}
-                  onClick={() => onQuestionClick(index)}
-                >
-                  <span>Question {index + 1}</span>
-                  {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
-                  {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
-                </Button>
+                <div key={index} className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-gray-600 w-6 text-center flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "flex-1 h-8 justify-between text-sm font-medium",
+                      "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50",
+                      isCurrent && "ring-2 ring-primary ring-offset-2"
+                    )}
+                    onClick={() => onQuestionClick(index)}
+                  >
+                    <span>Question</span>
+                    {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
+                    {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
+                  </Button>
+                </div>
               );
             })}
           </div>
