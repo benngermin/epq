@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Home, BookOpen, FileText, HelpCircle, Upload, Bot, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Settings, Home, BookOpen, FileText, HelpCircle, Upload, Bot, Users, Edit, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +86,43 @@ export default function AdminPanel() {
     },
   });
 
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/courses/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      toast({ title: "Course updated successfully" });
+      setEditingCourse(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update course",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/courses/${id}`);
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      toast({ title: "Course deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete course",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const importQuestionsMutation = useMutation({
     mutationFn: async (data: { courseId: number; questions: any[] }) => {
       const res = await apiRequest("POST", "/api/admin/import-questions", data);
@@ -120,8 +159,19 @@ export default function AdminPanel() {
     },
   });
 
+  // State for editing
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+
   // Forms
   const courseForm = useForm({
+    resolver: zodResolver(insertCourseSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+    },
+  });
+
+  const editCourseForm = useForm({
     resolver: zodResolver(insertCourseSchema),
     defaultValues: {
       title: "",
@@ -158,6 +208,27 @@ export default function AdminPanel() {
 
   const onCreateCourse = (data: any) => {
     createCourseMutation.mutate(data);
+  };
+
+  const onEditCourse = (course: any) => {
+    setEditingCourse(course);
+    editCourseForm.reset({
+      title: course.title,
+      description: course.description,
+    });
+  };
+
+  const onUpdateCourse = (data: any) => {
+    if (editingCourse) {
+      updateCourseMutation.mutate({
+        id: editingCourse.id,
+        data,
+      });
+    }
+  };
+
+  const onDeleteCourse = (courseId: number) => {
+    deleteCourseMutation.mutate(courseId);
   };
 
   const onImportQuestions = () => {
@@ -313,12 +384,71 @@ export default function AdminPanel() {
                                 <td className="py-2">{course.testCount}</td>
                                 <td className="py-2">{course.questionCount}</td>
                                 <td className="py-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    Edit
-                                  </Button>
-                                  <Button variant="destructive" size="sm">
-                                    Delete
-                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="outline" size="sm" className="mr-2" onClick={() => onEditCourse(course)}>
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Course</DialogTitle>
+                                        <DialogDescription>
+                                          Update the course information below.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <form onSubmit={editCourseForm.handleSubmit(onUpdateCourse)} className="space-y-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-title">Course Title</Label>
+                                          <Input
+                                            id="edit-title"
+                                            placeholder="e.g., Property & Casualty Insurance"
+                                            {...editCourseForm.register("title")}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-description">Description</Label>
+                                          <Input
+                                            id="edit-description"
+                                            placeholder="Brief course description"
+                                            {...editCourseForm.register("description")}
+                                          />
+                                        </div>
+                                        <DialogFooter>
+                                          <Button type="submit" disabled={updateCourseMutation.isPending}>
+                                            {updateCourseMutation.isPending ? "Updating..." : "Update Course"}
+                                          </Button>
+                                        </DialogFooter>
+                                      </form>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm">
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete "{course.title}" and all associated practice tests and questions. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => onDeleteCourse(course.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete Course
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </td>
                               </tr>
                             ))}
