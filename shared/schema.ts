@@ -18,16 +18,25 @@ export const courses = pgTable("courses", {
   description: text("description").notNull(),
 });
 
+export const questionSets = pgTable("question_sets", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  questionCount: integer("question_count").default(0).notNull(),
+});
+
 export const practiceTests = pgTable("practice_tests", {
   id: serial("id").primaryKey(),
   courseId: integer("course_id").references(() => courses.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
   title: text("title").notNull(),
   questionCount: integer("question_count").default(85).notNull(),
 });
 
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").references(() => courses.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
   originalQuestionNumber: integer("original_question_number").notNull(),
   loid: text("loid").notNull(),
 });
@@ -77,7 +86,16 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const coursesRelations = relations(courses, ({ many }) => ({
   practiceTests: many(practiceTests),
+  questionSets: many(questionSets),
+}));
+
+export const questionSetsRelations = relations(questionSets, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [questionSets.courseId],
+    references: [courses.id],
+  }),
   questions: many(questions),
+  practiceTests: many(practiceTests),
 }));
 
 export const practiceTestsRelations = relations(practiceTests, ({ one, many }) => ({
@@ -85,13 +103,17 @@ export const practiceTestsRelations = relations(practiceTests, ({ one, many }) =
     fields: [practiceTests.courseId],
     references: [courses.id],
   }),
+  questionSet: one(questionSets, {
+    fields: [practiceTests.questionSetId],
+    references: [questionSets.id],
+  }),
   testRuns: many(userTestRuns),
 }));
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [questions.courseId],
-    references: [courses.id],
+  questionSet: one(questionSets, {
+    fields: [questions.questionSetId],
+    references: [questionSets.id],
   }),
   versions: many(questionVersions),
 }));
@@ -135,6 +157,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertCourseSchema = createInsertSchema(courses);
+export const insertQuestionSetSchema = createInsertSchema(questionSets);
 export const insertPracticeTestSchema = createInsertSchema(practiceTests);
 export const insertQuestionSchema = createInsertSchema(questions);
 export const insertQuestionVersionSchema = createInsertSchema(questionVersions);
@@ -149,6 +172,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
+export type QuestionSet = typeof questionSets.$inferSelect;
+export type InsertQuestionSet = z.infer<typeof insertQuestionSetSchema>;
 export type PracticeTest = typeof practiceTests.$inferSelect;
 export type InsertPracticeTest = z.infer<typeof insertPracticeTestSchema>;
 export type Question = typeof questions.$inferSelect;
