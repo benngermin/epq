@@ -60,6 +60,12 @@ export default function TestPlayer() {
     enabled: !!runId && currentQuestionIndex >= 0,
   });
 
+  // Fetch all questions for navigation titles
+  const { data: allQuestions } = useQuery({
+    queryKey: [`/api/test-runs/${runId}/all-questions`],
+    enabled: !!runId && !!testRun,
+  });
+
   const submitAnswerMutation = useMutation({
     mutationFn: async (data: { questionVersionId: number; chosenAnswer: string }) => {
       const res = await apiRequest("POST", `/api/test-runs/${runId}/answers`, data);
@@ -187,6 +193,7 @@ export default function TestPlayer() {
             onQuestionClick={navigateToQuestion}
             isCollapsed={isRailCollapsed}
             onToggleCollapse={() => setIsRailCollapsed(!isRailCollapsed)}
+            allQuestions={allQuestions || []}
           />
         </div>
 

@@ -314,6 +314,35 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/test-runs/:id/all-questions", requireAuth, async (req, res) => {
+    try {
+      const testRunId = parseInt(req.params.id);
+      
+      const testRun = await storage.getUserTestRun(testRunId);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Fetch all question versions for this test run
+      const questionVersions = await Promise.all(
+        testRun.questionOrder.map(async (questionVersionId) => {
+          const questionVersion = await storage.getQuestionVersion(questionVersionId);
+          return questionVersion;
+        })
+      );
+
+      res.json(questionVersions.filter(q => q !== undefined));
+    } catch (error) {
+      console.error("Error fetching all questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
   app.post("/api/test-runs/:id/answers", requireAuth, async (req, res) => {
     try {
       const testRunId = parseInt(req.params.id);

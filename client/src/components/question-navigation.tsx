@@ -10,6 +10,7 @@ interface QuestionNavigationProps {
   onQuestionClick: (index: number) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  allQuestions: any[];
 }
 
 export function QuestionNavigation({
@@ -19,6 +20,7 @@ export function QuestionNavigation({
   onQuestionClick,
   isCollapsed,
   onToggleCollapse,
+  allQuestions,
 }: QuestionNavigationProps) {
   const totalQuestions = testRun.questionOrder?.length || 85;
   
@@ -32,6 +34,33 @@ export function QuestionNavigation({
     if (!answer) return "unanswered";
     return answer.isCorrect ? "correct" : "incorrect";
   });
+
+  // Function to generate meaningful title for each question
+  const getQuestionTitle = (index: number): string => {
+    if (!allQuestions || allQuestions.length <= index) {
+      return "Question";
+    }
+    
+    const question = allQuestions[index];
+    if (!question) return "Question";
+    
+    // Use topic focus if available
+    if (question.topicFocus && question.topicFocus.trim() !== "") {
+      return question.topicFocus.length > 25 
+        ? question.topicFocus.substring(0, 25) + "..."
+        : question.topicFocus;
+    }
+    
+    // Fallback to truncated question text
+    if (question.questionText && question.questionText.trim() !== "") {
+      const cleanText = question.questionText.replace(/\s+/g, ' ').trim();
+      return cleanText.length > 25 
+        ? cleanText.substring(0, 25) + "..."
+        : cleanText;
+    }
+    
+    return "Question";
+  };
 
   const correctCount = questionStatuses.filter(status => status === "correct").length;
   const incorrectCount = questionStatuses.filter(status => status === "incorrect").length;
