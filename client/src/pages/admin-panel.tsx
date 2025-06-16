@@ -254,6 +254,68 @@ export default function AdminPanel() {
     deleteCourseMutation.mutate(id);
   };
 
+  // Component to display questions in a question set
+  const QuestionsList = ({ questionSetId }: { questionSetId: number }) => {
+    const { data: questions, isLoading } = useQuery({
+      queryKey: ['/api/admin/questions', questionSetId],
+      queryFn: () => apiRequest(`/api/admin/questions?questionSetId=${questionSetId}`),
+    });
+
+    if (isLoading) {
+      return <div className="text-center py-4">Loading questions...</div>;
+    }
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No questions found in this question set.</p>
+          <p className="text-sm mt-2">Use the "Import Questions" button to add questions.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {questions.map((question: any, index: number) => (
+          <div key={question.id} className="border rounded-lg p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-medium text-sm">Question {question.originalQuestionNumber || index + 1}</h4>
+              <span className="text-xs bg-secondary px-2 py-1 rounded">
+                {question.topicFocus || 'General'}
+              </span>
+            </div>
+            
+            <p className="text-sm mb-3 leading-relaxed">{question.questionText}</p>
+            
+            {question.answerChoices && Array.isArray(question.answerChoices) && (
+              <div className="space-y-1 mb-3">
+                {question.answerChoices.map((choice: string, choiceIndex: number) => (
+                  <div 
+                    key={choiceIndex} 
+                    className={`text-xs p-2 rounded border ${
+                      choice === question.correctAnswer 
+                        ? 'bg-green-50 border-green-200 text-green-800' 
+                        : 'bg-gray-50'
+                    }`}
+                  >
+                    <span className="font-medium">{String.fromCharCode(65 + choiceIndex)}.</span> {choice}
+                    {choice === question.correctAnswer && (
+                      <span className="ml-2 text-green-600 font-medium">✓ Correct</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground">
+              Correct Answer: {question.correctAnswer}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
 
 
   // Component for displaying question sets within a course
@@ -310,16 +372,22 @@ export default function AdminPanel() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  // Navigate to view questions for this question set
-                  toast({ title: "View Questions functionality coming soon" });
-                }}
-              >
-                View Questions
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    View Questions
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Questions in {questionSet.title}</DialogTitle>
+                    <DialogDescription>
+                      View all questions in this question set
+                    </DialogDescription>
+                  </DialogHeader>
+                  <QuestionsList questionSetId={questionSet.id} />
+                </DialogContent>
+              </Dialog>
               
               <Dialog>
                 <DialogTrigger asChild>

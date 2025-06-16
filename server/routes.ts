@@ -628,28 +628,55 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/admin/questions", requireAdmin, async (req, res) => {
     try {
-      const courses = await storage.getAllCourses();
-      const allQuestions = [];
+      const { questionSetId } = req.query;
       
-      for (const course of courses) {
-        const questionSets = await storage.getQuestionSetsByCourse(course.id);
+      if (questionSetId) {
+        // Get questions for specific question set
+        const questions = await storage.getQuestionsByQuestionSet(parseInt(questionSetId as string));
+        const questionsWithVersions = [];
         
-        for (const questionSet of questionSets) {
-          const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
-          
-          for (const question of questions) {
-            const versions = await storage.getQuestionVersionsByQuestion(question.id);
-            allQuestions.push({
+        for (const question of questions) {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          if (versions.length > 0) {
+            // Get the latest version for display
+            const latestVersion = versions[versions.length - 1];
+            questionsWithVersions.push({
               ...question,
-              courseName: course.title,
-              questionSetName: questionSet.title,
+              questionText: latestVersion.questionText,
+              answerChoices: latestVersion.answerChoices,
+              correctAnswer: latestVersion.correctAnswer,
+              topicFocus: latestVersion.topicFocus,
               versionCount: versions.length
             });
           }
         }
+        
+        res.json(questionsWithVersions);
+      } else {
+        // Get all questions across all courses (original behavior)
+        const courses = await storage.getAllCourses();
+        const allQuestions = [];
+        
+        for (const course of courses) {
+          const questionSets = await storage.getQuestionSetsByCourse(course.id);
+          
+          for (const questionSet of questionSets) {
+            const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+            
+            for (const question of questions) {
+              const versions = await storage.getQuestionVersionsByQuestion(question.id);
+              allQuestions.push({
+                ...question,
+                courseName: course.title,
+                questionSetName: questionSet.title,
+                versionCount: versions.length
+              });
+            }
+          }
+        }
+        
+        res.json(allQuestions);
       }
-      
-      res.json(allQuestions);
     } catch (error) {
       console.error("Error fetching questions:", error);
       res.status(500).json({ message: "Failed to fetch questions" });
