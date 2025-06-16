@@ -258,7 +258,7 @@ export default function AdminPanel() {
   const QuestionsList = ({ questionSetId }: { questionSetId: number }) => {
     const { data: questions, isLoading } = useQuery({
       queryKey: ['/api/admin/questions', questionSetId],
-      queryFn: () => apiRequest(`/api/admin/questions?questionSetId=${questionSetId}`),
+      queryFn: () => fetch(`/api/admin/questions?questionSetId=${questionSetId}`).then(res => res.json()),
     });
 
     if (isLoading) {
