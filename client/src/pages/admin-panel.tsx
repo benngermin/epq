@@ -228,6 +228,10 @@ export default function AdminPanel() {
     createCourseMutation.mutate(data);
   };
 
+  const onCreateQuestionSet = (data: any) => {
+    createQuestionSetMutation.mutate(data);
+  };
+
   const onEditCourse = (course: any) => {
     setEditingCourse(course);
     editCourseForm.reset({
@@ -547,7 +551,7 @@ export default function AdminPanel() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <QuestionSetsList courseId={course.id} />
+                        <QuestionSetsForCourse courseId={course.id} />
                       </CardContent>
                     </Card>
                   ))

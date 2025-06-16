@@ -154,6 +154,74 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Question set routes
+  app.get("/api/admin/question-sets/:courseId", requireAdmin, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const questionSets = await storage.getQuestionSetsByCourse(courseId);
+      
+      // Get question count for each question set
+      const questionSetsWithCounts = await Promise.all(
+        questionSets.map(async (questionSet) => {
+          const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+          return {
+            ...questionSet,
+            questionCount: questions.length
+          };
+        })
+      );
+      
+      res.json(questionSetsWithCounts);
+    } catch (error) {
+      console.error("Error fetching question sets:", error);
+      res.status(500).json({ message: "Failed to fetch question sets" });
+    }
+  });
+
+  app.post("/api/admin/question-sets", requireAdmin, async (req, res) => {
+    try {
+      const questionSetData = insertQuestionSetSchema.parse(req.body);
+      const questionSet = await storage.createQuestionSet(questionSetData);
+      res.status(201).json(questionSet);
+    } catch (error) {
+      console.error("Error creating question set:", error);
+      res.status(400).json({ message: "Invalid question set data" });
+    }
+  });
+
+  app.put("/api/admin/question-sets/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const questionSetData = insertQuestionSetSchema.partial().parse(req.body);
+      const questionSet = await storage.updateQuestionSet(id, questionSetData);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(questionSet);
+    } catch (error) {
+      console.error("Error updating question set:", error);
+      res.status(400).json({ message: "Invalid question set data" });
+    }
+  });
+
+  app.delete("/api/admin/question-sets/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteQuestionSet(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting question set:", error);
+      res.status(500).json({ message: "Failed to delete question set" });
+    }
+  });
+
   // Practice test routes
   app.post("/api/courses/:courseId/practice-tests", requireAdmin, async (req, res) => {
     try {
