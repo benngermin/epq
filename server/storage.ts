@@ -1,11 +1,11 @@
 import {
-  users, courses, practiceTests, questions, questionVersions, 
+  users, courses, questionSets, practiceTests, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings,
   type User, type InsertUser, type Course, type InsertCourse,
-  type PracticeTest, type InsertPracticeTest, type Question, type InsertQuestion,
-  type QuestionVersion, type InsertQuestionVersion, type UserTestRun, type InsertUserTestRun,
-  type UserAnswer, type InsertUserAnswer, type AiSettings, type InsertAiSettings,
-  type QuestionImport
+  type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
+  type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
+  type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
+  type AiSettings, type InsertAiSettings, type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
@@ -28,16 +28,23 @@ export interface IStorage {
   updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course | undefined>;
   deleteCourse(id: number): Promise<boolean>;
   
+  // Question set methods
+  getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]>;
+  getQuestionSet(id: number): Promise<QuestionSet | undefined>;
+  createQuestionSet(questionSet: InsertQuestionSet): Promise<QuestionSet>;
+  updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined>;
+  deleteQuestionSet(id: number): Promise<boolean>;
+  
   // Practice test methods
   getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]>;
   getPracticeTest(id: number): Promise<PracticeTest | undefined>;
   createPracticeTest(test: InsertPracticeTest): Promise<PracticeTest>;
   
   // Question methods
-  getQuestionsByCourse(courseId: number): Promise<Question[]>;
+  getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]>;
   getQuestion(id: number): Promise<Question | undefined>;
   createQuestion(question: InsertQuestion): Promise<Question>;
-  getQuestionByOriginalNumber(courseId: number, originalNumber: number): Promise<Question | undefined>;
+  getQuestionByOriginalNumber(questionSetId: number, originalNumber: number): Promise<Question | undefined>;
   
   // Question version methods
   getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]>;
@@ -132,8 +139,8 @@ export class DatabaseStorage implements IStorage {
     return newTest;
   }
 
-  async getQuestionsByCourse(courseId: number): Promise<Question[]> {
-    return await db.select().from(questions).where(eq(questions.courseId, courseId));
+  async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
+    return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {
