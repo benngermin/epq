@@ -73,11 +73,6 @@ export function registerRoutes(app: Express): Server {
       const courses = await storage.getAllCourses();
       const coursesWithProgress = await Promise.all(
         courses.map(async (course) => {
-          const progress = await storage.getUserCourseProgress(req.user.id, course.id);
-          // Calculate progress as total questions answered out of 85 (total questions in practice test)
-          const totalQuestionsInCourse = 85; // CPCU 500 has 85 questions
-          const progressPercentage = Math.round((progress.totalAnswers / totalQuestionsInCourse) * 100);
-          
           const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const testsWithProgress = await Promise.all(
             practiceTests.map(async (test) => {
@@ -88,6 +83,17 @@ export function registerRoutes(app: Express): Server {
               };
             })
           );
+
+          // Calculate progress based on the most recent test run instead of overall course progress
+          let progressPercentage = 0;
+          if (testsWithProgress.length > 0) {
+            const mostRecentTest = testsWithProgress[0]; // Assuming first test is the main one
+            if (mostRecentTest.testRun) {
+              const answers = await storage.getUserAnswersByTestRun(mostRecentTest.testRun.id);
+              const totalQuestionsInTest = mostRecentTest.testRun.questionOrder?.length || 85;
+              progressPercentage = Math.round((answers.length / totalQuestionsInTest) * 100);
+            }
+          }
 
           return {
             ...course,
