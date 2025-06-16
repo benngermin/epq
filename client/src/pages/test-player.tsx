@@ -18,6 +18,7 @@ export default function TestPlayer() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);
   const [hasInitializedIndex, setHasInitializedIndex] = useState(false);
+  const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set());
 
   const { data: testRun, isLoading: testRunLoading, error: testRunError } = useQuery({
     queryKey: [`/api/test-runs/${runId}`],
@@ -47,8 +48,18 @@ export default function TestPlayer() {
       
       setCurrentQuestionIndex(firstUnansweredIndex);
       setHasInitializedIndex(true);
+      
+      // Mark the initial question as visited
+      setVisitedQuestions(prev => new Set(prev).add(firstUnansweredIndex));
     }
   }, [testRun, hasInitializedIndex]);
+
+  // Track visited questions when current question changes
+  useEffect(() => {
+    if (currentQuestionIndex >= 0) {
+      setVisitedQuestions(prev => new Set(prev).add(currentQuestionIndex));
+    }
+  }, [currentQuestionIndex]);
 
   console.log("Test Player - runId:", runId);
   console.log("Test Player - testRun:", testRun);
@@ -194,6 +205,7 @@ export default function TestPlayer() {
             isCollapsed={isRailCollapsed}
             onToggleCollapse={() => setIsRailCollapsed(!isRailCollapsed)}
             allQuestions={Array.isArray(allQuestions) ? allQuestions : []}
+            visitedQuestions={visitedQuestions}
           />
         </div>
 

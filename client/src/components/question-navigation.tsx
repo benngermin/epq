@@ -11,6 +11,7 @@ interface QuestionNavigationProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   allQuestions: any[];
+  visitedQuestions: Set<number>;
 }
 
 export function QuestionNavigation({
@@ -21,6 +22,7 @@ export function QuestionNavigation({
   isCollapsed,
   onToggleCollapse,
   allQuestions,
+  visitedQuestions,
 }: QuestionNavigationProps) {
   const totalQuestions = testRun.questionOrder?.length || 85;
   
