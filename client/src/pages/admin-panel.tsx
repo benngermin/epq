@@ -232,6 +232,57 @@ export default function AdminPanel() {
     createQuestionSetMutation.mutate(data);
   };
 
+  // Component for displaying question sets within a course
+  const QuestionSetsSection = ({ courseId }: { courseId: number }) => {
+    const { data: questionSets, isLoading: questionSetsLoading } = useQuery({
+      queryKey: ["/api/admin/question-sets", courseId],
+      queryFn: () => fetch(`/api/admin/question-sets/${courseId}`).then(res => res.json()),
+    });
+
+    if (questionSetsLoading) {
+      return <div className="text-sm text-muted-foreground">Loading question sets...</div>;
+    }
+
+    if (!questionSets || questionSets.length === 0) {
+      return (
+        <div className="text-sm text-muted-foreground">
+          No question sets found. Create a question set to add questions to this course.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {questionSets.map((questionSet: any) => (
+          <div key={questionSet.id} className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h4 className="font-medium">{questionSet.title}</h4>
+                {questionSet.description && (
+                  <p className="text-sm text-muted-foreground">{questionSet.description}</p>
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {questionSet.questionCount || 0} questions
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                View Questions
+              </Button>
+              <Button variant="outline" size="sm">
+                Import Questions
+              </Button>
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const onEditCourse = (course: any) => {
     setEditingCourse(course);
     editCourseForm.reset({
@@ -551,7 +602,8 @@ export default function AdminPanel() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <QuestionSetsForCourse courseId={course.id} />
+                        {/* Question Sets for this course */}
+                        <QuestionSetsSection courseId={course.id} />
                       </CardContent>
                     </Card>
                   ))

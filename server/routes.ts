@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
-  insertCourseSchema, insertPracticeTestSchema, insertAiSettingsSchema,
+  insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
   questionImportSchema, insertUserAnswerSchema, type QuestionImport 
 } from "@shared/schema";
 
