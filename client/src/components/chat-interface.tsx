@@ -74,8 +74,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   };
 
   return (
-    <Card className="bg-background border">
-      <CardContent className="p-4">
+    <Card className="bg-background border w-full max-w-[500px] mx-auto">
+      <CardContent className="p-6">
         <div className="flex items-center mb-4">
           <Bot className="h-5 w-5 text-primary mr-2" />
           <span className="font-medium text-foreground">AI Assistant</span>

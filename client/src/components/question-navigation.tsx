@@ -99,10 +99,17 @@ export function QuestionNavigation({
             {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
+              const isVisited = visitedQuestions.has(index);
               
               return (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-gray-600 w-6 text-center flex-shrink-0">
+                <div key={index} className={cn(
+                  "flex items-center gap-2",
+                  !isVisited && "opacity-60"
+                )}>
+                  <span className={cn(
+                    "font-bold text-sm w-6 text-center flex-shrink-0",
+                    isVisited ? "text-gray-600" : "text-gray-400"
+                  )}>
                     {index + 1}
                   </span>
                   <Button
@@ -110,7 +117,9 @@ export function QuestionNavigation({
                     size="sm"
                     className={cn(
                       "flex-1 h-8 justify-between text-sm font-medium",
-                      "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50",
+                      isVisited 
+                        ? "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                        : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-gray-100",
                       isCurrent && "ring-2 ring-primary ring-offset-2"
                     )}
                     onClick={() => onQuestionClick(index)}
