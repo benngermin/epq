@@ -270,7 +270,7 @@ export class DatabaseStorage implements IStorage {
           versionNumber: versionData.versionNumber,
           topicFocus: versionData.topicFocus,
           questionText: versionData.questionText,
-          answerChoices: versionData.answerChoices,
+          answerChoices: Array.isArray(versionData.answerChoices) ? versionData.answerChoices : Object.values(versionData.answerChoices) as string[],
           correctAnswer: versionData.correctAnswer,
         });
       }

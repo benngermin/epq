@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Settings, Home, BookOpen, FileText, HelpCircle, Upload, Bot, Users, Edit, Trash2 } from "lucide-react";
+import { Settings, Home, BookOpen, FileText, HelpCircle, Upload, Bot, Users, Edit, Trash2, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -461,55 +461,45 @@ export default function AdminPanel() {
               </div>
             </TabsContent>
 
-            <TabsContent value="tests">
+            <TabsContent value="question-sets">
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Exam Questions</h1>
-                  <p className="text-muted-foreground mt-2">View all exam questions across courses</p>
+                  <h1 className="text-2xl font-bold text-foreground">Question Sets</h1>
+                  <p className="text-muted-foreground mt-2">Manage question sets within courses</p>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>All Exam Questions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {testsLoading ? (
-                      <p>Loading exam questions...</p>
-                    ) : !practiceTests || practiceTests.length === 0 ? (
-                      <p className="text-muted-foreground">No exam questions found.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2">Test Name</th>
-                              <th className="text-left py-2">Course</th>
-                              <th className="text-left py-2">Question Count</th>
-                              <th className="text-left py-2">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {practiceTests.map((test: any) => (
-                              <tr key={test.id} className="border-b">
-                                <td className="py-2 font-medium">{test.title}</td>
-                                <td className="py-2">{test.courseName}</td>
-                                <td className="py-2">{test.questionCount}</td>
-                                <td className="py-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    Edit
-                                  </Button>
-                                  <Button variant="destructive" size="sm">
-                                    Delete
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                {coursesLoading ? (
+                  <p>Loading courses...</p>
+                ) : !courses || courses.length === 0 ? (
+                  <p className="text-muted-foreground">No courses available. Create a course first.</p>
+                ) : (
+                  courses.map((course: any) => (
+                    <Card key={course.id}>
+                      <CardHeader>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle>{course.title}</CardTitle>
+                            <CardDescription>{course.description}</CardDescription>
+                          </div>
+                          <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Question Set
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="text-sm text-muted-foreground">
+                            {course.questionSetCount || 0} question sets • {course.questionCount || 0} total questions
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Question sets for this course will be displayed here. You can add question sets and import questions in bulk via JSON uploads.
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
 
