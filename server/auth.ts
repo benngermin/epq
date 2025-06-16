@@ -88,6 +88,24 @@ export function setupAuth(app: Express) {
     res.status(200).json(req.user);
   });
 
+  app.post("/api/demo-login", async (req, res, next) => {
+    // Create or get demo user
+    let demoUser = await storage.getUserByEmail("demo@example.com");
+    
+    if (!demoUser) {
+      demoUser = await storage.createUser({
+        name: "Demo User",
+        email: "demo@example.com",
+        password: await hashPassword("demo123"),
+      });
+    }
+
+    req.login(demoUser, (err) => {
+      if (err) return next(err);
+      res.status(200).json(demoUser);
+    });
+  });
+
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);

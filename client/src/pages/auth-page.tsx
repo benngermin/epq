@@ -28,7 +28,7 @@ type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, demoLoginMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
 
@@ -76,6 +76,12 @@ export default function AuthPage() {
     });
   };
 
+  const onDemoLogin = () => {
+    demoLoginMutation.mutate(undefined, {
+      onSuccess: () => setLocation("/"),
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Forms */}
@@ -89,7 +95,29 @@ export default function AuthPage() {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-6">
+            <Button 
+              onClick={onDemoLogin}
+              variant="outline"
+              className="w-full"
+              disabled={demoLoginMutation.isPending}
+            >
+              {demoLoginMutation.isPending ? "Signing in..." : "Try Demo (No Registration Required)"}
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
