@@ -193,7 +193,7 @@ export default function TestPlayer() {
             onQuestionClick={navigateToQuestion}
             isCollapsed={isRailCollapsed}
             onToggleCollapse={() => setIsRailCollapsed(!isRailCollapsed)}
-            allQuestions={allQuestions || []}
+            allQuestions={Array.isArray(allQuestions) ? allQuestions : []}
           />
         </div>
 

@@ -113,7 +113,7 @@ export function QuestionNavigation({
                     )}
                     onClick={() => onQuestionClick(index)}
                   >
-                    <span>Question</span>
+                    <span>{getQuestionTitle(index)}</span>
                     {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
                     {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
                   </Button>

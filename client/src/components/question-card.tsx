@@ -69,7 +69,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 </div>
 
                 <div className="mb-6 sm:mb-8">
-                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                  <p className="text-sm sm:text-base text-foreground leading-relaxed text-left">
                     {question.questionText}
                   </p>
                 </div>
@@ -207,7 +207,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
                 <div className="mt-4">
                   <Button onClick={handleContinue} className="w-full">
-                    Continue
+                    Review Question
                   </Button>
                 </div>
               </CardContent>
