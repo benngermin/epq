@@ -287,9 +287,9 @@ export default function AdminPanel() {
                   <BookOpen className="h-4 w-4 mr-2" />
                   Courses
                 </TabsTrigger>
-                <TabsTrigger value="tests" className="justify-start">
+                <TabsTrigger value="question-sets" className="justify-start">
                   <FileText className="h-4 w-4 mr-2" />
-                  Exam Questions
+                  Question Sets
                 </TabsTrigger>
                 <TabsTrigger value="questions" className="justify-start">
                   <HelpCircle className="h-4 w-4 mr-2" />

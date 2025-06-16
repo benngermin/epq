@@ -453,12 +453,20 @@ export function registerRoutes(app: Express): Server {
       const coursesWithStats = await Promise.all(
         courses.map(async (course) => {
           const practiceTests = await storage.getPracticeTestsByCourse(course.id);
-          const questions = await storage.getQuestionsByCourse(course.id);
+          const questionSets = await storage.getQuestionSetsByCourse(course.id);
+          
+          // Count total questions across all question sets
+          let totalQuestions = 0;
+          for (const questionSet of questionSets) {
+            const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+            totalQuestions += questions.length;
+          }
           
           return {
             ...course,
             testCount: practiceTests.length,
-            questionCount: questions.length,
+            questionCount: totalQuestions,
+            questionSetCount: questionSets.length,
           };
         })
       );

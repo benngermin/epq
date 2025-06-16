@@ -67,7 +67,7 @@ export interface IStorage {
   updateAiSettings(settings: Partial<InsertAiSettings>): Promise<AiSettings>;
   
   // Bulk import methods
-  importQuestions(courseId: number, questions: QuestionImport[]): Promise<void>;
+  importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
@@ -122,7 +122,31 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCourse(id: number): Promise<boolean> {
     const result = await db.delete(courses).where(eq(courses.id, id));
-    return result.rowCount > 0;
+    return result.rowCount! > 0;
+  }
+
+  async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
+    return await db.select().from(questionSets).where(eq(questionSets.courseId, courseId));
+  }
+
+  async getQuestionSet(id: number): Promise<QuestionSet | undefined> {
+    const [questionSet] = await db.select().from(questionSets).where(eq(questionSets.id, id));
+    return questionSet || undefined;
+  }
+
+  async createQuestionSet(questionSet: InsertQuestionSet): Promise<QuestionSet> {
+    const [newQuestionSet] = await db.insert(questionSets).values(questionSet).returning();
+    return newQuestionSet;
+  }
+
+  async updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined> {
+    const [updated] = await db.update(questionSets).set(questionSet).where(eq(questionSets.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteQuestionSet(id: number): Promise<boolean> {
+    const result = await db.delete(questionSets).where(eq(questionSets.id, id));
+    return result.rowCount! > 0;
   }
 
   async getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]> {
@@ -153,9 +177,9 @@ export class DatabaseStorage implements IStorage {
     return newQuestion;
   }
 
-  async getQuestionByOriginalNumber(courseId: number, originalNumber: number): Promise<Question | undefined> {
+  async getQuestionByOriginalNumber(questionSetId: number, originalNumber: number): Promise<Question | undefined> {
     const [question] = await db.select().from(questions)
-      .where(and(eq(questions.courseId, courseId), eq(questions.originalQuestionNumber, originalNumber)));
+      .where(and(eq(questions.questionSetId, questionSetId), eq(questions.originalQuestionNumber, originalNumber)));
     return question || undefined;
   }
 
@@ -226,14 +250,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async importQuestions(courseId: number, questionsData: QuestionImport[]): Promise<void> {
+  async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
     for (const questionData of questionsData) {
       // Check if question already exists
-      let question = await this.getQuestionByOriginalNumber(courseId, questionData.originalQuestionNumber);
+      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.originalQuestionNumber);
       
       if (!question) {
         question = await this.createQuestion({
-          courseId,
+          questionSetId,
           originalQuestionNumber: questionData.originalQuestionNumber,
           loid: questionData.LOID,
         });
