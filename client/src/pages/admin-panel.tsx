@@ -258,6 +258,7 @@ export default function AdminPanel() {
     defaultValues: {
       title: "",
       description: "",
+      courseId: 0,
     },
   });
 
@@ -308,8 +309,8 @@ export default function AdminPanel() {
     editQuestionSetForm.reset({
       title: questionSet.title,
       description: questionSet.description,
-      courseId: questionSet.courseId,
     });
+    editQuestionSetForm.setValue('courseId', questionSet.courseId);
   };
 
   const onUpdateQuestionSet = (data: any) => {

@@ -155,6 +155,39 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Question set routes
+  app.get("/api/admin/question-sets", requireAdmin, async (req, res) => {
+    try {
+      // Get all courses first to include course information
+      const courses = await storage.getAllCourses();
+      const courseMap = new Map(courses.map(course => [course.id, course]));
+      
+      // Get all question sets from all courses
+      const allQuestionSets = [];
+      for (const course of courses) {
+        const questionSets = await storage.getQuestionSetsByCourse(course.id);
+        allQuestionSets.push(...questionSets);
+      }
+      
+      // Get question count and course info for each question set
+      const questionSetsWithDetails = await Promise.all(
+        allQuestionSets.map(async (questionSet) => {
+          const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+          const course = courseMap.get(questionSet.courseId);
+          return {
+            ...questionSet,
+            questionCount: questions.length,
+            course: course
+          };
+        })
+      );
+      
+      res.json(questionSetsWithDetails);
+    } catch (error) {
+      console.error("Error fetching all question sets:", error);
+      res.status(500).json({ message: "Failed to fetch question sets" });
+    }
+  });
+
   app.get("/api/admin/question-sets/:courseId", requireAdmin, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
