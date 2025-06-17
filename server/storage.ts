@@ -145,38 +145,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteQuestionSet(id: number): Promise<boolean> {
-    // First, check if there are any practice tests that reference this question set
-    const referencingTests = await db.select().from(practiceTests).where(eq(practiceTests.questionSetId, id));
-    
-    // If there are practice tests referencing this question set, update them to remove the reference
-    if (referencingTests.length > 0) {
-      await db.update(practiceTests)
-        .set({ questionSetId: null })
-        .where(eq(practiceTests.questionSetId, id));
-    }
-
-    // Get all questions in this question set
-    const questionsInSet = await db.select().from(questions).where(eq(questions.questionSetId, id));
-    
-    // For each question, get its versions and delete user answers that reference them
-    for (const question of questionsInSet) {
-      const versions = await db.select().from(questionVersions).where(eq(questionVersions.questionId, question.id));
+    try {
+      // First, check if there are any practice tests that reference this question set
+      const referencingTests = await db.select().from(practiceTests).where(eq(practiceTests.questionSetId, id));
       
-      // Delete user answers that reference these question versions
-      for (const version of versions) {
-        await db.delete(userAnswers).where(eq(userAnswers.questionVersionId, version.id));
+      // If there are practice tests referencing this question set, update them to remove the reference
+      if (referencingTests.length > 0) {
+        await db.update(practiceTests)
+          .set({ questionSetId: null })
+          .where(eq(practiceTests.questionSetId, id));
+      }
+
+      // Get all question IDs in this question set
+      const questionsInSet = await db.select({ id: questions.id }).from(questions).where(eq(questions.questionSetId, id));
+      
+      if (questionsInSet.length > 0) {
+        const questionIds = questionsInSet.map(q => q.id);
+        
+        // Get all question version IDs for these questions
+        const versionIds = await db.select({ id: questionVersions.id })
+          .from(questionVersions)
+          .where(sql`${questionVersions.questionId} = ANY(${questionIds})`);
+        
+        if (versionIds.length > 0) {
+          const versionIdList = versionIds.map(v => v.id);
+          
+          // Delete all user answers for these question versions in batch
+          await db.delete(userAnswers)
+            .where(sql`${userAnswers.questionVersionId} = ANY(${versionIdList})`);
+        }
+        
+        // Delete all question versions for these questions in batch
+        await db.delete(questionVersions)
+          .where(sql`${questionVersions.questionId} = ANY(${questionIds})`);
       }
       
-      // Delete question versions
-      await db.delete(questionVersions).where(eq(questionVersions.questionId, question.id));
+      // Delete the questions themselves
+      await db.delete(questions).where(eq(questions.questionSetId, id));
+      
+      // Finally, delete the question set
+      const result = await db.delete(questionSets).where(eq(questionSets.id, id));
+      return result.rowCount! > 0;
+    } catch (error) {
+      console.error('Error in deleteQuestionSet:', error);
+      throw error;
     }
-    
-    // Delete the questions themselves
-    await db.delete(questions).where(eq(questions.questionSetId, id));
-    
-    // Finally, delete the question set
-    const result = await db.delete(questionSets).where(eq(questionSets.id, id));
-    return result.rowCount! > 0;
   }
 
   async getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]> {
