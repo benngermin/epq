@@ -178,7 +178,7 @@ export default function TestPlayer() {
               <Button variant="ghost" size="sm" onClick={exitTest} className="mr-2 sm:mr-3 md:mr-4 flex-shrink-0 p-1 sm:p-2">
                 <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <span className="font-semibold text-foreground text-xs sm:text-sm md:text-base lg:text-lg truncate">
+              <span className="font-semibold text-foreground text-xs sm:text-sm md:text-base lg:text-base truncate">
                 {(testRun as any)?.practiceTest?.title || "Practice Test"}
               </span>
             </div>
@@ -245,7 +245,7 @@ export default function TestPlayer() {
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-2 sm:order-1 text-xs sm:text-sm md:text-base"
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-2 sm:order-1 text-xs sm:text-sm md:text-base lg:text-base"
                   >
                     <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                     Previous
@@ -260,7 +260,7 @@ export default function TestPlayer() {
                   <Button
                     onClick={handleNext}
                     disabled={completeTestMutation.isPending}
-                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base"
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base lg:text-base"
                   >
                     {currentQuestionIndex === totalQuestions - 1 ? (
                       completeTestMutation.isPending ? "Completing..." : "Complete Test"
