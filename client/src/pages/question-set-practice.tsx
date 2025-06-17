@@ -171,9 +171,6 @@ export default function QuestionSetPractice() {
                 <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
                 <div>
                   <span className="font-semibold text-foreground">{questionSet?.title}</span>
-                  <p className="text-xs text-muted-foreground">
-                    Question {currentQuestionIndex + 1} of {questions?.length || 0}
-                  </p>
                 </div>
               </div>
             </div>
@@ -216,15 +213,18 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
-        {/* Progress Bar */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground mb-2">
+      {/* Progress Section */}
+      <div className="bg-card border-b">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-3">
+          <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
             <span>Progress</span>
-            <span>{currentQuestionIndex + 1} / {questions.length}</span>
+            <span className="font-medium">{currentQuestionIndex + 1} / {questions.length}</span>
           </div>
           <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Practice Summary */}
