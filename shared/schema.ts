@@ -72,11 +72,10 @@ export const userAnswers = pgTable("user_answers", {
 export const aiSettings = pgTable("ai_settings", {
   id: serial("id").primaryKey(),
   apiKey: text("api_key"),
-  modelName: text("model_name").default("anthropic/claude-3-sonnet"),
+  modelName: text("model_name").default("anthropic/claude-sonnet-4"),
   systemPrompt: text("system_prompt").default("You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth."),
   temperature: integer("temperature").default(70), // stored as integer (0-100)
   maxTokens: integer("max_tokens").default(150),
-  topP: integer("top_p").default(100), // stored as integer (0-100)
 });
 
 // Relations

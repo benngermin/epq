@@ -270,11 +270,10 @@ export default function AdminPanel() {
 
   const [aiSettingsData, setAiSettingsData] = useState({
     apiKey: "",
-    modelName: "anthropic/claude-3-sonnet",
+    modelName: "anthropic/claude-sonnet-4",
     systemPrompt: "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
     temperature: [70],
     maxTokens: [150],
-    topP: [100],
   });
 
   // Check admin access
@@ -419,7 +418,6 @@ export default function AdminPanel() {
       systemPrompt: aiSettingsData.systemPrompt,
       temperature: aiSettingsData.temperature[0],
       maxTokens: aiSettingsData.maxTokens[0],
-      topP: aiSettingsData.topP[0],
     });
   };
 
@@ -1434,6 +1432,7 @@ export default function AdminPanel() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
                         <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
                         <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
                         <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
@@ -1452,7 +1451,7 @@ export default function AdminPanel() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Temperature: {aiSettingsData.temperature[0]}</Label>
                       <Slider
@@ -1470,16 +1469,6 @@ export default function AdminPanel() {
                         onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, maxTokens: value }))}
                         max={1000}
                         step={10}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Top P: {aiSettingsData.topP[0]}</Label>
-                      <Slider
-                        value={aiSettingsData.topP}
-                        onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, topP: value }))}
-                        max={100}
-                        step={1}
                       />
                     </div>
                   </div>
