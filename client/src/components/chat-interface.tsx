@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Send } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+
 import { cn } from "@/lib/utils";
 
 interface ChatInterfaceProps {
@@ -22,7 +22,7 @@ interface ChatMessage {
 export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
-  const { toast } = useToast();
+
   const hasInitialized = useRef<string | null>(null);
 
   const chatMutation = useMutation({
@@ -38,11 +38,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       setMessages(prev => [{ role: "assistant", content: data.response }, ...prev]);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Chat error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Chat error:", error.message);
     },
   });
 

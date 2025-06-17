@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle, ChevronDown, Settings, User } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
-import { useToast } from "@/hooks/use-toast";
+
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { ChatInterface } from "@/components/chat-interface";
@@ -17,7 +26,7 @@ export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
-  const { toast } = useToast();
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showChat, setShowChat] = useState(false);
@@ -65,18 +74,9 @@ export default function QuestionSetPractice() {
     onSuccess: (data) => {
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
-      toast({
-        title: data.isCorrect ? "Correct!" : "Incorrect",
-        description: data.isCorrect ? "Well done!" : "Review the explanation to understand better.",
-        variant: data.isCorrect ? "default" : "destructive",
-      });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Failed to submit answer",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Failed to submit answer:", error.message);
     },
   });
 
@@ -177,16 +177,41 @@ export default function QuestionSetPractice() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => logoutMutation.mutate()}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setLocation("/")}>
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocation("/admin")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Admin</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </nav>
