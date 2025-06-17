@@ -21,27 +21,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCourseSchema, insertQuestionSetSchema } from "@shared/schema";
 import { z } from "zod";
 
-const sampleQuestions = `[
-  {
-    "originalQuestionNumber": 1,
-    "LOID": "11597",
-    "versions": [
-      {
-        "versionNumber": 1,
-        "topicFocus": "Risk transfer principles",
-        "questionText": "Which of the following best describes how insurance facilitates access to automobile ownership by transferring financial risk from individuals to insurance companies?",
-        "answerChoices": [
-          "A. Insurance allows individuals to purchase vehicles they cannot afford by spreading the cost over monthly premiums.",
-          "B. Insurance companies provide direct financing for automobile purchases at reduced interest rates.",
-          "C. Insurance eliminates all financial risks associated with automobile ownership and operation.",
-          "D. Insurance pooling allows individuals to manage potential large financial losses through predictable premium payments."
-        ],
-        "correctAnswer": "D"
-      }
-    ]
-  }
-]`;
-
 export default function AdminPanel() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -60,14 +39,11 @@ export default function AdminPanel() {
     queryKey: ["/api/admin/practice-tests"],
   });
 
-  const { data: questions, isLoading: questionsLoading } = useQuery({
-    queryKey: ["/api/admin/questions"],
-  });
-
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/admin/users"],
   });
 
+  // Course mutations
   const createCourseMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/courses", data);
@@ -77,6 +53,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
       toast({ title: "Course created successfully" });
       courseForm.reset();
+      setCreateCourseOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -124,6 +101,7 @@ export default function AdminPanel() {
     },
   });
 
+  // Question set mutations
   const createQuestionSetMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/admin/question-sets", data);
@@ -134,6 +112,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", variables.courseId] });
       toast({ title: "Question set created successfully" });
       setQuestionSetDialogOpen(false);
+      questionSetForm.reset();
     },
     onError: (error: Error) => {
       toast({
@@ -153,6 +132,9 @@ export default function AdminPanel() {
       toast({ title: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/questions"] });
+      setBulkImportData({ ...bulkImportData, jsonData: "", questionSetTitle: "" });
+      setImportDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -181,9 +163,12 @@ export default function AdminPanel() {
     },
   });
 
-  // State for editing
+  // State management
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [questionSetDialogOpen, setQuestionSetDialogOpen] = useState(false);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectedCourseForQuestionSet, setSelectedCourseForQuestionSet] = useState<number | null>(null);
 
   // Forms
   const courseForm = useForm({
@@ -202,8 +187,17 @@ export default function AdminPanel() {
     },
   });
 
-  const [importData, setImportData] = useState({
+  const questionSetForm = useForm({
+    resolver: zodResolver(insertQuestionSetSchema.omit({ courseId: true })),
+    defaultValues: {
+      title: "",
+      description: "",
+    },
+  });
+
+  const [bulkImportData, setBulkImportData] = useState({
     courseId: "",
+    questionSetTitle: "",
     jsonData: "",
   });
 
@@ -229,12 +223,14 @@ export default function AdminPanel() {
     );
   }
 
+  // Event handlers
   const onCreateCourse = (data: any) => {
     createCourseMutation.mutate(data);
   };
 
   const onCreateQuestionSet = (data: any) => {
-    createQuestionSetMutation.mutate(data);
+    if (!selectedCourseForQuestionSet) return;
+    createQuestionSetMutation.mutate({ ...data, courseId: selectedCourseForQuestionSet });
   };
 
   const onEditCourse = (course: any) => {
@@ -253,6 +249,46 @@ export default function AdminPanel() {
 
   const onDeleteCourse = async (id: number) => {
     deleteCourseMutation.mutate(id);
+  };
+
+  const onBulkImport = () => {
+    try {
+      const questions = JSON.parse(bulkImportData.jsonData);
+      
+      // First create question set, then import questions
+      const questionSetData = {
+        courseId: parseInt(bulkImportData.courseId),
+        title: bulkImportData.questionSetTitle,
+        description: `Imported question set with ${questions.length} questions`,
+      };
+
+      createQuestionSetMutation.mutate(questionSetData, {
+        onSuccess: (newQuestionSet) => {
+          // Import questions to the newly created question set
+          importQuestionsMutation.mutate({
+            questionSetId: newQuestionSet.id,
+            questions: questions,
+          });
+        },
+      });
+    } catch (error) {
+      toast({
+        title: "Invalid JSON",
+        description: "Please check your JSON format",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onUpdateAiSettings = () => {
+    updateAiSettingsMutation.mutate({
+      apiKey: aiSettingsData.apiKey || undefined,
+      modelName: aiSettingsData.modelName,
+      systemPrompt: aiSettingsData.systemPrompt,
+      temperature: aiSettingsData.temperature[0],
+      maxTokens: aiSettingsData.maxTokens[0],
+      topP: aiSettingsData.topP[0],
+    });
   };
 
   // Component to display questions in a question set
@@ -294,13 +330,13 @@ export default function AdminPanel() {
                   <div 
                     key={choiceIndex} 
                     className={`text-xs p-2 rounded border ${
-                      choice === question.correctAnswer 
+                      choice.charAt(0) === question.correctAnswer 
                         ? 'bg-green-50 border-green-200 text-green-800' 
                         : 'bg-gray-50'
                     }`}
                   >
-                    <span className="font-medium">{String.fromCharCode(65 + choiceIndex)}.</span> {choice}
-                    {choice === question.correctAnswer && (
+                    {choice}
+                    {choice.charAt(0) === question.correctAnswer && (
                       <span className="ml-2 text-green-600 font-medium">✓ Correct</span>
                     )}
                   </div>
@@ -316,8 +352,6 @@ export default function AdminPanel() {
       </div>
     );
   };
-
-
 
   // Component for displaying question sets within a course
   const QuestionSetsSection = ({ courseId }: { courseId: number }) => {
@@ -376,6 +410,7 @@ export default function AdminPanel() {
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 mr-1" />
                     View Questions
                   </Button>
                 </DialogTrigger>
@@ -393,6 +428,7 @@ export default function AdminPanel() {
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
+                    <Upload className="h-4 w-4 mr-1" />
                     Import Questions
                   </Button>
                 </DialogTrigger>
@@ -427,8 +463,8 @@ export default function AdminPanel() {
                       <Textarea
                         id="jsonData"
                         name="jsonData"
-                        placeholder="Paste your questions JSON data here..."
-                        className="min-h-[200px]"
+                        placeholder="Paste your questions JSON here..."
+                        rows={8}
                         required
                       />
                     </div>
@@ -443,7 +479,8 @@ export default function AdminPanel() {
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
                 </AlertDialogTrigger>
@@ -451,15 +488,12 @@ export default function AdminPanel() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Question Set</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete "{questionSet.title}"? This action cannot be undone and will also delete all questions in this set.
+                      Are you sure you want to delete "{questionSet.title}"? This will also delete all questions within this set. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => deleteQuestionSetMutation.mutate(questionSet.id)}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
+                    <AlertDialogAction onClick={() => deleteQuestionSetMutation.mutate(questionSet.id)}>
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -470,35 +504,6 @@ export default function AdminPanel() {
         ))}
       </div>
     );
-  };
-
-
-
-  const onImportQuestions = () => {
-    try {
-      const questions = JSON.parse(importData.jsonData);
-      importQuestionsMutation.mutate({
-        questionSetId: parseInt(importData.courseId),
-        questions,
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid JSON",
-        description: "Please check your JSON format",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const onUpdateAiSettings = () => {
-    updateAiSettingsMutation.mutate({
-      apiKey: aiSettingsData.apiKey || undefined,
-      modelName: aiSettingsData.modelName,
-      systemPrompt: aiSettingsData.systemPrompt,
-      temperature: aiSettingsData.temperature[0],
-      maxTokens: aiSettingsData.maxTokens[0],
-      topP: aiSettingsData.topP[0],
-    });
   };
 
   return (
@@ -520,466 +525,457 @@ export default function AdminPanel() {
         </div>
       </nav>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-card border-r shadow-sm min-h-[calc(100vh-64px)]">
-          <div className="p-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical">
-              <TabsList className="grid w-full grid-rows-6 h-auto">
-                <TabsTrigger value="courses" className="justify-start">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Courses
-                </TabsTrigger>
-                <TabsTrigger value="question-sets" className="justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Question Sets
-                </TabsTrigger>
+      {/* Main content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="courses" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Courses
+            </TabsTrigger>
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Bulk Import
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              AI Settings
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+          </TabsList>
 
-                <TabsTrigger value="import" className="justify-start">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Bulk Import
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="justify-start">
-                  <Bot className="h-4 w-4 mr-2" />
-                  AI Settings
-                </TabsTrigger>
-                <TabsTrigger value="users" className="justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  Users
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 p-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsContent value="courses">
-              <div className="space-y-6">
+          {/* Courses Tab */}
+          <TabsContent value="courses">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">Course Management</h1>
-                  <p className="text-muted-foreground mt-2">Manage courses and practice tests</p>
+                  <p className="text-muted-foreground mt-2">Manage courses and their question sets</p>
                 </div>
-
-                {/* Create Course Form */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Create New Course</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={courseForm.handleSubmit(onCreateCourse)} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="title">Course Title</Label>
-                          <Input
-                            id="title"
-                            placeholder="e.g., Property & Casualty Insurance"
-                            {...courseForm.register("title")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="description">Description</Label>
-                          <Input
-                            id="description"
-                            placeholder="Brief course description"
-                            {...courseForm.register("description")}
-                          />
-                        </div>
-                      </div>
-                      <Button type="submit" disabled={createCourseMutation.isPending}>
-                        {createCourseMutation.isPending ? "Creating..." : "Create Course"}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-
-                {/* Courses Table */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Existing Courses</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {coursesLoading ? (
-                      <p>Loading courses...</p>
-                    ) : !courses || !Array.isArray(courses) || courses.length === 0 ? (
-                      <p className="text-muted-foreground">No courses created yet.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2">Course</th>
-                              <th className="text-left py-2">Description</th>
-                              <th className="text-left py-2">Tests</th>
-                              <th className="text-left py-2">Questions</th>
-                              <th className="text-left py-2">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {courses.map((course: any) => (
-                              <tr key={course.id} className="border-b">
-                                <td className="py-2 font-medium">{course.title}</td>
-                                <td className="py-2 text-muted-foreground">{course.description}</td>
-                                <td className="py-2">{course.testCount}</td>
-                                <td className="py-2">{course.questionCount}</td>
-                                <td className="py-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="outline" size="sm" className="mr-2" onClick={() => onEditCourse(course)}>
-                                        <Edit className="h-4 w-4 mr-1" />
-                                        Edit
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Edit Course</DialogTitle>
-                                        <DialogDescription>
-                                          Update the course information below.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <form onSubmit={editCourseForm.handleSubmit(onUpdateCourse)} className="space-y-4">
-                                        <div className="space-y-2">
-                                          <Label htmlFor="edit-title">Course Title</Label>
-                                          <Input
-                                            id="edit-title"
-                                            placeholder="e.g., Property & Casualty Insurance"
-                                            {...editCourseForm.register("title")}
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label htmlFor="edit-description">Description</Label>
-                                          <Input
-                                            id="edit-description"
-                                            placeholder="Brief course description"
-                                            {...editCourseForm.register("description")}
-                                          />
-                                        </div>
-                                        <DialogFooter>
-                                          <Button type="submit" disabled={updateCourseMutation.isPending}>
-                                            {updateCourseMutation.isPending ? "Updating..." : "Update Course"}
-                                          </Button>
-                                        </DialogFooter>
-                                      </form>
-                                    </DialogContent>
-                                  </Dialog>
-                                  
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="destructive" size="sm">
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Delete
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete "{course.title}" and all associated practice tests and questions. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => onDeleteCourse(course.id)}
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                          Delete Course
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <Dialog open={createCourseOpen} onOpenChange={setCreateCourseOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Course
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Course</DialogTitle>
+                      <DialogDescription>
+                        Add a new course to the system
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...courseForm}>
+                      <form onSubmit={courseForm.handleSubmit(onCreateCourse)} className="space-y-4">
+                        <FormField
+                          control={courseForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Course Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter course title" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={courseForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Enter course description" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button type="submit" disabled={createCourseMutation.isPending}>
+                            {createCourseMutation.isPending ? "Creating..." : "Create Course"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </div>
-            </TabsContent>
 
-            <TabsContent value="question-sets">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Question Sets</h1>
-                  <p className="text-muted-foreground mt-2">Manage question sets within courses</p>
-                </div>
-
+              <div className="grid gap-6">
                 {coursesLoading ? (
-                  <p>Loading courses...</p>
-                ) : !courses || !Array.isArray(courses) || courses.length === 0 ? (
-                  <p className="text-muted-foreground">No courses available. Create a course first.</p>
-                ) : (
+                  <div className="text-center py-8">Loading courses...</div>
+                ) : courses && Array.isArray(courses) ? (
                   courses.map((course: any) => (
                     <Card key={course.id}>
                       <CardHeader>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-start">
                           <div>
                             <CardTitle>{course.title}</CardTitle>
                             <CardDescription>{course.description}</CardDescription>
+                            <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                              <span>{course.questionSetCount || 0} question sets</span>
+                              <span>{course.questionCount || 0} questions</span>
+                              <span>{course.testCount || 0} practice tests</span>
+                            </div>
                           </div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="sm">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Question Set
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Create Question Set</DialogTitle>
-                                <DialogDescription>
-                                  Add a new question set to {course.title}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <form onSubmit={(e) => {
-                                e.preventDefault();
-                                const formData = new FormData(e.target as HTMLFormElement);
-                                onCreateQuestionSet({
-                                  courseId: course.id,
-                                  title: formData.get('title') as string,
-                                  description: formData.get('description') as string
-                                });
-                              }} className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="questionset-title">Question Set Title</Label>
-                                  <Input
-                                    id="questionset-title"
-                                    name="title"
-                                    placeholder="e.g., Chapter 1 - Risk Management"
-                                    required
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="questionset-description">Description</Label>
-                                  <Input
-                                    id="questionset-description"
-                                    name="description"
-                                    placeholder="Brief description of this question set"
-                                  />
-                                </div>
-                                <DialogFooter>
-                                  <Button type="submit" disabled={createQuestionSetMutation.isPending}>
-                                    {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
-                                  </Button>
-                                </DialogFooter>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => onEditCourse(course)}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Dialog open={questionSetDialogOpen} onOpenChange={setQuestionSetDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={() => setSelectedCourseForQuestionSet(course.id)}>
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Question Set
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Create Question Set</DialogTitle>
+                                  <DialogDescription>
+                                    Create a new question set for {course.title}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <Form {...questionSetForm}>
+                                  <form onSubmit={questionSetForm.handleSubmit(onCreateQuestionSet)} className="space-y-4">
+                                    <FormField
+                                      control={questionSetForm.control}
+                                      name="title"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Question Set Title</FormLabel>
+                                          <FormControl>
+                                            <Input placeholder="Enter question set title" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={questionSetForm.control}
+                                      name="description"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Description</FormLabel>
+                                          <FormControl>
+                                            <Textarea placeholder="Enter question set description" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <DialogFooter>
+                                      <Button type="submit" disabled={createQuestionSetMutation.isPending}>
+                                        {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
+                                      </Button>
+                                    </DialogFooter>
+                                  </form>
+                                </Form>
+                              </DialogContent>
+                            </Dialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{course.title}"? This will also delete all question sets and practice tests associated with this course. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => onDeleteCourse(course.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {/* Question Sets for this course */}
                         <QuestionSetsSection courseId={course.id} />
                       </CardContent>
                     </Card>
                   ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No courses found.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Create your first course to get started.</p>
+                  </div>
                 )}
               </div>
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-
-
-            <TabsContent value="users">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Users</h1>
-                  <p className="text-muted-foreground mt-2">Manage user accounts and permissions</p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>All Users</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {usersLoading ? (
-                      <p>Loading users...</p>
-                    ) : !users || !Array.isArray(users) || users.length === 0 ? (
-                      <p className="text-muted-foreground">No users found. User management feature needs implementation.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2">Name</th>
-                              <th className="text-left py-2">Email</th>
-                              <th className="text-left py-2">Role</th>
-                              <th className="text-left py-2">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Array.isArray(users) && users.map((user: any) => (
-                              <tr key={user.id} className="border-b">
-                                <td className="py-2 font-medium">{user.name}</td>
-                                <td className="py-2">{user.email}</td>
-                                <td className="py-2">{user.isAdmin ? 'Admin' : 'User'}</td>
-                                <td className="py-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    Edit
-                                  </Button>
-                                  <Button variant="destructive" size="sm">
-                                    Delete
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+          {/* Bulk Import Tab */}
+          <TabsContent value="import">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Bulk Question Import</h1>
+                <p className="text-muted-foreground mt-2">Import questions from JSON format and create a new question set</p>
               </div>
-            </TabsContent>
 
-            <TabsContent value="import">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Bulk Question Import</h1>
-                  <p className="text-muted-foreground mt-2">Import questions from JSON format</p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Import Questions</CardTitle>
-                    <CardDescription>
-                      Upload question data in the required JSON format
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="course-select">Select Course</Label>
-                      <Select
-                        value={importData.courseId}
-                        onValueChange={(value) => setImportData(prev => ({ ...prev, courseId: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a course" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.isArray(courses) && courses.map((course: any) => (
-                            <SelectItem key={course.id} value={course.id.toString()}>
-                              {course.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="json-data">JSON Data</Label>
-                      <Textarea
-                        id="json-data"
-                        rows={12}
-                        className="font-mono text-sm"
-                        placeholder={sampleQuestions}
-                        value={importData.jsonData}
-                        onChange={(e) => setImportData(prev => ({ ...prev, jsonData: e.target.value }))}
-                      />
-                    </div>
-
-                    <Button
-                      onClick={onImportQuestions}
-                      disabled={!importData.courseId || !importData.jsonData || importQuestionsMutation.isPending}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Import Questions</CardTitle>
+                  <CardDescription>
+                    Upload question data in JSON format to create a new question set
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="course-select">Select Course</Label>
+                    <Select
+                      value={bulkImportData.courseId}
+                      onValueChange={(value) => setBulkImportData(prev => ({ ...prev, courseId: value }))}
                     >
-                      {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(courses) && courses.map((course: any) => (
+                          <SelectItem key={course.id} value={course.id.toString()}>
+                            {course.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question-set-title">Question Set Title</Label>
+                    <Input
+                      id="question-set-title"
+                      placeholder="Enter title for the new question set"
+                      value={bulkImportData.questionSetTitle}
+                      onChange={(e) => setBulkImportData(prev => ({ ...prev, questionSetTitle: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="json-data">Questions JSON Data</Label>
+                    <Textarea
+                      id="json-data"
+                      placeholder="Paste your questions JSON here..."
+                      value={bulkImportData.jsonData}
+                      onChange={(e) => setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }))}
+                      rows={12}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={onBulkImport} 
+                    disabled={!bulkImportData.courseId || !bulkImportData.questionSetTitle || !bulkImportData.jsonData || createQuestionSetMutation.isPending || importQuestionsMutation.isPending}
+                    className="w-full"
+                  >
+                    {createQuestionSetMutation.isPending || importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* AI Settings Tab */}
+          <TabsContent value="ai">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">AI Settings</h1>
+                <p className="text-muted-foreground mt-2">Configure AI model parameters and behavior</p>
               </div>
-            </TabsContent>
 
-            <TabsContent value="ai">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">AI Chatbot Settings</h1>
-                  <p className="text-muted-foreground mt-2">Configure OpenRouter integration and GPT parameters</p>
-                </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Configuration</CardTitle>
+                  <CardDescription>
+                    Configure the AI assistant that provides explanations to learners
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="api-key">API Key</Label>
+                    <Input
+                      id="api-key"
+                      type="password"
+                      placeholder="Enter OpenRouter API key"
+                      value={aiSettingsData.apiKey}
+                      onChange={(e) => setAiSettingsData(prev => ({ ...prev, apiKey: e.target.value }))}
+                    />
+                  </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>OpenRouter Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="model-name">Model</Label>
+                    <Select
+                      value={aiSettingsData.modelName}
+                      onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, modelName: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                        <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
+                        <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
+                        <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="system-prompt">System Prompt</Label>
+                    <Textarea
+                      id="system-prompt"
+                      value={aiSettingsData.systemPrompt}
+                      onChange={(e) => setAiSettingsData(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="api-key">OpenRouter API Key</Label>
-                      <Input
-                        id="api-key"
-                        type="password"
-                        placeholder="sk-or-..."
-                        value={aiSettingsData.apiKey}
-                        onChange={(e) => setAiSettingsData(prev => ({ ...prev, apiKey: e.target.value }))}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="model-name">Model Name</Label>
-                      <Input
-                        id="model-name"
-                        value={aiSettingsData.modelName}
-                        onChange={(e) => setAiSettingsData(prev => ({ ...prev, modelName: e.target.value }))}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="temperature">Temperature: {aiSettingsData.temperature[0] / 100}</Label>
+                      <Label>Temperature: {aiSettingsData.temperature[0]}</Label>
                       <Slider
                         value={aiSettingsData.temperature}
                         onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, temperature: value }))}
                         max={100}
                         step={1}
-                        className="w-full"
                       />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0 (Focused)</span>
-                        <span>1 (Creative)</span>
-                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="system-prompt">System Prompt</Label>
-                      <Textarea
-                        id="system-prompt"
-                        rows={4}
-                        value={aiSettingsData.systemPrompt}
-                        onChange={(e) => setAiSettingsData(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                      <Label>Max Tokens: {aiSettingsData.maxTokens[0]}</Label>
+                      <Slider
+                        value={aiSettingsData.maxTokens}
+                        onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, maxTokens: value }))}
+                        max={1000}
+                        step={10}
                       />
                     </div>
 
-                    <Button onClick={onUpdateAiSettings} disabled={updateAiSettingsMutation.isPending}>
-                      {updateAiSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                    <div className="space-y-2">
+                      <Label>Top P: {aiSettingsData.topP[0]}</Label>
+                      <Slider
+                        value={aiSettingsData.topP}
+                        onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, topP: value }))}
+                        max={100}
+                        step={1}
+                      />
+                    </div>
+                  </div>
 
-            <TabsContent value="tests">
-              <div className="text-center py-12">
-                <h3 className="text-lg font-semibold mb-2">Practice Tests Management</h3>
-                <p className="text-muted-foreground">Coming soon - manage practice tests here</p>
-              </div>
-            </TabsContent>
+                  <Button onClick={onUpdateAiSettings} disabled={updateAiSettingsMutation.isPending}>
+                    {updateAiSettingsMutation.isPending ? "Updating..." : "Update AI Settings"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="questions">
-              <div className="text-center py-12">
-                <h3 className="text-lg font-semibold mb-2">Question Management</h3>
-                <p className="text-muted-foreground">Coming soon - individual question CRUD operations</p>
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+                <p className="text-muted-foreground mt-2">View and manage system users</p>
               </div>
-            </TabsContent>
 
-            <TabsContent value="users">
-              <div className="text-center py-12">
-                <h3 className="text-lg font-semibold mb-2">User Management</h3>
-                <p className="text-muted-foreground">Coming soon - manage users and permissions</p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Users</CardTitle>
+                  <CardDescription>
+                    Overview of all registered users in the system
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {usersLoading ? (
+                    <div className="text-center py-4">Loading users...</div>
+                  ) : users && Array.isArray(users) && users.length > 0 ? (
+                    <div className="space-y-4">
+                      {users.map((user: any) => (
+                        <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {user.isAdmin ? "Administrator" : "Student"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No users found in the system.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* Edit Course Dialog */}
+      {editingCourse && (
+        <Dialog open={!!editingCourse} onOpenChange={() => setEditingCourse(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Course</DialogTitle>
+              <DialogDescription>
+                Update course information
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...editCourseForm}>
+              <form onSubmit={editCourseForm.handleSubmit(onUpdateCourse)} className="space-y-4">
+                <FormField
+                  control={editCourseForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Course Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter course title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editCourseForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter course description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit" disabled={updateCourseMutation.isPending}>
+                    {updateCourseMutation.isPending ? "Updating..." : "Update Course"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
