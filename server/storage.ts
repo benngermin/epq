@@ -79,7 +79,13 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     const MemoryStoreSession = MemoryStore(session);
     this.sessionStore = new MemoryStoreSession({
-      checkPeriod: 86400000 // prune expired entries every 24h
+      checkPeriod: 86400000, // prune expired entries every 24h
+      ttl: 86400000, // 24 hours TTL for sessions
+      max: 10000, // max number of sessions to store
+      dispose: (key: string, session: any) => {
+        // Clean up when session is disposed
+        console.log(`Session disposed: ${key}`);
+      }
     });
   }
 
