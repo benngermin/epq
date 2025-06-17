@@ -251,12 +251,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserTestRun(testRun: InsertUserTestRun): Promise<UserTestRun> {
-    const [newTestRun] = await db.insert(userTestRuns).values(testRun).returning();
+    const testRunData: any = {
+      ...testRun,
+      questionOrder: Array.isArray(testRun.questionOrder) ? testRun.questionOrder : JSON.parse(JSON.stringify(testRun.questionOrder))
+    };
+    const [newTestRun] = await db.insert(userTestRuns).values(testRunData).returning();
     return newTestRun;
   }
 
   async updateUserTestRun(id: number, testRun: Partial<InsertUserTestRun>): Promise<UserTestRun | undefined> {
-    const [updated] = await db.update(userTestRuns).set(testRun).where(eq(userTestRuns.id, id)).returning();
+    const updateData: any = { ...testRun };
+    if (testRun.questionOrder) {
+      updateData.questionOrder = testRun.questionOrder as number[];
+    }
+    const [updated] = await db.update(userTestRuns).set(updateData).where(eq(userTestRuns.id, id)).returning();
     return updated || undefined;
   }
 

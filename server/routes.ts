@@ -50,7 +50,7 @@ export function registerRoutes(app: Express): Server {
 
   // Middleware to check admin access
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
     // Allow demo user or users with admin flag
@@ -61,7 +61,7 @@ export function registerRoutes(app: Express): Server {
   };
 
   const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
     next();
@@ -76,7 +76,7 @@ export function registerRoutes(app: Express): Server {
           const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const testsWithProgress = await Promise.all(
             practiceTests.map(async (test) => {
-              const testProgress = await storage.getUserTestProgress(req.user.id, test.id);
+              const testProgress = await storage.getUserTestProgress(req.user!.id, test.id);
               return {
                 ...test,
                 ...testProgress,
@@ -373,7 +373,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check ownership or admin access
-      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
