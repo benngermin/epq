@@ -171,32 +171,36 @@ export default function TestPlayer() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <nav className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
+      <nav className="bg-card shadow-sm border-b sticky top-0 z-40">
+        <div className="max-w-[2000px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12">
+          <div className="flex justify-between items-center h-12 sm:h-14 md:h-16">
             <div className="flex items-center min-w-0 flex-1">
-              <Button variant="ghost" size="sm" onClick={exitTest} className="mr-2 sm:mr-4 flex-shrink-0">
-                <ArrowLeft className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={exitTest} className="mr-2 sm:mr-3 md:mr-4 flex-shrink-0 p-1 sm:p-2">
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">
+              <span className="font-semibold text-foreground text-xs sm:text-sm md:text-base lg:text-lg truncate">
                 {(testRun as any)?.practiceTest?.title || "Practice Test"}
               </span>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-              <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 lg:space-x-4 flex-shrink-0">
+              <span className="text-xs sm:text-sm md:text-base text-muted-foreground whitespace-nowrap">
                 Q {currentQuestionIndex + 1}/{totalQuestions}
               </span>
-              <div className="w-16 sm:w-32">
-                <Progress value={progress} className="h-2" />
+              <div className="w-12 sm:w-16 md:w-24 lg:w-32 xl:w-40">
+                <Progress value={progress} className="h-1.5 sm:h-2 md:h-2.5" />
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="flex h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)]">
-        {/* Question Navigation Rail - Hidden on mobile */}
-        <div className="hidden lg:block">
+      <div className="flex h-[calc(100vh-48px)] sm:h-[calc(100vh-56px)] md:h-[calc(100vh-64px)]">
+        {/* Question Navigation Rail - Responsive visibility and sizing */}
+        <div className={cn(
+          "hidden transition-all duration-300 ease-in-out",
+          "lg:block xl:block",
+          isRailCollapsed ? "w-0" : "w-64 xl:w-80 2xl:w-96"
+        )}>
           <QuestionNavigation
             testRun={testRun}
             currentQuestionIndex={currentQuestionIndex}
@@ -210,9 +214,14 @@ export default function TestPlayer() {
         </div>
 
         {/* Main Question Area */}
-        <div className="flex-1 flex flex-col relative">
-          <div className="flex-1 p-4 sm:p-8 pb-20 sm:pb-24 overflow-y-auto">
-            <div className="max-w-4xl mx-auto">
+        <div className="flex-1 flex flex-col relative min-w-0">
+          <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 xl:p-12 pb-16 sm:pb-20 md:pb-24 lg:pb-28 overflow-y-auto">
+            <div className={cn(
+              "mx-auto",
+              isRailCollapsed 
+                ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl" 
+                : "max-w-3xl lg:max-w-4xl xl:max-w-5xl"
+            )}>
               <QuestionCard
                 question={currentQuestion}
                 onSubmitAnswer={handleSubmitAnswer}
@@ -224,35 +233,41 @@ export default function TestPlayer() {
 
           {/* Navigation Controls - Only show when question is answered */}
           {(currentQuestion as any)?.userAnswer && (
-            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-3 sm:p-4 shadow-lg">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-2 sm:p-3 md:p-4 lg:p-5 shadow-lg">
+              <div className={cn(
+                "mx-auto",
+                isRailCollapsed 
+                  ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl" 
+                  : "max-w-3xl lg:max-w-4xl xl:max-w-5xl"
+              )}>
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4">
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[100px] order-2 sm:order-1"
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-2 sm:order-1 text-xs sm:text-sm md:text-base"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                     Previous
                   </Button>
 
-                  <div className="text-xs sm:text-sm text-muted-foreground text-center flex-shrink-0 order-1 sm:order-2">
+                  <div className="text-xs sm:text-sm md:text-base text-muted-foreground text-center flex-shrink-0 order-1 sm:order-2">
                     <span className="block sm:hidden">{answeredQuestions.length}/{totalQuestions} answered</span>
-                    <span className="hidden sm:block">{answeredQuestions.length} of {totalQuestions} answered</span>
+                    <span className="hidden sm:block lg:hidden">{answeredQuestions.length} of {totalQuestions} answered</span>
+                    <span className="hidden lg:block">{answeredQuestions.length} of {totalQuestions} questions answered</span>
                   </div>
 
                   <Button
                     onClick={handleNext}
                     disabled={completeTestMutation.isPending}
-                    className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[100px] order-3"
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base"
                   >
                     {currentQuestionIndex === totalQuestions - 1 ? (
                       completeTestMutation.isPending ? "Completing..." : "Complete Test"
                     ) : (
                       <>
                         Next
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                       </>
                     )}
                   </Button>
