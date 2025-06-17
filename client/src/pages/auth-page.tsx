@@ -91,14 +91,26 @@ export default function AuthPage() {
             <h1 className="text-3xl font-bold text-foreground">Exam Question Practice</h1>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-6 space-y-3">
             <Button 
               onClick={onDemoLogin}
-              variant="outline"
+              variant="default"
               className="w-full"
               disabled={demoLoginMutation.isPending}
             >
-              {demoLoginMutation.isPending ? "Signing in..." : "Try Demo (No Registration Required)"}
+              {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
+            </Button>
+            <Button 
+              onClick={() => {
+                loginForm.setValue("email", "bennglorfield@gmail.com");
+                loginForm.setValue("password", "password123");
+                onLogin({ email: "bennglorfield@gmail.com", password: "password123" });
+              }}
+              variant="outline"
+              className="w-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? "Signing in..." : "Quick Login (Benn)"}
             </Button>
           </div>
 
