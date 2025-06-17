@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, MessageSquare, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +14,11 @@ interface QuestionCardProps {
   isSubmitting: boolean;
   testRunId: number;
   onFlipChange?: (isFlipped: boolean) => void;
+  onNextQuestion?: () => void;
+  hasNextQuestion?: boolean;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange }: QuestionCardProps) {
+export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
@@ -121,11 +123,19 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 </RadioGroup>
 
                 {hasAnswer && isCorrect && (
-                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="font-medium text-green-800">Correct!</span>
+                  <div className="mt-6 space-y-4">
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                        <span className="font-medium text-green-800">Correct!</span>
+                      </div>
                     </div>
+                    {hasNextQuestion && (
+                      <Button onClick={onNextQuestion} className="w-full">
+                        Next Question
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -173,7 +183,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-3 sm:p-4 border-t bg-card flex-shrink-0">
+              <div className="p-3 sm:p-4 border-t bg-card flex-shrink-0 space-y-2">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
@@ -182,6 +192,12 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
                 </Button>
+                {hasNextQuestion && (
+                  <Button onClick={onNextQuestion} className="w-full text-sm sm:text-base">
+                    Next Question
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

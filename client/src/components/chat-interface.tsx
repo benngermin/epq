@@ -35,7 +35,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       return await res.json();
     },
     onSuccess: (data) => {
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+      setMessages(prev => [{ role: "assistant", content: data.response }, ...prev]);
     },
     onError: (error: Error) => {
       toast({
@@ -60,7 +60,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     if (!userInput.trim()) return;
 
     const newUserMessage = { role: "user" as const, content: userInput };
-    setMessages(prev => [...prev, newUserMessage]);
+    setMessages(prev => [newUserMessage, ...prev]);
     
     chatMutation.mutate(userInput);
     setUserInput("");
@@ -91,7 +91,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             </div>
           )}
 
-          {messages.map((message, index) => (
+          {messages.slice().reverse().map((message, index) => (
             <div
               key={index}
               className={cn(

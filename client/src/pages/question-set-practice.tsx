@@ -203,7 +203,7 @@ export default function QuestionSetPractice() {
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Practice Summary */}
-          <div className="w-full lg:w-80 xl:w-96 lg:flex-shrink-0">
+          <div className="w-full lg:w-72 xl:w-80 lg:flex-shrink-0">
             <Card>
               <CardHeader className="pb-3 sm:pb-6">
                 <CardTitle className="text-base sm:text-lg">Practice Summary</CardTitle>
@@ -221,6 +221,7 @@ export default function QuestionSetPractice() {
                     {questions.map((question: any, index: number) => {
                       const isAnswered = userAnswers[question.id];
                       const isCurrent = index === currentQuestionIndex;
+                      const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
                       
                       return (
                         <div
@@ -241,12 +242,18 @@ export default function QuestionSetPractice() {
                           <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
                             isCurrent
                               ? "bg-primary text-primary-foreground"
-                              : isAnswered
+                              : isAnswered && isCorrect
                                 ? "bg-green-500 text-white"
+                              : isAnswered && !isCorrect
+                                ? "bg-red-500 text-white"
                                 : "bg-muted text-muted-foreground"
                           }`}>
                             {isAnswered ? (
-                              <CheckCircle className="h-4 w-4" />
+                              isCorrect ? (
+                                <CheckCircle className="h-4 w-4" />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )
                             ) : (
                               index + 1
                             )}
