@@ -10,10 +10,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
-
-const PostgresSessionStore = connectPg(session);
+import MemoryStore from "memorystore";
 
 export interface IStorage {
   // User methods
@@ -80,9 +77,9 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
+    const MemoryStoreSession = MemoryStore(session);
+    this.sessionStore = new MemoryStoreSession({
+      checkPeriod: 86400000 // prune expired entries every 24h
     });
   }
 
@@ -236,7 +233,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuestionVersion(version: InsertQuestionVersion): Promise<QuestionVersion> {
-    const [newVersion] = await db.insert(questionVersions).values(version).returning();
+    const versionData = {
+      ...version,
+      answerChoices: version.answerChoices as string[]
+    };
+    const [newVersion] = await db.insert(questionVersions).values(versionData).returning();
     return newVersion;
   }
 
@@ -263,7 +264,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(userAnswers).where(eq(userAnswers.userTestRunId, testRunId));
   }
 
-  async createUserAnswer(answer: InsertUserAnswer): Promise<UserAnswer> {
+  async createUserAnswer(answer: InsertUserAnswer & { isCorrect: boolean }): Promise<UserAnswer> {
     const [newAnswer] = await db.insert(userAnswers).values(answer).returning();
     return newAnswer;
   }
