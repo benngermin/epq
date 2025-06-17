@@ -265,6 +265,8 @@ export default function AdminPanel() {
     jsonData: "",
   });
 
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const [aiSettingsData, setAiSettingsData] = useState({
     apiKey: "",
     modelName: "anthropic/claude-3-sonnet",
@@ -335,6 +337,50 @@ export default function AdminPanel() {
 
   const onDeleteCourse = async (id: number) => {
     deleteCourseMutation.mutate(id);
+  };
+
+  const handleFileRead = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      setBulkImportData(prev => ({ ...prev, jsonData: content }));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const jsonFile = files.find(file => file.type === 'application/json' || file.name.endsWith('.json'));
+    
+    if (jsonFile) {
+      handleFileRead(jsonFile);
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please drop a JSON file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileRead(file);
+    }
   };
 
   const onBulkImport = () => {
@@ -923,16 +969,50 @@ export default function AdminPanel() {
                                 <div className="space-y-4">
                                   <div className="space-y-2">
                                     <Label htmlFor="json-data">Question Data (JSON format)</Label>
-                                    <Textarea
-                                      id="json-data"
-                                      placeholder="Paste your JSON data here..."
-                                      rows={10}
-                                      value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
-                                      onChange={(e) => {
+                                    <div 
+                                      className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                                        isDragOver 
+                                          ? 'border-primary bg-primary/5' 
+                                          : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                                      }`}
+                                      onDragOver={handleDragOver}
+                                      onDragLeave={handleDragLeave}
+                                      onDrop={(e) => {
+                                        handleDrop(e);
                                         setSelectedQuestionSetForImport(questionSet.id);
-                                        setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
                                       }}
-                                    />
+                                    >
+                                      <input
+                                        type="file"
+                                        accept=".json,application/json"
+                                        onChange={(e) => {
+                                          handleFileInput(e);
+                                          setSelectedQuestionSetForImport(questionSet.id);
+                                        }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        title="Click to upload or drag and drop a JSON file"
+                                      />
+                                      
+                                      {!(selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData) ? (
+                                        <div className="text-center py-6">
+                                          <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                                          <p className="text-sm font-medium mb-1">Drop a JSON file here or click to browse</p>
+                                          <p className="text-xs text-muted-foreground">Or paste your JSON data below</p>
+                                        </div>
+                                      ) : null}
+                                      
+                                      <Textarea
+                                        id="json-data"
+                                        placeholder="Paste your JSON data here..."
+                                        rows={selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData ? 10 : 3}
+                                        value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
+                                        onChange={(e) => {
+                                          setSelectedQuestionSetForImport(questionSet.id);
+                                          setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
+                                        }}
+                                        className="border-0 bg-transparent resize-none focus:ring-0 p-0"
+                                      />
+                                    </div>
                                   </div>
                                   <Button 
                                     onClick={() => {
@@ -1105,14 +1185,42 @@ export default function AdminPanel() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="json-data">Questions JSON Data</Label>
-                    <Textarea
-                      id="json-data"
-                      placeholder="Paste your questions JSON here..."
-                      value={bulkImportData.jsonData}
-                      onChange={(e) => setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }))}
-                      rows={12}
-                    />
+                    <Label htmlFor="json-data">Question Data (JSON format)</Label>
+                    <div 
+                      className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                        isDragOver 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleFileInput}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        title="Click to upload or drag and drop a JSON file"
+                      />
+                      
+                      {!bulkImportData.jsonData ? (
+                        <div className="text-center py-8">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium mb-1">Drop a JSON file here or click to browse</p>
+                          <p className="text-xs text-muted-foreground">Or paste your JSON data below</p>
+                        </div>
+                      ) : null}
+                      
+                      <Textarea
+                        id="json-data"
+                        placeholder="Paste your questions JSON here..."
+                        value={bulkImportData.jsonData}
+                        onChange={(e) => setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }))}
+                        rows={bulkImportData.jsonData ? 12 : 4}
+                        className="border-0 bg-transparent resize-none focus:ring-0 p-0"
+                      />
+                    </div>
                   </div>
 
                   <Button 
