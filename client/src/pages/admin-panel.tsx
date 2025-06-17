@@ -237,27 +237,24 @@ export default function AdminPanel() {
   });
 
   const questionSetForm = useForm({
-    resolver: zodResolver(insertQuestionSetSchema.omit({ courseId: true })),
+    resolver: zodResolver(insertQuestionSetSchema.omit({ courseId: true, description: true })),
     defaultValues: {
       title: "",
-      description: "",
     },
   });
 
   const standaloneQuestionSetForm = useForm({
-    resolver: zodResolver(insertQuestionSetSchema),
+    resolver: zodResolver(insertQuestionSetSchema.omit({ description: true })),
     defaultValues: {
       title: "",
-      description: "",
       courseId: 0,
     },
   });
 
   const editQuestionSetForm = useForm({
-    resolver: zodResolver(insertQuestionSetSchema.partial()),
+    resolver: zodResolver(insertQuestionSetSchema.partial().omit({ description: true })),
     defaultValues: {
       title: "",
-      description: "",
       courseId: 0,
     },
   });
@@ -308,7 +305,6 @@ export default function AdminPanel() {
     setEditingQuestionSet(questionSet);
     editQuestionSetForm.reset({
       title: questionSet.title,
-      description: questionSet.description,
     });
     editQuestionSetForm.setValue('courseId', questionSet.courseId);
   };
@@ -753,19 +749,7 @@ export default function AdminPanel() {
                                         </FormItem>
                                       )}
                                     />
-                                    <FormField
-                                      control={questionSetForm.control}
-                                      name="description"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Description</FormLabel>
-                                          <FormControl>
-                                            <Textarea placeholder="Enter question set description" {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
+
                                     <DialogFooter>
                                       <Button type="submit" disabled={createQuestionSetMutation.isPending}>
                                         {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
@@ -852,19 +836,7 @@ export default function AdminPanel() {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={standaloneQuestionSetForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="Enter question set description" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+
                         <FormField
                           control={standaloneQuestionSetForm.control}
                           name="courseId"
