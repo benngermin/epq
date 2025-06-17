@@ -22,6 +22,7 @@ export default function QuestionSetPractice() {
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showChat, setShowChat] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   console.log("Route Match:", match);
   console.log("Route Params:", params);
@@ -284,25 +285,28 @@ export default function QuestionSetPractice() {
               onSubmitAnswer={handleSubmitAnswer}
               isSubmitting={submitAnswerMutation.isPending}
               testRunId={0} // Not used for question set practice
+              onFlipChange={setIsCardFlipped}
             />
 
-            {/* Navigation */}
-            <div className="flex justify-between px-2 sm:px-4">
-              <Button
-                variant="outline"
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={handleNextQuestion}
-                disabled={currentQuestionIndex === questions.length - 1}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
+            {/* Navigation - Hidden when chatbot is showing */}
+            {!isCardFlipped && (
+              <div className="flex justify-between px-2 sm:px-4">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  Previous
+                </Button>
+                <Button
+                  onClick={handleNextQuestion}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

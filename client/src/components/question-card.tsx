@@ -13,9 +13,10 @@ interface QuestionCardProps {
   onSubmitAnswer: (answer: string) => void;
   isSubmitting: boolean;
   testRunId: number;
+  onFlipChange?: (isFlipped: boolean) => void;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId }: QuestionCardProps) {
+export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
@@ -28,7 +29,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
     setIsFlipped(false);
     setSelectedAnswer("");
     setSubmittedAnswer("");
-  }, [question?.id]);
+    onFlipChange?.(false);
+  }, [question?.id, onFlipChange]);
+
+  // Notify parent when flip state changes
+  useEffect(() => {
+    onFlipChange?.(isFlipped);
+  }, [isFlipped, onFlipChange]);
 
   const handleSubmit = () => {
     if (!selectedAnswer || hasAnswer) return;
