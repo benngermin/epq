@@ -199,7 +199,7 @@ export default function TestPlayer() {
         <div className={cn(
           "hidden transition-all duration-300 ease-in-out",
           "lg:block xl:block",
-          isRailCollapsed ? "w-0" : "w-64 xl:w-80 2xl:w-96 3xl:w-104 4xl:w-120"
+          isRailCollapsed ? "w-0" : "w-56 lg:w-60 xl:w-64 2xl:w-72"
         )}>
           <QuestionNavigation
             testRun={testRun}
@@ -215,7 +215,7 @@ export default function TestPlayer() {
 
         {/* Main Question Area */}
         <div className="flex-1 flex flex-col relative min-w-0">
-          <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 xl:p-12 pb-16 sm:pb-20 md:pb-24 lg:pb-28 overflow-y-auto">
+          <div className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 pb-16 sm:pb-20 md:pb-24 lg:pb-28 overflow-y-auto">
             <div className={cn(
               "mx-auto",
               isRailCollapsed 

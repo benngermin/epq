@@ -99,7 +99,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <Label
                             htmlFor={choiceLetter}
                             className={cn(
-                              "flex items-start p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 rounded-lg border cursor-pointer transition-all duration-200",
+                              "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
                               "hover:border-primary hover:bg-accent",
                               isSelected && "border-primary bg-primary/10",
                               hasAnswer && "cursor-default"
