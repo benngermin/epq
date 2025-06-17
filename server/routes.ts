@@ -556,6 +556,41 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/admin/questions", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = req.query.questionSetId;
+      
+      if (!questionSetId) {
+        return res.status(400).json({ message: "questionSetId query parameter is required" });
+      }
+      
+      const questions = await storage.getQuestionsByQuestionSet(parseInt(questionSetId as string));
+      
+      // Get the latest version for each question to display
+      const questionsWithVersions = await Promise.all(
+        questions.map(async (question) => {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          const latestVersion = versions[versions.length - 1]; // Get latest version
+          
+          return {
+            id: question.id,
+            originalQuestionNumber: question.originalQuestionNumber,
+            loid: question.loid,
+            questionText: latestVersion?.questionText || '',
+            answerChoices: latestVersion?.answerChoices || [],
+            correctAnswer: latestVersion?.correctAnswer || '',
+            topicFocus: latestVersion?.topicFocus || '',
+          };
+        })
+      );
+      
+      res.json(questionsWithVersions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
   app.post("/api/admin/import-questions", requireAdmin, async (req, res) => {
     try {
       const { questionSetId, questions: questionsData } = req.body;

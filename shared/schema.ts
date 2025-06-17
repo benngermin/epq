@@ -187,16 +187,17 @@ export type InsertUserAnswer = z.infer<typeof insertUserAnswerSchema>;
 export type AiSettings = typeof aiSettings.$inferSelect;
 export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
 
-// Question import schema
+// Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
-  originalQuestionNumber: z.number(),
-  LOID: z.string(),
+  question_number: z.number(),
+  type: z.string(),
+  loid: z.string(),
   versions: z.array(z.object({
-    versionNumber: z.number(),
-    topicFocus: z.string(),
-    questionText: z.string(),
-    answerChoices: z.array(z.string()),
-    correctAnswer: z.string().length(1),
+    version_number: z.number(),
+    topic_focus: z.string(),
+    question_text: z.string(),
+    answer_choices: z.array(z.string()),
+    correct_answer: z.string(),
   })),
 });
 

@@ -253,13 +253,13 @@ export class DatabaseStorage implements IStorage {
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
     for (const questionData of questionsData) {
       // Check if question already exists
-      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.originalQuestionNumber);
+      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
       
       if (!question) {
         question = await this.createQuestion({
           questionSetId,
-          originalQuestionNumber: questionData.originalQuestionNumber,
-          loid: questionData.LOID,
+          originalQuestionNumber: questionData.question_number,
+          loid: questionData.loid,
         });
       }
 
@@ -267,11 +267,11 @@ export class DatabaseStorage implements IStorage {
       for (const versionData of questionData.versions) {
         await this.createQuestionVersion({
           questionId: question.id,
-          versionNumber: versionData.versionNumber,
-          topicFocus: versionData.topicFocus,
-          questionText: versionData.questionText,
-          answerChoices: Array.isArray(versionData.answerChoices) ? versionData.answerChoices : Object.values(versionData.answerChoices) as string[],
-          correctAnswer: versionData.correctAnswer,
+          versionNumber: versionData.version_number,
+          topicFocus: versionData.topic_focus,
+          questionText: versionData.question_text,
+          answerChoices: [...versionData.answer_choices],
+          correctAnswer: versionData.correct_answer,
         });
       }
     }
