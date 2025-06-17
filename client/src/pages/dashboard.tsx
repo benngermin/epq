@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
-import { GraduationCap, LogOut, BookOpen, Shield, Settings } from "lucide-react";
+import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
 
@@ -91,36 +92,44 @@ export default function Dashboard() {
               <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 flex-shrink-0" />
               <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Question Practice</span>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
-              {(user?.isAdmin || user?.email === "demo@example.com") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/admin")}
-                  className="hidden sm:flex"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Admin
-                </Button>
-              )}
-              {(user?.isAdmin || user?.email === "demo@example.com") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/admin")}
-                  className="sm:hidden"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => logoutMutation.mutate()}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 hover:bg-muted">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="hidden sm:block font-medium">{user?.name}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => setLocation("/")}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  {(user?.isAdmin || user?.email === "demo@example.com") && (
+                    <DropdownMenuItem 
+                      onClick={() => setLocation("/admin")}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span>Admin</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    className="flex items-center space-x-2 cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -132,7 +141,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Continue your exam preparation journey</p>
         </div>
 
-        {!courses || courses.length === 0 ? (
+        {!courses || !Array.isArray(courses) || courses.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <BookOpen className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
@@ -144,7 +153,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="space-y-4 sm:space-y-6">
-            {courses.map((course: any) => (
+            {Array.isArray(courses) && courses.map((course: any) => (
               <Card key={course.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4">
                   <div className="flex items-start sm:items-center mb-3 sm:mb-4 gap-3">
