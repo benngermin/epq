@@ -29,7 +29,7 @@ export const questionSets = pgTable("question_sets", {
 export const practiceTests = pgTable("practice_tests", {
   id: serial("id").primaryKey(),
   courseId: integer("course_id").references(() => courses.id).notNull(),
-  questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id),
   title: text("title").notNull(),
   questionCount: integer("question_count").default(85).notNull(),
 });
