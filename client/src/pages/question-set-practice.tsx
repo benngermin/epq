@@ -216,7 +216,7 @@ export default function QuestionSetPractice() {
                   </div>
                   
                   {/* Vertical question list */}
-                  <div className="space-y-2 max-h-64 sm:max-h-80 lg:max-h-[calc(100vh-350px)] overflow-y-auto">
+                  <div className="space-y-2 max-h-64 sm:max-h-80 lg:max-h-[calc(100vh-350px)] overflow-y-auto px-1 py-1">
                     {questions.map((question: any, index: number) => {
                       const isAnswered = userAnswers[question.id];
                       const isCurrent = index === currentQuestionIndex;
@@ -224,7 +224,7 @@ export default function QuestionSetPractice() {
                       return (
                         <div
                           key={question.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
+                          className={`flex items-center gap-3 p-3 mx-1 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
                             isCurrent 
                               ? "border-primary bg-primary/5" 
                               : isAnswered 
