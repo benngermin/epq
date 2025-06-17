@@ -20,7 +20,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [showChat, setShowChat] = useState(false);
   const { getQuestionState, setQuestionFlipped } = useQuestionContext();
-  
+
   const questionState = getQuestionState(question.id);
   const isFlipped = questionState.isFlipped;
 
@@ -29,12 +29,12 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
   const handleSubmit = () => {
     if (!selectedAnswer || hasAnswer) return;
-    
+
     onSubmitAnswer(selectedAnswer);
-    
+
     // If incorrect, flip the card after a short delay
     setTimeout(() => {
-      if (selectedAnswer !== question.correctAnswer) {
+      if (selectedAnswer !== question.latestVersion?.correctAnswer) {
         setQuestionFlipped(question.id, true);
         setShowChat(true);
       }
@@ -70,7 +70,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
                 <div className="mb-6 sm:mb-8">
                   <p className="text-sm sm:text-base text-foreground leading-relaxed text-left">
-                    {question.questionText}
+                    {question.latestVersion?.questionText}
                   </p>
                 </div>
 
@@ -80,13 +80,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   disabled={hasAnswer || isSubmitting}
                 >
                   <div className="space-y-3 sm:space-y-4">
-                    {question.answerChoices.map((choice: string, index: number) => {
+                    {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                       const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                       const isSelected = hasAnswer 
                         ? question.userAnswer.chosenAnswer === choiceLetter
                         : selectedAnswer === choiceLetter;
-                      const isCorrectChoice = choiceLetter === question.correctAnswer;
-                      
+                      const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
+
                       return (
                         <div key={choiceLetter}>
                           <Label
@@ -181,14 +181,14 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-gray-700">
                       <strong>Your answer:</strong> {question.userAnswer?.chosenAnswer} - {
-                        question.answerChoices.find((choice: string) => 
+                        question.latestVersion?.answerChoices?.find((choice: string) => 
                           choice.startsWith(question.userAnswer?.chosenAnswer + ".")
                         )?.replace(/^[A-D]\.\s*/, '')
                       }
                       <br />
-                      <strong>Correct answer:</strong> {question.correctAnswer} - {
-                        question.answerChoices.find((choice: string) => 
-                          choice.startsWith(question.correctAnswer + ".")
+                      <strong>Correct answer:</strong> {question.latestVersion?.correctAnswer} - {
+                        question.latestVersion?.answerChoices?.find((choice: string) => 
+                          choice.startsWith(question.latestVersion?.correctAnswer + ".")
                         )?.replace(/^[A-D]\.\s*/, '')
                       }
                     </p>
@@ -200,7 +200,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     <ChatInterface
                       questionVersionId={question.id}
                       chosenAnswer={question.userAnswer?.chosenAnswer}
-                      correctAnswer={question.correctAnswer}
+                      correctAnswer={question.latestVersion?.correctAnswer}
                     />
                   )}
                 </div>
