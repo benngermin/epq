@@ -200,9 +200,78 @@ export default function QuestionSetPractice() {
           <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Question Section */}
-          <div className="space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Sidebar - Practice Summary */}
+          <div className="w-full lg:w-80 lg:flex-shrink-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Practice Summary</CardTitle>
+                <CardDescription>Track your progress through this question set</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span>Questions Answered</span>
+                    <span>{Object.keys(userAnswers).length} / {questions.length}</span>
+                  </div>
+                  
+                  {/* Vertical question list */}
+                  <div className="space-y-2 max-h-96 lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                    {questions.map((question: any, index: number) => {
+                      const isAnswered = userAnswers[question.id];
+                      const isCurrent = index === currentQuestionIndex;
+                      
+                      return (
+                        <div
+                          key={question.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 ${
+                            isCurrent 
+                              ? "border-primary bg-primary/5" 
+                              : isAnswered 
+                                ? "border-green-200 bg-green-50" 
+                                : "border-muted-foreground/20"
+                          }`}
+                          onClick={() => {
+                            setCurrentQuestionIndex(index);
+                            setShowChat(false);
+                            setSelectedAnswer("");
+                          }}
+                        >
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                            isCurrent
+                              ? "bg-primary text-primary-foreground"
+                              : isAnswered
+                                ? "bg-green-500 text-white"
+                                : "bg-muted text-muted-foreground"
+                          }`}>
+                            {isAnswered ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              index + 1
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              Question {index + 1}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {question.latestVersion?.topicFocus || "General topic"}
+                            </p>
+                          </div>
+                          {isCurrent && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Main Content - Question and Chat */}
+          <div className="flex-1 min-w-0 space-y-6">
             <QuestionCard
               question={currentQuestion}
               onSubmitAnswer={handleSubmitAnswer}
@@ -227,55 +296,17 @@ export default function QuestionSetPractice() {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
-          </div>
 
-          {/* Chat/Explanation Section */}
-          <div className="space-y-6">
+            {/* Chat/Explanation Section - Now much larger */}
             {showChat && currentQuestion?.latestVersion && (
-              <ChatInterface
-                questionVersionId={currentQuestion.latestVersion.id}
-                chosenAnswer={selectedAnswer}
-                correctAnswer={currentQuestion.latestVersion.correctAnswer}
-              />
+              <div className="w-full">
+                <ChatInterface
+                  questionVersionId={currentQuestion.latestVersion.id}
+                  chosenAnswer={selectedAnswer}
+                  correctAnswer={currentQuestion.latestVersion.correctAnswer}
+                />
+              </div>
             )}
-
-            {/* Question Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Practice Summary</CardTitle>
-                <CardDescription>Track your progress through this question set</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Questions Answered</span>
-                    <span>{Object.keys(userAnswers).length} / {questions.length}</span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {questions.map((question: any, index: number) => {
-                      const isAnswered = userAnswers[question.id];
-                      const isCurrent = index === currentQuestionIndex;
-                      
-                      return (
-                        <Button
-                          key={question.id}
-                          variant={isCurrent ? "default" : isAnswered ? "secondary" : "outline"}
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setCurrentQuestionIndex(index);
-                            setShowChat(false);
-                            setSelectedAnswer("");
-                          }}
-                        >
-                          {index + 1}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
