@@ -10,7 +10,6 @@ import {
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
-import MemoryStore from "memorystore";
 
 export interface IStorage {
   // User methods
@@ -77,16 +76,8 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
   constructor() {
-    const MemoryStoreSession = MemoryStore(session);
-    this.sessionStore = new MemoryStoreSession({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 86400000, // 24 hours TTL for sessions
-      max: 10000, // max number of sessions to store
-      dispose: (key: string, session: any) => {
-        // Clean up when session is disposed
-        console.log(`Session disposed: ${key}`);
-      }
-    });
+    // Use default memory store for sessions - simpler and more stable
+    this.sessionStore = new session.MemoryStore();
   }
 
   async getUser(id: number): Promise<User | undefined> {

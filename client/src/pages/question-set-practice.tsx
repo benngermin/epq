@@ -26,13 +26,23 @@ export default function QuestionSetPractice() {
 
   const { data: questionSet, isLoading: questionSetLoading } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
-    queryFn: () => fetch(`/api/question-sets/${questionSetId}`).then(res => res.json()),
+    queryFn: () => fetch(`/api/question-sets/${questionSetId}`, { 
+      credentials: "include" 
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return res.json();
+    }),
     enabled: !!questionSetId,
   });
 
   const { data: questions, isLoading: questionsLoading } = useQuery({
     queryKey: ["/api/questions", questionSetId],
-    queryFn: () => fetch(`/api/questions/${questionSetId}`).then(res => res.json()),
+    queryFn: () => fetch(`/api/questions/${questionSetId}`, { 
+      credentials: "include" 
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return res.json();
+    }),
     enabled: !!questionSetId,
   });
 
