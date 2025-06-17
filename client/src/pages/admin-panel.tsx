@@ -567,44 +567,123 @@ export default function AdminPanel() {
                   <DialogHeader>
                     <DialogTitle>Import Questions</DialogTitle>
                     <DialogDescription>
-                      Import questions to {questionSet.title}
+                      Upload questions to {questionSet.title}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.target as HTMLFormElement);
-                    const jsonData = formData.get('jsonData') as string;
-                    
-                    try {
-                      const questions = JSON.parse(jsonData);
-                      importQuestionsMutation.mutate({
-                        questionSetId: questionSet.id,
-                        questions: questions
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Invalid JSON",
-                        description: "Please provide valid JSON data",
-                        variant: "destructive",
-                      });
-                    }
-                  }} className="space-y-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="jsonData">Questions JSON Data</Label>
-                      <Textarea
-                        id="jsonData"
-                        name="jsonData"
-                        placeholder="Paste your questions JSON here..."
-                        rows={8}
-                        required
-                      />
+                      <Label htmlFor="json-data">Question Data (JSON format)</Label>
+                      
+                      {!(selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData) ? (
+                        <div 
+                          className={`relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 ${
+                            isDragOver 
+                              ? 'border-primary bg-primary/10 scale-[1.02]' 
+                              : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50/50'
+                          }`}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => {
+                            handleDrop(e);
+                            setSelectedQuestionSetForImport(questionSet.id);
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept=".json,application/json"
+                            onChange={(e) => {
+                              handleFileInput(e);
+                              setSelectedQuestionSetForImport(questionSet.id);
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          
+                          <div className="text-center">
+                            <div className="mb-3">
+                              <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                            </div>
+                            <h3 className="text-base font-semibold text-gray-900 mb-2">Upload JSON File</h3>
+                            <p className="text-sm text-gray-600 mb-3">
+                              Drag and drop your questions file here, or click to browse
+                            </p>
+                            <div className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                              Browse Files
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                <Upload className="h-4 w-4 text-green-600" />
+                              </div>
+                              <span className="text-sm font-medium text-green-800">JSON data loaded</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setBulkImportData(prev => ({ ...prev, jsonData: "" }));
+                                setSelectedQuestionSetForImport(null);
+                              }}
+                              className="text-green-700 hover:text-green-900"
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                          <Textarea
+                            id="json-data"
+                            placeholder="Paste your JSON data here..."
+                            rows={8}
+                            value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
+                            onChange={(e) => {
+                              setSelectedQuestionSetForImport(questionSet.id);
+                              setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
+                            }}
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      )}
+                      
+                      {!(selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData) && (
+                        <div className="text-center">
+                          <p className="text-sm text-gray-500 mb-2">Or paste your JSON data directly:</p>
+                          <Textarea
+                            placeholder="Paste your questions JSON here..."
+                            value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
+                            onChange={(e) => {
+                              setSelectedQuestionSetForImport(questionSet.id);
+                              setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
+                            }}
+                            rows={4}
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
-                    <DialogFooter>
-                      <Button type="submit" disabled={importQuestionsMutation.isPending}>
-                        {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
+                    <Button 
+                      onClick={() => {
+                        try {
+                          const questions = JSON.parse(bulkImportData.jsonData);
+                          importQuestionsMutation.mutate({
+                            questionSetId: questionSet.id,
+                            questions: questions,
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Invalid JSON",
+                            description: "Please check your JSON format",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={importQuestionsMutation.isPending || !bulkImportData.jsonData}
+                      className="w-full"
+                    >
+                      {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+                    </Button>
+                  </div>
                 </DialogContent>
               </Dialog>
 
