@@ -83,7 +83,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           <span className="font-medium text-foreground text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">AI Assistant</span>
         </div>
 
-        <div className="space-y-1.5 sm:space-y-2 md:space-y-3 lg:space-y-4 flex-1 overflow-y-auto mb-2 sm:mb-3 md:mb-4 pr-1 sm:pr-2 min-h-0" style={{ scrollbarWidth: 'thin' }}>
+        <div className="space-y-1.5 sm:space-y-2 md:space-y-3 lg:space-y-4 flex-1 overflow-y-auto scrollbar-thin mb-2 sm:mb-3 md:mb-4 pr-1 sm:pr-2 min-h-0">
           {chatMutation.isPending && messages.length === 0 && (
             <div className="flex items-center justify-center h-full min-h-[80px] sm:min-h-[100px] md:min-h-[120px] lg:min-h-[140px]">
               <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">

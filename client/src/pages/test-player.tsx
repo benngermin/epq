@@ -199,7 +199,7 @@ export default function TestPlayer() {
         <div className={cn(
           "hidden transition-all duration-300 ease-in-out",
           "lg:block xl:block",
-          isRailCollapsed ? "w-0" : "w-64 xl:w-80 2xl:w-96"
+          isRailCollapsed ? "w-0" : "w-64 xl:w-80 2xl:w-96 3xl:w-104 4xl:w-120"
         )}>
           <QuestionNavigation
             testRun={testRun}
@@ -219,8 +219,8 @@ export default function TestPlayer() {
             <div className={cn(
               "mx-auto",
               isRailCollapsed 
-                ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl" 
-                : "max-w-3xl lg:max-w-4xl xl:max-w-5xl"
+                ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-8xl 4xl:max-w-9xl" 
+                : "max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl"
             )}>
               <QuestionCard
                 question={currentQuestion}
@@ -237,8 +237,8 @@ export default function TestPlayer() {
               <div className={cn(
                 "mx-auto",
                 isRailCollapsed 
-                  ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl" 
-                  : "max-w-3xl lg:max-w-4xl xl:max-w-5xl"
+                  ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-8xl 4xl:max-w-9xl" 
+                  : "max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl"
               )}>
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4">
                   <Button
