@@ -93,9 +93,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                               "flex items-start p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-colors",
                               "hover:border-primary",
                               isSelected && "border-primary bg-primary/5",
-                              hasAnswer && isSelected && isCorrect && "border-green-500 bg-green-50",
-                              hasAnswer && isSelected && !isCorrect && "border-red-500 bg-red-50",
-                              hasAnswer && isCorrectChoice && !isSelected && "border-green-500 bg-green-50"
+                              hasAnswer && "cursor-default"
                             )}
                           >
                             <RadioGroupItem
@@ -107,12 +105,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                               <span className="text-sm sm:text-base text-foreground leading-relaxed">
                                 {choice.replace(/^[A-D]\.\s*/, '')}
                               </span>
-                              {hasAnswer && isCorrectChoice && (
-                                <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600" />
-                              )}
-                              {hasAnswer && isSelected && !isCorrect && (
-                                <XCircle className="inline-block ml-2 h-4 w-4 text-red-600" />
-                              )}
                             </div>
                           </Label>
                         </div>

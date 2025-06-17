@@ -74,7 +74,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   };
 
   return (
-    <Card className="bg-background border w-full h-full">
+    <Card className="bg-background w-full h-full">
       <CardContent className="p-3 sm:p-4 lg:p-6 h-full flex flex-col">
         <div className="flex items-center mb-3 sm:mb-4">
           <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-primary mr-2" />
