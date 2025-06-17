@@ -67,16 +67,16 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="h-[500px] sm:h-[600px] lg:h-[700px] bg-card border shadow-sm">
-              <CardContent className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
-                <div className="mb-3 sm:mb-4">
-                  <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border">
+            <Card className="h-[400px] sm:h-[500px] md:h-[550px] lg:h-[600px] xl:h-[650px] 2xl:h-[700px] bg-card border shadow-sm">
+              <CardContent className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 2xl:p-8 h-full flex flex-col">
+                <div className="mb-2 sm:mb-3 md:mb-4">
+                  <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-xs sm:text-sm md:text-base">
                     Question {(question.questionIndex || 0) + 1}
                   </Badge>
                 </div>
 
-                <div className="mb-6 sm:mb-8">
-                  <p className="text-sm sm:text-base text-foreground leading-relaxed text-left">
+                <div className="mb-4 sm:mb-5 md:mb-6 lg:mb-7 xl:mb-8">
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-foreground leading-relaxed text-left">
                     {question.latestVersion?.questionText}
                   </p>
                 </div>
@@ -86,7 +86,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   onValueChange={setSelectedAnswer}
                   disabled={hasAnswer || isSubmitting}
                 >
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
                     {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                       const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                       const isSelected = hasAnswer 
@@ -99,7 +99,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <Label
                             htmlFor={choiceLetter}
                             className={cn(
-                              "flex items-start p-3 sm:p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                              "flex items-start p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 rounded-lg border cursor-pointer transition-all duration-200",
                               "hover:border-primary hover:bg-accent",
                               isSelected && "border-primary bg-primary/10",
                               hasAnswer && "cursor-default"
@@ -108,10 +108,10 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                             <RadioGroupItem
                               value={choiceLetter}
                               id={choiceLetter}
-                              className="mt-0.5 sm:mt-1 mr-3 sm:mr-4 flex-shrink-0"
+                              className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm sm:text-base text-foreground leading-relaxed">
+                              <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-foreground leading-relaxed">
                                 {choice.replace(/^[A-D]\.\s*/, '')}
                               </span>
                             </div>
@@ -123,53 +123,53 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 </RadioGroup>
 
                 {hasAnswer && isCorrect && (
-                  <div className="mt-6 space-y-4">
-                    <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-3 sm:space-y-4">
+                    <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-success/10 border border-success/20 rounded-lg">
                       <div className="flex items-center">
-                        <CheckCircle className="h-5 w-5 text-success mr-2" />
-                        <span className="font-medium text-success">Correct!</span>
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-success mr-2 sm:mr-3" />
+                        <span className="font-medium text-success text-sm sm:text-base md:text-lg lg:text-xl">Correct!</span>
                       </div>
                     </div>
                     {hasNextQuestion && (
-                      <Button onClick={onNextQuestion} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl">
                         Next Question
-                        <ChevronRight className="h-4 w-4 ml-2" />
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
                       </Button>
                     )}
                   </div>
                 )}
 
                 {hasAnswer && !isCorrect && (
-                  <div className="mt-6 space-y-2">
-                    <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
+                  <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-2 sm:space-y-3">
+                    <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-error/10 border border-error/20 rounded-lg">
                       <div className="flex items-center">
-                        <XCircle className="h-5 w-5 text-error mr-2" />
-                        <span className="font-medium text-error">Incorrect</span>
+                        <XCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-error mr-2 sm:mr-3" />
+                        <span className="font-medium text-error text-sm sm:text-base md:text-lg lg:text-xl">Incorrect</span>
                       </div>
                     </div>
                     <Button
                       onClick={handleShowChatbot}
                       variant="outline"
-                      className="w-full py-2 sm:py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 border-primary text-primary hover:bg-primary hover:text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl"
                     >
-                      <MessageSquare className="h-4 w-4 mr-2" />
+                      <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 mr-2" />
                       Get AI Help
                     </Button>
                     {hasNextQuestion && (
-                      <Button onClick={onNextQuestion} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl">
                         Next Question
-                        <ChevronRight className="h-4 w-4 ml-2" />
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
                       </Button>
                     )}
                   </div>
                 )}
 
                 {!hasAnswer && (
-                  <div className="mt-6 sm:mt-8">
+                  <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8">
                     <Button
                       onClick={handleSubmit}
                       disabled={!selectedAnswer || isSubmitting}
-                      className="w-full py-2 sm:py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
@@ -181,7 +181,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-[500px] sm:h-[600px] lg:h-[700px] flex flex-col bg-card border shadow-sm">
+            <Card className="h-[400px] sm:h-[500px] md:h-[550px] lg:h-[600px] xl:h-[650px] 2xl:h-[700px] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -189,19 +189,19 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-3 sm:p-4 border-t bg-accent flex-shrink-0 space-y-2">
+              <div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 border-t bg-accent flex-shrink-0 space-y-2 sm:space-y-3">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
-                  className="w-full text-sm sm:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
+                  <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 mr-2" />
                   Review Question
                 </Button>
                 {hasNextQuestion && (
-                  <Button onClick={onNextQuestion} className="w-full text-sm sm:text-base bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl bg-primary hover:bg-primary/90 text-primary-foreground">
                     Next Question
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
                   </Button>
                 )}
               </div>

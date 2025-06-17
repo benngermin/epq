@@ -153,3 +153,75 @@
     transition-duration: 200ms;
   }
 }
+
+/* Enhanced responsive typography and spacing utilities */
+@layer utilities {
+  /* Responsive text sizing for better readability on larger screens */
+  .text-responsive-xs { font-size: 0.75rem; line-height: 1rem; }
+  .text-responsive-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .text-responsive-base { font-size: 1rem; line-height: 1.5rem; }
+  .text-responsive-lg { font-size: 1.125rem; line-height: 1.75rem; }
+  .text-responsive-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .text-responsive-2xl { font-size: 1.5rem; line-height: 2rem; }
+  .text-responsive-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+  
+  /* Custom spacing for large screens */
+  .space-responsive-x { margin-left: 0.5rem; margin-right: 0.5rem; }
+  .space-responsive-y { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+  
+  /* Enhanced card shadows for depth on larger screens */
+  .card-shadow-responsive {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  @media (min-width: 1024px) {
+    .card-shadow-responsive {
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .card-shadow-responsive {
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+  }
+  
+  /* Responsive scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
+  }
+  
+  @media (min-width: 1024px) {
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+  }
+}

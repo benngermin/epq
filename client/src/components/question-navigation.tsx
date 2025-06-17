@@ -104,7 +104,7 @@ export function QuestionNavigation({
       </Card>
       
       {!isCollapsed && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
           <CardContent className="p-2 xl:p-3 2xl:p-4">
             <div className="flex flex-col gap-1.5 xl:gap-2 2xl:gap-2.5">
               {Array.from({ length: totalQuestions }, (_, index) => {
