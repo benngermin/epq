@@ -100,18 +100,6 @@ export default function AuthPage() {
             >
               {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
             </Button>
-            <Button 
-              onClick={() => {
-                loginForm.setValue("email", "bennglorfield@gmail.com");
-                loginForm.setValue("password", "password123");
-                onLogin({ email: "bennglorfield@gmail.com", password: "password123" });
-              }}
-              variant="outline"
-              className="w-full"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? "Signing in..." : "Quick Login (Benn)"}
-            </Button>
           </div>
 
           <div className="relative">
