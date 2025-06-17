@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Send } from "lucide-react";
-
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface ChatInterfaceProps {
@@ -22,6 +22,7 @@ interface ChatMessage {
 export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
+  const { toast } = useToast();
 
   const hasInitialized = useRef<string | null>(null);
 
@@ -39,6 +40,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     },
     onError: (error: Error) => {
       console.error("Chat error:", error.message);
+      toast({
+        title: "Error",
+        description: "Failed to get response from AI assistant",
+        variant: "destructive",
+      });
     },
   });
 
