@@ -67,8 +67,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="min-h-[500px]">
-              <CardContent className="p-4 sm:p-6 lg:p-8">
+            <Card className="h-[500px] sm:h-[600px] lg:h-[700px]">
+              <CardContent className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
                 <div className="mb-3 sm:mb-4">
                   <Badge variant="secondary" className="w-fit">
                     Question {(question.questionIndex || 0) + 1}
@@ -175,7 +175,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <div className="h-[500px] sm:h-[600px] lg:h-[700px] flex flex-col">
+            <Card className="h-[500px] sm:h-[600px] lg:h-[700px] flex flex-col">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -199,7 +199,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   </Button>
                 )}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
