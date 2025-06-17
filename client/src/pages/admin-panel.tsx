@@ -276,6 +276,19 @@ export default function AdminPanel() {
     maxTokens: [150],
   });
 
+  // Load AI settings data when available
+  useEffect(() => {
+    if (aiSettings) {
+      setAiSettingsData({
+        apiKey: aiSettings.hasApiKey ? "***" : "",
+        modelName: aiSettings.modelName || "anthropic/claude-sonnet-4",
+        systemPrompt: aiSettings.systemPrompt || "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
+        temperature: [aiSettings.temperature || 70],
+        maxTokens: [aiSettings.maxTokens || 150],
+      });
+    }
+  }, [aiSettings]);
+
   // Check admin access
   if (!user?.isAdmin && user?.email !== "demo@example.com") {
     return (
