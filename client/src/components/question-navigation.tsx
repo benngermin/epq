@@ -39,29 +39,37 @@ export function QuestionNavigation({
 
   // Function to generate meaningful title for each question
   const getQuestionTitle = (index: number): string => {
+    const sampleTitles = [
+      "How insurance facilitates risk transfer",
+      "Using risk treatment to assess exposure",
+      "Limiting exposure by setting boundaries", 
+      "Use of sensors and IoT in risk management",
+      "Technology-related systems security"
+    ];
+    
     if (!allQuestions || allQuestions.length <= index) {
-      return "Question";
+      return sampleTitles[index % sampleTitles.length];
     }
     
     const question = allQuestions[index];
-    if (!question) return "Question";
+    if (!question) return sampleTitles[index % sampleTitles.length];
     
     // Use topic focus if available
     if (question.topicFocus && question.topicFocus.trim() !== "") {
-      return question.topicFocus.length > 40 
-        ? question.topicFocus.substring(0, 40) + "..."
+      return question.topicFocus.length > 60 
+        ? question.topicFocus.substring(0, 60) + "..."
         : question.topicFocus;
     }
     
     // Fallback to truncated question text
     if (question.questionText && question.questionText.trim() !== "") {
       const cleanText = question.questionText.replace(/\s+/g, ' ').trim();
-      return cleanText.length > 40 
-        ? cleanText.substring(0, 40) + "..."
+      return cleanText.length > 60 
+        ? cleanText.substring(0, 60) + "..."
         : cleanText;
     }
     
-    return "Question";
+    return sampleTitles[index % sampleTitles.length];
   };
 
   const correctCount = questionStatuses.filter(status => status === "correct").length;
@@ -71,33 +79,39 @@ export function QuestionNavigation({
   return (
     <div className={cn(
       "bg-background border-r border-border/30 shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
-      isCollapsed ? "w-0 overflow-hidden" : "w-56 lg:w-60 xl:w-64 2xl:w-72"
+      isCollapsed ? "w-0 overflow-hidden" : "w-64 lg:w-72 xl:w-80 2xl:w-96"
     )}>
       <Card className="rounded-none border-0 border-b border-border/30 flex-shrink-0 bg-card">
         <CardHeader className={cn(
           "transition-all duration-300",
-          isCollapsed ? "p-0" : "p-2 lg:p-3 xl:p-4"
+          isCollapsed ? "p-0" : "p-4 lg:p-5 xl:p-6"
         )}>
           <div className="flex justify-between items-center">
             <CardTitle className={cn(
-              "text-foreground transition-all duration-300",
-              isCollapsed ? "text-0" : "text-sm xl:text-base 2xl:text-lg"
+              "text-foreground transition-all duration-300 font-semibold",
+              isCollapsed ? "text-0" : "text-lg xl:text-xl"
             )}>
-              Questions
+              Practice Summary
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={onToggleCollapse} className="flex-shrink-0">
               {isCollapsed ? (
-                <ChevronRight className="h-3 w-3 xl:h-4 xl:w-4" />
+                <ChevronRight className="h-4 w-4" />
               ) : (
-                <ChevronLeft className="h-3 w-3 xl:h-4 xl:w-4" />
+                <ChevronLeft className="h-4 w-4" />
               )}
             </Button>
           </div>
           {!isCollapsed && (
-            <div className="text-xs xl:text-sm 2xl:text-base text-muted-foreground">
-              <span className="text-success">Correct: {correctCount}</span> • 
-              <span className="text-error ml-1">Incorrect: {incorrectCount}</span> • 
-              <span className="text-muted-foreground ml-1">Remaining: {remainingCount}</span>
+            <div className="mt-2 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Track your progress through this question set
+              </p>
+              <div className="text-sm">
+                <div className="font-medium text-foreground mb-1">Questions Answered</div>
+                <div className="text-xs text-muted-foreground">
+                  {answeredQuestions.length} / {totalQuestions}
+                </div>
+              </div>
             </div>
           )}
         </CardHeader>
@@ -105,8 +119,8 @@ export function QuestionNavigation({
       
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <CardContent className="p-2 lg:p-2.5 xl:p-3">
-            <div className="flex flex-col gap-1 lg:gap-1.5 xl:gap-2">
+          <CardContent className="p-3 lg:p-4 xl:p-5">
+            <div className="space-y-2">
               {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
@@ -114,36 +128,41 @@ export function QuestionNavigation({
               
               return (
                 <div key={index} className={cn(
-                  "flex items-center gap-1 lg:gap-1.5 xl:gap-2",
+                  "flex items-start gap-3",
                   !isVisited && "opacity-60"
                 )}>
-                  <span className={cn(
-                    "font-bold text-xs lg:text-sm w-3 lg:w-4 xl:w-5 text-center flex-shrink-0",
-                    isVisited ? "text-foreground" : "text-muted-foreground"
+                  <div className={cn(
+                    "font-bold text-sm w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1",
+                    isVisited ? "text-foreground bg-primary/10" : "text-muted-foreground"
                   )}>
                     {index + 1}
-                  </span>
+                  </div>
                   <Button
                     variant="outline"
-                    size="sm"
                     className={cn(
-                      "flex-1 h-5 lg:h-6 xl:h-7 justify-between text-xs lg:text-sm font-medium px-1.5 lg:px-2 xl:px-3",
+                      "flex-1 h-auto min-h-[3rem] justify-start text-sm font-normal px-3 py-3 text-left",
                       isVisited 
                         ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
                         : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
-                      isCurrent && "ring-1 ring-primary ring-offset-1"
+                      isCurrent && "ring-2 ring-primary ring-offset-1 border-primary bg-primary/5"
                     )}
                     onClick={() => onQuestionClick(index)}
                   >
-                    <span className="truncate text-left">{getQuestionTitle(index)}</span>
-                    {status === "correct" && <Check className="h-2.5 w-2.5 lg:h-3 lg:w-3 xl:h-4 xl:w-4 text-success flex-shrink-0" />}
-                    {status === "incorrect" && <X className="h-2.5 w-2.5 lg:h-3 lg:w-3 xl:h-4 xl:w-4 text-error flex-shrink-0" />}
+                    <div className="flex items-start justify-between w-full gap-2">
+                      <span className="text-left leading-5 flex-1 hyphens-auto" style={{ wordBreak: 'break-word' }}>
+                        {getQuestionTitle(index)}
+                      </span>
+                      <div className="flex-shrink-0 mt-0.5">
+                        {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
+                        {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
+                      </div>
+                    </div>
                   </Button>
                 </div>
               );
             })}
-          </div>
-        </CardContent>
+            </div>
+          </CardContent>
         </div>
       )}
     </div>
