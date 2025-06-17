@@ -118,8 +118,8 @@ export default function AdminPanel() {
       toast({ title: "Question set created successfully" });
       setQuestionSetDialogOpen(false);
       setStandaloneQuestionSetDialogOpen(false);
-      questionSetForm.reset();
-      standaloneQuestionSetForm.reset();
+      questionSetForm.reset({ title: "" });
+      standaloneQuestionSetForm.reset({ title: "", courseId: 0 });
     },
     onError: (error: Error) => {
       toast({
@@ -345,7 +345,6 @@ export default function AdminPanel() {
       const questionSetData = {
         courseId: parseInt(bulkImportData.courseId),
         title: bulkImportData.questionSetTitle,
-        description: `Imported question set with ${questions.length} questions`,
       };
 
       createQuestionSetMutation.mutate(questionSetData, {
@@ -988,19 +987,7 @@ export default function AdminPanel() {
                                         </FormItem>
                                       )}
                                     />
-                                    <FormField
-                                      control={editQuestionSetForm.control}
-                                      name="description"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Description</FormLabel>
-                                          <FormControl>
-                                            <Textarea placeholder="Enter question set description" {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
+
                                     <FormField
                                       control={editQuestionSetForm.control}
                                       name="courseId"
