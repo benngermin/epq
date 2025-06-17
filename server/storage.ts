@@ -145,10 +145,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteQuestionSet(id: number): Promise<boolean> {
-    // First, update any practice tests that reference this question set to remove the reference
-    await db.update(practiceTests)
-      .set({ questionSetId: undefined })
-      .where(eq(practiceTests.questionSetId, id));
+    // First, check if there are any practice tests that reference this question set
+    const referencingTests = await db.select().from(practiceTests).where(eq(practiceTests.questionSetId, id));
+    
+    // If there are practice tests referencing this question set, update them to remove the reference
+    if (referencingTests.length > 0) {
+      await db.update(practiceTests)
+        .set({ questionSetId: null })
+        .where(eq(practiceTests.questionSetId, id));
+    }
 
     // Get all questions in this question set
     const questionsInSet = await db.select().from(questions).where(eq(questions.questionSetId, id));
