@@ -48,16 +48,16 @@ export function QuestionNavigation({
     
     // Use topic focus if available
     if (question.topicFocus && question.topicFocus.trim() !== "") {
-      return question.topicFocus.length > 25 
-        ? question.topicFocus.substring(0, 25) + "..."
+      return question.topicFocus.length > 40 
+        ? question.topicFocus.substring(0, 40) + "..."
         : question.topicFocus;
     }
     
     // Fallback to truncated question text
     if (question.questionText && question.questionText.trim() !== "") {
       const cleanText = question.questionText.replace(/\s+/g, ' ').trim();
-      return cleanText.length > 25 
-        ? cleanText.substring(0, 25) + "..."
+      return cleanText.length > 40 
+        ? cleanText.substring(0, 40) + "..."
         : cleanText;
     }
     
@@ -70,7 +70,7 @@ export function QuestionNavigation({
 
   return (
     <div className={cn(
-      "w-64 bg-card border-r shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
+      "w-80 bg-card border-r shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
       isCollapsed && "w-0 overflow-hidden"
     )}>
       <Card className="rounded-none border-0 border-b flex-shrink-0">
