@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle } from "lucide-react";
+import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
@@ -152,11 +153,11 @@ export default function QuestionSetPractice() {
                 Back to Dashboard
               </Button>
               <div className="flex items-center">
-                <GraduationCap className="h-6 w-6 text-primary mr-3" />
+                <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
                 <div>
-                  <span className="font-semibold text-foreground">{questionSet.title}</span>
+                  <span className="font-semibold text-foreground">{questionSet?.title}</span>
                   <p className="text-xs text-muted-foreground">
-                    Question {currentQuestionIndex + 1} of {questions.length}
+                    Question {currentQuestionIndex + 1} of {questions?.length || 0}
                   </p>
                 </div>
               </div>

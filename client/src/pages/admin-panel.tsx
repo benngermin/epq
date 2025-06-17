@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Settings, Home, BookOpen, FileText, HelpCircle, Upload, Bot, Users, Edit, Trash2, Plus, Eye } from "lucide-react";
+import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -723,8 +724,8 @@ export default function AdminPanel() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Settings className="h-6 w-6 text-primary mr-3" />
-              <span className="font-semibold text-foreground">Admin Panel</span>
+              <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
+              <span className="font-semibold text-foreground">Exam Question Practice - Admin Panel</span>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="sm" onClick={() => setLocation("/")}>

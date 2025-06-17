@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
 import { GraduationCap, LogOut, BookOpen, Shield, Settings } from "lucide-react";
+import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
@@ -87,8 +88,8 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
-              <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam question practice</span>
+              <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 flex-shrink-0" />
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Question Practice</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Welcome, {user?.name}</span>
