@@ -273,14 +273,21 @@ export default function QuestionSetPractice() {
           {/* Right Main Content - Question and Chat */}
           <div className="flex-1 min-w-0 space-y-6">
             <QuestionCard
-              question={currentQuestion}
+              question={{
+                ...currentQuestion,
+                questionIndex: currentQuestionIndex,
+                userAnswer: userAnswers[currentQuestion?.id] ? {
+                  chosenAnswer: userAnswers[currentQuestion.id],
+                  isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
+                } : null
+              }}
               onSubmitAnswer={handleSubmitAnswer}
               isSubmitting={submitAnswerMutation.isPending}
               testRunId={0} // Not used for question set practice
             />
 
             {/* Navigation */}
-            <div className="flex justify-between">
+            <div className="flex justify-between px-4">
               <Button
                 variant="outline"
                 onClick={handlePreviousQuestion}
@@ -296,17 +303,6 @@ export default function QuestionSetPractice() {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
-
-            {/* Chat/Explanation Section - Now much larger */}
-            {showChat && currentQuestion?.latestVersion && (
-              <div className="w-full">
-                <ChatInterface
-                  questionVersionId={currentQuestion.latestVersion.id}
-                  chosenAnswer={selectedAnswer}
-                  correctAnswer={currentQuestion.latestVersion.correctAnswer}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>

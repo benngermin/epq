@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, RotateCcw } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
-import { useQuestionContext } from "@/contexts/question-context";
 import { cn } from "@/lib/utils";
 
 interface QuestionCardProps {
@@ -18,40 +17,39 @@ interface QuestionCardProps {
 
 export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
-  const [showChat, setShowChat] = useState(false);
-  const { getQuestionState, setQuestionFlipped } = useQuestionContext();
-
-  const questionState = getQuestionState(question.id);
-  const isFlipped = questionState.isFlipped;
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
   const hasAnswer = !!question.userAnswer;
   const isCorrect = question.userAnswer?.isCorrect;
 
+  // Reset flip state when question changes
+  useEffect(() => {
+    setIsFlipped(false);
+    setSelectedAnswer("");
+    setSubmittedAnswer("");
+  }, [question?.id]);
+
   const handleSubmit = () => {
     if (!selectedAnswer || hasAnswer) return;
 
+    setSubmittedAnswer(selectedAnswer);
     onSubmitAnswer(selectedAnswer);
 
-    // If incorrect, flip the card after a short delay
+    // If incorrect, flip the card after a short delay to show chatbot
     setTimeout(() => {
       if (selectedAnswer !== question.latestVersion?.correctAnswer) {
-        setQuestionFlipped(question.id, true);
-        setShowChat(true);
+        setIsFlipped(true);
       }
-    }, 1000);
+    }, 1500);
   };
 
-  const handleContinue = () => {
-    setQuestionFlipped(question.id, false);
-    setShowChat(false);
-    setSelectedAnswer("");
+  const handleReviewQuestion = () => {
+    setIsFlipped(false);
   };
 
-  const handleToggleFeedback = () => {
-    if (hasAnswer && !isCorrect) {
-      setQuestionFlipped(question.id, !isFlipped);
-      setShowChat(!isFlipped);
-    }
+  const handleShowChatbot = () => {
+    setIsFlipped(true);
   };
 
   return (
@@ -60,11 +58,11 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="min-h-96">
+            <Card className="min-h-[500px]">
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="mb-3 sm:mb-4">
                   <Badge variant="secondary" className="w-fit">
-                    Question {question.questionIndex + 1}
+                    Question {(question.questionIndex || 0) + 1}
                   </Badge>
                 </div>
 
@@ -133,23 +131,20 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 )}
 
                 {hasAnswer && !isCorrect && (
-                  <div className="mt-6">
+                  <div className="mt-6 space-y-2">
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center">
+                        <XCircle className="h-5 w-5 text-red-600 mr-2" />
+                        <span className="font-medium text-red-800">Incorrect</span>
+                      </div>
+                    </div>
                     <Button
-                      onClick={handleToggleFeedback}
+                      onClick={handleShowChatbot}
                       variant="outline"
                       className="w-full py-2 sm:py-3"
                     >
-                      {isFlipped ? (
-                        <>
-                          <EyeOff className="h-4 w-4 mr-2" />
-                          Hide Feedback
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Show Feedback
-                        </>
-                      )}
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Chatbot
                     </Button>
                   </div>
                 )}
@@ -169,49 +164,27 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
             </Card>
           </div>
 
-          {/* Question Back (Feedback & Chatbot) */}
+          {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="min-h-96">
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  <div className="flex items-center mb-3">
-                    <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                    <span className="text-lg font-semibold">Incorrect Answer</span>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-gray-700">
-                      <strong>Your answer:</strong> {question.userAnswer?.chosenAnswer} - {
-                        question.latestVersion?.answerChoices?.find((choice: string) => 
-                          choice.startsWith(question.userAnswer?.chosenAnswer + ".")
-                        )?.replace(/^[A-D]\.\s*/, '')
-                      }
-                      <br />
-                      <strong>Correct answer:</strong> {question.latestVersion?.correctAnswer} - {
-                        question.latestVersion?.answerChoices?.find((choice: string) => 
-                          choice.startsWith(question.latestVersion?.correctAnswer + ".")
-                        )?.replace(/^[A-D]\.\s*/, '')
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                <div className="max-h-[50vh] overflow-y-auto mb-4">
-                  {showChat && (
-                    <ChatInterface
-                      questionVersionId={question.id}
-                      chosenAnswer={question.userAnswer?.chosenAnswer}
-                      correctAnswer={question.latestVersion?.correctAnswer}
-                    />
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <Button onClick={handleContinue} className="w-full">
-                    Review Question
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="h-[500px] flex flex-col">
+              <div className="flex-1">
+                <ChatInterface
+                  questionVersionId={question.latestVersion?.id || question.id}
+                  chosenAnswer={submittedAnswer || question.userAnswer?.chosenAnswer || ""}
+                  correctAnswer={question.latestVersion?.correctAnswer || ""}
+                />
+              </div>
+              <div className="p-4 border-t bg-card">
+                <Button 
+                  onClick={handleReviewQuestion} 
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Review Question
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

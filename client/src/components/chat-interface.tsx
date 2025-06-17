@@ -74,14 +74,14 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   };
 
   return (
-    <Card className="bg-background border w-full max-w-[500px] mx-auto">
-      <CardContent className="p-6">
+    <Card className="bg-background border w-full h-full">
+      <CardContent className="p-6 h-full flex flex-col">
         <div className="flex items-center mb-4">
           <Bot className="h-5 w-5 text-primary mr-2" />
           <span className="font-medium text-foreground">AI Assistant</span>
         </div>
 
-        <div className="space-y-4 h-[60vh] sm:h-80 lg:h-[60vh] overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin' }}>
+        <div className="space-y-4 flex-1 overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin' }}>
           {chatMutation.isPending && messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="flex items-center space-x-2">
