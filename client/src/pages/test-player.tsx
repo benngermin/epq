@@ -215,7 +215,7 @@ export default function TestPlayer() {
 
         {/* Main Question Area */}
         <div className="flex-1 flex flex-col relative min-w-0">
-          <div className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 pb-16 sm:pb-20 md:pb-24 lg:pb-28 overflow-y-auto">
+          <div className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 overflow-y-auto" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
             <div className={cn(
               "mx-auto",
               isRailCollapsed 
