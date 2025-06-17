@@ -169,14 +169,47 @@ export default function Dashboard() {
                     <Progress value={course.progress} className="h-2" />
                   </div>
 
-                  {/* Practice Tests */}
+                  {/* Question Sets */}
                   <div className="space-y-2">
-                    <h4 className="font-medium text-foreground text-sm">Exam Questions</h4>
+                    <h4 className="font-medium text-foreground text-sm">Question Sets</h4>
                     
-                    {course.practiceTests?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No exam questions available</p>
+                    {(!course.questionSets || course.questionSets.length === 0) ? (
+                      <p className="text-sm text-muted-foreground">No question sets available</p>
                     ) : (
-                      course.practiceTests?.map((test: any) => (
+                      course.questionSets.map((questionSet: any) => (
+                        <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm font-medium text-foreground truncate">{questionSet.title}</h5>
+                            {questionSet.description && (
+                              <p className="text-xs text-muted-foreground mt-1">{questionSet.description}</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                {questionSet.questionCount} questions
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setLocation(`/question-set/${questionSet.id}`)}
+                              className="w-full sm:w-auto"
+                            >
+                              Practice Questions
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Practice Tests */}
+                  {course.practiceTests && course.practiceTests.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-foreground text-sm">Practice Tests</h4>
+                      
+                      {course.practiceTests.map((test: any) => (
                         <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
                           <div className="flex-1 min-w-0">
                             <h5 className="text-sm font-medium text-foreground truncate">{test.title}</h5>
@@ -246,9 +279,9 @@ export default function Dashboard() {
                             )}
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

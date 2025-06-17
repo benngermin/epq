@@ -11,12 +11,14 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import TestPlayer from "@/pages/test-player";
 import AdminPanel from "@/pages/admin-panel";
+import QuestionSetPractice from "@/pages/question-set-practice";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/test/:runId" component={TestPlayer} />
+      <ProtectedRoute path="/question-set/:id" component={QuestionSetPractice} />
       <ProtectedRoute path="/admin" component={AdminPanel} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

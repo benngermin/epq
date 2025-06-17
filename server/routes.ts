@@ -84,6 +84,18 @@ export function registerRoutes(app: Express): Server {
             })
           );
 
+          // Get question sets for this course
+          const questionSets = await storage.getQuestionSetsByCourse(course.id);
+          const questionSetsWithCounts = await Promise.all(
+            questionSets.map(async (questionSet) => {
+              const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+              return {
+                ...questionSet,
+                questionCount: questions.length,
+              };
+            })
+          );
+
           // Calculate progress based on the most recent test run instead of overall course progress
           let progressPercentage = 0;
           if (testsWithProgress.length > 0) {
@@ -99,6 +111,7 @@ export function registerRoutes(app: Express): Server {
             ...course,
             progress: progressPercentage,
             practiceTests: testsWithProgress,
+            questionSets: questionSetsWithCounts,
           };
         })
       );
@@ -252,6 +265,71 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error deleting question set:", error);
       res.status(500).json({ message: "Failed to delete question set" });
+    }
+  });
+
+  // Question set practice routes
+  app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const questionSet = await storage.getQuestionSet(id);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(questionSet);
+    } catch (error) {
+      console.error("Error fetching question set:", error);
+      res.status(500).json({ message: "Failed to fetch question set" });
+    }
+  });
+
+  app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      const questions = await storage.getQuestionsByQuestionSet(questionSetId);
+      
+      // Get the latest version for each question
+      const questionsWithLatestVersions = await Promise.all(
+        questions.map(async (question) => {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+          return {
+            ...question,
+            latestVersion
+          };
+        })
+      );
+      
+      res.json(questionsWithLatestVersions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  app.post("/api/question-sets/:id/answer", requireAuth, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.id);
+      const { questionVersionId, answer } = req.body;
+      
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+      
+      const isCorrect = answer === questionVersion.correctAnswer;
+      
+      res.json({
+        isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+        chosenAnswer: answer,
+        explanation: questionVersion.explanation
+      });
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      res.status(500).json({ message: "Failed to submit answer" });
     }
   });
 
