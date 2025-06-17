@@ -70,13 +70,13 @@ export function QuestionNavigation({
 
   return (
     <div className={cn(
-      "w-80 bg-card border-r shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
+      "w-80 bg-background border-r border-border/30 shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
       isCollapsed && "w-0 overflow-hidden"
     )}>
-      <Card className="rounded-none border-0 border-b flex-shrink-0">
+      <Card className="rounded-none border-0 border-b border-border/30 flex-shrink-0 bg-card">
         <CardHeader className="pb-4">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Questions</CardTitle>
+            <CardTitle className="text-lg text-foreground">Questions</CardTitle>
             <Button variant="ghost" size="sm" onClick={onToggleCollapse}>
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -86,9 +86,9 @@ export function QuestionNavigation({
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
-            <span className="text-green-600">Correct: {correctCount}</span> • 
-            <span className="text-red-600 ml-1">Incorrect: {incorrectCount}</span> • 
-            <span className="text-gray-500 ml-1">Remaining: {remainingCount}</span>
+            <span className="text-success">Correct: {correctCount}</span> • 
+            <span className="text-error ml-1">Incorrect: {incorrectCount}</span> • 
+            <span className="text-muted-foreground ml-1">Remaining: {remainingCount}</span>
           </div>
         </CardHeader>
       </Card>
@@ -108,7 +108,7 @@ export function QuestionNavigation({
                 )}>
                   <span className={cn(
                     "font-bold text-sm w-6 text-center flex-shrink-0",
-                    isVisited ? "text-gray-600" : "text-gray-400"
+                    isVisited ? "text-foreground" : "text-muted-foreground"
                   )}>
                     {index + 1}
                   </span>
@@ -118,15 +118,15 @@ export function QuestionNavigation({
                     className={cn(
                       "flex-1 h-8 justify-between text-sm font-medium",
                       isVisited 
-                        ? "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-                        : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-gray-100",
+                        ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
+                        : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
                       isCurrent && "ring-2 ring-primary ring-offset-2"
                     )}
                     onClick={() => onQuestionClick(index)}
                   >
                     <span>{getQuestionTitle(index)}</span>
-                    {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
-                    {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
+                    {status === "correct" && <Check className="h-4 w-4 text-success" />}
+                    {status === "incorrect" && <X className="h-4 w-4 text-error" />}
                   </Button>
                 </div>
               );
