@@ -43,6 +43,10 @@ export default function AdminPanel() {
     queryKey: ["/api/admin/users"],
   });
 
+  const { data: allQuestionSets, isLoading: questionSetsLoading } = useQuery({
+    queryKey: ["/api/admin/question-sets"],
+  });
+
   // Course mutations
   const createCourseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -109,14 +113,56 @@ export default function AdminPanel() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", variables.courseId] });
       toast({ title: "Question set created successfully" });
       setQuestionSetDialogOpen(false);
+      setStandaloneQuestionSetDialogOpen(false);
       questionSetForm.reset();
+      standaloneQuestionSetForm.reset();
     },
     onError: (error: Error) => {
       toast({
         title: "Failed to create question set",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateQuestionSetMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/admin/question-sets/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      toast({ title: "Question set updated successfully" });
+      setEditingQuestionSet(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update question set",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteQuestionSetMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/question-sets/${id}`);
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      toast({ title: "Question set deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete question set",
         description: error.message,
         variant: "destructive",
       });
@@ -165,10 +211,13 @@ export default function AdminPanel() {
 
   // State management
   const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [editingQuestionSet, setEditingQuestionSet] = useState<any>(null);
   const [questionSetDialogOpen, setQuestionSetDialogOpen] = useState(false);
+  const [standaloneQuestionSetDialogOpen, setStandaloneQuestionSetDialogOpen] = useState(false);
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedCourseForQuestionSet, setSelectedCourseForQuestionSet] = useState<number | null>(null);
+  const [selectedQuestionSetForImport, setSelectedQuestionSetForImport] = useState<number | null>(null);
 
   // Forms
   const courseForm = useForm({
@@ -189,6 +238,23 @@ export default function AdminPanel() {
 
   const questionSetForm = useForm({
     resolver: zodResolver(insertQuestionSetSchema.omit({ courseId: true })),
+    defaultValues: {
+      title: "",
+      description: "",
+    },
+  });
+
+  const standaloneQuestionSetForm = useForm({
+    resolver: zodResolver(insertQuestionSetSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      courseId: 0,
+    },
+  });
+
+  const editQuestionSetForm = useForm({
+    resolver: zodResolver(insertQuestionSetSchema.partial()),
     defaultValues: {
       title: "",
       description: "",
@@ -231,6 +297,29 @@ export default function AdminPanel() {
   const onCreateQuestionSet = (data: any) => {
     if (!selectedCourseForQuestionSet) return;
     createQuestionSetMutation.mutate({ ...data, courseId: selectedCourseForQuestionSet });
+  };
+
+  const onCreateStandaloneQuestionSet = (data: any) => {
+    createQuestionSetMutation.mutate(data);
+  };
+
+  const onEditQuestionSet = (questionSet: any) => {
+    setEditingQuestionSet(questionSet);
+    editQuestionSetForm.reset({
+      title: questionSet.title,
+      description: questionSet.description,
+      courseId: questionSet.courseId,
+    });
+  };
+
+  const onUpdateQuestionSet = (data: any) => {
+    if (editingQuestionSet) {
+      updateQuestionSetMutation.mutate({ id: editingQuestionSet.id, data });
+    }
+  };
+
+  const onDeleteQuestionSet = (id: number) => {
+    deleteQuestionSetMutation.mutate(id);
   };
 
   const onEditCourse = (course: any) => {
@@ -528,10 +617,14 @@ export default function AdminPanel() {
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="courses" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               Courses
+            </TabsTrigger>
+            <TabsTrigger value="question-sets" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Question Sets
             </TabsTrigger>
             <TabsTrigger value="import" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
@@ -715,6 +808,291 @@ export default function AdminPanel() {
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No courses found.</p>
                     <p className="text-sm text-muted-foreground mt-2">Create your first course to get started.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Question Sets Tab */}
+          <TabsContent value="question-sets">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Question Set Management</h1>
+                  <p className="text-muted-foreground mt-2">Manage all question sets independently from courses</p>
+                </div>
+                <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Question Set
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Question Set</DialogTitle>
+                      <DialogDescription>
+                        Create a question set and assign it to a course
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...standaloneQuestionSetForm}>
+                      <form onSubmit={standaloneQuestionSetForm.handleSubmit(onCreateStandaloneQuestionSet)} className="space-y-4">
+                        <FormField
+                          control={standaloneQuestionSetForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Question Set Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter question set title" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={standaloneQuestionSetForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Enter question set description" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={standaloneQuestionSetForm.control}
+                          name="courseId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Course</FormLabel>
+                              <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a course" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(courses) && courses.map((course: any) => (
+                                    <SelectItem key={course.id} value={course.id.toString()}>
+                                      {course.title}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button type="submit" disabled={createQuestionSetMutation.isPending}>
+                            {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="grid gap-6">
+                {questionSetsLoading ? (
+                  <div className="text-center py-8">Loading question sets...</div>
+                ) : allQuestionSets && Array.isArray(allQuestionSets) ? (
+                  allQuestionSets.map((questionSet: any) => (
+                    <Card key={questionSet.id}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle>{questionSet.title}</CardTitle>
+                            <CardDescription>{questionSet.description}</CardDescription>
+                            <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                              <span>Course: {questionSet.course?.title || 'No course assigned'}</span>
+                              <span>{questionSet.questionCount || 0} questions</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Questions
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>Questions in {questionSet.title}</DialogTitle>
+                                  <DialogDescription>
+                                    View all questions in this question set
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <QuestionsList questionSetId={questionSet.id} />
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Upload className="h-4 w-4 mr-1" />
+                                  Import Questions
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Import Questions</DialogTitle>
+                                  <DialogDescription>
+                                    Upload questions to {questionSet.title}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="json-data">Question Data (JSON format)</Label>
+                                    <Textarea
+                                      id="json-data"
+                                      placeholder="Paste your JSON data here..."
+                                      rows={10}
+                                      value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
+                                      onChange={(e) => {
+                                        setSelectedQuestionSetForImport(questionSet.id);
+                                        setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
+                                      }}
+                                    />
+                                  </div>
+                                  <Button 
+                                    onClick={() => {
+                                      try {
+                                        const questions = JSON.parse(bulkImportData.jsonData);
+                                        importQuestionsMutation.mutate({
+                                          questionSetId: questionSet.id,
+                                          questions: questions,
+                                        });
+                                      } catch (error) {
+                                        toast({
+                                          title: "Invalid JSON",
+                                          description: "Please check your JSON format",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    disabled={importQuestionsMutation.isPending || !bulkImportData.jsonData}
+                                  >
+                                    {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={() => onEditQuestionSet(questionSet)}>
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Question Set</DialogTitle>
+                                  <DialogDescription>
+                                    Update question set details
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <Form {...editQuestionSetForm}>
+                                  <form onSubmit={editQuestionSetForm.handleSubmit(onUpdateQuestionSet)} className="space-y-4">
+                                    <FormField
+                                      control={editQuestionSetForm.control}
+                                      name="title"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Question Set Title</FormLabel>
+                                          <FormControl>
+                                            <Input placeholder="Enter question set title" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={editQuestionSetForm.control}
+                                      name="description"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Description</FormLabel>
+                                          <FormControl>
+                                            <Textarea placeholder="Enter question set description" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={editQuestionSetForm.control}
+                                      name="courseId"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Course</FormLabel>
+                                          <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                                            <FormControl>
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Select a course" />
+                                              </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                              {Array.isArray(courses) && courses.map((course: any) => (
+                                                <SelectItem key={course.id} value={course.id.toString()}>
+                                                  {course.title}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <DialogFooter>
+                                      <Button type="submit" disabled={updateQuestionSetMutation.isPending}>
+                                        {updateQuestionSetMutation.isPending ? "Updating..." : "Update Question Set"}
+                                      </Button>
+                                    </DialogFooter>
+                                  </form>
+                                </Form>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Question Set</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{questionSet.title}"? This will also delete all questions in this set. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => onDeleteQuestionSet(questionSet.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No question sets found.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Create your first question set to get started.</p>
                   </div>
                 )}
               </div>
