@@ -229,8 +229,10 @@ export default function QuestionSetPractice() {
                           className={`flex items-center gap-3 p-3 mx-1 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
                             isCurrent 
                               ? "border-primary bg-primary/5" 
-                              : isAnswered 
-                                ? "border-green-200 bg-green-50 hover:bg-green-100/80" 
+                              : isAnswered && isCorrect
+                                ? "border-green-200 bg-green-50 hover:bg-green-100/80"
+                              : isAnswered && !isCorrect
+                                ? "border-red-200 bg-red-50 hover:bg-red-100/80" 
                                 : "border-muted-foreground/20"
                           }`}
                           onClick={() => {
@@ -293,6 +295,8 @@ export default function QuestionSetPractice() {
               isSubmitting={submitAnswerMutation.isPending}
               testRunId={0} // Not used for question set practice
               onFlipChange={setIsCardFlipped}
+              onNextQuestion={handleNextQuestion}
+              hasNextQuestion={currentQuestionIndex < questions.length - 1}
             />
 
             {/* Navigation - Hidden when chatbot is showing */}
