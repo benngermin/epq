@@ -84,10 +84,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left side - Forms */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-8">
+      <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
             <h1 className="text-3xl font-bold text-foreground">Exam Question Practice</h1>
@@ -254,53 +252,6 @@ export default function AuthPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      </div>
-      {/* Right side - Hero */}
-      <div className="hidden lg:flex flex-1 bg-primary/5 items-center justify-center p-8">
-        <div className="max-w-md text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-6">
-            Master Your Insurance Question Sets
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            Prepare with confidence using our comprehensive practice test platform featuring 
-            AI-powered explanations and adaptive learning.
-          </p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <Shield className="mx-auto h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold">Question Set Proven</h3>
-              <p className="text-sm text-muted-foreground">
-                Trusted by thousands of successful candidates
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <BookOpen className="mx-auto h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold">Expert Content</h3>
-              <p className="text-sm text-muted-foreground">
-                Questions crafted by industry professionals
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <GraduationCap className="mx-auto h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold">AI Tutoring</h3>
-              <p className="text-sm text-muted-foreground">
-                Personalized explanations for every question
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <Users className="mx-auto h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold">Progress Tracking</h3>
-              <p className="text-sm text-muted-foreground">
-                Monitor your improvement over time
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

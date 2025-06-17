@@ -25,11 +25,10 @@ async function callOpenRouter(prompt: string, settings: any): Promise<string> {
         "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
       },
       body: JSON.stringify({
-        model: settings?.modelName || "anthropic/claude-3-sonnet",
+        model: settings?.modelName || "anthropic/claude-sonnet-4",
         messages: [{ role: "user", content: prompt }],
         temperature: (settings?.temperature || 70) / 100,
         max_tokens: settings?.maxTokens || 150,
-        top_p: (settings?.topP || 100) / 100,
       }),
     });
 
