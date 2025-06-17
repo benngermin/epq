@@ -324,8 +324,7 @@ export function registerRoutes(app: Express): Server {
       res.json({
         isCorrect,
         correctAnswer: questionVersion.correctAnswer,
-        chosenAnswer: answer,
-        explanation: questionVersion.explanation
+        chosenAnswer: answer
       });
     } catch (error) {
       console.error("Error submitting answer:", error);

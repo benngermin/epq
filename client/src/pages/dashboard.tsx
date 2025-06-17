@@ -169,118 +169,34 @@ export default function Dashboard() {
                     <Progress value={course.progress} className="h-2" />
                   </div>
 
-                  {/* Question Sets */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-foreground text-sm">Question Sets</h4>
-                    
-                    {(!course.questionSets || course.questionSets.length === 0) ? (
-                      <p className="text-sm text-muted-foreground">No question sets available</p>
-                    ) : (
-                      course.questionSets.map((questionSet: any) => (
-                        <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h5 className="text-sm font-medium text-foreground truncate">{questionSet.title}</h5>
-                            {questionSet.description && (
-                              <p className="text-xs text-muted-foreground mt-1">{questionSet.description}</p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                {questionSet.questionCount} questions
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setLocation(`/question-set/${questionSet.id}`)}
-                              className="w-full sm:w-auto"
-                            >
-                              Practice Questions
-                            </Button>
+                  {(!course.questionSets || course.questionSets.length === 0) ? (
+                    <p className="text-sm text-muted-foreground">No question sets available</p>
+                  ) : (
+                    course.questionSets.map((questionSet: any) => (
+                      <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-sm font-medium text-foreground truncate">{questionSet.title}</h5>
+                          {questionSet.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{questionSet.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              {questionSet.questionCount} questions
+                            </Badge>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Practice Tests */}
-                  {course.practiceTests && course.practiceTests.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-foreground text-sm">Practice Tests</h4>
-                      
-                      {course.practiceTests.map((test: any) => (
-                        <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h5 className="text-sm font-medium text-foreground truncate">{test.title}</h5>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge
-                                variant="secondary"
-                                className={`text-xs text-white ${getStatusColor(test.status)}`}
-                              >
-                                {test.status}
-                              </Badge>
-                              {test.score && (
-                                <span className="text-xs text-muted-foreground">
-                                  Score: {test.score}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
-                            {test.status === "Completed" ? (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => resumeTest(test.testRun)}
-                                  className="w-full sm:w-auto"
-                                >
-                                  Review
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => restartTestMutation.mutate(test.id)}
-                                  disabled={restartTestMutation.isPending}
-                                  className="w-full sm:w-auto"
-                                >
-                                  Restart
-                                </Button>
-                              </>
-                            ) : test.status === "In Progress" ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => resumeTest(test.testRun)}
-                                  className="w-full sm:w-auto"
-                                >
-                                  Continue
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => restartTestMutation.mutate(test.id)}
-                                  disabled={restartTestMutation.isPending}
-                                  className="w-full sm:w-auto"
-                                >
-                                  Start Over
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => startTestMutation.mutate(test.id)}
-                                disabled={startTestMutation.isPending}
-                                className="w-full sm:w-auto"
-                              >
-                                Start Test
-                              </Button>
-                            )}
-                          </div>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setLocation(`/question-set/${questionSet.id}`)}
+                            className="w-full sm:w-auto"
+                          >
+                            Practice Questions
+                          </Button>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))
                   )}
                 </CardContent>
               </Card>
