@@ -85,7 +85,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation Header */}
-      <nav className="bg-card shadow-sm border-b">
+      <nav className="bg-card shadow-sm border-b border-border/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
@@ -142,10 +142,10 @@ export default function Dashboard() {
         </div>
 
         {!courses || !Array.isArray(courses) || courses.length === 0 ? (
-          <Card className="max-w-md mx-auto">
+          <Card className="max-w-md mx-auto bg-card border shadow-sm">
             <CardContent className="pt-6 text-center">
               <BookOpen className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
-              <h3 className="text-base sm:text-lg font-semibold mb-2">No Courses Available</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-foreground">No Courses Available</h3>
               <p className="text-muted-foreground text-sm sm:text-base">
                 No courses have been set up yet. Please contact your administrator.
               </p>
@@ -154,7 +154,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-4 sm:space-y-6">
             {Array.isArray(courses) && courses.map((course: any) => (
-              <Card key={course.id} className="hover:shadow-md transition-shadow">
+              <Card key={course.id} className="bg-card border shadow-sm hover:shadow-md transition-all duration-200">
                 <CardHeader className="pb-4">
                   <div className="flex items-start sm:items-center mb-3 sm:mb-4 gap-3">
                     {course.title.toLowerCase().includes("property") ? (
@@ -183,24 +183,24 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground">No question sets available</p>
                   ) : (
                     course.questionSets.map((questionSet: any) => (
-                      <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted rounded-lg gap-3">
+                      <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-accent rounded-lg border gap-3">
                         <div className="flex-1 min-w-0">
                           <h5 className="text-sm font-medium text-foreground truncate">{questionSet.title}</h5>
                           {questionSet.description && (
                             <p className="text-xs text-muted-foreground mt-1">{questionSet.description}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
                               {questionSet.questionCount} questions
                             </Badge>
                           </div>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 w-full sm:w-auto">
                           <Button
-                            variant="outline"
+                            variant="default"
                             size="sm"
                             onClick={() => setLocation(`/question-set/${questionSet.id}`)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
                           >
                             Practice Questions
                           </Button>

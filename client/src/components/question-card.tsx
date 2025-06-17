@@ -67,10 +67,10 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="h-[500px] sm:h-[600px] lg:h-[700px]">
+            <Card className="h-[500px] sm:h-[600px] lg:h-[700px] bg-card border shadow-sm">
               <CardContent className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
                 <div className="mb-3 sm:mb-4">
-                  <Badge variant="secondary" className="w-fit">
+                  <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border">
                     Question {(question.questionIndex || 0) + 1}
                   </Badge>
                 </div>
@@ -99,9 +99,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <Label
                             htmlFor={choiceLetter}
                             className={cn(
-                              "flex items-start p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-colors",
-                              "hover:border-primary",
-                              isSelected && "border-primary bg-primary/5",
+                              "flex items-start p-3 sm:p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                              "hover:border-primary hover:bg-accent",
+                              isSelected && "border-primary bg-primary/10",
                               hasAnswer && "cursor-default"
                             )}
                           >
