@@ -199,7 +199,7 @@ export default function TestPlayer() {
         <div className={cn(
           "hidden transition-all duration-300 ease-in-out",
           "lg:block xl:block",
-          isRailCollapsed ? "w-0" : "w-64 lg:w-72 xl:w-80 2xl:w-96"
+          isRailCollapsed ? "w-0" : "w-80 lg:w-96 xl:w-[28rem] 2xl:w-[32rem]"
         )}>
           <QuestionNavigation
             testRun={testRun}

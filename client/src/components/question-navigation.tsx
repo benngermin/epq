@@ -39,37 +39,53 @@ export function QuestionNavigation({
 
   // Function to generate meaningful title for each question
   const getQuestionTitle = (index: number): string => {
-    const sampleTitles = [
-      "How insurance facilitates risk transfer",
-      "Using risk treatment to assess exposure",
-      "Limiting exposure by setting boundaries", 
-      "Use of sensors and IoT in risk management",
-      "Technology-related systems security"
-    ];
-    
     if (!allQuestions || allQuestions.length <= index) {
-      return sampleTitles[index % sampleTitles.length];
+      return `Question ${index + 1}`;
     }
     
     const question = allQuestions[index];
-    if (!question) return sampleTitles[index % sampleTitles.length];
+    if (!question) return `Question ${index + 1}`;
     
-    // Use topic focus if available
+    console.log('Question data for index', index, ':', question);
+    
+    // Use topic focus if available (no truncation)
     if (question.topicFocus && question.topicFocus.trim() !== "") {
-      return question.topicFocus.length > 60 
-        ? question.topicFocus.substring(0, 60) + "..."
-        : question.topicFocus;
+      return question.topicFocus;
     }
     
-    // Fallback to truncated question text
+    // Extract a meaningful summary from question text
     if (question.questionText && question.questionText.trim() !== "") {
       const cleanText = question.questionText.replace(/\s+/g, ' ').trim();
-      return cleanText.length > 60 
-        ? cleanText.substring(0, 60) + "..."
-        : cleanText;
+      
+      // Look for key patterns in insurance questions
+      if (cleanText.includes('benefits of') || cleanText.includes('advantages of')) {
+        return 'Benefits and advantages of insurance';
+      }
+      if (cleanText.includes('risk management') || cleanText.includes('risk treatment')) {
+        return 'Risk management strategies';
+      }
+      if (cleanText.includes('sensors') || cleanText.includes('IoT') || cleanText.includes('technology')) {
+        return 'Technology in risk management';
+      }
+      if (cleanText.includes('exposure') || cleanText.includes('limiting')) {
+        return 'Exposure limitations and boundaries';
+      }
+      if (cleanText.includes('facilitate') || cleanText.includes('insurance')) {
+        return 'How insurance facilitates operations';
+      }
+      
+      // Extract first meaningful phrase up to 60 characters
+      const words = cleanText.split(' ');
+      let result = '';
+      for (const word of words) {
+        if ((result + ' ' + word).length > 60) break;
+        result = result ? result + ' ' + word : word;
+      }
+      
+      return result || `Question ${index + 1}`;
     }
     
-    return sampleTitles[index % sampleTitles.length];
+    return `Question ${index + 1}`;
   };
 
   const correctCount = questionStatuses.filter(status => status === "correct").length;
@@ -79,7 +95,7 @@ export function QuestionNavigation({
   return (
     <div className={cn(
       "bg-background border-r border-border/30 shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
-      isCollapsed ? "w-0 overflow-hidden" : "w-64 lg:w-72 xl:w-80 2xl:w-96"
+      isCollapsed ? "w-0 overflow-hidden" : "w-80 lg:w-96 xl:w-[28rem] 2xl:w-[32rem]"
     )}>
       <Card className="rounded-none border-0 border-b border-border/30 flex-shrink-0 bg-card">
         <CardHeader className={cn(
@@ -140,7 +156,7 @@ export function QuestionNavigation({
                   <Button
                     variant="outline"
                     className={cn(
-                      "flex-1 h-auto min-h-[3rem] justify-start text-sm font-normal px-3 py-3 text-left",
+                      "flex-1 h-auto min-h-[4rem] justify-start text-sm font-normal px-4 py-3 text-left whitespace-normal",
                       isVisited 
                         ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
                         : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
@@ -148,11 +164,11 @@ export function QuestionNavigation({
                     )}
                     onClick={() => onQuestionClick(index)}
                   >
-                    <div className="flex items-start justify-between w-full gap-2">
-                      <span className="text-left leading-5 flex-1 hyphens-auto" style={{ wordBreak: 'break-word' }}>
+                    <div className="flex items-start justify-between w-full gap-3">
+                      <div className="text-left leading-relaxed flex-1 overflow-hidden">
                         {getQuestionTitle(index)}
-                      </span>
-                      <div className="flex-shrink-0 mt-0.5">
+                      </div>
+                      <div className="flex-shrink-0 mt-1">
                         {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
                         {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
                       </div>
