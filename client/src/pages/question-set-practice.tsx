@@ -36,12 +36,15 @@ export default function QuestionSetPractice() {
     enabled: !!questionSetId,
   });
 
-  const { data: questions, isLoading: questionsLoading } = useQuery({
+  const { data: questions, isLoading: questionsLoading, error: questionsError } = useQuery({
     queryKey: ["/api/questions", questionSetId],
     queryFn: () => fetch(`/api/questions/${questionSetId}`, { 
       credentials: "include" 
     }).then(res => {
-      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      if (!res.ok) {
+        console.error(`Questions API error: ${res.status} ${res.statusText}`);
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
       return res.json();
     }),
     enabled: !!questionSetId,
@@ -117,7 +120,15 @@ export default function QuestionSetPractice() {
     );
   }
 
+  // Debug logging
+  console.log("Question Set ID:", questionSetId);
+  console.log("Question Set Data:", questionSet);
+  console.log("Questions Data:", questions);
+  console.log("Questions Error:", questionsError);
+  console.log("Questions Loading:", questionsLoading);
+
   if (!questionSet || !questions || questions.length === 0) {
+    console.log("Showing no questions available screen");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
