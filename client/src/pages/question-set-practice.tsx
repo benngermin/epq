@@ -224,11 +224,11 @@ export default function QuestionSetPractice() {
                       return (
                         <div
                           key={question.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 ${
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
                             isCurrent 
                               ? "border-primary bg-primary/5" 
                               : isAnswered 
-                                ? "border-green-200 bg-green-50" 
+                                ? "border-green-200 bg-green-50 hover:bg-green-100/80" 
                                 : "border-muted-foreground/20"
                           }`}
                           onClick={() => {
