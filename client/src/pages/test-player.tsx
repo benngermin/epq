@@ -195,11 +195,10 @@ export default function TestPlayer() {
       </nav>
 
       <div className="flex h-[calc(100vh-48px)] sm:h-[calc(100vh-56px)] md:h-[calc(100vh-64px)]">
-        {/* Question Navigation Rail - Responsive visibility and sizing */}
+        {/* Question Navigation Rail - Show on larger screens only */}
         <div className={cn(
-          "hidden transition-all duration-300 ease-in-out",
-          "lg:block xl:block",
-          isRailCollapsed ? "w-0" : "w-80 lg:w-96 xl:w-[28rem] 2xl:w-[32rem]"
+          "hidden lg:flex transition-all duration-300 ease-in-out flex-col",
+          isRailCollapsed ? "w-0 overflow-hidden" : "w-72 xl:w-80 2xl:w-96"
         )}>
           <QuestionNavigation
             testRun={testRun}
@@ -214,20 +213,22 @@ export default function TestPlayer() {
         </div>
 
         {/* Main Question Area */}
-        <div className="flex-1 flex flex-col relative min-w-0">
-          <div className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 overflow-y-auto" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
-            <div className={cn(
-              "mx-auto",
-              isRailCollapsed 
-                ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-8xl 4xl:max-w-9xl" 
-                : "max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl"
-            )}>
-              <QuestionCard
-                question={currentQuestion}
-                onSubmitAnswer={handleSubmitAnswer}
-                isSubmitting={submitAnswerMutation.isPending}
-                testRunId={parseInt(runId!)}
-              />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 lg:p-6 xl:p-8" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
+              <div className={cn(
+                "mx-auto w-full",
+                isRailCollapsed 
+                  ? "max-w-4xl xl:max-w-5xl 2xl:max-w-6xl" 
+                  : "max-w-3xl xl:max-w-4xl 2xl:max-w-5xl"
+              )}>
+                <QuestionCard
+                  question={currentQuestion}
+                  onSubmitAnswer={handleSubmitAnswer}
+                  isSubmitting={submitAnswerMutation.isPending}
+                  testRunId={parseInt(runId!)}
+                />
+              </div>
             </div>
           </div>
 

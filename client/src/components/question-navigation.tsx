@@ -95,17 +95,17 @@ export function QuestionNavigation({
   return (
     <div className={cn(
       "bg-background border-r border-border/30 shadow-sm flex-shrink-0 transition-all duration-300 flex flex-col h-full",
-      isCollapsed ? "w-0 overflow-hidden" : "w-80 lg:w-96 xl:w-[28rem] 2xl:w-[32rem]"
+      isCollapsed ? "w-0 overflow-hidden" : "w-full"
     )}>
       <Card className="rounded-none border-0 border-b border-border/30 flex-shrink-0 bg-card">
         <CardHeader className={cn(
           "transition-all duration-300",
-          isCollapsed ? "p-0" : "p-4 lg:p-5 xl:p-6"
+          isCollapsed ? "p-0" : "p-3 lg:p-4"
         )}>
           <div className="flex justify-between items-center">
             <CardTitle className={cn(
               "text-foreground transition-all duration-300 font-semibold",
-              isCollapsed ? "text-0" : "text-lg xl:text-xl"
+              isCollapsed ? "text-0" : "text-base lg:text-lg"
             )}>
               Practice Summary
             </CardTitle>
@@ -119,10 +119,10 @@ export function QuestionNavigation({
           </div>
           {!isCollapsed && (
             <div className="mt-2 space-y-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Track your progress through this question set
               </p>
-              <div className="text-sm">
+              <div className="text-xs">
                 <div className="font-medium text-foreground mb-1">Questions Answered</div>
                 <div className="text-xs text-muted-foreground">
                   {answeredQuestions.length} / {totalQuestions}
@@ -134,9 +134,9 @@ export function QuestionNavigation({
       </Card>
       
       {!isCollapsed && (
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <CardContent className="p-3 lg:p-4 xl:p-5">
-            <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto">
+          <CardContent className="p-2 lg:p-3">
+            <div className="space-y-1.5">
               {Array.from({ length: totalQuestions }, (_, index) => {
               const status = questionStatuses[index];
               const isCurrent = index === currentQuestionIndex;
@@ -144,11 +144,11 @@ export function QuestionNavigation({
               
               return (
                 <div key={index} className={cn(
-                  "flex items-start gap-3",
+                  "flex items-start gap-2",
                   !isVisited && "opacity-60"
                 )}>
                   <div className={cn(
-                    "font-bold text-sm w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1",
+                    "font-bold text-xs w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5",
                     isVisited ? "text-foreground bg-primary/10" : "text-muted-foreground"
                   )}>
                     {index + 1}
@@ -156,21 +156,23 @@ export function QuestionNavigation({
                   <Button
                     variant="outline"
                     className={cn(
-                      "flex-1 h-auto min-h-[4rem] justify-start text-sm font-normal px-4 py-3 text-left whitespace-normal",
+                      "flex-1 h-auto min-h-[3rem] justify-start text-xs font-normal px-2 py-2 text-left",
                       isVisited 
                         ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
                         : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
-                      isCurrent && "ring-2 ring-primary ring-offset-1 border-primary bg-primary/5"
+                      isCurrent && "ring-1 ring-primary ring-offset-1 border-primary bg-primary/5"
                     )}
                     onClick={() => onQuestionClick(index)}
                   >
-                    <div className="flex items-start justify-between w-full gap-3">
-                      <div className="text-left leading-relaxed flex-1 overflow-hidden">
-                        {getQuestionTitle(index)}
+                    <div className="flex items-start justify-between w-full gap-2">
+                      <div className="text-left leading-tight flex-1 overflow-hidden">
+                        <div className="line-clamp-2">
+                          {getQuestionTitle(index)}
+                        </div>
                       </div>
-                      <div className="flex-shrink-0 mt-1">
-                        {status === "correct" && <Check className="h-4 w-4 text-green-600" />}
-                        {status === "incorrect" && <X className="h-4 w-4 text-red-600" />}
+                      <div className="flex-shrink-0 mt-0.5">
+                        {status === "correct" && <Check className="h-3 w-3 text-green-600" />}
+                        {status === "incorrect" && <X className="h-3 w-3 text-red-600" />}
                       </div>
                     </div>
                   </Button>
