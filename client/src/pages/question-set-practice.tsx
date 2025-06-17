@@ -190,25 +190,25 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
         {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="flex justify-between text-sm text-muted-foreground mb-2">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground mb-2">
             <span>Progress</span>
             <span>{currentQuestionIndex + 1} / {questions.length}</span>
           </div>
           <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Practice Summary */}
-          <div className="w-full lg:w-80 lg:flex-shrink-0">
+          <div className="w-full lg:w-80 xl:w-96 lg:flex-shrink-0">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Practice Summary</CardTitle>
-                <CardDescription>Track your progress through this question set</CardDescription>
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="text-base sm:text-lg">Practice Summary</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Track your progress through this question set</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
@@ -216,7 +216,7 @@ export default function QuestionSetPractice() {
                   </div>
                   
                   {/* Vertical question list */}
-                  <div className="space-y-2 max-h-96 lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                  <div className="space-y-2 max-h-64 sm:max-h-80 lg:max-h-[calc(100vh-350px)] overflow-y-auto">
                     {questions.map((question: any, index: number) => {
                       const isAnswered = userAnswers[question.id];
                       const isCurrent = index === currentQuestionIndex;
@@ -271,7 +271,7 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 space-y-6">
+          <div className="flex-1 min-w-0 space-y-4 lg:space-y-6 overflow-hidden">
             <QuestionCard
               question={{
                 ...currentQuestion,
@@ -287,7 +287,7 @@ export default function QuestionSetPractice() {
             />
 
             {/* Navigation */}
-            <div className="flex justify-between px-4">
+            <div className="flex justify-between px-2 sm:px-4">
               <Button
                 variant="outline"
                 onClick={handlePreviousQuestion}
