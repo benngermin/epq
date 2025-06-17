@@ -76,7 +76,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 </div>
 
                 <div className="mb-4 sm:mb-5 md:mb-6 lg:mb-7 xl:mb-8">
-                  <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-foreground leading-relaxed text-left">
+                  <p className="text-sm sm:text-base md:text-base lg:text-lg xl:text-lg text-foreground leading-relaxed text-left">
                     {question.latestVersion?.questionText}
                   </p>
                 </div>
@@ -111,7 +111,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                               className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-foreground leading-relaxed">
+                              <span className="text-sm sm:text-base md:text-base lg:text-lg xl:text-lg text-foreground leading-relaxed">
                                 {choice.replace(/^[A-D]\.\s*/, '')}
                               </span>
                             </div>
@@ -127,7 +127,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-success/10 border border-success/20 rounded-lg">
                       <div className="flex items-center">
                         <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-success mr-2 sm:mr-3" />
-                        <span className="font-medium text-success text-sm sm:text-base md:text-lg lg:text-xl">Correct!</span>
+                        <span className="font-medium text-success text-sm sm:text-base md:text-base lg:text-lg">Correct!</span>
                       </div>
                     </div>
                     {hasNextQuestion && (
@@ -144,19 +144,19 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-error/10 border border-error/20 rounded-lg">
                       <div className="flex items-center">
                         <XCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-error mr-2 sm:mr-3" />
-                        <span className="font-medium text-error text-sm sm:text-base md:text-lg lg:text-xl">Incorrect</span>
+                        <span className="font-medium text-error text-sm sm:text-base md:text-base lg:text-lg">Incorrect</span>
                       </div>
                     </div>
                     <Button
                       onClick={handleShowChatbot}
                       variant="outline"
-                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 border-primary text-primary hover:bg-primary hover:text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl"
+                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 border-primary text-primary hover:bg-primary hover:text-primary-foreground text-sm sm:text-base md:text-base lg:text-lg"
                     >
                       <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 mr-2" />
                       Get AI Help
                     </Button>
                     {hasNextQuestion && (
-                      <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl">
+                      <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-base lg:text-lg">
                         Next Question
                         <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
                       </Button>
@@ -169,7 +169,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     <Button
                       onClick={handleSubmit}
                       disabled={!selectedAnswer || isSubmitting}
-                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-lg lg:text-xl"
+                      className="w-full py-2 sm:py-3 md:py-4 lg:py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base md:text-base lg:text-lg"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
@@ -193,13 +193,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
-                  className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
                   <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 mr-2" />
                   Review Question
                 </Button>
                 {hasNextQuestion && (
-                  <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
                     Next Question
                     <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
                   </Button>
