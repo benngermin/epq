@@ -24,7 +24,7 @@ import { insertCourseSchema, insertQuestionSetSchema } from "@shared/schema";
 import { z } from "zod";
 
 export default function AdminPanel() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("courses");
@@ -739,10 +739,42 @@ export default function AdminPanel() {
               <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
               <span className="font-semibold text-foreground">Exam Question Practice - Admin Panel</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => setLocation("/")}>
-                <Home className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 hover:bg-muted">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="hidden sm:block font-medium">{user?.name}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => setLocation("/")}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setLocation("/admin")}
+                    className="flex items-center space-x-2 cursor-pointer bg-accent"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Admin</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    className="flex items-center space-x-2 cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
