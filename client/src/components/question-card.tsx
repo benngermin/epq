@@ -67,16 +67,16 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="h-[400px] sm:h-[500px] md:h-[550px] lg:h-[600px] xl:h-[650px] 2xl:h-[700px] bg-card border shadow-sm">
-              <CardContent className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 2xl:p-8 h-full flex flex-col">
+            <Card className="h-[350px] sm:h-[400px] md:h-[450px] lg:h-[500px] xl:h-[550px] 2xl:h-[600px] bg-card border shadow-sm">
+              <CardContent className="p-3 sm:p-4 md:p-4 lg:p-5 xl:p-6 h-full flex flex-col">
                 <div className="mb-2 sm:mb-3 md:mb-4">
                   <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-xs sm:text-sm md:text-base">
                     Question {(question.questionIndex || 0) + 1}
                   </Badge>
                 </div>
 
-                <div className="mb-4 sm:mb-5 md:mb-6 lg:mb-7 xl:mb-8">
-                  <p className="text-sm sm:text-base md:text-base lg:text-lg xl:text-lg text-foreground leading-relaxed text-left">
+                <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                  <p className="text-sm sm:text-base md:text-base lg:text-lg text-foreground leading-relaxed text-left">
                     {question.latestVersion?.questionText}
                   </p>
                 </div>
@@ -86,7 +86,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   onValueChange={setSelectedAnswer}
                   disabled={hasAnswer || isSubmitting}
                 >
-                  <div className="space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
+                  <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
                     {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                       const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                       const isSelected = hasAnswer 
