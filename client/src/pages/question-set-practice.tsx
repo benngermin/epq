@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
@@ -16,15 +16,16 @@ import { ChatInterface } from "@/components/chat-interface";
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const params = useParams();
+  const [match, params] = useRoute("/question-set/:id");
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showChat, setShowChat] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
 
-  console.log("URL Params:", params);
-  const questionSetId = parseInt(params.id || "0");
+  console.log("Route Match:", match);
+  console.log("Route Params:", params);
+  const questionSetId = parseInt(params?.id || "0");
   console.log("Parsed Question Set ID:", questionSetId);
 
   const { data: questionSet, isLoading: questionSetLoading } = useQuery({

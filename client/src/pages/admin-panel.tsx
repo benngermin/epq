@@ -271,21 +271,48 @@ export default function AdminPanel() {
 
   const [aiSettingsData, setAiSettingsData] = useState({
     apiKey: "",
-    modelName: "anthropic/claude-sonnet-4",
+    modelName: "anthropic/claude-4-sonnet-20250522",
     systemPrompt: "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
-    temperature: [70],
+    temperature: [0.7],
     maxTokens: [150],
   });
+
+  const aiModels = [
+    { name: "OpenAI O1 (2024-12-17)", value: "openai/o1-2024-12-17", maxTokens: 200000 },
+    { name: "OpenAI O3 Mini (2025-01-31)", value: "openai/o3-mini-2025-01-31", maxTokens: 200000 },
+    { name: "OpenAI O3 Mini High", value: "openai/o3-mini-high", maxTokens: 200000 },
+    { name: "OpenAI O3 (2025-04-16)", value: "openai/o3-2025-04-16", maxTokens: 200000 },
+    { name: "OpenAI O3 Pro (2025-06-10)", value: "openai/o3-pro-2025-06-10", maxTokens: 200000 },
+    { name: "OpenAI O4 Mini (2025-04-16)", value: "openai/o4-mini-2025-04-16", maxTokens: 200000 },
+    { name: "Claude 4 Sonnet (2025-05-22)", value: "anthropic/claude-4-sonnet-20250522", maxTokens: 200000 },
+    { name: "Claude 4 Opus (2025-05-22)", value: "anthropic/claude-4-opus-20250522", maxTokens: 200000 },
+    { name: "Gemini 2.5 Flash Lite Preview", value: "google/gemini-2.5-flash-lite-preview-06-17", maxTokens: 1048576 },
+    { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash", maxTokens: 1048576 },
+    { name: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro", maxTokens: 1048576 },
+    { name: "Gemini 2.5 Pro Preview", value: "google/gemini-2.5-pro-preview-06-05", maxTokens: 1048576 },
+    { name: "Gemini 2.5 Flash Preview (Thinking)", value: "google/gemini-2.5-flash-preview-05-20:thinking", maxTokens: 1048576 },
+    { name: "GPT-4.1", value: "openai/gpt-4.1", maxTokens: 1000000 },
+    { name: "GPT-4.1 Mini", value: "openai/gpt-4.1-mini", maxTokens: 1000000 },
+    { name: "GPT-4.1 Nano", value: "openai/gpt-4.1-nano", maxTokens: 1000000 },
+    { name: "GPT-4o", value: "openai/gpt-4o", maxTokens: 128000 },
+    { name: "GPT-4o Mini", value: "openai/gpt-4o-mini", maxTokens: 128000 },
+    { name: "Claude 3.5 Haiku Beta", value: "anthropic/claude-3-5-haiku-20241022:beta", maxTokens: 200000 },
+  ];
+
+  const getMaxTokensForModel = (modelValue: string) => {
+    const model = aiModels.find(m => m.value === modelValue);
+    return model ? model.maxTokens : 4000;
+  };
 
   // Load AI settings data when available
   useEffect(() => {
     if (aiSettings) {
       setAiSettingsData({
-        apiKey: aiSettings.hasApiKey ? "***" : "",
-        modelName: aiSettings.modelName || "anthropic/claude-sonnet-4",
-        systemPrompt: aiSettings.systemPrompt || "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
-        temperature: [aiSettings.temperature || 70],
-        maxTokens: [aiSettings.maxTokens || 150],
+        apiKey: (aiSettings as any).hasApiKey ? "***" : "",
+        modelName: (aiSettings as any).modelName || "anthropic/claude-4-sonnet-20250522",
+        systemPrompt: (aiSettings as any).systemPrompt || "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
+        temperature: [(aiSettings as any).temperature ? (aiSettings as any).temperature / 100 : 0.7],
+        maxTokens: [(aiSettings as any).maxTokens || 150],
       });
     }
   }, [aiSettings]);
@@ -427,10 +454,10 @@ export default function AdminPanel() {
 
   const onUpdateAiSettings = () => {
     updateAiSettingsMutation.mutate({
-      apiKey: aiSettingsData.apiKey || undefined,
+      apiKey: aiSettingsData.apiKey === "***" ? undefined : aiSettingsData.apiKey || undefined,
       modelName: aiSettingsData.modelName,
       systemPrompt: aiSettingsData.systemPrompt,
-      temperature: aiSettingsData.temperature[0],
+      temperature: Math.round(aiSettingsData.temperature[0] * 100), // Convert back to 0-200 for storage
       maxTokens: aiSettingsData.maxTokens[0],
     });
   };
@@ -1472,17 +1499,23 @@ export default function AdminPanel() {
                     <Label htmlFor="model-name">Model</Label>
                     <Select
                       value={aiSettingsData.modelName}
-                      onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, modelName: value }))}
+                      onValueChange={(value) => {
+                        setAiSettingsData(prev => ({ 
+                          ...prev, 
+                          modelName: value,
+                          maxTokens: [Math.min(prev.maxTokens[0], getMaxTokensForModel(value))]
+                        }));
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
-                        <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                        <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
-                        <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
-                        <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini</SelectItem>
+                        {aiModels.map(model => (
+                          <SelectItem key={model.value} value={model.value}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1499,21 +1532,23 @@ export default function AdminPanel() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Temperature: {aiSettingsData.temperature[0]}</Label>
+                      <Label>Temperature: {aiSettingsData.temperature[0].toFixed(2)}</Label>
                       <Slider
                         value={aiSettingsData.temperature}
                         onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, temperature: value }))}
-                        max={100}
-                        step={1}
+                        max={2}
+                        min={0}
+                        step={0.01}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Max Tokens: {aiSettingsData.maxTokens[0]}</Label>
+                      <Label>Max Tokens: {aiSettingsData.maxTokens[0]} (max: {getMaxTokensForModel(aiSettingsData.modelName).toLocaleString()})</Label>
                       <Slider
                         value={aiSettingsData.maxTokens}
                         onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, maxTokens: value }))}
-                        max={1000}
+                        max={getMaxTokensForModel(aiSettingsData.modelName)}
+                        min={1}
                         step={10}
                       />
                     </div>
