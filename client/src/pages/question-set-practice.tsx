@@ -16,14 +16,16 @@ import { ChatInterface } from "@/components/chat-interface";
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const { id } = useParams();
+  const params = useParams();
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showChat, setShowChat] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
 
-  const questionSetId = parseInt(id || "0");
+  console.log("URL Params:", params);
+  const questionSetId = parseInt(params.id || "0");
+  console.log("Parsed Question Set ID:", questionSetId);
 
   const { data: questionSet, isLoading: questionSetLoading } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
