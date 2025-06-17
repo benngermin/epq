@@ -155,6 +155,12 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Chatbot
                     </Button>
+                    {hasNextQuestion && (
+                      <Button onClick={onNextQuestion} className="w-full">
+                        Next Question
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    )}
                   </div>
                 )}
 
