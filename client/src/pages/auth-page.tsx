@@ -89,8 +89,8 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <GraduationCap className="mx-auto h-12 w-12 text-primary mb-4" />
-            <h1 className="text-3xl font-bold text-foreground">Exam question practice</h1>
+            <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
+            <h1 className="text-3xl font-bold text-foreground">Exam Question Practice</h1>
           </div>
 
           <div className="mb-6">
