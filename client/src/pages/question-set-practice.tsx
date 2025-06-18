@@ -228,78 +228,78 @@ export default function QuestionSetPractice() {
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Practice Summary */}
-          <div className="w-full lg:w-72 xl:w-80 lg:flex-shrink-0">
-            <Card>
-              <CardHeader className="pb-3 sm:pb-6">
+          <div className="w-full lg:w-72 xl:w-80 lg:flex-shrink-0 lg:h-[calc(100vh-200px)]">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0">
                 <CardTitle className="text-base sm:text-lg">Practice Summary</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">Track your progress through this question set</CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-4">
+              <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
+                <div className="space-y-4 flex-shrink-0">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
                     <span>{Object.keys(userAnswers).length} / {questions.length}</span>
                   </div>
+                </div>
                   
-                  {/* Vertical question list */}
-                  <div className="space-y-2 max-h-64 sm:max-h-80 lg:max-h-[calc(100vh-350px)] overflow-y-auto px-1 py-1">
-                    {questions.map((question: any, index: number) => {
-                      const isAnswered = userAnswers[question.id];
-                      const isCurrent = index === currentQuestionIndex;
-                      const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
-                      
-                      return (
-                        <div
-                          key={question.id}
-                          className={`flex items-center gap-3 p-3 mx-1 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
-                            isCurrent 
-                              ? "border-primary bg-primary/5" 
-                              : isAnswered && isCorrect
-                                ? "border-green-200 bg-green-50 hover:bg-green-100/80"
-                              : isAnswered && !isCorrect
-                                ? "border-red-200 bg-red-50 hover:bg-red-100/80" 
-                                : "border-muted-foreground/20"
-                          }`}
-                          onClick={() => {
-                            setCurrentQuestionIndex(index);
-                            setShowChat(false);
-                            setSelectedAnswer("");
-                          }}
-                        >
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                            isCurrent
-                              ? "bg-primary text-primary-foreground"
-                              : isAnswered && isCorrect
-                                ? "bg-green-500 text-white"
-                              : isAnswered && !isCorrect
-                                ? "bg-red-500 text-white"
-                                : "bg-muted text-muted-foreground"
-                          }`}>
-                            {isAnswered ? (
-                              isCorrect ? (
-                                <CheckCircle className="h-4 w-4" />
-                              ) : (
-                                <XCircle className="h-4 w-4" />
-                              )
+                {/* Vertical question list */}
+                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4">
+                  {questions.map((question: any, index: number) => {
+                    const isAnswered = userAnswers[question.id];
+                    const isCurrent = index === currentQuestionIndex;
+                    const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
+                    
+                    return (
+                      <div
+                        key={question.id}
+                        className={`flex items-center gap-3 p-3 mx-1 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/70 hover:border-primary/40 hover:shadow-sm hover:scale-[1.02] ${
+                          isCurrent 
+                            ? "border-primary bg-primary/5" 
+                            : isAnswered && isCorrect
+                              ? "border-green-200 bg-green-50 hover:bg-green-100/80"
+                            : isAnswered && !isCorrect
+                              ? "border-red-200 bg-red-50 hover:bg-red-100/80" 
+                              : "border-muted-foreground/20"
+                        }`}
+                        onClick={() => {
+                          setCurrentQuestionIndex(index);
+                          setShowChat(false);
+                          setSelectedAnswer("");
+                        }}
+                      >
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                          isCurrent
+                            ? "bg-primary text-primary-foreground"
+                            : isAnswered && isCorrect
+                              ? "bg-green-500 text-white"
+                            : isAnswered && !isCorrect
+                              ? "bg-red-500 text-white"
+                              : "bg-muted text-muted-foreground"
+                        }`}>
+                          {isAnswered ? (
+                            isCorrect ? (
+                              <CheckCircle className="h-4 w-4" />
                             ) : (
-                              index + 1
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              Question {index + 1}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {question.latestVersion?.topicFocus || "General topic"}
-                            </p>
-                          </div>
-                          {isCurrent && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                              <XCircle className="h-4 w-4" />
+                            )
+                          ) : (
+                            index + 1
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            Question {index + 1}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {question.latestVersion?.topicFocus || "General topic"}
+                          </p>
+                        </div>
+                        {isCurrent && (
+                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
