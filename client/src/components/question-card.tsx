@@ -206,7 +206,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[500px] max-h-[calc(100vh-200px)] flex flex-col bg-card border shadow-sm">
+            <Card className="h-full min-h-[600px] max-h-[calc(100vh-150px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -238,7 +238,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
       <style>
         {`.card-flip {
           perspective: 1000px;
-          min-height: 500px;
+          min-height: 650px;
           position: relative;
           z-index: 1;
         }

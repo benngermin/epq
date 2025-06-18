@@ -25,7 +25,7 @@ async function callOpenRouter(prompt: string, settings: any): Promise<string> {
         "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
       },
       body: JSON.stringify({
-        model: settings?.modelName || "anthropic/claude-sonnet-4",
+        model: settings?.modelName || "anthropic/claude-3.5-sonnet",
         messages: [{ role: "user", content: prompt }],
         temperature: (settings?.temperature || 70) / 100,
         max_tokens: settings?.maxTokens || 150,
@@ -37,6 +37,13 @@ async function callOpenRouter(prompt: string, settings: any): Promise<string> {
     }
 
     const data = await response.json();
+    console.log("OpenRouter response:", JSON.stringify(data, null, 2));
+    
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      console.error("Invalid response structure:", data);
+      return "I'm sorry, I received an unexpected response from the AI service.";
+    }
+    
     return data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
     console.error("OpenRouter error:", error);
