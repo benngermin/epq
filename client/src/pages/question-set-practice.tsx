@@ -188,7 +188,7 @@ export default function QuestionSetPractice() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{user?.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-sm leading-none text-muted-foreground">
                       {user?.email}
                     </p>
                   </div>
@@ -218,7 +218,7 @@ export default function QuestionSetPractice() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-3">
           <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
             <span>Progress</span>
-            <span className="font-medium">{currentQuestionIndex + 1} / {questions.length}</span>
+            <span className="font-medium text-sm">{currentQuestionIndex + 1} / {questions.length}</span>
           </div>
           <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
         </div>
