@@ -224,7 +224,7 @@ export default function QuestionSetPractice() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Practice Summary */}
@@ -306,7 +306,7 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 space-y-4 lg:space-y-6">
+          <div className="flex-1 min-w-0">
             <div className="w-full max-w-4xl mx-auto">
               <QuestionCard
                 question={{
@@ -325,33 +325,34 @@ export default function QuestionSetPractice() {
                 hasNextQuestion={currentQuestionIndex < questions.length - 1}
               />
             </div>
-
-            {/* Navigation - Hidden when chatbot is showing */}
-            {!isCardFlipped && (
-              <div className="relative z-10 bg-background">
-                <div className="mt-8 pt-6 border-t border-border">
-                  <div className="flex justify-between px-4 max-w-4xl mx-auto">
-                    <Button
-                      variant="outline"
-                      onClick={handlePreviousQuestion}
-                      disabled={currentQuestionIndex === 0}
-                      className="min-w-[120px] h-10"
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={handleNextQuestion}
-                      disabled={currentQuestionIndex === questions.length - 1}
-                      className="min-w-[120px] h-10"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Fixed Navigation Bar at Bottom - Hidden when chatbot is showing */}
+          {!isCardFlipped && (
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
+              <div className="max-w-4xl mx-auto flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className="min-w-[120px]"
+                >
+                  Previous
+                </Button>
+                <div className="text-sm text-muted-foreground flex items-center">
+                  Question {currentQuestionIndex + 1} of {questions.length}
+                </div>
+                <Button
+                  onClick={handleNextQuestion}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                  className="min-w-[120px]"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
