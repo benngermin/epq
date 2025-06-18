@@ -306,23 +306,25 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 space-y-4 lg:space-y-6 overflow-hidden">
-            <QuestionCard
-              question={{
-                ...currentQuestion,
-                questionIndex: currentQuestionIndex,
-                userAnswer: userAnswers[currentQuestion?.id] ? {
-                  chosenAnswer: userAnswers[currentQuestion.id],
-                  isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
-                } : null
-              }}
-              onSubmitAnswer={handleSubmitAnswer}
-              isSubmitting={submitAnswerMutation.isPending}
-              testRunId={0} // Not used for question set practice
-              onFlipChange={setIsCardFlipped}
-              onNextQuestion={handleNextQuestion}
-              hasNextQuestion={currentQuestionIndex < questions.length - 1}
-            />
+          <div className="flex-1 min-w-0 space-y-4 lg:space-y-6">
+            <div className="w-full max-w-4xl mx-auto">
+              <QuestionCard
+                question={{
+                  ...currentQuestion,
+                  questionIndex: currentQuestionIndex,
+                  userAnswer: userAnswers[currentQuestion?.id] ? {
+                    chosenAnswer: userAnswers[currentQuestion.id],
+                    isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
+                  } : null
+                }}
+                onSubmitAnswer={handleSubmitAnswer}
+                isSubmitting={submitAnswerMutation.isPending}
+                testRunId={0} // Not used for question set practice
+                onFlipChange={setIsCardFlipped}
+                onNextQuestion={handleNextQuestion}
+                hasNextQuestion={currentQuestionIndex < questions.length - 1}
+              />
+            </div>
 
             {/* Navigation - Hidden when chatbot is showing */}
             {!isCardFlipped && (

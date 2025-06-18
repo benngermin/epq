@@ -206,7 +206,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-[400px] sm:h-[500px] md:h-[550px] lg:h-[600px] xl:h-[650px] 2xl:h-[700px] flex flex-col bg-card border shadow-sm">
+            <Card className="h-full max-h-[calc(100vh-200px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -214,19 +214,19 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 border-t bg-accent flex-shrink-0 space-y-2 sm:space-y-3">
+              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
-                  className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
-                  <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 mr-2" />
+                  <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
                 </Button>
                 {hasNextQuestion && (
-                  <Button onClick={onNextQuestion} className="w-full py-2 sm:py-3 md:py-4 lg:py-5 text-xs sm:text-sm md:text-base lg:text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Button onClick={onNextQuestion} className="w-full py-2 md:py-3 text-sm md:text-base bg-primary hover:bg-primary/90 text-primary-foreground">
                     Next Question
-                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ml-2" />
+                    <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 )}
               </div>
