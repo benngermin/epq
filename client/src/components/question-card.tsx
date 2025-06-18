@@ -239,6 +239,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         {`.card-flip {
           perspective: 1000px;
           min-height: 500px;
+          position: relative;
+          z-index: 1;
         }
         .card-flip-inner {
           position: relative;
@@ -259,6 +261,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           min-height: inherit;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          top: 0;
+          left: 0;
         }
         .card-flip-back {
           transform: rotateY(180deg);
