@@ -162,7 +162,7 @@ export default function QuestionSetPractice() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation("/")}
-                className="flex items-center"
+                className="flex items-center text-sm"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
@@ -170,7 +170,7 @@ export default function QuestionSetPractice() {
               <div className="flex items-center">
                 <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
                 <div>
-                  <span className="font-semibold text-foreground">{questionSet?.title}</span>
+                  <span className="font-semibold text-lg text-foreground">{questionSet?.title}</span>
                 </div>
               </div>
             </div>
@@ -231,8 +231,8 @@ export default function QuestionSetPractice() {
           <div className="w-full lg:w-72 xl:w-80 lg:flex-shrink-0 lg:h-[calc(100vh-200px)]">
             <Card className="h-full flex flex-col">
               <CardHeader className="pb-3 sm:pb-6 flex-shrink-0">
-                <CardTitle className="text-base sm:text-lg">Practice Summary</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Track your progress through this question set</CardDescription>
+                <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
               </CardHeader>
               <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
                 <div className="space-y-4 flex-shrink-0">
@@ -290,7 +290,7 @@ export default function QuestionSetPractice() {
                           <p className="text-sm font-medium truncate">
                             Question {index + 1}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-sm text-muted-foreground truncate">
                             {question.latestVersion?.topicFocus || "General topic"}
                           </p>
                         </div>

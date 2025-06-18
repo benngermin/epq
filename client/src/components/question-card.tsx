@@ -71,13 +71,13 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
               <CardContent className="p-3 sm:p-4 md:p-4 lg:p-5 xl:p-6 flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-y-auto">
                   <div className="mb-2 sm:mb-3 md:mb-4">
-                    <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-xs sm:text-sm md:text-base">
+                    <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-sm">
                       Question {(question.questionIndex || 0) + 1}
                     </Badge>
                   </div>
 
                   <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
-                    <p className="text-sm sm:text-base md:text-base lg:text-lg text-foreground leading-relaxed text-left">
+                    <p className="text-base text-foreground leading-relaxed text-left">
                       {question.latestVersion?.questionText}
                     </p>
                   </div>
@@ -112,7 +112,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                                 className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
                               />
                               <div className="flex-1 min-w-0">
-                                <span className="text-sm sm:text-base md:text-base lg:text-lg xl:text-lg text-foreground leading-relaxed">
+                                <span className="text-base text-foreground leading-relaxed">
                                   {choice.replace(/^[A-D]\.\s*/, '')}
                                 </span>
                               </div>
