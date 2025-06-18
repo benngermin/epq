@@ -328,21 +328,25 @@ export default function QuestionSetPractice() {
 
             {/* Navigation - Hidden when chatbot is showing */}
             {!isCardFlipped && (
-              <div className="flex justify-between px-2 sm:px-4">
-                <Button
-                  variant="outline"
-                  onClick={handlePreviousQuestion}
-                  disabled={currentQuestionIndex === 0}
-                >
-                  Previous
-                </Button>
-                <Button
-                  onClick={handleNextQuestion}
-                  disabled={currentQuestionIndex === questions.length - 1}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
+              <div className="mt-6 pt-4 border-t border-border">
+                <div className="flex justify-between px-2 sm:px-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className="min-w-[100px]"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={handleNextQuestion}
+                    disabled={currentQuestionIndex === questions.length - 1}
+                    className="min-w-[100px]"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
