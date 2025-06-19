@@ -226,9 +226,9 @@ export default function QuestionSetPractice() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
-        <div className="flex gap-1 sm:gap-2 lg:gap-6 min-h-0">
+        <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Responsive Practice Summary */}
-          <div className="w-12 sm:w-14 md:w-16 lg:w-72 xl:w-80 flex-shrink-0 lg:h-[calc(100vh-200px)]">
+          <div className="w-16 sm:w-20 md:w-24 lg:w-72 xl:w-80 flex-shrink-0 lg:h-[calc(100vh-200px)]">
             <Card className="h-full flex flex-col">
               {/* Desktop Header */}
               <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden lg:block">
@@ -237,10 +237,13 @@ export default function QuestionSetPractice() {
               </CardHeader>
               
               {/* Mobile Header */}
-              <CardHeader className="p-1 flex-shrink-0 lg:hidden">
+              <CardHeader className="p-1 sm:p-2 flex-shrink-0 lg:hidden">
                 <div className="text-center">
-                  <div className="text-xs font-medium leading-tight">
+                  <div className="text-xs sm:text-sm font-medium leading-tight">
                     {Object.keys(userAnswers).length}/{questions.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    done
                   </div>
                 </div>
               </CardHeader>
@@ -315,8 +318,8 @@ export default function QuestionSetPractice() {
                 </div>
 
                 {/* Mobile: Compact number grid */}
-                <div className="lg:hidden p-0.5 flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-3 gap-0.5">
+                <div className="lg:hidden p-1 sm:p-2 flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 gap-1">
                     {questions.map((question: any, index: number) => {
                       const isAnswered = userAnswers[question.id];
                       const isCurrent = index === currentQuestionIndex;
@@ -325,7 +328,7 @@ export default function QuestionSetPractice() {
                       return (
                         <button
                           key={question.id}
-                          className={`h-6 w-full text-xs font-medium relative rounded-sm border transition-colors ${
+                          className={`h-7 sm:h-8 md:h-9 w-full text-xs sm:text-sm font-medium relative rounded border transition-colors ${
                             isCurrent 
                               ? "ring-1 ring-primary ring-offset-1 border-primary bg-primary text-primary-foreground" 
                               : isAnswered && isCorrect
