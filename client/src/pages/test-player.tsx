@@ -195,10 +195,14 @@ export default function TestPlayer() {
       </nav>
 
       <div className="flex h-[calc(100vh-48px)] sm:h-[calc(100vh-56px)] md:h-[calc(100vh-64px)]">
-        {/* Question Navigation Rail - Show on larger screens only */}
+        {/* Question Navigation Rail - Show on all screens with responsive sizing */}
         <div className={cn(
-          "hidden lg:flex transition-all duration-300 ease-in-out flex-col",
-          isRailCollapsed ? "w-0 overflow-hidden" : "w-72 xl:w-80 2xl:w-96"
+          "flex transition-all duration-300 ease-in-out flex-col border-r border-border",
+          // Mobile: compact sidebar
+          "w-16 sm:w-20 md:w-24",
+          // Large screens: full sidebar or collapsed
+          "lg:w-72 xl:w-80 2xl:w-96",
+          isRailCollapsed && "lg:w-0 lg:overflow-hidden"
         )}>
           <QuestionNavigation
             testRun={testRun}
@@ -215,12 +219,12 @@ export default function TestPlayer() {
         {/* Main Question Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <div className="p-4 lg:p-6 xl:p-8" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
+            <div className="p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
               <div className={cn(
                 "mx-auto w-full",
                 isRailCollapsed 
                   ? "max-w-4xl xl:max-w-5xl 2xl:max-w-6xl" 
-                  : "max-w-3xl xl:max-w-4xl 2xl:max-w-5xl"
+                  : "max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl"
               )}>
                 <QuestionCard
                   question={currentQuestion}
