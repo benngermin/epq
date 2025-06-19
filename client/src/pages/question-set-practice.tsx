@@ -231,13 +231,13 @@ export default function QuestionSetPractice() {
           <div className="w-16 sm:w-20 md:w-24 lg:w-72 xl:w-80 flex-shrink-0 lg:h-[calc(100vh-200px)]">
             <Card className="h-full flex flex-col">
               {/* Desktop Header */}
-              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden lg:block">
+              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden md:block">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
               </CardHeader>
               
               {/* Mobile Header */}
-              <CardHeader className="p-1 sm:p-2 flex-shrink-0 lg:hidden">
+              <CardHeader className="p-1 sm:p-2 flex-shrink-0 md:hidden">
                 <div className="text-center">
                   <div className="text-xs sm:text-sm font-medium leading-tight">
                     {Object.keys(userAnswers).length}/{questions.length}
@@ -250,7 +250,7 @@ export default function QuestionSetPractice() {
 
               <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
                 {/* Desktop Summary Stats */}
-                <div className="space-y-4 flex-shrink-0 hidden lg:block">
+                <div className="space-y-4 flex-shrink-0 hidden md:block">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
                     <span>{Object.keys(userAnswers).length} / {questions.length}</span>
@@ -258,7 +258,7 @@ export default function QuestionSetPractice() {
                 </div>
                   
                 {/* Desktop: Vertical question list */}
-                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4 hidden lg:block">
+                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4 hidden md:block">
                   {questions.map((question: any, index: number) => {
                     const isAnswered = userAnswers[question.id];
                     const isCurrent = index === currentQuestionIndex;
@@ -318,7 +318,7 @@ export default function QuestionSetPractice() {
                 </div>
 
                 {/* Mobile: Compact number grid */}
-                <div className="lg:hidden p-1 sm:p-2 flex-1 overflow-y-auto">
+                <div className="md:hidden p-1 sm:p-2 flex-1 overflow-y-auto">
                   <div className="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 gap-1">
                     {questions.map((question: any, index: number) => {
                       const isAnswered = userAnswers[question.id];
