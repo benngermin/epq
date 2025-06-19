@@ -158,15 +158,6 @@ export default function QuestionSetPractice() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/")}
-                className="flex items-center text-sm"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
               <div className="flex items-center">
                 <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
                 <div>
@@ -234,6 +225,15 @@ export default function QuestionSetPractice() {
               <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden md:block">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/")}
+                  className="flex items-center text-sm mt-3 w-full"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
               </CardHeader>
               
               {/* Mobile Header */}
