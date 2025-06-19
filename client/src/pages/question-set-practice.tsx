@@ -226,24 +226,39 @@ export default function QuestionSetPractice() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
-          {/* Left Sidebar - Practice Summary */}
-          <div className="w-full lg:w-72 xl:w-80 lg:flex-shrink-0 lg:h-[calc(100vh-200px)]">
+        <div className="flex gap-2 sm:gap-4 lg:gap-6 min-h-0">
+          {/* Left Sidebar - Responsive Practice Summary */}
+          <div className="w-16 sm:w-20 md:w-24 lg:w-72 xl:w-80 flex-shrink-0 lg:h-[calc(100vh-200px)]">
             <Card className="h-full flex flex-col">
-              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0">
+              {/* Desktop Header */}
+              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden lg:block">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
               </CardHeader>
+              
+              {/* Mobile Header */}
+              <CardHeader className="p-2 flex-shrink-0 lg:hidden">
+                <div className="text-center">
+                  <div className="text-xs font-medium">
+                    {Object.keys(userAnswers).length}/{questions.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    done
+                  </div>
+                </div>
+              </CardHeader>
+
               <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
-                <div className="space-y-4 flex-shrink-0">
+                {/* Desktop Summary Stats */}
+                <div className="space-y-4 flex-shrink-0 hidden lg:block">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
                     <span>{Object.keys(userAnswers).length} / {questions.length}</span>
                   </div>
                 </div>
                   
-                {/* Vertical question list */}
-                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4">
+                {/* Desktop: Vertical question list */}
+                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4 hidden lg:block">
                   {questions.map((question: any, index: number) => {
                     const isAnswered = userAnswers[question.id];
                     const isCurrent = index === currentQuestionIndex;
@@ -300,6 +315,45 @@ export default function QuestionSetPractice() {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Mobile: Compact number grid */}
+                <div className="lg:hidden p-1 flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-1">
+                    {questions.map((question: any, index: number) => {
+                      const isAnswered = userAnswers[question.id];
+                      const isCurrent = index === currentQuestionIndex;
+                      const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
+                      
+                      return (
+                        <button
+                          key={question.id}
+                          className={`h-8 w-full text-xs font-medium relative rounded border transition-colors ${
+                            isCurrent 
+                              ? "ring-1 ring-primary ring-offset-1 border-primary bg-primary/5" 
+                              : isAnswered && isCorrect
+                                ? "bg-green-50 border-green-200 text-green-800"
+                              : isAnswered && !isCorrect
+                                ? "bg-red-50 border-red-200 text-red-800" 
+                                : "border-border bg-card text-foreground hover:bg-accent"
+                          }`}
+                          onClick={() => {
+                            setCurrentQuestionIndex(index);
+                            setShowChat(false);
+                            setSelectedAnswer("");
+                          }}
+                        >
+                          {index + 1}
+                          {isAnswered && isCorrect && (
+                            <CheckCircle className="h-2 w-2 text-green-600 absolute -top-0.5 -right-0.5" />
+                          )}
+                          {isAnswered && !isCorrect && (
+                            <XCircle className="h-2 w-2 text-red-600 absolute -top-0.5 -right-0.5" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </Card>
