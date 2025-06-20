@@ -810,11 +810,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
 
       // Deactivate current prompt and create new active one
-      await db.update(promptVersions)
+      await db.update(schema.promptVersions)
         .set({ isActive: false })
-        .where(eq(promptVersions.isActive, true));
+        .where(eq(schema.promptVersions.isActive, true));
 
-      const newPrompt = await db.insert(promptVersions)
+      const newPrompt = await db.insert(schema.promptVersions)
         .values({
           versionName: `Updated ${new Date().toISOString().split('T')[0]}`,
           promptText,
