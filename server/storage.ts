@@ -250,7 +250,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]> {
-    return await db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
+    try {
+      return await db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
+    } catch (error) {
+      console.error('Database error in getQuestionVersionsByQuestion:', error);
+      // Return empty array on database error to prevent 500 errors
+      return [];
+    }
   }
 
   async getQuestionVersion(id: number): Promise<QuestionVersion | undefined> {
