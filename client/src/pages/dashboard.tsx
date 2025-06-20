@@ -90,7 +90,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
               <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Question Practice</span>
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Practice Questions</span>
             </div>
             <div className="flex items-center">
               <DropdownMenu>
@@ -134,7 +134,6 @@ export default function Dashboard() {
           </div>
         </div>
       </nav>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Courses</h1>
