@@ -319,6 +319,7 @@ export default function AdminPanel() {
   const [editingPromptVersion, setEditingPromptVersion] = useState<any>(null);
   const [addVersionDialogOpen, setAddVersionDialogOpen] = useState(false);
   const [newPromptVersion, setNewPromptVersion] = useState({ versionName: "", promptText: "", modelName: "" });
+  const [courseMaterialsDialogOpen, setCourseMaterialsDialogOpen] = useState(false);
 
   // Forms
   const courseForm = useForm({
