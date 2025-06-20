@@ -41,6 +41,7 @@ export function setupAuth(app: Express) {
       sameSite: 'lax'
     },
     rolling: true, // Reset expiration on each request
+    name: 'sessionId', // Consistent session name
   };
 
   app.set("trust proxy", 1);
