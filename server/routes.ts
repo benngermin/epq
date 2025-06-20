@@ -527,7 +527,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -566,7 +566,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -599,7 +599,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user.id) {
+      if (testRun.userId !== req.user!.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -635,7 +635,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user.id) {
+      if (testRun.userId !== req.user!.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
