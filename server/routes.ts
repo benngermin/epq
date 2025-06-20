@@ -776,18 +776,34 @@ export function registerRoutes(app: Express): Server {
     try {
       const { questionSetId, questions: questionsData } = req.body;
       
+      if (!questionSetId || !Array.isArray(questionsData)) {
+        return res.status(400).json({ message: "Invalid request data" });
+      }
+      
       const questionSet = await storage.getQuestionSet(questionSetId);
       if (!questionSet) {
         return res.status(404).json({ message: "Question set not found" });
       }
 
+      console.log(`Attempting to import ${questionsData.length} questions to question set ${questionSetId}`);
+      
       const validatedQuestions = z.array(questionImportSchema).parse(questionsData);
       await storage.importQuestions(questionSetId, validatedQuestions);
       
-      res.json({ message: `Successfully imported ${validatedQuestions.length} questions` });
+      res.json({ 
+        message: `Successfully imported ${validatedQuestions.length} questions`,
+        count: validatedQuestions.length 
+      });
     } catch (error) {
       console.error("Error importing questions:", error);
-      res.status(400).json({ message: "Failed to import questions" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ 
+          message: "Invalid question data format", 
+          details: error.errors 
+        });
+      } else {
+        res.status(500).json({ message: "Failed to import questions" });
+      }
     }
   });
 

@@ -370,30 +370,65 @@ export class DatabaseStorage implements IStorage {
   }
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
-    for (const questionData of questionsData) {
-      // Check if question already exists
-      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
+    console.log(`Starting import of ${questionsData.length} questions for question set ${questionSetId}`);
+    
+    // Use batch processing to improve performance
+    const batchSize = 10;
+    let processedCount = 0;
+    
+    for (let i = 0; i < questionsData.length; i += batchSize) {
+      const batch = questionsData.slice(i, i + batchSize);
       
-      if (!question) {
-        question = await this.createQuestion({
-          questionSetId,
-          originalQuestionNumber: questionData.question_number,
-          loid: questionData.loid,
-        });
-      }
+      try {
+        // Process batch in parallel
+        await Promise.all(batch.map(async (questionData) => {
+          try {
+            // Check if question already exists
+            let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
+            
+            if (!question) {
+              question = await this.createQuestion({
+                questionSetId,
+                originalQuestionNumber: questionData.question_number,
+                loid: questionData.loid,
+              });
+            }
 
-      // Create question versions
-      for (const versionData of questionData.versions) {
-        await this.createQuestionVersion({
-          questionId: question.id,
-          versionNumber: versionData.version_number,
-          topicFocus: versionData.topic_focus,
-          questionText: versionData.question_text,
-          answerChoices: [...versionData.answer_choices],
-          correctAnswer: versionData.correct_answer,
-        });
+            // Create question versions
+            for (const versionData of questionData.versions) {
+              await this.createQuestionVersion({
+                questionId: question.id,
+                versionNumber: versionData.version_number,
+                topicFocus: versionData.topic_focus,
+                questionText: versionData.question_text,
+                answerChoices: [...versionData.answer_choices],
+                correctAnswer: versionData.correct_answer,
+              });
+            }
+            
+            processedCount++;
+          } catch (error) {
+            console.error(`Error importing question ${questionData.question_number}:`, error);
+            // Continue processing other questions
+          }
+        }));
+        
+        console.log(`Progress: ${Math.min(i + batchSize, questionsData.length)}/${questionsData.length} questions processed`);
+        
+        // Small delay between batches to prevent overwhelming the database
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (batchError) {
+        console.error(`Error processing batch ${i}-${i + batchSize}:`, batchError);
       }
     }
+    
+    // Update question set count
+    await db.update(questionSets)
+      .set({ questionCount: processedCount })
+      .where(eq(questionSets.id, questionSetId));
+    
+    console.log(`Import completed: ${processedCount}/${questionsData.length} questions successfully imported`);
   }
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {
