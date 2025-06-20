@@ -125,16 +125,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
                   
 
-                  {hasAnswer && !isCorrect && (
-                    <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-2 sm:space-y-3">
-                      <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-error/10 border border-error/20 rounded-lg">
-                        <div className="flex items-center">
-                          <XCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-error mr-2 sm:mr-3" />
-                          <span className="font-medium text-error text-sm sm:text-base md:text-base lg:text-lg">Incorrect</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
