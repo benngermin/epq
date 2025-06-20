@@ -8,6 +8,7 @@ import {
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, type QuestionImport 
 } from "@shared/schema";
 import { withRetry } from "./utils/db-retry";
+import { withCircuitBreaker } from "./utils/connection-pool";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
@@ -302,24 +303,41 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
-      const questions = await storage.getQuestionsByQuestionSet(questionSetId);
+      const questions = await withCircuitBreaker(() => storage.getQuestionsByQuestionSet(questionSetId));
       
-      // Get the latest version for each question
+      // Get the latest version for each question with circuit breaker protection
       const questionsWithLatestVersions = await Promise.all(
         questions.map(async (question) => {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
-          return {
-            ...question,
-            latestVersion
-          };
+          try {
+            const versions = await withCircuitBreaker(() => storage.getQuestionVersionsByQuestion(question.id));
+            const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+            return {
+              ...question,
+              latestVersion
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.warn(`Failed to fetch versions for question ${question.id}:`, errorMessage);
+            // Return question without version if version fetch fails
+            return {
+              ...question,
+              latestVersion: null
+            };
+          }
         })
       );
       
       res.json(questionsWithLatestVersions);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      res.status(500).json({ message: "Failed to fetch questions" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to fetch questions" });
+      }
     }
   });
 
