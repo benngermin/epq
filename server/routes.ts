@@ -895,6 +895,23 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Admin route for importing course materials
+  app.post("/api/admin/import-course-materials", requireAdmin, async (req, res) => {
+    try {
+      const { materials } = req.body;
+      
+      if (!Array.isArray(materials)) {
+        return res.status(400).json({ message: "Materials must be an array" });
+      }
+
+      await storage.importCourseMaterials(materials);
+      res.json({ message: "Course materials imported successfully" });
+    } catch (error) {
+      console.error("Error importing course materials:", error);
+      res.status(500).json({ message: "Failed to import course materials" });
+    }
+  });
+
   app.get("/api/admin/practice-tests", requireAdmin, async (req, res) => {
     try {
       const courses = await storage.getAllCourses();

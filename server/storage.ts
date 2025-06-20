@@ -1,12 +1,12 @@
 import {
   users, courses, questionSets, practiceTests, questions, questionVersions, 
-  userTestRuns, userAnswers, aiSettings, promptVersions,
+  userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
-  type QuestionImport
+  type CourseMaterial, type InsertCourseMaterial, type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, not, inArray } from "drizzle-orm";
@@ -428,6 +428,27 @@ export class DatabaseStorage implements IStorage {
         testRun: latestRun,
       };
     }
+  }
+
+  async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void> {
+    // Clear existing course materials
+    await db.delete(courseMaterials);
+    
+    // Insert new materials in batches
+    const batchSize = 100;
+    for (let i = 0; i < materials.length; i += batchSize) {
+      const batch = materials.slice(i, i + batchSize);
+      await db.insert(courseMaterials).values(batch);
+    }
+  }
+
+  async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {
+    const result = await db.select()
+      .from(courseMaterials)
+      .where(eq(courseMaterials.loid, loid))
+      .limit(1);
+    
+    return result[0];
   }
 }
 
