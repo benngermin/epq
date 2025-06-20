@@ -14,6 +14,22 @@ export default function TestPlayer() {
   const [match, params] = useRoute("/test/:runId");
   const runId = params?.runId;
   const [, setLocation] = useLocation();
+
+  // Validate runId early
+  const runIdNum = parseInt(runId || "0");
+  if (isNaN(runIdNum) || runIdNum <= 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Test</h1>
+          <p className="mb-4">The test ID is invalid. Please check the URL and try again.</p>
+          <Button onClick={() => setLocation("/dashboard")}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);

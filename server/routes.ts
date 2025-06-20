@@ -362,6 +362,11 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/courses/:courseId/practice-tests", requireAdmin, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
       const testData = insertPracticeTestSchema.parse({ ...req.body, courseId });
       const test = await storage.createPracticeTest(testData);
       res.status(201).json(test);
@@ -375,6 +380,11 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/practice-tests/:testId/start", requireAuth, async (req, res) => {
     try {
       const testId = parseInt(req.params.testId);
+      
+      if (isNaN(testId)) {
+        return res.status(400).json({ message: "Invalid practice test ID" });
+      }
+      
       const practiceTest = await storage.getPracticeTest(testId);
       
       if (!practiceTest) {
@@ -389,12 +399,21 @@ export function registerRoutes(app: Express): Server {
         allQuestions.push(...questions);
       }
       
-      if (allQuestions.length < 85) {
-        return res.status(400).json({ message: "Not enough questions available for this test" });
+      if (allQuestions.length < practiceTest.questionCount) {
+        return res.status(400).json({ message: `Not enough questions available for this test (need ${practiceTest.questionCount}, have ${allQuestions.length})` });
       }
 
-      // Shuffle questions and select random versions
-      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
+      // Use Fisher-Yates shuffle algorithm for better randomization
+      const shuffleArray = (array: any[]) => {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
+
+      const shuffledQuestions = shuffleArray(allQuestions).slice(0, practiceTest.questionCount);
       const questionOrder = [];
 
       for (const question of shuffledQuestions) {
@@ -403,6 +422,10 @@ export function registerRoutes(app: Express): Server {
           const randomVersion = versions[Math.floor(Math.random() * versions.length)];
           questionOrder.push(randomVersion.id);
         }
+      }
+
+      if (questionOrder.length === 0) {
+        return res.status(400).json({ message: "No valid question versions found" });
       }
 
       const testRun = await storage.createUserTestRun({
