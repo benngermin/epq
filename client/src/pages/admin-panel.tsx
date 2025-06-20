@@ -1731,15 +1731,16 @@ export default function AdminPanel() {
                 placeholder="Enter the system prompt text..."
                 rows={6}
                 value={newPromptVersion.promptText}
-                onChange={(e) => setNewPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
+                onChange={(e) => setNewPromptVersion((prev: any) => ({ ...prev, promptText: e.target.value }))}
               />
               <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded border">
                 <strong>Available Variables:</strong>
                 <div className="mt-1 space-y-1">
-                  <div><code>{"{chosenAnswer}"}</code> - The student's selected answer (A, B, C, D)</div>
-                  <div><code>{"{correctAnswer}"}</code> - The correct answer for the question</div>
-                  <div><code>{"{questionText}"}</code> - The full question text</div>
-                  <div><code>{"{topicFocus}"}</code> - The learning objective/topic for the question</div>
+                  <div><code>{'{{QUESTION_TEXT}}'}</code> - The practice question text</div>
+                  <div><code>{'{{ANSWER_CHOICES}}'}</code> - All answer choices (A, B, C, D)</div>
+                  <div><code>{'{{SELECTED_ANSWER}}'}</code> - The student's chosen answer</div>
+                  <div><code>{'{{CORRECT_ANSWER}}'}</code> - The correct answer</div>
+                  <div><code>{'{{SOURCE_MATERIAL}}'}</code> - Course material for reference</div>
                 </div>
               </div>
             </div>
@@ -1747,7 +1748,7 @@ export default function AdminPanel() {
               <Label htmlFor="model-for-prompt">AI Model for this prompt</Label>
               <Select
                 value={newPromptVersion.modelName}
-                onValueChange={(value) => setNewPromptVersion(prev => ({ ...prev, modelName: value }))}
+                onValueChange={(value) => setNewPromptVersion((prev: any) => ({ ...prev, modelName: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select model (optional)" />

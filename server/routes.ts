@@ -670,16 +670,53 @@ export function registerRoutes(app: Express): Server {
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
-          `You are a course-assistant AI. The learner chose answer "{chosenAnswer}"; the correct answer is "{correctAnswer}". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.`;
+          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Next, review the provided source material that was used to create this assessment content:
+<source_material>
+{{SOURCE_MATERIAL}}
+</source_material>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
+
+##Criteria:
+- Only use the provided content
+- Use clear, jargon-free wording
+- State clearly why each choice is ✅ Correct or ❌ Incorrect.
+- In 2-4 sentences, explain the concept that makes the choice right or wrong.
+- Paraphrase relevant ideas and reference section titles from the Source Material
+- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+        
+        // Format answer choices as a list
+        const formattedChoices = questionVersion.answerChoices.join('\n');
         
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
-          .replace(/{chosenAnswer}/g, chosenAnswer)
-          .replace(/{correctAnswer}/g, questionVersion.correctAnswer)
-          .replace(/{questionText}/g, questionVersion.questionText)
-          .replace(/{topicFocus}/g, questionVersion.topicFocus);
+          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, chosenAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{SOURCE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
         
-        prompt = `${systemPrompt}\n\nQuestion: ${questionVersion.questionText}\nChoices: ${questionVersion.answerChoices.join(', ')}\nLearner's answer: ${chosenAnswer}\nCorrect answer: ${questionVersion.correctAnswer}\nTopic: ${questionVersion.topicFocus}`;
+        prompt = systemPrompt;
       }
 
       const response = await callOpenRouter(prompt, aiSettings);
