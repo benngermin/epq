@@ -10,6 +10,7 @@ import {
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
+import { eq, sql, desc, asc } from "drizzle-orm";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
@@ -926,6 +927,54 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error fetching course materials:", error);
       res.status(500).json({ message: "Failed to fetch course materials" });
+    }
+  });
+
+  // Admin route for updating course materials
+  app.put("/api/admin/course-materials/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { assignment, course, loid, content } = req.body;
+      
+      if (!assignment || !course || !loid || !content) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const updated = await db
+        .update(courseMaterials)
+        .set({ assignment, course, loid, content })
+        .where(eq(courseMaterials.id, parseInt(id)))
+        .returning();
+      
+      if (updated.length === 0) {
+        return res.status(404).json({ message: "Course material not found" });
+      }
+      
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error updating course material:", error);
+      res.status(500).json({ message: "Failed to update course material" });
+    }
+  });
+
+  // Admin route for deleting course materials
+  app.delete("/api/admin/course-materials/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await db
+        .delete(courseMaterials)
+        .where(eq(courseMaterials.id, parseInt(id)))
+        .returning();
+      
+      if (deleted.length === 0) {
+        return res.status(404).json({ message: "Course material not found" });
+      }
+      
+      res.json({ message: "Course material deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course material:", error);
+      res.status(500).json({ message: "Failed to delete course material" });
     }
   });
 

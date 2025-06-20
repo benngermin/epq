@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -386,11 +387,75 @@ export default function AdminPanel() {
                   {/* Question Sets Upload Card */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Question Sets Upload</CardTitle>
+                      <CardTitle className="flex items-center justify-between">
+                        Question Sets Upload
+                        <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Question Set
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create New Question Set</DialogTitle>
+                              <DialogDescription>
+                                Create a question set and assign it to a course
+                              </DialogDescription>
+                            </DialogHeader>
+                            <Form {...standaloneQuestionSetForm}>
+                              <form onSubmit={standaloneQuestionSetForm.handleSubmit(onCreateStandaloneQuestionSet)} className="space-y-4">
+                                <FormField
+                                  control={standaloneQuestionSetForm.control}
+                                  name="title"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Question Set Title</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="Enter question set title" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={standaloneQuestionSetForm.control}
+                                  name="courseId"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Course</FormLabel>
+                                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select a course" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {Array.isArray(courses) && courses.map((course: any) => (
+                                            <SelectItem key={course.id} value={course.id.toString()}>
+                                              {course.title}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <DialogFooter>
+                                  <Button type="submit" disabled={createQuestionSetMutation.isPending}>
+                                    {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
+                                  </Button>
+                                </DialogFooter>
+                              </form>
+                            </Form>
+                          </DialogContent>
+                        </Dialog>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Upload questions to existing question sets using JSON format.
+                        Create new question sets or upload questions to existing ones using JSON format.
                       </p>
                       
                       {questionSetsLoading ? (
@@ -403,7 +468,7 @@ export default function AdminPanel() {
                                 <div>
                                   <h4 className="font-medium">{questionSet.title}</h4>
                                   <p className="text-sm text-muted-foreground">
-                                    Course ID: {questionSet.courseId} • {questionSet.questionCount} questions
+                                    Course ID: {questionSet.courseId} • {questionSet.questionCount || 0} questions
                                   </p>
                                 </div>
                                 <Dialog>
@@ -465,7 +530,7 @@ export default function AdminPanel() {
                       ) : (
                         <div className="text-center py-4">
                           <p className="text-muted-foreground">No question sets found.</p>
-                          <p className="text-sm text-muted-foreground mt-1">Create question sets in the Content Management tab first.</p>
+                          <p className="text-sm text-muted-foreground mt-1">Create your first question set using the button above.</p>
                         </div>
                       )}
                     </CardContent>
@@ -553,54 +618,255 @@ export default function AdminPanel() {
   );
 }
 
+function EditMaterialDialog({ material, onClose }: { material: any; onClose: () => void }) {
+  const [editedMaterial, setEditedMaterial] = useState(material);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    setEditedMaterial(material);
+  }, [material]);
+
+  const updateMaterialMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PUT", `/api/admin/course-materials/${data.id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Course material updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/course-materials"] });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update course material",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSave = () => {
+    if (!editedMaterial.assignment || !editedMaterial.course || !editedMaterial.loid || !editedMaterial.content) {
+      toast({
+        title: "Validation Error",
+        description: "All fields are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateMaterialMutation.mutate(editedMaterial);
+  };
+
+  if (!material) return null;
+
+  return (
+    <Dialog open={!!material} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Course Material</DialogTitle>
+          <DialogDescription>
+            Update course material information
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Assignment</Label>
+              <Input 
+                value={editedMaterial?.assignment || ''} 
+                onChange={(e) => setEditedMaterial((prev: any) => ({ ...prev, assignment: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>Course</Label>
+              <Input 
+                value={editedMaterial?.course || ''} 
+                onChange={(e) => setEditedMaterial((prev: any) => ({ ...prev, course: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>LOID</Label>
+              <Input 
+                value={editedMaterial?.loid || ''} 
+                onChange={(e) => setEditedMaterial((prev: any) => ({ ...prev, loid: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Content</Label>
+            <Textarea 
+              value={editedMaterial?.content || ''} 
+              onChange={(e) => setEditedMaterial((prev: any) => ({ ...prev, content: e.target.value }))}
+              rows={15}
+              className="font-mono text-sm"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave}
+            disabled={updateMaterialMutation.isPending}
+          >
+            {updateMaterialMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CourseMaterialsSection() {
   const { data: materials, isLoading } = useQuery({
     queryKey: ["/api/admin/course-materials"],
   });
+  
+  const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  const [viewingMaterial, setViewingMaterial] = useState<any>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deleteMaterialMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/course-materials/${id}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Course material deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/course-materials"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete course material",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        {isLoading ? (
-          <div className="text-center py-4">Loading course materials...</div>
-        ) : materials && Array.isArray(materials) && materials.length > 0 ? (
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Total: {materials.length} course materials across {new Set(materials.map((m: any) => m.loid)).size} unique LOIDs
-            </div>
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {materials.slice(0, 10).map((material: any, index: number) => (
-                <div key={index} className="border rounded p-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{material.assignment}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Course: {material.course} • LOID: {material.loid}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {material.content.substring(0, 100)}...
-                      </p>
+    <>
+      <Card>
+        <CardContent className="p-6">
+          {isLoading ? (
+            <div className="text-center py-4">Loading course materials...</div>
+          ) : materials && Array.isArray(materials) && materials.length > 0 ? (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Total: {materials.length} course materials across {new Set(materials.map((m: any) => m.loid)).size} unique LOIDs
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {materials.map((material: any) => (
+                  <div key={material.id} className="border rounded p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{material.assignment}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Course: {material.course} • LOID: {material.loid}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {material.content.substring(0, 100)}...
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingMaterial(material)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingMaterial(material)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Course Material</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this course material? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteMaterialMutation.mutate(material.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {materials.length > 10 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  ...and {materials.length - 10} more materials
-                </p>
-              )}
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No course materials found.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Upload course materials in the Import & Upload tab to provide context for the AI chatbot.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* View Material Dialog */}
+      <Dialog open={!!viewingMaterial} onOpenChange={() => setViewingMaterial(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>View Course Material</DialogTitle>
+            <DialogDescription>
+              {viewingMaterial?.assignment} - LOID: {viewingMaterial?.loid}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Assignment</Label>
+                <Input value={viewingMaterial?.assignment || ''} readOnly />
+              </div>
+              <div>
+                <Label>Course</Label>
+                <Input value={viewingMaterial?.course || ''} readOnly />
+              </div>
+              <div>
+                <Label>LOID</Label>
+                <Input value={viewingMaterial?.loid || ''} readOnly />
+              </div>
+            </div>
+            <div>
+              <Label>Content</Label>
+              <Textarea 
+                value={viewingMaterial?.content || ''} 
+                readOnly 
+                rows={15}
+                className="font-mono text-sm"
+              />
             </div>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No course materials found.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Upload course materials in the Import & Upload tab to provide context for the AI chatbot.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Material Dialog */}
+      <EditMaterialDialog 
+        material={editingMaterial} 
+        onClose={() => setEditingMaterial(null)} 
+      />
+    </>
   );
 }
 
