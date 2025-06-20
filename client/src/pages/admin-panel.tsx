@@ -638,19 +638,7 @@ export default function AdminPanel() {
                   <p className="text-muted-foreground mt-2">Configure AI model parameters and behavior</p>
                 </div>
 
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>AI Configuration</CardTitle>
-                      <CardDescription>Configure the AI chatbot settings and prompts</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        AI settings and prompt management will be available here.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <AISettingsSection />
               </div>
             </TabsContent>
           </div>
