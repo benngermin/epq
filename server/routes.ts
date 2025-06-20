@@ -5,12 +5,12 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
-  questionImportSchema, insertUserAnswerSchema, type QuestionImport 
+  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, type QuestionImport 
 } from "@shared/schema";
 
 // OpenRouter integration
 async function callOpenRouter(prompt: string, settings: any): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY || settings?.apiKey;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   
   if (!apiKey) {
     return "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key.";
@@ -619,6 +619,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const aiSettings = await storage.getAiSettings();
+      const activePrompt = await storage.getActivePromptVersion();
       
       let prompt;
       if (userMessage) {
@@ -626,7 +627,7 @@ export function registerRoutes(app: Express): Server {
         prompt = `${userMessage}\n\nContext: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.`;
       } else {
         // Initial explanation
-        const systemPrompt = aiSettings?.systemPrompt || 
+        const systemPrompt = activePrompt?.promptText || 
           `You are a course-assistant AI. The learner chose answer "${chosenAnswer}"; the correct answer is "${questionVersion.correctAnswer}". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.`;
         
         prompt = `${systemPrompt}\n\nQuestion: ${questionVersion.questionText}\nChoices: ${questionVersion.answerChoices.join(', ')}\nLearner's answer: ${chosenAnswer}\nCorrect answer: ${questionVersion.correctAnswer}\nTopic: ${questionVersion.topicFocus}`;
@@ -729,13 +730,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/admin/ai-settings", requireAdmin, async (req, res) => {
     try {
       const settings = await storage.getAiSettings();
-      // Don't send the API key back to the client
-      if (settings) {
-        const { apiKey, ...safeSettings } = settings;
-        res.json({ ...safeSettings, hasApiKey: !!apiKey });
-      } else {
-        res.json(null);
-      }
+      res.json(settings);
     } catch (error) {
       console.error("Error fetching AI settings:", error);
       res.status(500).json({ message: "Failed to fetch AI settings" });
@@ -746,13 +741,60 @@ export function registerRoutes(app: Express): Server {
     try {
       const settingsData = insertAiSettingsSchema.partial().parse(req.body);
       const settings = await storage.updateAiSettings(settingsData);
-      
-      // Don't send the API key back to the client
-      const { apiKey, ...safeSettings } = settings;
-      res.json({ ...safeSettings, hasApiKey: !!apiKey });
+      res.json(settings);
     } catch (error) {
       console.error("Error updating AI settings:", error);
       res.status(400).json({ message: "Failed to update AI settings" });
+    }
+  });
+
+  // Prompt version routes
+  app.get("/api/admin/prompt-versions", requireAdmin, async (req, res) => {
+    try {
+      const versions = await storage.getAllPromptVersions();
+      res.json(versions);
+    } catch (error) {
+      console.error("Error fetching prompt versions:", error);
+      res.status(500).json({ message: "Failed to fetch prompt versions" });
+    }
+  });
+
+  app.post("/api/admin/prompt-versions", requireAdmin, async (req, res) => {
+    try {
+      const versionData = insertPromptVersionSchema.parse(req.body);
+      const version = await storage.createPromptVersion(versionData);
+      res.json(version);
+    } catch (error) {
+      console.error("Error creating prompt version:", error);
+      res.status(400).json({ message: "Failed to create prompt version" });
+    }
+  });
+
+  app.put("/api/admin/prompt-versions/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const versionData = insertPromptVersionSchema.partial().parse(req.body);
+      const version = await storage.updatePromptVersion(id, versionData);
+      
+      if (!version) {
+        return res.status(404).json({ message: "Prompt version not found" });
+      }
+      
+      res.json(version);
+    } catch (error) {
+      console.error("Error updating prompt version:", error);
+      res.status(400).json({ message: "Failed to update prompt version" });
+    }
+  });
+
+  app.put("/api/admin/prompt-versions/:id/activate", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.setActivePromptVersion(id);
+      res.json({ message: "Prompt version activated successfully" });
+    } catch (error) {
+      console.error("Error activating prompt version:", error);
+      res.status(400).json({ message: "Failed to activate prompt version" });
     }
   });
 

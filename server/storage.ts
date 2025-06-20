@@ -1,11 +1,12 @@
 import {
   users, courses, questionSets, practiceTests, questions, questionVersions, 
-  userTestRuns, userAnswers, aiSettings,
+  userTestRuns, userAnswers, aiSettings, promptVersions,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
-  type AiSettings, type InsertAiSettings, type QuestionImport
+  type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
+  type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
@@ -61,6 +62,14 @@ export interface IStorage {
   // AI settings methods
   getAiSettings(): Promise<AiSettings | undefined>;
   updateAiSettings(settings: Partial<InsertAiSettings>): Promise<AiSettings>;
+  
+  // Prompt version methods
+  getAllPromptVersions(): Promise<PromptVersion[]>;
+  getActivePromptVersion(): Promise<PromptVersion | undefined>;
+  getPromptVersion(id: number): Promise<PromptVersion | undefined>;
+  createPromptVersion(version: InsertPromptVersion): Promise<PromptVersion>;
+  updatePromptVersion(id: number, version: Partial<InsertPromptVersion>): Promise<PromptVersion | undefined>;
+  setActivePromptVersion(id: number): Promise<void>;
   
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
@@ -297,6 +306,38 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(aiSettings).values(settings).returning();
       return created;
     }
+  }
+
+  async getAllPromptVersions(): Promise<PromptVersion[]> {
+    const versions = await db.select().from(promptVersions).orderBy(desc(promptVersions.createdAt));
+    return versions;
+  }
+
+  async getActivePromptVersion(): Promise<PromptVersion | undefined> {
+    const [version] = await db.select().from(promptVersions).where(eq(promptVersions.isActive, true)).limit(1);
+    return version || undefined;
+  }
+
+  async getPromptVersion(id: number): Promise<PromptVersion | undefined> {
+    const [version] = await db.select().from(promptVersions).where(eq(promptVersions.id, id));
+    return version || undefined;
+  }
+
+  async createPromptVersion(version: InsertPromptVersion): Promise<PromptVersion> {
+    const [newVersion] = await db.insert(promptVersions).values(version).returning();
+    return newVersion;
+  }
+
+  async updatePromptVersion(id: number, version: Partial<InsertPromptVersion>): Promise<PromptVersion | undefined> {
+    const [updated] = await db.update(promptVersions).set(version).where(eq(promptVersions.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async setActivePromptVersion(id: number): Promise<void> {
+    // First deactivate all versions
+    await db.update(promptVersions).set({ isActive: false });
+    // Then activate the specified version
+    await db.update(promptVersions).set({ isActive: true }).where(eq(promptVersions.id, id));
   }
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
