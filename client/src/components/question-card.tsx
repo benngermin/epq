@@ -16,28 +16,22 @@ interface QuestionCardProps {
   onFlipChange?: (isFlipped: boolean) => void;
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
+  isFlipped?: boolean;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion }: QuestionCardProps) {
+export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion, isFlipped = false }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
-  const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
   const hasAnswer = !!question.userAnswer;
   const isCorrect = question.userAnswer?.isCorrect;
 
-  // Reset flip state when question changes
+  // Reset state when question changes
   useEffect(() => {
-    setIsFlipped(false);
     setSelectedAnswer("");
     setSubmittedAnswer("");
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
-
-  // Notify parent when flip state changes
-  useEffect(() => {
-    onFlipChange?.(isFlipped);
-  }, [isFlipped, onFlipChange]);
 
   const handleSubmit = () => {
     if (!selectedAnswer || hasAnswer) return;
@@ -48,11 +42,11 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
   };
 
   const handleReviewQuestion = () => {
-    setIsFlipped(false);
+    onFlipChange?.(false);
   };
 
   const handleShowChatbot = () => {
-    setIsFlipped(true);
+    onFlipChange?.(true);
   };
 
   return (

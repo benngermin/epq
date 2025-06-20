@@ -401,6 +401,7 @@ export default function QuestionSetPractice() {
                 onFlipChange={setIsCardFlipped}
                 onNextQuestion={handleNextQuestion}
                 hasNextQuestion={currentQuestionIndex < questions.length - 1}
+                isFlipped={isCardFlipped}
               />
             </div>
           </div>
