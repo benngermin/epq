@@ -49,16 +49,17 @@ export default function QuestionSetPractice() {
     enabled: !!questionSetId,
   });
 
-  const { data: course } = useQuery({
-    queryKey: ["/api/courses", questionSet?.courseId],
-    queryFn: () => fetch(`/api/courses/${questionSet.courseId}`, { 
+  const { data: courses } = useQuery({
+    queryKey: ["/api/courses"],
+    queryFn: () => fetch("/api/courses", { 
       credentials: "include" 
     }).then(res => {
       if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
       return res.json();
     }),
-    enabled: !!questionSet?.courseId,
   });
+
+  const course = courses?.find((c: any) => c.id === questionSet?.courseId);
 
   const { data: questions, isLoading: questionsLoading, error: questionsError } = useQuery({
     queryKey: ["/api/questions", questionSetId],
