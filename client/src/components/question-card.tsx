@@ -176,11 +176,11 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2 mx-0">
+              <div className="p-4 border-t bg-gray-50/50 dark:bg-gray-800/50 flex-shrink-0">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
-                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full py-3 text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
@@ -193,10 +193,10 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
       {/* Next Question Button - Always Fixed at Bottom */}
       {hasNextQuestion && hasAnswer && (
-        <div className="mt-4 w-full">
+        <div className="mt-6 w-full">
           <Button 
             onClick={onNextQuestion} 
-            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-medium"
           >
             Next Question
             <ChevronRight className="h-4 w-4 ml-2" />
@@ -210,6 +210,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           min-height: 750px;
           position: relative;
           z-index: 1;
+          margin-bottom: 1.5rem;
         }
         .card-flip-inner {
           position: relative;
@@ -232,6 +233,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           -webkit-backface-visibility: hidden;
           top: 0;
           left: 0;
+          border-radius: 0.5rem;
+          overflow: hidden;
         }
         .card-flip-back {
           transform: rotateY(180deg);
