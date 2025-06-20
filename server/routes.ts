@@ -5,7 +5,8 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
-  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport 
+  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
+  promptVersions 
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
@@ -810,11 +811,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
 
       // Deactivate current prompt and create new active one
-      await db.update(schema.promptVersions)
+      await db.update(promptVersions)
         .set({ isActive: false })
-        .where(eq(schema.promptVersions.isActive, true));
+        .where(eq(promptVersions.isActive, true));
 
-      const newPrompt = await db.insert(schema.promptVersions)
+      const newPrompt = await db.insert(promptVersions)
         .values({
           versionName: `Updated ${new Date().toISOString().split('T')[0]}`,
           promptText,
