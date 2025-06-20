@@ -159,7 +159,12 @@ export default function QuestionSetPractice() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
-                <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
+                <img 
+                  src={institutesLogo} 
+                  alt="The Institutes" 
+                  className="h-6 w-6 text-primary mr-3 cursor-pointer hover:opacity-80 transition-opacity" 
+                  onClick={() => setLocation("/")}
+                />
                 <div>
                   <span className="font-semibold text-lg text-foreground">{questionSet?.title}</span>
                 </div>
