@@ -305,28 +305,8 @@ export function registerRoutes(app: Express): Server {
           return res.json([]);
         }
         
-        // Get the latest version for each question
-        const questionsWithLatestVersions = await Promise.all(
-          questions.map(async (question) => {
-            try {
-              const versions = await storage.getQuestionVersionsByQuestion(question.id);
-              const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
-              return {
-                ...question,
-                latestVersion
-              };
-            } catch (versionError) {
-              console.error(`Error fetching versions for question ${question.id}:`, versionError);
-              return {
-                ...question,
-                latestVersion: null
-              };
-            }
-          })
-        );
-        
-        // Filter out questions without versions
-        const validQuestions = questionsWithLatestVersions.filter(q => q.latestVersion !== null);
+        // Get questions with their latest versions in a single optimized query
+        const validQuestions = await storage.getQuestionsWithLatestVersions(questionSetId);
         res.json(validQuestions);
         
       } catch (dbError) {

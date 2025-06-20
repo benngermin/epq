@@ -76,6 +76,9 @@ export interface IStorage {
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   
+  // Optimized query methods
+  getQuestionsWithLatestVersions(questionSetId: number): Promise<any[]>;
+  
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
