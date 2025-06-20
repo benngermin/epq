@@ -451,6 +451,54 @@ export class DatabaseStorage implements IStorage {
       };
     }
   }
+  
+  async getQuestionsWithLatestVersions(questionSetId: number): Promise<any[]> {
+    try {
+      const result = await db.select({
+        id: questions.id,
+        questionSetId: questions.questionSetId,
+        originalQuestionNumber: questions.originalQuestionNumber,
+        loid: questions.loid,
+        versionId: questionVersions.id,
+        versionNumber: questionVersions.versionNumber,
+        topicFocus: questionVersions.topicFocus,
+        questionText: questionVersions.questionText,
+        answerChoices: questionVersions.answerChoices,
+        correctAnswer: questionVersions.correctAnswer
+      })
+      .from(questions)
+      .leftJoin(questionVersions, eq(questions.id, questionVersions.questionId))
+      .where(eq(questions.questionSetId, questionSetId))
+      .orderBy(questions.id, desc(questionVersions.versionNumber));
+
+      // Group by question ID and take the latest version
+      const questionMap = new Map();
+      result.forEach(row => {
+        if (!questionMap.has(row.id) && row.versionId) {
+          questionMap.set(row.id, {
+            id: row.id,
+            questionSetId: row.questionSetId,
+            originalQuestionNumber: row.originalQuestionNumber,
+            loid: row.loid,
+            latestVersion: {
+              id: row.versionId,
+              questionId: row.id,
+              versionNumber: row.versionNumber,
+              topicFocus: row.topicFocus,
+              questionText: row.questionText,
+              answerChoices: row.answerChoices,
+              correctAnswer: row.correctAnswer
+            }
+          });
+        }
+      });
+      
+      return Array.from(questionMap.values());
+    } catch (error) {
+      console.error(`Database error in getQuestionsWithLatestVersions: ${error}`);
+      return [];
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
