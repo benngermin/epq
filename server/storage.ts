@@ -372,54 +372,47 @@ export class DatabaseStorage implements IStorage {
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
     console.log(`Starting import of ${questionsData.length} questions for question set ${questionSetId}`);
     
-    // Use batch processing to improve performance
-    const batchSize = 10;
     let processedCount = 0;
+    const errors = [];
     
-    for (let i = 0; i < questionsData.length; i += batchSize) {
-      const batch = questionsData.slice(i, i + batchSize);
+    // Process questions sequentially to avoid database timeout issues
+    for (let i = 0; i < questionsData.length; i++) {
+      const questionData = questionsData[i];
       
       try {
-        // Process batch in parallel
-        await Promise.all(batch.map(async (questionData) => {
-          try {
-            // Check if question already exists
-            let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
-            
-            if (!question) {
-              question = await this.createQuestion({
-                questionSetId,
-                originalQuestionNumber: questionData.question_number,
-                loid: questionData.loid,
-              });
-            }
+        // Check if question already exists
+        let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
+        
+        if (!question) {
+          question = await this.createQuestion({
+            questionSetId,
+            originalQuestionNumber: questionData.question_number,
+            loid: questionData.loid,
+          });
+        }
 
-            // Create question versions
-            for (const versionData of questionData.versions) {
-              await this.createQuestionVersion({
-                questionId: question.id,
-                versionNumber: versionData.version_number,
-                topicFocus: versionData.topic_focus,
-                questionText: versionData.question_text,
-                answerChoices: [...versionData.answer_choices],
-                correctAnswer: versionData.correct_answer,
-              });
-            }
-            
-            processedCount++;
-          } catch (error) {
-            console.error(`Error importing question ${questionData.question_number}:`, error);
-            // Continue processing other questions
-          }
-        }));
+        // Create question versions
+        for (const versionData of questionData.versions) {
+          await this.createQuestionVersion({
+            questionId: question.id,
+            versionNumber: versionData.version_number,
+            topicFocus: versionData.topic_focus,
+            questionText: versionData.question_text,
+            answerChoices: [...versionData.answer_choices],
+            correctAnswer: versionData.correct_answer,
+          });
+        }
         
-        console.log(`Progress: ${Math.min(i + batchSize, questionsData.length)}/${questionsData.length} questions processed`);
+        processedCount++;
         
-        // Small delay between batches to prevent overwhelming the database
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Log progress every 10 questions
+        if (i % 10 === 0 || i === questionsData.length - 1) {
+          console.log(`Progress: ${i + 1}/${questionsData.length} questions processed`);
+        }
         
-      } catch (batchError) {
-        console.error(`Error processing batch ${i}-${i + batchSize}:`, batchError);
+      } catch (error) {
+        console.error(`Error importing question ${questionData.question_number}:`, error);
+        errors.push({ questionNumber: questionData.question_number, error: error.message });
       }
     }
     
@@ -429,6 +422,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(questionSets.id, questionSetId));
     
     console.log(`Import completed: ${processedCount}/${questionsData.length} questions successfully imported`);
+    if (errors.length > 0) {
+      console.log(`Errors encountered for ${errors.length} questions:`, errors);
+    }
   }
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {

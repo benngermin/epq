@@ -1,0 +1,40 @@
+[
+  {
+    "question_number": 1,
+    "type": "multiple choice",
+    "loid": "11597",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "How insurance facilitates access to auto ownership by transferring risk",
+        "question_text": "Luke recently purchased his first car and was surprised by the cost of auto insurance. His agent explained the many benefits of carrying auto insurance. All of the following are benefits of auto insurance, EXCEPT:",
+        "answer_choices": [
+          "A. It enables Luke to drive legally in most states by meeting mandatory insurance requirements.",
+          "B. It helps Luke return to his financial position before a loss if his vehicle is damaged in a covered event.",
+          "C. It provides protection from potentially high legal expenses if Luke causes an accident.",
+          "D. It allows Luke to profit if his car is involved in a covered loss."
+        ],
+        "correct_answer": "D"
+      }
+    ]
+  },
+  {
+    "question_number": 2,
+    "type": "multiple choice",
+    "loid": "10439",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Using risk treatment to avoid unnecessary expansion risk",
+        "question_text": "North American Furnishings considered launching a new product line that would require additional warehouse space and staffing. After evaluating potential supply chain disruptions and customer demand, the company decided not to proceed with the expansion. Which one of the following risk treatments did North American Furnishings decide to apply?",
+        "answer_choices": [
+          "A. Retain the risk",
+          "B. Avoid the risk",
+          "C. Transfer the risk",
+          "D. Modify the impact of the risk"
+        ],
+        "correct_answer": "B"
+      }
+    ]
+  }
+]

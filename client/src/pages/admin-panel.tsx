@@ -746,15 +746,32 @@ export default function AdminPanel() {
                       
                       {!(selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData) && (
                         <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-2">Or paste your JSON data directly:</p>
+                          <p className="text-sm text-gray-500 mb-2">Paste your JSON data here:</p>
                           <Textarea
-                            placeholder="Paste your questions JSON here..."
+                            placeholder={`Paste your questions JSON here...
+Example format:
+[
+  {
+    "question_number": 1,
+    "type": "multiple choice", 
+    "loid": "11597",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Topic description",
+        "question_text": "Question text here",
+        "answer_choices": ["A. Choice 1", "B. Choice 2", "C. Choice 3", "D. Choice 4"],
+        "correct_answer": "A"
+      }
+    ]
+  }
+]`}
                             value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
                             onChange={(e) => {
                               setSelectedQuestionSetForImport(questionSet.id);
-                              setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
+                              setBulkImportData((prev: any) => ({ ...prev, jsonData: e.target.value }));
                             }}
-                            rows={4}
+                            rows={8}
                             className="font-mono text-sm"
                           />
                         </div>
