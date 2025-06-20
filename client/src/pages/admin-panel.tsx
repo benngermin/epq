@@ -15,8 +15,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 const courseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
@@ -29,6 +33,8 @@ const questionSetSchema = z.object({
 });
 
 export default function AdminPanel() {
+  const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("content");
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [editingQuestionSet, setEditingQuestionSet] = useState<any>(null);
@@ -112,70 +118,87 @@ export default function AdminPanel() {
 
   const importCourseMaterialsMutation = useMutation({
     mutationFn: async (csvContent: string) => {
-      // Proper CSV parsing for multi-line content with quotes
+      // Use a proper CSV parsing approach that handles quoted multi-line content
       const materials = [];
-      let currentRecord = [];
-      let currentField = '';
-      let inQuotes = false;
-      let fieldIndex = 0;
+      const lines = csvContent.split('\n');
+      let i = 1; // Skip header
       
-      // Skip the header line - find first newline
-      const headerEnd = csvContent.indexOf('\n');
-      const contentWithoutHeader = headerEnd >= 0 ? csvContent.substring(headerEnd + 1) : csvContent;
-      
-      for (let i = 0; i < contentWithoutHeader.length; i++) {
-        const char = contentWithoutHeader[i];
+      while (i < lines.length) {
+        const line = lines[i].trim();
+        if (!line) {
+          i++;
+          continue;
+        }
         
-        if (char === '"') {
-          if (inQuotes && contentWithoutHeader[i + 1] === '"') {
-            // Handle escaped quotes ""
-            currentField += '"';
-            i++; // Skip next quote
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === ',' && !inQuotes) {
-          // Field separator when not in quotes
-          currentRecord[fieldIndex] = currentField;
-          currentField = '';
-          fieldIndex++;
-        } else if ((char === '\n' || char === '\r') && !inQuotes && fieldIndex >= 3) {
-          // End of record - only when we have at least 4 fields and not in quotes
-          currentRecord[fieldIndex] = currentField;
+        // Check if this line starts a new record (begins with quote)
+        if (line.startsWith('"')) {
+          let recordText = line;
+          let fieldCount = 0;
+          let inQuotes = false;
           
-          if (currentRecord.length >= 4 && currentRecord[0] && currentRecord[2]) {
+          // Count fields and check if record is complete on this line
+          for (let j = 0; j < line.length; j++) {
+            if (line[j] === '"') {
+              inQuotes = !inQuotes;
+            } else if (line[j] === ',' && !inQuotes) {
+              fieldCount++;
+            }
+          }
+          
+          // If we don't have 3 commas (4 fields) or still in quotes, collect more lines
+          while ((fieldCount < 3 || inQuotes) && i + 1 < lines.length) {
+            i++;
+            recordText += '\n' + lines[i];
+            
+            // Recount fields in the combined record
+            fieldCount = 0;
+            inQuotes = false;
+            for (let j = 0; j < recordText.length; j++) {
+              if (recordText[j] === '"') {
+                inQuotes = !inQuotes;
+              } else if (recordText[j] === ',' && !inQuotes) {
+                fieldCount++;
+              }
+            }
+          }
+          
+          // Parse the complete record
+          const fields = [];
+          let currentField = '';
+          inQuotes = false;
+          
+          for (let j = 0; j < recordText.length; j++) {
+            const char = recordText[j];
+            if (char === '"') {
+              if (inQuotes && recordText[j + 1] === '"') {
+                currentField += '"';
+                j++; // Skip escaped quote
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === ',' && !inQuotes) {
+              fields.push(currentField);
+              currentField = '';
+            } else {
+              currentField += char;
+            }
+          }
+          fields.push(currentField); // Add last field
+          
+          // Create material record if we have all required fields
+          if (fields.length >= 4 && fields[0] && fields[2]) {
             materials.push({
-              assignment: currentRecord[0],
-              course: currentRecord[1] || '',
-              loid: currentRecord[2],
-              content: currentRecord[3] || ''
+              assignment: fields[0],
+              course: fields[1] || '',
+              loid: fields[2],
+              content: fields[3] || ''
             });
           }
-          
-          // Reset for next record
-          currentRecord = [];
-          currentField = '';
-          fieldIndex = 0;
-        } else if (char !== '\r') {
-          // Add character to current field (skip carriage returns)
-          currentField += char;
         }
+        i++;
       }
       
-      // Handle last record if file doesn't end with newline
-      if (fieldIndex >= 3 && (currentRecord.length > 0 || currentField)) {
-        currentRecord[fieldIndex] = currentField;
-        if (currentRecord.length >= 4 && currentRecord[0] && currentRecord[2]) {
-          materials.push({
-            assignment: currentRecord[0],
-            course: currentRecord[1] || '',
-            loid: currentRecord[2],
-            content: currentRecord[3] || ''
-          });
-        }
-      }
-      
-      console.log(`Parsed ${materials.length} materials from CSV`);
+      console.log(`Parsed ${materials.length} complete materials from CSV`);
       const res = await apiRequest("POST", "/api/admin/import-course-materials", { materials });
       return await res.json();
     },
@@ -263,6 +286,46 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <img src={institutesLogo} alt="The Institutes" className="h-8" />
+              <div className="border-l h-6"></div>
+              <h1 className="text-xl font-semibold">CPCU 500 Learning Platform</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <div className="bg-blue-100 p-2 rounded-full">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium">{user?.name}</span>
+                    {user?.isAdmin && <Shield className="h-4 w-4 text-blue-600" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    className="text-red-600"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
