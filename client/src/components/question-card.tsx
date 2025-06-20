@@ -123,16 +123,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     </div>
                   </RadioGroup>
 
-                  {hasAnswer && isCorrect && (
-                    <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-3 sm:space-y-4">
-                      <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-success/10 border border-success/20 rounded-lg">
-                        <div className="flex items-center">
-                          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-success mr-2 sm:mr-3" />
-                          <span className="font-medium text-success text-sm sm:text-base md:text-base lg:text-lg">Correct!</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  
 
                   {hasAnswer && !isCorrect && (
                     <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-2 sm:space-y-3">
@@ -150,7 +141,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                 <div className="mt-4 flex-shrink-0 border-t pt-4">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
-                      <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                         <div className="flex items-center">
                           <CheckCircle className="h-4 w-4 text-success mr-2" />
                           <span className="font-medium text-success text-sm">Correct!</span>
@@ -167,7 +158,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
                   {hasAnswer && !isCorrect && (
                     <div className="space-y-3">
-                      <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <div className="flex items-center">
                           <XCircle className="h-4 w-4 text-error mr-2" />
                           <span className="font-medium text-error text-sm">Incorrect</span>
