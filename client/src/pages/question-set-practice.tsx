@@ -38,6 +38,24 @@ export default function QuestionSetPractice() {
   const questionSetId = parseInt(params?.id || "0");
   console.log("Parsed Question Set ID:", questionSetId);
 
+  if (isNaN(questionSetId) || questionSetId <= 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Invalid Question Set</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>The question set ID is invalid. Please check the URL and try again.</p>
+            <Button onClick={() => setLocation("/dashboard")} className="mt-4">
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const { data: questionSet, isLoading: questionSetLoading } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
     queryFn: () => fetch(`/api/question-sets/${questionSetId}`, { 

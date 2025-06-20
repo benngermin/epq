@@ -143,6 +143,11 @@ export function registerRoutes(app: Express): Server {
   app.put("/api/courses/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
       const courseData = insertCourseSchema.partial().parse(req.body);
       const course = await storage.updateCourse(id, courseData);
       
@@ -210,6 +215,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/admin/question-sets/:courseId", requireAdmin, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
       const questionSets = await storage.getQuestionSetsByCourse(courseId);
       
       // Get question count for each question set
@@ -278,6 +288,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
       const questionSet = await storage.getQuestionSet(id);
       
       if (!questionSet) {
@@ -295,29 +310,16 @@ export function registerRoutes(app: Express): Server {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
       
-      // Check if this is a database connectivity issue and provide fallback
-      try {
-        const questions = await storage.getQuestionsByQuestionSet(questionSetId);
-        
-        if (questions.length === 0) {
-          // Database connection might be failing, provide fallback
-          console.log("No questions found or database connection issue, providing fallback");
-          return res.json([]);
-        }
-        
-        // Get questions with their latest versions in a single optimized query
-        const validQuestions = await storage.getQuestionsWithLatestVersions(questionSetId);
-        res.json(validQuestions);
-        
-      } catch (dbError) {
-        console.error("Database connection error:", dbError);
-        // Return empty array for now when database is down
-        res.json([]);
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
       }
+      
+      const validQuestions = await storage.getQuestionsWithLatestVersions(questionSetId);
+      res.json(validQuestions);
       
     } catch (error) {
       console.error("Error fetching questions:", error);
-      res.json([]); // Return empty array instead of 500 error
+      res.status(500).json({ message: "Failed to fetch questions" });
     }
   });
 
@@ -325,6 +327,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const questionSetId = parseInt(req.params.id);
       const { questionVersionId, answer } = req.body;
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
       
       // Validate input
       if (!questionVersionId || !answer) {
@@ -463,6 +469,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/test-runs/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid test run ID" });
+      }
+      
       const testRun = await storage.getUserTestRun(id);
       
       if (!testRun) {
@@ -492,6 +503,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const testRunId = parseInt(req.params.id);
       const questionIndex = parseInt(req.params.index);
+      
+      if (isNaN(testRunId) || isNaN(questionIndex)) {
+        return res.status(400).json({ message: "Invalid test run ID or question index" });
+      }
       
       const testRun = await storage.getUserTestRun(testRunId);
       
@@ -560,6 +575,11 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/test-runs/:id/answers", requireAuth, async (req, res) => {
     try {
       const testRunId = parseInt(req.params.id);
+      
+      if (isNaN(testRunId)) {
+        return res.status(400).json({ message: "Invalid test run ID" });
+      }
+      
       const answerData = insertUserAnswerSchema.parse({
         ...req.body,
         userTestRunId: testRunId,
