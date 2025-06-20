@@ -765,6 +765,71 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // AI Settings admin routes
+  app.get("/api/admin/ai-settings", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getAiSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching AI settings:", error);
+      res.status(500).json({ message: "Failed to fetch AI settings" });
+    }
+  });
+
+  app.put("/api/admin/ai-settings", requireAdmin, async (req, res) => {
+    try {
+      const { modelName, temperature, maxTokens } = req.body;
+      const settings = await storage.updateAiSettings({
+        modelName,
+        temperature,
+        maxTokens
+      });
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating AI settings:", error);
+      res.status(500).json({ message: "Failed to update AI settings" });
+    }
+  });
+
+  app.get("/api/admin/active-prompt", requireAdmin, async (req, res) => {
+    try {
+      const prompt = await storage.getActivePromptVersion();
+      res.json(prompt);
+    } catch (error) {
+      console.error("Error fetching active prompt:", error);
+      res.status(500).json({ message: "Failed to fetch active prompt" });
+    }
+  });
+
+  app.put("/api/admin/active-prompt", requireAdmin, async (req, res) => {
+    try {
+      const { promptText } = req.body;
+      
+      if (!promptText) {
+        return res.status(400).json({ message: "Prompt text is required" });
+      }
+
+      // Deactivate current prompt and create new active one
+      await db.update(promptVersions)
+        .set({ isActive: false })
+        .where(eq(promptVersions.isActive, true));
+
+      const newPrompt = await db.insert(promptVersions)
+        .values({
+          versionName: `Updated ${new Date().toISOString().split('T')[0]}`,
+          promptText,
+          modelName: 'anthropic/claude-sonnet-4',
+          isActive: true
+        })
+        .returning();
+
+      res.json(newPrompt[0]);
+    } catch (error) {
+      console.error("Error updating active prompt:", error);
+      res.status(500).json({ message: "Failed to update active prompt" });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/courses", requireAdmin, async (req, res) => {
     try {
