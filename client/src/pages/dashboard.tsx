@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
+import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
+import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
-import TopNavigation from "@/components/TopNavigation";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -73,9 +75,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 text-primary animate-pulse mb-4 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-lg font-bold">📚</span>
-          </div>
+          <GraduationCap className="mx-auto h-12 w-12 text-primary animate-pulse mb-4" />
           <p className="text-muted-foreground">Loading your courses...</p>
         </div>
       </div>
@@ -84,7 +84,56 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <TopNavigation />
+      {/* Navigation Header */}
+      <nav className="bg-card shadow-sm border-b border-border/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center min-w-0 flex-1">
+              <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 flex-shrink-0" />
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Practice Questions</span>
+            </div>
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 hover:bg-muted">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="hidden sm:block font-medium">{user?.name}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => setLocation("/")}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  {(user?.isAdmin || user?.email === "demo@example.com") && (
+                    <DropdownMenuItem 
+                      onClick={() => setLocation("/admin")}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span>Admin</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    className="flex items-center space-x-2 cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Courses</h1>
@@ -93,9 +142,7 @@ export default function Dashboard() {
         {!courses || !Array.isArray(courses) || courses.length === 0 ? (
           <Card className="max-w-md mx-auto bg-card border shadow-sm">
             <CardContent className="pt-6 text-center">
-              <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-lg font-bold">📚</span>
-              </div>
+              <BookOpen className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
               <h3 className="text-base sm:text-lg font-semibold mb-2 text-foreground">No Courses Available</h3>
               <p className="text-muted-foreground text-sm sm:text-base">
                 No courses have been set up yet. Please contact your administrator.
@@ -108,9 +155,11 @@ export default function Dashboard() {
               <Card key={course.id} className="bg-card border shadow-sm hover:shadow-md transition-all duration-200">
                 <CardHeader className="pb-4">
                   <div className="flex items-start sm:items-center mb-3 sm:mb-4 gap-3">
-                    <div className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0 bg-blue-600 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">C</span>
-                    </div>
+                    {course.title.toLowerCase().includes("property") ? (
+                      <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
+                    ) : (
+                      <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
+                    )}
                     <div className="min-w-0">
                       <CardTitle className="text-base sm:text-lg leading-tight">{course.title}</CardTitle>
                       <CardDescription className="text-xs sm:text-sm mt-1">{course.description}</CardDescription>

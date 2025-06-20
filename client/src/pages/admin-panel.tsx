@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Upload, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import TopNavigation from "@/components/TopNavigation";
 
 const courseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
