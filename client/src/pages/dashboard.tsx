@@ -168,6 +168,13 @@ export default function Dashboard() {
                 </CardHeader>
                 
                 <CardContent className="space-y-4 pt-0">
+                  {/* Important Note */}
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                      <strong>IMPORTANT NOTE:</strong> Each question set represents various question types you may encounter on the exam. While the format of the questions will be consistent, the topics they cover may vary. It is essential for you to use these practice questions to become familiar with the exam structure and question formats. However, you should not solely rely on these questions to prepare for all necessary knowledge.
+                    </p>
+                  </div>
+
                   {/* Progress Indicator */}
                   <div>
                     <div className="flex justify-between text-xs sm:text-sm text-muted-foreground mb-2">
