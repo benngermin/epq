@@ -9,7 +9,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -137,7 +137,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
-    return await db.select().from(questionSets).where(eq(questionSets.courseId, courseId));
+    const validQuestionSets = await db
+      .select({
+        id: questionSets.id,
+        courseId: questionSets.courseId,
+        title: questionSets.title,
+        description: questionSets.description,
+        questionCount: questionSets.questionCount,
+      })
+      .from(questionSets)
+      .innerJoin(questions, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(questionVersions, eq(questions.id, questionVersions.questionId))
+      .where(
+        and(
+          eq(questionSets.courseId, courseId),
+          not(eq(questionVersions.questionText, 'Question content not yet available'))
+        )
+      )
+      .groupBy(questionSets.id, questionSets.courseId, questionSets.title, questionSets.description, questionSets.questionCount);
+    
+    return validQuestionSets;
   }
 
   async getQuestionSet(id: number): Promise<QuestionSet | undefined> {
