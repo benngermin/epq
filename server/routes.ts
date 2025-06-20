@@ -320,6 +320,11 @@ export function registerRoutes(app: Express): Server {
       const questionSetId = parseInt(req.params.id);
       const { questionVersionId, answer } = req.body;
       
+      // Validate input
+      if (!questionVersionId || !answer) {
+        return res.status(400).json({ message: "Missing questionVersionId or answer" });
+      }
+      
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
         return res.status(404).json({ message: "Question version not found" });
@@ -327,10 +332,13 @@ export function registerRoutes(app: Express): Server {
       
       const isCorrect = answer === questionVersion.correctAnswer;
       
+      // For now, just return the result without creating a test run
+      // In a full implementation, you'd want to create a test run and save the answer
       res.json({
         isCorrect,
         correctAnswer: questionVersion.correctAnswer,
-        chosenAnswer: answer
+        chosenAnswer: answer,
+        explanation: isCorrect ? "Correct!" : `The correct answer is ${questionVersion.correctAnswer}`
       });
     } catch (error) {
       console.error("Error submitting answer:", error);
@@ -386,7 +394,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const testRun = await storage.createUserTestRun({
-        userId: req.user.id,
+        userId: req.user!.id,
         practiceTestId: testId,
         questionOrder,
       });
@@ -434,7 +442,7 @@ export function registerRoutes(app: Express): Server {
 
       // Create a new test run (this effectively restarts the test)
       const testRun = await storage.createUserTestRun({
-        userId: req.user.id,
+        userId: req.user!.id,
         practiceTestId: testId,
         questionOrder,
       });

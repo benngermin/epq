@@ -74,9 +74,16 @@ export default function QuestionSetPractice() {
     onSuccess: (data) => {
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
+      // If the answer is incorrect, flip the card to show chat
+      if (!data.isCorrect) {
+        setTimeout(() => {
+          setIsCardFlipped(true);
+        }, 1000);
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to submit answer:", error.message);
+      // Show error state instead of breaking
     },
   });
 
@@ -102,6 +109,7 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => prev + 1);
       setShowChat(false);
       setSelectedAnswer("");
+      setIsCardFlipped(false);
     }
   };
 
@@ -110,6 +118,7 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => prev - 1);
       setShowChat(false);
       setSelectedAnswer("");
+      setIsCardFlipped(false);
     }
   };
 
@@ -130,6 +139,25 @@ export default function QuestionSetPractice() {
   console.log("Questions Data:", questions);
   console.log("Questions Error:", questionsError);
   console.log("Questions Loading:", questionsLoading);
+
+  if (questionsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Error Loading Questions</h3>
+            <p className="text-muted-foreground mb-4">
+              {questionsError.message || "Failed to load questions. Please try again."}
+            </p>
+            <Button onClick={() => setLocation("/")}>
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!questionSet || !questions || questions.length === 0) {
     console.log("Showing no questions available screen");
