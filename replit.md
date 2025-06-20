@@ -115,11 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
-- June 20, 2025 7:46 PM: UI improvements and content population
+- June 20, 2025 7:48 PM: Enhanced navigation and UI improvements
   - Removed redundant div component from question card for cleaner interface
   - Added clickable logo navigation to return to dashboard from practice sessions
+  - Made question set title clickable for dashboard navigation
   - Populated question sets with authentic CPCU insurance practice questions
-  - Enhanced user navigation flow with consistent dashboard access
+  - Enhanced user navigation flow with multiple intuitive dashboard access points
 - June 20, 2025 6:25 PM: Fixed critical database connection timeout issues
   - Implemented circuit breaker pattern to handle Neon database timeouts
   - Added retry logic with exponential backoff for database operations

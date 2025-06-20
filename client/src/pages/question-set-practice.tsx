@@ -166,7 +166,12 @@ export default function QuestionSetPractice() {
                   onClick={() => setLocation("/")}
                 />
                 <div>
-                  <span className="font-semibold text-lg text-foreground">{questionSet?.title}</span>
+                  <span 
+                    className="font-semibold text-lg text-foreground cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => setLocation("/")}
+                  >
+                    {questionSet?.title}
+                  </span>
                 </div>
               </div>
             </div>
