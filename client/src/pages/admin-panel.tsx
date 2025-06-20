@@ -274,7 +274,7 @@ export default function AdminPanel() {
 
   const importCourseMaterialsMutation = useMutation({
     mutationFn: async (csvContent: string) => {
-      // Parse CSV client-side and send as JSON
+      // Parse CSV client-side with better handling
       const lines = csvContent.split('\n');
       const materials = [];
       
@@ -282,20 +282,41 @@ export default function AdminPanel() {
         const line = lines[i].trim();
         if (!line) continue;
         
-        const regex = /"([^"]*)","([^"]*)","([^"]*)","(.*)"/;
-        const match = line.match(regex);
+        // Handle CSV parsing more robustly
+        const values = [];
+        let currentValue = '';
+        let inQuotes = false;
         
-        if (match) {
-          const [, assignment, course, loid, content] = match;
-          materials.push({ assignment, course, loid, content });
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(currentValue);
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+        values.push(currentValue);
+        
+        if (values.length >= 4) {
+          const [assignment, course, loid, content] = values;
+          materials.push({ 
+            assignment: assignment.replace(/"/g, ''), 
+            course: course.replace(/"/g, ''), 
+            loid: loid.replace(/"/g, ''), 
+            content: content.replace(/"/g, '') 
+          });
         }
       }
       
+      console.log(`Parsed ${materials.length} materials from CSV`);
       const res = await apiRequest("POST", "/api/admin/import-course-materials", { materials });
       return await res.json();
     },
-    onSuccess: () => {
-      toast({ title: "Course materials imported successfully" });
+    onSuccess: (data) => {
+      toast({ title: `Course materials imported successfully: ${data.message || 'Import completed'}` });
       setCourseMaterialsDialogOpen(false);
     },
     onError: (error: Error) => {
@@ -1089,21 +1110,15 @@ export default function AdminPanel() {
             </div>
           </TabsContent>
 
-          {/* Question Sets Tab */}
-          <TabsContent value="question-sets">
+          {/* Import & Upload Tab */}
+          <TabsContent value="uploads">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Question Set Management</h1>
-                  <p className="text-muted-foreground mt-2">Manage all question sets independently from courses</p>
+                  <h1 className="text-2xl font-bold text-foreground">Import & Upload</h1>
+                  <p className="text-muted-foreground mt-2">Upload course materials and question sets</p>
                 </div>
-                <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Question Set
-                    </Button>
-                  </DialogTrigger>
+
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Create New Question Set</DialogTitle>
@@ -1572,30 +1587,7 @@ export default function AdminPanel() {
 
 
 
-              {/* Course Materials Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Course Materials
-                    <Button 
-                      onClick={() => setCourseMaterialsDialogOpen(true)}
-                      className="text-sm"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Import CSV
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Course materials provide context for the AI chatbot when students get questions wrong. 
-                    Each material is linked to questions via LOID (Learning Objective ID).
-                  </p>
-                  <div className="text-sm">
-                    <p>Upload a CSV file with columns: assignment, course, loid, value</p>
-                  </div>
-                </CardContent>
-              </Card>
+
 
               {/* Prompt Versions Card */}
               <Card>

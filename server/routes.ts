@@ -904,11 +904,27 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ message: "Materials must be an array" });
       }
 
+      console.log(`Importing ${materials.length} course materials...`);
       await storage.importCourseMaterials(materials);
-      res.json({ message: "Course materials imported successfully" });
+      
+      res.json({ 
+        message: `Successfully imported ${materials.length} course materials`,
+        count: materials.length 
+      });
     } catch (error) {
       console.error("Error importing course materials:", error);
       res.status(500).json({ message: "Failed to import course materials" });
+    }
+  });
+
+  // Admin route for viewing course materials
+  app.get("/api/admin/course-materials", requireAdmin, async (req, res) => {
+    try {
+      const materials = await db.select().from(courseMaterials).limit(100);
+      res.json(materials);
+    } catch (error) {
+      console.error("Error fetching course materials:", error);
+      res.status(500).json({ message: "Failed to fetch course materials" });
     }
   });
 
