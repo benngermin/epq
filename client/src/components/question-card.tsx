@@ -126,6 +126,14 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <span className="font-medium text-success text-sm">Correct!</span>
                         </div>
                       </div>
+                      <Button
+                        onClick={handleShowChatbot}
+                        variant="outline"
+                        className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Ask AI Assistant
+                      </Button>
                       {hasNextQuestion && (
                         <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
                           Next Question
@@ -149,7 +157,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Get AI Help
+                        Ask AI Assistant
                       </Button>
                       {hasNextQuestion && (
                         <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
