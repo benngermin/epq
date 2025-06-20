@@ -74,6 +74,10 @@ export interface IStorage {
   
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
+  importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void>;
+  
+  // Course material methods
+  getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined>;
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;

@@ -85,6 +85,14 @@ export const promptVersions = pgTable("prompt_versions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const courseMaterials = pgTable("course_materials", {
+  id: serial("id").primaryKey(),
+  assignment: text("assignment").notNull(),
+  course: text("course").notNull(),
+  loid: text("loid").notNull(),
+  content: text("content").notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   testRuns: many(userTestRuns),
@@ -173,6 +181,7 @@ export const insertUserAnswerSchema = createInsertSchema(userAnswers).omit({
 });
 export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 export const insertPromptVersionSchema = createInsertSchema(promptVersions);
+export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -195,6 +204,8 @@ export type AiSettings = typeof aiSettings.$inferSelect;
 export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
 export type PromptVersion = typeof promptVersions.$inferSelect;
 export type InsertPromptVersion = z.infer<typeof insertPromptVersionSchema>;
+export type CourseMaterial = typeof courseMaterials.$inferSelect;
+export type InsertCourseMaterial = z.infer<typeof insertCourseMaterialSchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({

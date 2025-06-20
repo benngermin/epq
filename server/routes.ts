@@ -708,13 +708,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Format answer choices as a list
         const formattedChoices = questionVersion.answerChoices.join('\n');
         
+        // Get course material by LOID if available
+        const question = await storage.getQuestion(questionVersion.questionId);
+        let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
+        
+        if (question?.loid) {
+          const courseMaterial = await storage.getCourseMaterialByLoid(question.loid);
+          if (courseMaterial) {
+            sourceMaterial = courseMaterial.content;
+          }
+        }
+
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, chosenAnswer)
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-          .replace(/\{\{SOURCE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+          .replace(/\{\{SOURCE_MATERIAL\}\}/g, sourceMaterial);
         
         prompt = systemPrompt;
       }
