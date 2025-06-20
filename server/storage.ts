@@ -412,7 +412,7 @@ export class DatabaseStorage implements IStorage {
         
       } catch (error) {
         console.error(`Error importing question ${questionData.question_number}:`, error);
-        errors.push({ questionNumber: questionData.question_number, error: error.message });
+        errors.push({ questionNumber: questionData.question_number, error: error instanceof Error ? error.message : String(error) });
       }
     }
     
