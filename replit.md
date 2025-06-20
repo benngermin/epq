@@ -115,10 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
-- June 20, 2025 7:48 PM: Enhanced navigation and UI improvements
+- June 20, 2025 7:50 PM: Enhanced navigation and title display improvements
   - Removed redundant div component from question card for cleaner interface
   - Added clickable logo navigation to return to dashboard from practice sessions
   - Made question set title clickable for dashboard navigation
+  - Updated title display to show "Course Name: Question Set X" format (e.g., "CPCU 500: Question Set 1")
+  - Added course data fetching to support enhanced title formatting
   - Populated question sets with authentic CPCU insurance practice questions
   - Enhanced user navigation flow with multiple intuitive dashboard access points
 - June 20, 2025 6:25 PM: Fixed critical database connection timeout issues

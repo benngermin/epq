@@ -49,6 +49,17 @@ export default function QuestionSetPractice() {
     enabled: !!questionSetId,
   });
 
+  const { data: course } = useQuery({
+    queryKey: ["/api/courses", questionSet?.courseId],
+    queryFn: () => fetch(`/api/courses/${questionSet.courseId}`, { 
+      credentials: "include" 
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return res.json();
+    }),
+    enabled: !!questionSet?.courseId,
+  });
+
   const { data: questions, isLoading: questionsLoading, error: questionsError } = useQuery({
     queryKey: ["/api/questions", questionSetId],
     queryFn: () => fetch(`/api/questions/${questionSetId}`, { 
@@ -170,7 +181,7 @@ export default function QuestionSetPractice() {
                     className="font-semibold text-lg text-foreground cursor-pointer hover:text-primary transition-colors"
                     onClick={() => setLocation("/")}
                   >
-                    {questionSet?.title}
+                    {course?.title && questionSet?.title ? `${course.title}: ${questionSet.title}` : questionSet?.title || "Loading..."}
                   </span>
                 </div>
               </div>
