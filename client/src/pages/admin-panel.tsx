@@ -974,7 +974,13 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
         <div className="text-center py-4">Loading question sets...</div>
       ) : questionSets && Array.isArray(questionSets) && questionSets.length > 0 ? (
         <div className="space-y-2">
-          {questionSets.map((questionSet: any) => (
+          {questionSets
+            .sort((a: any, b: any) => {
+              const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+              const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+              return aNum - bNum;
+            })
+            .map((questionSet: any) => (
             <div key={questionSet.id} className="flex justify-between items-center p-3 border rounded">
               <div>
                 <h4 className="font-medium">{questionSet.title}</h4>

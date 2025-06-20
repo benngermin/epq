@@ -187,7 +187,13 @@ export default function Dashboard() {
                   {(!course.questionSets || course.questionSets.length === 0) ? (
                     <p className="text-sm text-muted-foreground">No question sets available</p>
                   ) : (
-                    course.questionSets.map((questionSet: any) => (
+                    course.questionSets
+                      .sort((a: any, b: any) => {
+                        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+                        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+                        return aNum - bNum;
+                      })
+                      .map((questionSet: any) => (
                       <div key={questionSet.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-accent rounded-lg border gap-3">
                         <div className="flex-1 min-w-0">
                           <h5 className="text-sm font-medium text-foreground truncate">{questionSet.title}</h5>

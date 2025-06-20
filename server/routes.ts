@@ -227,6 +227,13 @@ export function registerRoutes(app: Express): Server {
         })
       );
       
+      // Sort question sets by title (extracting numbers for proper numerical sorting)
+      questionSetsWithDetails.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
       res.json(questionSetsWithDetails);
     } catch (error) {
       console.error("Error fetching all question sets:", error);
@@ -249,6 +256,13 @@ export function registerRoutes(app: Express): Server {
           };
         })
       );
+      
+      // Sort question sets by title (extracting numbers for proper numerical sorting)
+      questionSetsWithCounts.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
       
       res.json(questionSetsWithCounts);
     } catch (error) {
