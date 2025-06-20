@@ -1596,6 +1596,80 @@ export default function AdminPanel() {
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Prompt Versions Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    System Message
+                    <Button 
+                      onClick={() => setAddVersionDialogOpen(true)}
+                      className="text-sm"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add version
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {promptVersionsLoading ? (
+                    <div className="text-center py-4">Loading prompt versions...</div>
+                  ) : promptVersions && Array.isArray(promptVersions) && promptVersions.length > 0 ? (
+                    <div className="space-y-4">
+                      {promptVersions.map((version: any) => (
+                        <div key={version.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded text-sm ${
+                                version.isActive 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {version.versionName}
+                              </span>
+                              {version.isActive && <span className="text-sm text-green-600">Active</span>}
+                              {version.modelName && (
+                                <span className="text-sm text-gray-500">
+                                  {aiModels.find(m => m.value === version.modelName)?.name || version.modelName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              {!version.isActive && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => activatePromptVersionMutation.mutate(version.id)}
+                                  disabled={activatePromptVersionMutation.isPending}
+                                >
+                                  Activate
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingPromptVersion(version)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                            {version.promptText}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-2">
+                            Created: {new Date(version.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No prompt versions found. Create your first version to get started.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -1688,6 +1762,127 @@ export default function AdminPanel() {
                 </DialogFooter>
               </form>
             </Form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Prompt Version Dialog */}
+      <Dialog open={addVersionDialogOpen} onOpenChange={setAddVersionDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Prompt Version</DialogTitle>
+            <DialogDescription>
+              Create a new version of the system prompt for the AI assistant
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="version-name">Version Name</Label>
+              <Input
+                id="version-name"
+                placeholder="e.g., V.3"
+                value={newPromptVersion.versionName}
+                onChange={(e) => setNewPromptVersion(prev => ({ ...prev, versionName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prompt-text">Prompt Text</Label>
+              <Textarea
+                id="prompt-text"
+                placeholder="Enter the system prompt text..."
+                rows={6}
+                value={newPromptVersion.promptText}
+                onChange={(e) => setNewPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="model-for-prompt">AI Model for this prompt</Label>
+              <Select
+                value={newPromptVersion.modelName}
+                onValueChange={(value) => setNewPromptVersion(prev => ({ ...prev, modelName: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select model (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aiModels.map(model => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => createPromptVersionMutation.mutate({
+                versionName: newPromptVersion.versionName,
+                promptText: newPromptVersion.promptText,
+                modelName: newPromptVersion.modelName || null,
+                isActive: false
+              })}
+              disabled={!newPromptVersion.versionName || !newPromptVersion.promptText || createPromptVersionMutation.isPending}
+            >
+              {createPromptVersionMutation.isPending ? "Creating..." : "Create Version"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Prompt Version Dialog */}
+      {editingPromptVersion && (
+        <Dialog open={!!editingPromptVersion} onOpenChange={() => setEditingPromptVersion(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Update Version</DialogTitle>
+              <DialogDescription>
+                Edit the prompt version details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-prompt-text">Prompt Text</Label>
+                <Textarea
+                  id="edit-prompt-text"
+                  rows={6}
+                  value={editingPromptVersion.promptText}
+                  onChange={(e) => setEditingPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-model-for-prompt">AI Model for this prompt</Label>
+                <Select
+                  value={editingPromptVersion.modelName || ""}
+                  onValueChange={(value) => setEditingPromptVersion(prev => ({ ...prev, modelName: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select model (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {aiModels.map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => updatePromptVersionMutation.mutate({
+                  id: editingPromptVersion.id,
+                  data: {
+                    promptText: editingPromptVersion.promptText,
+                    modelName: editingPromptVersion.modelName || null,
+                  }
+                })}
+                disabled={updatePromptVersionMutation.isPending}
+              >
+                {updatePromptVersionMutation.isPending ? "Updating..." : "Update Version"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
