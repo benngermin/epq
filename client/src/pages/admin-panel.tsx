@@ -49,6 +49,10 @@ export default function AdminPanel() {
     queryKey: ["/api/admin/question-sets"],
   });
 
+  const { data: promptVersions, isLoading: promptVersionsLoading } = useQuery({
+    queryKey: ["/api/admin/prompt-versions"],
+  });
+
   // Course mutations
   const createCourseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -211,6 +215,63 @@ export default function AdminPanel() {
     },
   });
 
+  const createPromptVersionMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/prompt-versions", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/prompt-versions"] });
+      toast({ title: "Prompt version created successfully" });
+      setNewPromptVersion({ versionName: "", promptText: "", modelName: "" });
+      setAddVersionDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create prompt version",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePromptVersionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/admin/prompt-versions/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/prompt-versions"] });
+      toast({ title: "Prompt version updated successfully" });
+      setEditingPromptVersion(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update prompt version",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const activatePromptVersionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PUT", `/api/admin/prompt-versions/${id}/activate`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/prompt-versions"] });
+      toast({ title: "Prompt version activated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to activate prompt version",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // State management
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [editingQuestionSet, setEditingQuestionSet] = useState<any>(null);
@@ -220,6 +281,9 @@ export default function AdminPanel() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedCourseForQuestionSet, setSelectedCourseForQuestionSet] = useState<number | null>(null);
   const [selectedQuestionSetForImport, setSelectedQuestionSetForImport] = useState<number | null>(null);
+  const [editingPromptVersion, setEditingPromptVersion] = useState<any>(null);
+  const [addVersionDialogOpen, setAddVersionDialogOpen] = useState(false);
+  const [newPromptVersion, setNewPromptVersion] = useState({ versionName: "", promptText: "", modelName: "" });
 
   // Forms
   const courseForm = useForm({
@@ -270,9 +334,7 @@ export default function AdminPanel() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const [aiSettingsData, setAiSettingsData] = useState({
-    apiKey: "",
     modelName: "anthropic/claude-4-sonnet-20250522",
-    systemPrompt: "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
     temperature: [0.7],
     maxTokens: [150],
   });
@@ -308,9 +370,7 @@ export default function AdminPanel() {
   useEffect(() => {
     if (aiSettings) {
       setAiSettingsData({
-        apiKey: (aiSettings as any).hasApiKey ? "***" : "",
         modelName: (aiSettings as any).modelName || "anthropic/claude-4-sonnet-20250522",
-        systemPrompt: (aiSettings as any).systemPrompt || "You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.",
         temperature: [(aiSettings as any).temperature ? (aiSettings as any).temperature / 100 : 0.7],
         maxTokens: [(aiSettings as any).maxTokens || 150],
       });
@@ -454,9 +514,7 @@ export default function AdminPanel() {
 
   const onUpdateAiSettings = () => {
     updateAiSettingsMutation.mutate({
-      apiKey: aiSettingsData.apiKey === "***" ? undefined : aiSettingsData.apiKey || undefined,
       modelName: aiSettingsData.modelName,
-      systemPrompt: aiSettingsData.systemPrompt,
       temperature: Math.round(aiSettingsData.temperature[0] * 100), // Convert back to 0-200 for storage
       maxTokens: aiSettingsData.maxTokens[0],
     });
@@ -1485,17 +1543,6 @@ export default function AdminPanel() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
-                    <Input
-                      id="api-key"
-                      type="password"
-                      placeholder="Enter OpenRouter API key"
-                      value={aiSettingsData.apiKey}
-                      onChange={(e) => setAiSettingsData(prev => ({ ...prev, apiKey: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label htmlFor="model-name">Model</Label>
                     <Select
                       value={aiSettingsData.modelName}
@@ -1518,16 +1565,6 @@ export default function AdminPanel() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="system-prompt">System Prompt</Label>
-                    <Textarea
-                      id="system-prompt"
-                      value={aiSettingsData.systemPrompt}
-                      onChange={(e) => setAiSettingsData(prev => ({ ...prev, systemPrompt: e.target.value }))}
-                      rows={4}
-                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
