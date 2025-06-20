@@ -205,7 +205,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2">
+              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
@@ -214,12 +214,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
                 </Button>
-                {hasNextQuestion && (
-                  <Button onClick={onNextQuestion} className="w-full py-2 md:py-3 text-sm md:text-base bg-primary hover:bg-primary/90 text-primary-foreground">
-                    Next Question
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
               </div>
             </Card>
           </div>
