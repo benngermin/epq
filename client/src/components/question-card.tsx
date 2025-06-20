@@ -110,10 +110,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                       })}
                     </div>
                   </RadioGroup>
-
-                  
-
-                  
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
@@ -134,12 +130,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Ask AI Assistant
                       </Button>
-                      {hasNextQuestion && (
-                        <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Next Question
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      )}
                     </div>
                   )}
 
@@ -159,12 +149,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Ask AI Assistant
                       </Button>
-                      {hasNextQuestion && (
-                        <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Next Question
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      )}
                     </div>
                   )}
 
@@ -201,17 +185,24 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
                 </Button>
-                {hasNextQuestion && (
-                  <Button onClick={onNextQuestion} className="w-full py-2 md:py-3 text-sm md:text-base bg-primary hover:bg-primary/90 text-primary-foreground">
-                    Next Question
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
               </div>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Next Question Button - Always Fixed at Bottom */}
+      {hasNextQuestion && hasAnswer && (
+        <div className="mt-4 w-full">
+          <Button 
+            onClick={onNextQuestion} 
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            Next Question
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      )}
 
       <style>
         {`.card-flip {
