@@ -8,5 +8,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const sql = neon(process.env.DATABASE_URL);
+// Configure Neon with better connection settings
+const sql = neon(process.env.DATABASE_URL, {
+  fetchOptions: {
+    cache: 'no-store',
+    keepalive: true,
+  },
+  fullResults: true,
+});
+
 export const db = drizzle(sql, { schema });

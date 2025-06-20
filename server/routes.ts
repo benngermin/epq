@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -7,6 +7,14 @@ import {
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, type QuestionImport 
 } from "@shared/schema";
+import { withRetry } from "./utils/db-retry";
+
+// Type assertion helper for authenticated requests
+function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
+  if (!req.isAuthenticated() || !req.user) {
+    throw new Error('Authentication required');
+  }
+}
 
 // OpenRouter integration
 async function callOpenRouter(prompt: string, settings: any): Promise<string> {
@@ -55,7 +63,7 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Middleware to check admin access
-  const requireAdmin = (req: any, res: any, next: any) => {
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
@@ -66,7 +74,7 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
-  const requireAuth = (req: any, res: any, next: any) => {
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
