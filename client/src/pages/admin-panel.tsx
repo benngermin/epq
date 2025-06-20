@@ -33,33 +33,73 @@ const questionSetSchema = z.object({
 });
 
 const aiSettingsSchema = z.object({
-  model: z.string().min(1, "Model is required"),
+  modelName: z.string().min(1, "Model is required"),
   temperature: z.number().min(0).max(2),
   maxTokens: z.number().min(1).max(4000),
-  systemPrompt: z.string().optional(),
+});
+
+const promptSchema = z.object({
+  promptText: z.string().min(1, "Prompt text is required"),
 });
 
 // AI Settings Component
 function AISettingsSection() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
+  // Query for AI settings
+  const { data: aiSettings, isLoading: aiSettingsLoading } = useQuery({
+    queryKey: ["/api/admin/ai-settings"],
+  });
+
+  // Query for active prompt
+  const { data: activePrompt, isLoading: promptLoading } = useQuery({
+    queryKey: ["/api/admin/active-prompt"],
+  });
+
   const aiSettingsForm = useForm<z.infer<typeof aiSettingsSchema>>({
     resolver: zodResolver(aiSettingsSchema),
     defaultValues: {
-      model: "openai/gpt-3.5-turbo",
+      modelName: "anthropic/claude-sonnet-4",
       temperature: 0.7,
       maxTokens: 1000,
-      systemPrompt: "You are a helpful assistant for educational content.",
     },
   });
 
+  const promptForm = useForm<z.infer<typeof promptSchema>>({
+    resolver: zodResolver(promptSchema),
+    defaultValues: {
+      promptText: "",
+    },
+  });
+
+  // Set form values when data loads
+  React.useEffect(() => {
+    if (aiSettings) {
+      aiSettingsForm.reset({
+        modelName: aiSettings.modelName || "anthropic/claude-sonnet-4",
+        temperature: aiSettings.temperature || 0.7,
+        maxTokens: aiSettings.maxTokens || 1000,
+      });
+    }
+  }, [aiSettings, aiSettingsForm]);
+
+  React.useEffect(() => {
+    if (activePrompt) {
+      promptForm.reset({
+        promptText: activePrompt.promptText || "",
+      });
+    }
+  }, [activePrompt, promptForm]);
+
   const updateAISettingsMutation = useMutation({
     mutationFn: async (data: z.infer<typeof aiSettingsSchema>) => {
-      const res = await apiRequest("POST", "/api/admin/ai-settings", data);
+      const res = await apiRequest("PUT", "/api/admin/ai-settings", data);
       return await res.json();
     },
     onSuccess: () => {
       toast({ title: "AI settings updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-settings"] });
     },
     onError: (error: Error) => {
       toast({
@@ -70,122 +110,179 @@ function AISettingsSection() {
     },
   });
 
+  const updatePromptMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof promptSchema>) => {
+      const res = await apiRequest("PUT", "/api/admin/active-prompt", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Prompt updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/active-prompt"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmitAISettings = (data: z.infer<typeof aiSettingsSchema>) => {
     updateAISettingsMutation.mutate(data);
   };
 
+  const onSubmitPrompt = (data: z.infer<typeof promptSchema>) => {
+    updatePromptMutation.mutate(data);
+  };
+
+  if (aiSettingsLoading || promptLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading AI Settings...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Model Configuration</CardTitle>
-        <CardDescription>
-          Configure the AI model parameters for question generation and analysis
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...aiSettingsForm}>
-          <form onSubmit={aiSettingsForm.handleSubmit(onSubmitAISettings)} className="space-y-4">
-            <FormField
-              control={aiSettingsForm.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>AI Model</FormLabel>
-                  <FormControl>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select AI model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                        <SelectItem value="openai/gpt-4">GPT-4</SelectItem>
-                        <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
-                        <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <div className="space-y-6">
+      {/* AI Model Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Model Configuration</CardTitle>
+          <CardDescription>
+            Configure the AI model parameters for question generation and analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...aiSettingsForm}>
+            <form onSubmit={aiSettingsForm.handleSubmit(onSubmitAISettings)} className="space-y-4">
+              <FormField
+                control={aiSettingsForm.control}
+                name="modelName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>AI Model</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select AI model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                          <SelectItem value="openai/gpt-4">GPT-4</SelectItem>
+                          <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
+                          <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                          <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={aiSettingsForm.control}
-              name="temperature"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Temperature ({field.value})</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="range"
-                      min="0"
-                      max="2"
-                      step="0.1"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      className="w-full"
-                    />
-                  </FormControl>
-                  <div className="text-xs text-muted-foreground">
-                    Higher values make output more random, lower values more deterministic
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={aiSettingsForm.control}
+                name="temperature"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Temperature ({field.value})</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <div className="text-xs text-muted-foreground">
+                      Higher values make output more random, lower values more deterministic
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={aiSettingsForm.control}
-              name="maxTokens"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Max Tokens</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="4000"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <div className="text-xs text-muted-foreground">
-                    Maximum number of tokens in the response
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={aiSettingsForm.control}
+                name="maxTokens"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Max Tokens</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="4000"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <div className="text-xs text-muted-foreground">
+                      Maximum number of tokens in the response
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={aiSettingsForm.control}
-              name="systemPrompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>System Prompt</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter system prompt for the AI model..."
-                      className="resize-none"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <div className="text-xs text-muted-foreground">
-                    Instructions that guide the AI's behavior and responses
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <Button type="submit" disabled={updateAISettingsMutation.isPending}>
+                {updateAISettingsMutation.isPending ? "Updating..." : "Update Model Settings"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
-            <Button type="submit" disabled={updateAISettingsMutation.isPending}>
-              {updateAISettingsMutation.isPending ? "Updating..." : "Update Settings"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+      {/* System Prompt */}
+      <Card>
+        <CardHeader>
+          <CardTitle>System Prompt</CardTitle>
+          <CardDescription>
+            The current prompt being used by the AI chatbot to generate responses to student questions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...promptForm}>
+            <form onSubmit={promptForm.handleSubmit(onSubmitPrompt)} className="space-y-4">
+              <FormField
+                control={promptForm.control}
+                name="promptText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Active Prompt</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter the system prompt for the AI chatbot..."
+                        className="resize-none font-mono text-sm"
+                        rows={15}
+                        {...field}
+                      />
+                    </FormControl>
+                    <div className="text-xs text-muted-foreground">
+                      This prompt guides how the AI responds to student questions. Use template variables: {{QUESTION_TEXT}}, {{ANSWER_CHOICES}}, {{SELECTED_ANSWER}}, {{CORRECT_ANSWER}}, {{SOURCE_MATERIAL}}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={updatePromptMutation.isPending}>
+                {updatePromptMutation.isPending ? "Updating..." : "Update Prompt"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
