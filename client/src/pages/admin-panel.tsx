@@ -820,7 +820,7 @@ export default function AdminPanel() {
       <nav className="bg-card shadow-sm border-b border-border/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <div className="flex items-center cursor-pointer" onClick={() => setLocation("/")}>
               <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 text-primary mr-3" />
               <span className="font-semibold text-foreground">Exam Question Practice - Admin Panel</span>
             </div>
