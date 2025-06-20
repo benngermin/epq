@@ -214,17 +214,17 @@ export default function QuestionSetPractice() {
             <Card className="h-full flex flex-col">
               {/* Desktop Header */}
               <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden md:block">
-                <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setLocation("/")}
-                  className="flex items-center text-sm mt-3 w-full"
+                  className="flex items-center text-sm mb-4 w-full"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard
                 </Button>
+                <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
               </CardHeader>
               
               {/* Mobile Header */}
