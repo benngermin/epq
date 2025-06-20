@@ -234,7 +234,7 @@ export default function QuestionSetPractice() {
 
       
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
         <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
           {/* Left Sidebar - Responsive Practice Summary */}
@@ -397,28 +397,32 @@ export default function QuestionSetPractice() {
             </div>
           </div>
 
-          {/* Fixed Navigation Bar at Bottom - Always visible */}
-          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-3 z-50">
-            <div className="max-w-4xl mx-auto">
-              {currentQuestion && userAnswers[currentQuestion.id] && currentQuestionIndex < questions.length - 1 ? (
+          {/* Fixed Navigation Bar at Bottom - Hidden when chatbot is showing */}
+          {!isCardFlipped && (
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
+              <div className="max-w-4xl mx-auto flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className="min-w-[120px]"
+                >
+                  Previous
+                </Button>
+                <div className="text-sm text-muted-foreground flex items-center">
+                  Question {currentQuestionIndex + 1} of {questions.length}
+                </div>
                 <Button
                   onClick={handleNextQuestion}
-                  className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={currentQuestionIndex === questions.length - 1}
+                  className="min-w-[120px]"
                 >
-                  Next Question
+                  Next
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
-              ) : !userAnswers[currentQuestion?.id] ? (
-                <div className="text-center text-sm text-muted-foreground py-3">
-                  Answer the question to continue
-                </div>
-              ) : (
-                <div className="text-center text-sm text-muted-foreground py-3">
-                  You've completed all questions!
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
