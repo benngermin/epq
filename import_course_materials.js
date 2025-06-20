@@ -26,46 +26,53 @@ async function importCourseMaterials() {
     console.log(`Processing ${lines.length - 1} rows...`);
     let importedCount = 0;
     
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    // Process in smaller batches to avoid timeouts
+    const batchSize = 50;
+    for (let batchStart = 1; batchStart < lines.length; batchStart += batchSize) {
+      const batchEnd = Math.min(batchStart + batchSize, lines.length);
+      console.log(`Processing batch ${Math.floor(batchStart/batchSize) + 1}...`);
       
-      // Parse CSV line (handling quoted values with commas)
-      const values = [];
-      let currentValue = '';
-      let inQuotes = false;
-      
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(currentValue);
-          currentValue = '';
-        } else {
-          currentValue += char;
-        }
-      }
-      values.push(currentValue); // Add the last value
-      
-      if (values.length >= 4) {
-        const [assignment, course, loid, content] = values;
+      for (let i = batchStart; i < batchEnd; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
         
-        try {
-          await client.query(
-            'INSERT INTO course_materials (assignment, course, loid, content) VALUES ($1, $2, $3, $4)',
-            [assignment, course, loid, content]
-          );
-          importedCount++;
-          
-          if (importedCount % 100 === 0) {
-            console.log(`Imported ${importedCount} course materials...`);
+        // Parse CSV line (handling quoted values with commas)
+        const values = [];
+        let currentValue = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(currentValue);
+            currentValue = '';
+          } else {
+            currentValue += char;
           }
-        } catch (error) {
-          console.error(`Error importing row ${i}:`, error.message);
-          console.error('Values:', { assignment, course, loid, content: content.substring(0, 100) + '...' });
+        }
+        values.push(currentValue); // Add the last value
+        
+        if (values.length >= 4) {
+          const [assignment, course, loid, content] = values;
+          
+          try {
+            await client.query(
+              'INSERT INTO course_materials (assignment, course, loid, content) VALUES ($1, $2, $3, $4)',
+              [assignment, course, loid, content]
+            );
+            importedCount++;
+          } catch (error) {
+            console.error(`Error importing row ${i}:`, error.message);
+          }
         }
       }
+      
+      // Commit this batch
+      await client.query('COMMIT');
+      await client.query('BEGIN');
+      console.log(`Imported ${importedCount} course materials so far...`);
     }
     
     await client.query('COMMIT');
