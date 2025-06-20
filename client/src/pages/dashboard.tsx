@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
-import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
-import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
+import TopNavigation from "@/components/TopNavigation";
 
 export default function Dashboard() {
-  const { user, logoutMutation } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -75,7 +73,9 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <GraduationCap className="mx-auto h-12 w-12 text-primary animate-pulse mb-4" />
+          <div className="mx-auto h-12 w-12 text-primary animate-pulse mb-4 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-lg font-bold">📚</span>
+          </div>
           <p className="text-muted-foreground">Loading your courses...</p>
         </div>
       </div>
