@@ -11,7 +11,8 @@ import {
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import ConnectPgSimple from "connect-pg-simple";
+import { neon } from '@neondatabase/serverless';
 
 export interface IStorage {
   // User methods
@@ -86,14 +87,12 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
   constructor() {
-    // Use memorystore with TTL to persist sessions across server restarts in development
-    const MemoryStoreFactory = MemoryStore(session);
-    this.sessionStore = new MemoryStoreFactory({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 86400000, // 24 hours TTL
-      dispose: (key: string, val: any) => {
-        // Optional cleanup when session expires
-      }
+    // Use PostgreSQL session store
+    const PgSession = ConnectPgSimple(session);
+    this.sessionStore = new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'session',
+      createTableIfMissing: true,
     });
   }
 
@@ -103,8 +102,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    try {
+      console.log(`Attempting to fetch user by email: ${email}`);
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      console.log(`User found: ${user ? 'Yes' : 'No'}`);
+      return user || undefined;
+    } catch (error) {
+      console.error('Error in getUserByEmail:', error);
+      throw error;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
