@@ -9,7 +9,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -167,33 +167,28 @@ export class DatabaseStorage implements IStorage {
           .where(eq(practiceTests.questionSetId, id));
       }
 
-      // Get all question IDs in this question set
-      const questionsInSet = await db.select({ id: questions.id }).from(questions).where(eq(questions.questionSetId, id));
-      
-      if (questionsInSet.length > 0) {
-        const questionIds = questionsInSet.map(q => q.id);
-        
-        // Get all question version IDs for these questions
-        const versionIds = await db.select({ id: questionVersions.id })
-          .from(questionVersions)
-          .where(sql`${questionVersions.questionId} = ANY(${questionIds})`);
-        
-        if (versionIds.length > 0) {
-          const versionIdList = versionIds.map(v => v.id);
-          
-          // Delete all user answers for these question versions in batch
-          await db.delete(userAnswers)
-            .where(sql`${userAnswers.questionVersionId} = ANY(${versionIdList})`);
-        }
-        
-        // Delete all question versions for these questions in batch
-        await db.delete(questionVersions)
-          .where(sql`${questionVersions.questionId} = ANY(${questionIds})`);
-      }
-      
-      // Delete the questions themselves
+      // Delete user answers for all question versions in this set
+      await db.execute(sql`
+        DELETE FROM user_answers 
+        WHERE question_version_id IN (
+          SELECT qv.id 
+          FROM question_versions qv 
+          JOIN questions q ON qv.question_id = q.id 
+          WHERE q.question_set_id = ${id}
+        )
+      `);
+
+      // Delete all question versions for questions in this set
+      await db.execute(sql`
+        DELETE FROM question_versions 
+        WHERE question_id IN (
+          SELECT id FROM questions WHERE question_set_id = ${id}
+        )
+      `);
+
+      // Delete all questions in the set
       await db.delete(questions).where(eq(questions.questionSetId, id));
-      
+
       // Finally, delete the question set
       const result = await db.delete(questionSets).where(eq(questionSets.id, id));
       return result.rowCount! > 0;
