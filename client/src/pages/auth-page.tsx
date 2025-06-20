@@ -123,9 +123,7 @@ export default function AuthPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Welcome back</CardTitle>
-                  <CardDescription>
-                    Sign in to continue your question set preparation
-                  </CardDescription>
+                  <CardDescription>Sign in to continue your exam practice question studies. </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
