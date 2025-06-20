@@ -112,37 +112,65 @@ export default function AdminPanel() {
 
   const importCourseMaterialsMutation = useMutation({
     mutationFn: async (csvContent: string) => {
-      const lines = csvContent.split('\n');
+      // Proper CSV parsing for multi-line content with quotes
       const materials = [];
+      let currentRecord = [];
+      let currentField = '';
+      let inQuotes = false;
+      let fieldIndex = 0;
       
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+      // Skip the header line - find first newline
+      const headerEnd = csvContent.indexOf('\n');
+      const contentWithoutHeader = headerEnd >= 0 ? csvContent.substring(headerEnd + 1) : csvContent;
+      
+      for (let i = 0; i < contentWithoutHeader.length; i++) {
+        const char = contentWithoutHeader[i];
         
-        const values = [];
-        let currentValue = '';
-        let inQuotes = false;
-        
-        for (let j = 0; j < line.length; j++) {
-          const char = line[j];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(currentValue);
-            currentValue = '';
+        if (char === '"') {
+          if (inQuotes && contentWithoutHeader[i + 1] === '"') {
+            // Handle escaped quotes ""
+            currentField += '"';
+            i++; // Skip next quote
           } else {
-            currentValue += char;
+            inQuotes = !inQuotes;
           }
+        } else if (char === ',' && !inQuotes) {
+          // Field separator when not in quotes
+          currentRecord[fieldIndex] = currentField;
+          currentField = '';
+          fieldIndex++;
+        } else if ((char === '\n' || char === '\r') && !inQuotes && fieldIndex >= 3) {
+          // End of record - only when we have at least 4 fields and not in quotes
+          currentRecord[fieldIndex] = currentField;
+          
+          if (currentRecord.length >= 4 && currentRecord[0] && currentRecord[2]) {
+            materials.push({
+              assignment: currentRecord[0],
+              course: currentRecord[1] || '',
+              loid: currentRecord[2],
+              content: currentRecord[3] || ''
+            });
+          }
+          
+          // Reset for next record
+          currentRecord = [];
+          currentField = '';
+          fieldIndex = 0;
+        } else if (char !== '\r') {
+          // Add character to current field (skip carriage returns)
+          currentField += char;
         }
-        values.push(currentValue);
-        
-        if (values.length >= 4) {
-          const [assignment, course, loid, content] = values;
-          materials.push({ 
-            assignment: assignment.replace(/"/g, ''), 
-            course: course.replace(/"/g, ''), 
-            loid: loid.replace(/"/g, ''), 
-            content: content.replace(/"/g, '') 
+      }
+      
+      // Handle last record if file doesn't end with newline
+      if (fieldIndex >= 3 && (currentRecord.length > 0 || currentField)) {
+        currentRecord[fieldIndex] = currentField;
+        if (currentRecord.length >= 4 && currentRecord[0] && currentRecord[2]) {
+          materials.push({
+            assignment: currentRecord[0],
+            course: currentRecord[1] || '',
+            loid: currentRecord[2],
+            content: currentRecord[3] || ''
           });
         }
       }
