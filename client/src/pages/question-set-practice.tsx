@@ -370,6 +370,7 @@ export default function QuestionSetPractice() {
                             setCurrentQuestionIndex(index);
                             setShowChat(false);
                             setSelectedAnswer("");
+                            setIsCardFlipped(false);
                           }}
                         >
                           {index + 1}

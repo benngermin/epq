@@ -44,13 +44,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
     setSubmittedAnswer(selectedAnswer);
     onSubmitAnswer(selectedAnswer);
-
-    // If incorrect, flip the card after a short delay to show chatbot
-    setTimeout(() => {
-      if (selectedAnswer !== question.latestVersion?.correctAnswer) {
-        setIsFlipped(true);
-      }
-    }, 1500);
+    // Don't auto-flip - let parent component handle this
   };
 
   const handleReviewQuestion = () => {
