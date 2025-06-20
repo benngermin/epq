@@ -71,11 +71,18 @@ export const userAnswers = pgTable("user_answers", {
 
 export const aiSettings = pgTable("ai_settings", {
   id: serial("id").primaryKey(),
-  apiKey: text("api_key"),
   modelName: text("model_name").default("anthropic/claude-sonnet-4"),
-  systemPrompt: text("system_prompt").default("You are a course-assistant AI. The learner chose answer \"X\"; the correct answer is \"Y\". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth."),
   temperature: integer("temperature").default(70), // stored as integer (0-100)
   maxTokens: integer("max_tokens").default(150),
+});
+
+export const promptVersions = pgTable("prompt_versions", {
+  id: serial("id").primaryKey(),
+  versionName: text("version_name").notNull(),
+  promptText: text("prompt_text").notNull(),
+  modelName: text("model_name"),
+  isActive: boolean("is_active").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Relations
@@ -165,6 +172,7 @@ export const insertUserAnswerSchema = createInsertSchema(userAnswers).omit({
   isCorrect: true,
 });
 export const insertAiSettingsSchema = createInsertSchema(aiSettings);
+export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -185,6 +193,8 @@ export type UserAnswer = typeof userAnswers.$inferSelect;
 export type InsertUserAnswer = z.infer<typeof insertUserAnswerSchema>;
 export type AiSettings = typeof aiSettings.$inferSelect;
 export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
+export type PromptVersion = typeof promptVersions.$inferSelect;
+export type InsertPromptVersion = z.infer<typeof insertPromptVersionSchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
