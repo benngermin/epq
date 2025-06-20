@@ -428,7 +428,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const testRun = await storage.createUserTestRun({
-        userId: req.user.id,
+        userId: req.user!.id,
         practiceTestId: testId,
         questionOrder,
       });
@@ -476,7 +476,7 @@ export function registerRoutes(app: Express): Server {
 
       // Create a new test run (this effectively restarts the test)
       const testRun = await storage.createUserTestRun({
-        userId: req.user.id,
+        userId: req.user!.id,
         practiceTestId: testId,
         questionOrder,
       });

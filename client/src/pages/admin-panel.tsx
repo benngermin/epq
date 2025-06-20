@@ -1796,7 +1796,7 @@ export default function AdminPanel() {
                   id="edit-prompt-text"
                   rows={6}
                   value={editingPromptVersion.promptText}
-                  onChange={(e) => setEditingPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
+                  onChange={(e) => setEditingPromptVersion((prev: any) => ({ ...prev, promptText: e.target.value }))}
                 />
                 <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded border">
                   <strong>Available Variables:</strong>
@@ -1812,7 +1812,7 @@ export default function AdminPanel() {
                 <Label htmlFor="edit-model-for-prompt">AI Model for this prompt</Label>
                 <Select
                   value={editingPromptVersion.modelName || ""}
-                  onValueChange={(value) => setEditingPromptVersion(prev => ({ ...prev, modelName: value }))}
+                  onValueChange={(value) => setEditingPromptVersion((prev: any) => ({ ...prev, modelName: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select model (optional)" />
