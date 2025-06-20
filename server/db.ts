@@ -8,7 +8,5 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure Neon connection
 const sql = neon(process.env.DATABASE_URL);
-
 export const db = drizzle(sql, { schema });

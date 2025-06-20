@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, MessageSquare, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
 import { cn } from "@/lib/utils";
 
@@ -14,37 +14,51 @@ interface QuestionCardProps {
   isSubmitting: boolean;
   testRunId: number;
   onFlipChange?: (isFlipped: boolean) => void;
-  isFlipped?: boolean;
+  onNextQuestion?: () => void;
+  hasNextQuestion?: boolean;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, isFlipped = false }: QuestionCardProps) {
+export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
   const hasAnswer = !!question.userAnswer;
   const isCorrect = question.userAnswer?.isCorrect;
 
-  // Reset state when question changes
+  // Reset flip state when question changes
   useEffect(() => {
+    setIsFlipped(false);
     setSelectedAnswer("");
     setSubmittedAnswer("");
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
+
+  // Notify parent when flip state changes
+  useEffect(() => {
+    onFlipChange?.(isFlipped);
+  }, [isFlipped, onFlipChange]);
 
   const handleSubmit = () => {
     if (!selectedAnswer || hasAnswer) return;
 
     setSubmittedAnswer(selectedAnswer);
     onSubmitAnswer(selectedAnswer);
-    // Don't auto-flip - let parent component handle this
+
+    // If incorrect, flip the card after a short delay to show chatbot
+    setTimeout(() => {
+      if (selectedAnswer !== question.latestVersion?.correctAnswer) {
+        setIsFlipped(true);
+      }
+    }, 1500);
   };
 
   const handleReviewQuestion = () => {
-    onFlipChange?.(false);
+    setIsFlipped(false);
   };
 
   const handleShowChatbot = () => {
-    onFlipChange?.(true);
+    setIsFlipped(true);
   };
 
   return (
@@ -108,6 +122,19 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                       })}
                     </div>
                   </RadioGroup>
+
+                  
+
+                  {hasAnswer && !isCorrect && (
+                    <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-7 xl:mt-8 space-y-2 sm:space-y-3">
+                      <div className="p-3 sm:p-4 md:p-5 lg:p-6 bg-error/10 border border-error/20 rounded-lg">
+                        <div className="flex items-center">
+                          <XCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-error mr-2 sm:mr-3" />
+                          <span className="font-medium text-error text-sm sm:text-base md:text-base lg:text-lg">Incorrect</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
@@ -120,14 +147,12 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <span className="font-medium text-success text-sm">Correct!</span>
                         </div>
                       </div>
-                      <Button
-                        onClick={handleShowChatbot}
-                        variant="outline"
-                        className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Ask AI Assistant
-                      </Button>
+                      {hasNextQuestion && (
+                        <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
+                          Next Question
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      )}
                     </div>
                   )}
 
@@ -145,8 +170,14 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Ask AI Assistant
+                        Get AI Help
                       </Button>
+                      {hasNextQuestion && (
+                        <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
+                          Next Question
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      )}
                     </div>
                   )}
 
@@ -166,7 +197,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[700px] max-h-[calc(100vh-100px)] flex flex-col bg-card border shadow-sm overflow-hidden">
+            <Card className="h-full min-h-[600px] max-h-[calc(100vh-150px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -174,30 +205,33 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-4 border-t bg-gray-50/50 dark:bg-gray-800/50 flex-shrink-0">
+              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
-                  className="w-full py-3 text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Review Question
                 </Button>
+                {hasNextQuestion && (
+                  <Button onClick={onNextQuestion} className="w-full py-2 md:py-3 text-sm md:text-base bg-primary hover:bg-primary/90 text-primary-foreground">
+                    Next Question
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
               </div>
             </Card>
           </div>
         </div>
       </div>
 
-
-
       <style>
         {`.card-flip {
           perspective: 1000px;
-          min-height: 750px;
+          min-height: 650px;
           position: relative;
           z-index: 1;
-          margin-bottom: 1.5rem;
         }
         .card-flip-inner {
           position: relative;
@@ -220,8 +254,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           -webkit-backface-visibility: hidden;
           top: 0;
           left: 0;
-          border-radius: 0.5rem;
-          overflow: hidden;
         }
         .card-flip-back {
           transform: rotateY(180deg);

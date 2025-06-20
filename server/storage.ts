@@ -11,8 +11,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import { neon } from '@neondatabase/serverless';
+import MemoryStore from "memorystore";
 
 export interface IStorage {
   // User methods
@@ -76,9 +75,6 @@ export interface IStorage {
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   
-  // Optimized query methods
-  getQuestionsWithLatestVersions(questionSetId: number): Promise<any[]>;
-  
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
@@ -90,12 +86,14 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
   constructor() {
-    // Use PostgreSQL session store
-    const PgSession = ConnectPgSimple(session);
-    this.sessionStore = new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'session',
-      createTableIfMissing: true,
+    // Use memorystore with TTL to persist sessions across server restarts in development
+    const MemoryStoreFactory = MemoryStore(session);
+    this.sessionStore = new MemoryStoreFactory({
+      checkPeriod: 86400000, // prune expired entries every 24h
+      ttl: 86400000, // 24 hours TTL
+      dispose: (key: string, val: any) => {
+        // Optional cleanup when session expires
+      }
     });
   }
 
@@ -105,15 +103,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    try {
-      console.log(`Attempting to fetch user by email: ${email}`);
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      console.log(`User found: ${user ? 'Yes' : 'No'}`);
-      return user || undefined;
-    } catch (error) {
-      console.error('Error in getUserByEmail:', error);
-      throw error;
-    }
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -227,13 +218,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
-    try {
-      return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
-    } catch (error) {
-      console.error('Database error in getQuestionsByQuestionSet:', error);
-      // Return empty array on database error to prevent 500 errors
-      return [];
-    }
+    return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {
@@ -253,13 +238,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]> {
-    try {
-      return await db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
-    } catch (error) {
-      console.error('Database error in getQuestionVersionsByQuestion:', error);
-      // Return empty array on database error to prevent 500 errors
-      return [];
-    }
+    return await db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
   }
 
   async getQuestionVersion(id: number): Promise<QuestionVersion | undefined> {
@@ -370,60 +349,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
-    console.log(`Starting import of ${questionsData.length} questions for question set ${questionSetId}`);
-    
-    let processedCount = 0;
-    const errors = [];
-    
-    // Process questions sequentially to avoid database timeout issues
-    for (let i = 0; i < questionsData.length; i++) {
-      const questionData = questionsData[i];
+    for (const questionData of questionsData) {
+      // Check if question already exists
+      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
       
-      try {
-        // Check if question already exists
-        let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
-        
-        if (!question) {
-          question = await this.createQuestion({
-            questionSetId,
-            originalQuestionNumber: questionData.question_number,
-            loid: questionData.loid,
-          });
-        }
-
-        // Create question versions
-        for (const versionData of questionData.versions) {
-          await this.createQuestionVersion({
-            questionId: question.id,
-            versionNumber: versionData.version_number,
-            topicFocus: versionData.topic_focus,
-            questionText: versionData.question_text,
-            answerChoices: [...versionData.answer_choices],
-            correctAnswer: versionData.correct_answer,
-          });
-        }
-        
-        processedCount++;
-        
-        // Log progress every 10 questions
-        if (i % 10 === 0 || i === questionsData.length - 1) {
-          console.log(`Progress: ${i + 1}/${questionsData.length} questions processed`);
-        }
-        
-      } catch (error) {
-        console.error(`Error importing question ${questionData.question_number}:`, error);
-        errors.push({ questionNumber: questionData.question_number, error: error instanceof Error ? error.message : String(error) });
+      if (!question) {
+        question = await this.createQuestion({
+          questionSetId,
+          originalQuestionNumber: questionData.question_number,
+          loid: questionData.loid,
+        });
       }
-    }
-    
-    // Update question set count
-    await db.update(questionSets)
-      .set({ questionCount: processedCount })
-      .where(eq(questionSets.id, questionSetId));
-    
-    console.log(`Import completed: ${processedCount}/${questionsData.length} questions successfully imported`);
-    if (errors.length > 0) {
-      console.log(`Errors encountered for ${errors.length} questions:`, errors);
+
+      // Create question versions
+      for (const versionData of questionData.versions) {
+        await this.createQuestionVersion({
+          questionId: question.id,
+          versionNumber: versionData.version_number,
+          topicFocus: versionData.topic_focus,
+          questionText: versionData.question_text,
+          answerChoices: [...versionData.answer_choices],
+          correctAnswer: versionData.correct_answer,
+        });
+      }
     }
   }
 
@@ -480,54 +428,6 @@ export class DatabaseStorage implements IStorage {
         score: `${answers.length}/85 questions`,
         testRun: latestRun,
       };
-    }
-  }
-  
-  async getQuestionsWithLatestVersions(questionSetId: number): Promise<any[]> {
-    try {
-      const result = await db.select({
-        id: questions.id,
-        questionSetId: questions.questionSetId,
-        originalQuestionNumber: questions.originalQuestionNumber,
-        loid: questions.loid,
-        versionId: questionVersions.id,
-        versionNumber: questionVersions.versionNumber,
-        topicFocus: questionVersions.topicFocus,
-        questionText: questionVersions.questionText,
-        answerChoices: questionVersions.answerChoices,
-        correctAnswer: questionVersions.correctAnswer
-      })
-      .from(questions)
-      .leftJoin(questionVersions, eq(questions.id, questionVersions.questionId))
-      .where(eq(questions.questionSetId, questionSetId))
-      .orderBy(questions.id, desc(questionVersions.versionNumber));
-
-      // Group by question ID and take the latest version
-      const questionMap = new Map();
-      result.forEach(row => {
-        if (!questionMap.has(row.id) && row.versionId) {
-          questionMap.set(row.id, {
-            id: row.id,
-            questionSetId: row.questionSetId,
-            originalQuestionNumber: row.originalQuestionNumber,
-            loid: row.loid,
-            latestVersion: {
-              id: row.versionId,
-              questionId: row.id,
-              versionNumber: row.versionNumber,
-              topicFocus: row.topicFocus,
-              questionText: row.questionText,
-              answerChoices: row.answerChoices,
-              correctAnswer: row.correctAnswer
-            }
-          });
-        }
-      });
-      
-      return Array.from(questionMap.values());
-    } catch (error) {
-      console.error(`Database error in getQuestionsWithLatestVersions: ${error}`);
-      return [];
     }
   }
 }

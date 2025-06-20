@@ -38,24 +38,6 @@ export default function QuestionSetPractice() {
   const questionSetId = parseInt(params?.id || "0");
   console.log("Parsed Question Set ID:", questionSetId);
 
-  if (isNaN(questionSetId) || questionSetId <= 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600">Invalid Question Set</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>The question set ID is invalid. Please check the URL and try again.</p>
-            <Button onClick={() => setLocation("/dashboard")} className="mt-4">
-              Return to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const { data: questionSet, isLoading: questionSetLoading } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
     queryFn: () => fetch(`/api/question-sets/${questionSetId}`, { 
@@ -92,16 +74,9 @@ export default function QuestionSetPractice() {
     onSuccess: (data) => {
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
-      // If the answer is incorrect, flip the card to show chat
-      if (!data.isCorrect) {
-        setTimeout(() => {
-          setIsCardFlipped(true);
-        }, 1000);
-      }
     },
     onError: (error: Error) => {
       console.error("Failed to submit answer:", error.message);
-      // Show error state instead of breaking
     },
   });
 
@@ -127,7 +102,6 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => prev + 1);
       setShowChat(false);
       setSelectedAnswer("");
-      setIsCardFlipped(false);
     }
   };
 
@@ -136,7 +110,6 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => prev - 1);
       setShowChat(false);
       setSelectedAnswer("");
-      setIsCardFlipped(false);
     }
   };
 
@@ -157,25 +130,6 @@ export default function QuestionSetPractice() {
   console.log("Questions Data:", questions);
   console.log("Questions Error:", questionsError);
   console.log("Questions Loading:", questionsLoading);
-
-  if (questionsError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="pt-6 text-center">
-            <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Error Loading Questions</h3>
-            <p className="text-muted-foreground mb-4">
-              {questionsError.message || "Failed to load questions. Please try again."}
-            </p>
-            <Button onClick={() => setLocation("/")}>
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (!questionSet || !questions || questions.length === 0) {
     console.log("Showing no questions available screen");
@@ -250,7 +204,16 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      
+      {/* Progress Section */}
+      <div className="bg-card border-b">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-3">
+          <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+            <span>Progress</span>
+            <span className="font-medium text-sm">{currentQuestionIndex + 1} / {questions.length}</span>
+          </div>
+          <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
@@ -317,7 +280,6 @@ export default function QuestionSetPractice() {
                           setCurrentQuestionIndex(index);
                           setShowChat(false);
                           setSelectedAnswer("");
-                          setIsCardFlipped(false);
                         }}
                       >
                         <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
@@ -379,7 +341,6 @@ export default function QuestionSetPractice() {
                             setCurrentQuestionIndex(index);
                             setShowChat(false);
                             setSelectedAnswer("");
-                            setIsCardFlipped(false);
                           }}
                         >
                           {index + 1}
@@ -408,7 +369,8 @@ export default function QuestionSetPractice() {
                 isSubmitting={submitAnswerMutation.isPending}
                 testRunId={0} // Not used for question set practice
                 onFlipChange={setIsCardFlipped}
-                isFlipped={isCardFlipped}
+                onNextQuestion={handleNextQuestion}
+                hasNextQuestion={currentQuestionIndex < questions.length - 1}
               />
             </div>
           </div>
@@ -416,27 +378,25 @@ export default function QuestionSetPractice() {
           {/* Fixed Navigation Bar at Bottom - Hidden when chatbot is showing */}
           {!isCardFlipped && (
             <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
-              <div className="max-w-4xl mx-auto flex justify-between items-center">
+              <div className="max-w-4xl mx-auto flex justify-between">
                 <Button
                   variant="outline"
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className="text-sm"
+                  className="min-w-[120px]"
                 >
                   Previous
                 </Button>
-                
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground flex items-center">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </div>
-                
                 <Button
                   onClick={handleNextQuestion}
                   disabled={currentQuestionIndex === questions.length - 1}
-                  className="text-sm"
+                  className="min-w-[120px]"
                 >
                   Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </div>

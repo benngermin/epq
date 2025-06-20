@@ -143,11 +143,6 @@ export function registerRoutes(app: Express): Server {
   app.put("/api/courses/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid course ID" });
-      }
-      
       const courseData = insertCourseSchema.partial().parse(req.body);
       const course = await storage.updateCourse(id, courseData);
       
@@ -215,11 +210,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/admin/question-sets/:courseId", requireAdmin, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
-      
-      if (isNaN(courseId)) {
-        return res.status(400).json({ message: "Invalid course ID" });
-      }
-      
       const questionSets = await storage.getQuestionSetsByCourse(courseId);
       
       // Get question count for each question set
@@ -288,11 +278,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid question set ID" });
-      }
-      
       const questionSet = await storage.getQuestionSet(id);
       
       if (!questionSet) {
@@ -309,14 +294,21 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
+      const questions = await storage.getQuestionsByQuestionSet(questionSetId);
       
-      if (isNaN(questionSetId)) {
-        return res.status(400).json({ message: "Invalid question set ID" });
-      }
+      // Get the latest version for each question
+      const questionsWithLatestVersions = await Promise.all(
+        questions.map(async (question) => {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+          return {
+            ...question,
+            latestVersion
+          };
+        })
+      );
       
-      const validQuestions = await storage.getQuestionsWithLatestVersions(questionSetId);
-      res.json(validQuestions);
-      
+      res.json(questionsWithLatestVersions);
     } catch (error) {
       console.error("Error fetching questions:", error);
       res.status(500).json({ message: "Failed to fetch questions" });
@@ -328,15 +320,6 @@ export function registerRoutes(app: Express): Server {
       const questionSetId = parseInt(req.params.id);
       const { questionVersionId, answer } = req.body;
       
-      if (isNaN(questionSetId)) {
-        return res.status(400).json({ message: "Invalid question set ID" });
-      }
-      
-      // Validate input
-      if (!questionVersionId || !answer) {
-        return res.status(400).json({ message: "Missing questionVersionId or answer" });
-      }
-      
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
         return res.status(404).json({ message: "Question version not found" });
@@ -344,13 +327,10 @@ export function registerRoutes(app: Express): Server {
       
       const isCorrect = answer === questionVersion.correctAnswer;
       
-      // For now, just return the result without creating a test run
-      // In a full implementation, you'd want to create a test run and save the answer
       res.json({
         isCorrect,
         correctAnswer: questionVersion.correctAnswer,
-        chosenAnswer: answer,
-        explanation: isCorrect ? "Correct!" : `The correct answer is ${questionVersion.correctAnswer}`
+        chosenAnswer: answer
       });
     } catch (error) {
       console.error("Error submitting answer:", error);
@@ -362,11 +342,6 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/courses/:courseId/practice-tests", requireAdmin, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
-      
-      if (isNaN(courseId)) {
-        return res.status(400).json({ message: "Invalid course ID" });
-      }
-      
       const testData = insertPracticeTestSchema.parse({ ...req.body, courseId });
       const test = await storage.createPracticeTest(testData);
       res.status(201).json(test);
@@ -380,11 +355,6 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/practice-tests/:testId/start", requireAuth, async (req, res) => {
     try {
       const testId = parseInt(req.params.testId);
-      
-      if (isNaN(testId)) {
-        return res.status(400).json({ message: "Invalid practice test ID" });
-      }
-      
       const practiceTest = await storage.getPracticeTest(testId);
       
       if (!practiceTest) {
@@ -399,21 +369,12 @@ export function registerRoutes(app: Express): Server {
         allQuestions.push(...questions);
       }
       
-      if (allQuestions.length < practiceTest.questionCount) {
-        return res.status(400).json({ message: `Not enough questions available for this test (need ${practiceTest.questionCount}, have ${allQuestions.length})` });
+      if (allQuestions.length < 85) {
+        return res.status(400).json({ message: "Not enough questions available for this test" });
       }
 
-      // Use Fisher-Yates shuffle algorithm for better randomization
-      const shuffleArray = (array: any[]) => {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
-      };
-
-      const shuffledQuestions = shuffleArray(allQuestions).slice(0, practiceTest.questionCount);
+      // Shuffle questions and select random versions
+      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
       const questionOrder = [];
 
       for (const question of shuffledQuestions) {
@@ -424,12 +385,8 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
-      if (questionOrder.length === 0) {
-        return res.status(400).json({ message: "No valid question versions found" });
-      }
-
       const testRun = await storage.createUserTestRun({
-        userId: req.user!.id,
+        userId: req.user.id,
         practiceTestId: testId,
         questionOrder,
       });
@@ -477,7 +434,7 @@ export function registerRoutes(app: Express): Server {
 
       // Create a new test run (this effectively restarts the test)
       const testRun = await storage.createUserTestRun({
-        userId: req.user!.id,
+        userId: req.user.id,
         practiceTestId: testId,
         questionOrder,
       });
@@ -492,11 +449,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/test-runs/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid test run ID" });
-      }
-      
       const testRun = await storage.getUserTestRun(id);
       
       if (!testRun) {
@@ -527,17 +479,13 @@ export function registerRoutes(app: Express): Server {
       const testRunId = parseInt(req.params.id);
       const questionIndex = parseInt(req.params.index);
       
-      if (isNaN(testRunId) || isNaN(questionIndex)) {
-        return res.status(400).json({ message: "Invalid test run ID or question index" });
-      }
-      
       const testRun = await storage.getUserTestRun(testRunId);
       
       if (!testRun) {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -576,7 +524,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (testRun.userId !== req.user.id && !req.user.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -598,11 +546,6 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/test-runs/:id/answers", requireAuth, async (req, res) => {
     try {
       const testRunId = parseInt(req.params.id);
-      
-      if (isNaN(testRunId)) {
-        return res.status(400).json({ message: "Invalid test run ID" });
-      }
-      
       const answerData = insertUserAnswerSchema.parse({
         ...req.body,
         userTestRunId: testRunId,
@@ -614,7 +557,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user!.id) {
+      if (testRun.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -650,7 +593,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Test run not found" });
       }
 
-      if (testRun.userId !== req.user!.id) {
+      if (testRun.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -776,34 +719,18 @@ export function registerRoutes(app: Express): Server {
     try {
       const { questionSetId, questions: questionsData } = req.body;
       
-      if (!questionSetId || !Array.isArray(questionsData)) {
-        return res.status(400).json({ message: "Invalid request data" });
-      }
-      
       const questionSet = await storage.getQuestionSet(questionSetId);
       if (!questionSet) {
         return res.status(404).json({ message: "Question set not found" });
       }
 
-      console.log(`Attempting to import ${questionsData.length} questions to question set ${questionSetId}`);
-      
       const validatedQuestions = z.array(questionImportSchema).parse(questionsData);
       await storage.importQuestions(questionSetId, validatedQuestions);
       
-      res.json({ 
-        message: `Successfully imported ${validatedQuestions.length} questions`,
-        count: validatedQuestions.length 
-      });
+      res.json({ message: `Successfully imported ${validatedQuestions.length} questions` });
     } catch (error) {
       console.error("Error importing questions:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ 
-          message: "Invalid question data format", 
-          details: error.errors 
-        });
-      } else {
-        res.status(500).json({ message: "Failed to import questions" });
-      }
+      res.status(400).json({ message: "Failed to import questions" });
     }
   });
 

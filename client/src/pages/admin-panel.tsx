@@ -746,32 +746,15 @@ export default function AdminPanel() {
                       
                       {!(selectedQuestionSetForImport === questionSet.id && bulkImportData.jsonData) && (
                         <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-2">Paste your JSON data here:</p>
+                          <p className="text-sm text-gray-500 mb-2">Or paste your JSON data directly:</p>
                           <Textarea
-                            placeholder={`Paste your questions JSON here...
-Example format:
-[
-  {
-    "question_number": 1,
-    "type": "multiple choice", 
-    "loid": "11597",
-    "versions": [
-      {
-        "version_number": 1,
-        "topic_focus": "Topic description",
-        "question_text": "Question text here",
-        "answer_choices": ["A. Choice 1", "B. Choice 2", "C. Choice 3", "D. Choice 4"],
-        "correct_answer": "A"
-      }
-    ]
-  }
-]`}
+                            placeholder="Paste your questions JSON here..."
                             value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
                             onChange={(e) => {
                               setSelectedQuestionSetForImport(questionSet.id);
-                              setBulkImportData((prev: any) => ({ ...prev, jsonData: e.target.value }));
+                              setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
                             }}
-                            rows={8}
+                            rows={4}
                             className="font-mono text-sm"
                           />
                         </div>
@@ -1812,7 +1795,7 @@ Example format:
                   id="edit-prompt-text"
                   rows={6}
                   value={editingPromptVersion.promptText}
-                  onChange={(e) => setEditingPromptVersion((prev: any) => ({ ...prev, promptText: e.target.value }))}
+                  onChange={(e) => setEditingPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
                 />
                 <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded border">
                   <strong>Available Variables:</strong>
@@ -1828,7 +1811,7 @@ Example format:
                 <Label htmlFor="edit-model-for-prompt">AI Model for this prompt</Label>
                 <Select
                   value={editingPromptVersion.modelName || ""}
-                  onValueChange={(value) => setEditingPromptVersion((prev: any) => ({ ...prev, modelName: value }))}
+                  onValueChange={(value) => setEditingPromptVersion(prev => ({ ...prev, modelName: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select model (optional)" />

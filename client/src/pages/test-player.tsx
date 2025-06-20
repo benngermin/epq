@@ -14,22 +14,6 @@ export default function TestPlayer() {
   const [match, params] = useRoute("/test/:runId");
   const runId = params?.runId;
   const [, setLocation] = useLocation();
-
-  // Validate runId early
-  const runIdNum = parseInt(runId || "0");
-  if (isNaN(runIdNum) || runIdNum <= 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Test</h1>
-          <p className="mb-4">The test ID is invalid. Please check the URL and try again.</p>
-          <Button onClick={() => setLocation("/dashboard")}>
-            Return to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRailCollapsed, setIsRailCollapsed] = useState(false);
@@ -254,35 +238,45 @@ export default function TestPlayer() {
 
           {/* Navigation Controls - Only show when question is answered */}
           {(currentQuestion as any)?.userAnswer && (
-            <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
-              <div className="max-w-4xl mx-auto flex justify-between items-center">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentQuestionIndex === 0}
-                  className="text-sm"
-                >
-                  Previous
-                </Button>
-                
-                <div className="text-sm text-muted-foreground">
-                  Question {currentQuestionIndex + 1} of {totalQuestions}
+            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-2 sm:p-3 md:p-4 lg:p-5 shadow-lg">
+              <div className={cn(
+                "mx-auto",
+                isRailCollapsed 
+                  ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-8xl 4xl:max-w-9xl" 
+                  : "max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl"
+              )}>
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentQuestionIndex === 0}
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-2 sm:order-1 text-xs sm:text-sm md:text-base lg:text-base"
+                  >
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="text-xs sm:text-sm md:text-base text-muted-foreground text-center flex-shrink-0 order-1 sm:order-2">
+                    <span className="block sm:hidden">{answeredQuestions.length}/{totalQuestions} answered</span>
+                    <span className="hidden sm:block lg:hidden">{answeredQuestions.length} of {totalQuestions} answered</span>
+                    <span className="hidden lg:block">{answeredQuestions.length} of {totalQuestions} questions answered</span>
+                  </div>
+
+                  <Button
+                    onClick={handleNext}
+                    disabled={completeTestMutation.isPending}
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base lg:text-base"
+                  >
+                    {currentQuestionIndex === totalQuestions - 1 ? (
+                      completeTestMutation.isPending ? "Completing..." : "Complete Test"
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-                
-                <Button
-                  onClick={handleNext}
-                  disabled={completeTestMutation.isPending}
-                  className="text-sm"
-                >
-                  {currentQuestionIndex === totalQuestions - 1 ? (
-                    completeTestMutation.isPending ? "Completing..." : "Complete Test"
-                  ) : (
-                    <>
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
           )}
