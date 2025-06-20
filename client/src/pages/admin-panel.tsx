@@ -1534,68 +1534,7 @@ export default function AdminPanel() {
                 <p className="text-muted-foreground mt-2">Configure AI model parameters and behavior</p>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>AI Configuration</CardTitle>
-                  <CardDescription>
-                    Configure the AI assistant that provides explanations to learners
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="model-name">Model</Label>
-                    <Select
-                      value={aiSettingsData.modelName}
-                      onValueChange={(value) => {
-                        setAiSettingsData(prev => ({ 
-                          ...prev, 
-                          modelName: value,
-                          maxTokens: [Math.min(prev.maxTokens[0], getMaxTokensForModel(value))]
-                        }));
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {aiModels.map(model => (
-                          <SelectItem key={model.value} value={model.value}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Temperature: {aiSettingsData.temperature[0].toFixed(2)}</Label>
-                      <Slider
-                        value={aiSettingsData.temperature}
-                        onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, temperature: value }))}
-                        max={2}
-                        min={0}
-                        step={0.01}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Max Tokens: {aiSettingsData.maxTokens[0]} (max: {getMaxTokensForModel(aiSettingsData.modelName).toLocaleString()})</Label>
-                      <Slider
-                        value={aiSettingsData.maxTokens}
-                        onValueChange={(value) => setAiSettingsData(prev => ({ ...prev, maxTokens: value }))}
-                        max={getMaxTokensForModel(aiSettingsData.modelName)}
-                        min={1}
-                        step={10}
-                      />
-                    </div>
-                  </div>
-
-                  <Button onClick={onUpdateAiSettings} disabled={updateAiSettingsMutation.isPending}>
-                    {updateAiSettingsMutation.isPending ? "Updating..." : "Update AI Settings"}
-                  </Button>
-                </CardContent>
-              </Card>
 
               {/* Prompt Versions Card */}
               <Card>
