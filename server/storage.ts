@@ -224,7 +224,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
-    return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
+    try {
+      return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
+    } catch (error) {
+      console.error('Database error in getQuestionsByQuestionSet:', error);
+      // Return empty array on database error to prevent 500 errors
+      return [];
+    }
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {

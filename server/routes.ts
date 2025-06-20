@@ -299,16 +299,28 @@ export function registerRoutes(app: Express): Server {
       // Get the latest version for each question
       const questionsWithLatestVersions = await Promise.all(
         questions.map(async (question) => {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
-          return {
-            ...question,
-            latestVersion
-          };
+          try {
+            const versions = await storage.getQuestionVersionsByQuestion(question.id);
+            const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+            return {
+              ...question,
+              latestVersion
+            };
+          } catch (versionError) {
+            console.error(`Error fetching versions for question ${question.id}:`, versionError);
+            // Return question without version if there's an error
+            return {
+              ...question,
+              latestVersion: null
+            };
+          }
         })
       );
       
-      res.json(questionsWithLatestVersions);
+      // Filter out questions without versions for now
+      const validQuestions = questionsWithLatestVersions.filter(q => q.latestVersion !== null);
+      
+      res.json(validQuestions);
     } catch (error) {
       console.error("Error fetching questions:", error);
       res.status(500).json({ message: "Failed to fetch questions" });
