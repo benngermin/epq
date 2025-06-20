@@ -626,9 +626,16 @@ export function registerRoutes(app: Express): Server {
         // Follow-up question
         prompt = `${userMessage}\n\nContext: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.`;
       } else {
-        // Initial explanation
-        const systemPrompt = activePrompt?.promptText || 
-          `You are a course-assistant AI. The learner chose answer "${chosenAnswer}"; the correct answer is "${questionVersion.correctAnswer}". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.`;
+        // Initial explanation with variable substitution
+        let systemPrompt = activePrompt?.promptText || 
+          `You are a course-assistant AI. The learner chose answer "{chosenAnswer}"; the correct answer is "{correctAnswer}". Explain why the correct answer is correct, why the chosen answer is not, and invite follow-up questions. Keep replies under 150 words unless the learner requests more depth.`;
+        
+        // Substitute variables in the prompt
+        systemPrompt = systemPrompt
+          .replace(/{chosenAnswer}/g, chosenAnswer)
+          .replace(/{correctAnswer}/g, questionVersion.correctAnswer)
+          .replace(/{questionText}/g, questionVersion.questionText)
+          .replace(/{topicFocus}/g, questionVersion.topicFocus);
         
         prompt = `${systemPrompt}\n\nQuestion: ${questionVersion.questionText}\nChoices: ${questionVersion.answerChoices.join(', ')}\nLearner's answer: ${chosenAnswer}\nCorrect answer: ${questionVersion.correctAnswer}\nTopic: ${questionVersion.topicFocus}`;
       }

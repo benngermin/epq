@@ -1794,6 +1794,15 @@ export default function AdminPanel() {
                 value={newPromptVersion.promptText}
                 onChange={(e) => setNewPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
               />
+              <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded border">
+                <strong>Available Variables:</strong>
+                <div className="mt-1 space-y-1">
+                  <div><code>{"{chosenAnswer}"}</code> - The student's selected answer (A, B, C, D)</div>
+                  <div><code>{"{correctAnswer}"}</code> - The correct answer for the question</div>
+                  <div><code>{"{questionText}"}</code> - The full question text</div>
+                  <div><code>{"{topicFocus}"}</code> - The learning objective/topic for the question</div>
+                </div>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="model-for-prompt">AI Model for this prompt</Label>
@@ -1849,6 +1858,15 @@ export default function AdminPanel() {
                   value={editingPromptVersion.promptText}
                   onChange={(e) => setEditingPromptVersion(prev => ({ ...prev, promptText: e.target.value }))}
                 />
+                <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded border">
+                  <strong>Available Variables:</strong>
+                  <div className="mt-1 space-y-1">
+                    <div><code>{"{chosenAnswer}"}</code> - The student's selected answer (A, B, C, D)</div>
+                    <div><code>{"{correctAnswer}"}</code> - The correct answer for the question</div>
+                    <div><code>{"{questionText}"}</code> - The full question text</div>
+                    <div><code>{"{topicFocus}"}</code> - The learning objective/topic for the question</div>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-model-for-prompt">AI Model for this prompt</Label>
