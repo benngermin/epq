@@ -172,12 +172,6 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Get AI Help
                       </Button>
-                      {hasNextQuestion && (
-                        <Button onClick={onNextQuestion} className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Next Question
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      )}
                     </div>
                   )}
 
