@@ -204,16 +204,7 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      {/* Progress Section */}
-      <div className="bg-card border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-3">
-          <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-            <span>Progress</span>
-            <span className="font-medium text-sm">{currentQuestionIndex + 1} / {questions.length}</span>
-          </div>
-          <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="h-2" />
-        </div>
-      </div>
+      
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
 
