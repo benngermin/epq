@@ -1601,7 +1601,7 @@ export default function AdminPanel() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    System Message
+                    Assistant Chatbot Prompt
                     <Button 
                       onClick={() => setAddVersionDialogOpen(true)}
                       className="text-sm"
