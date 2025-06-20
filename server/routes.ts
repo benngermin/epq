@@ -676,13 +676,35 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question not found" });
       }
 
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+
       const aiSettings = await storage.getAiSettings();
       const activePrompt = await storage.getActivePromptVersion();
       
+      // Get source material for both initial and follow-up responses
+      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
+      
+      if (courseMaterial) {
+        sourceMaterial = courseMaterial.content;
+      }
+      
       let prompt;
       if (userMessage) {
-        // Follow-up question
-        prompt = `${userMessage}\n\nContext: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.`;
+        // Follow-up question with course material context
+        prompt = `${userMessage}
+
+Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.
+
+Relevant course material:
+${sourceMaterial}
+
+Please provide a helpful response based on the course material above.`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -723,17 +745,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         // Format answer choices as a list
         const formattedChoices = questionVersion.answerChoices.join('\n');
-        
-        // Get course material by LOID if available
-        const question = await storage.getQuestion(questionVersion.questionId);
-        let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
-        
-        if (question?.loid) {
-          const courseMaterial = await storage.getCourseMaterialByLoid(question.loid);
-          if (courseMaterial) {
-            sourceMaterial = courseMaterial.content;
-          }
-        }
 
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
