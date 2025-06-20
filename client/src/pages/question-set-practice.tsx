@@ -308,6 +308,7 @@ export default function QuestionSetPractice() {
                           setCurrentQuestionIndex(index);
                           setShowChat(false);
                           setSelectedAnswer("");
+                          setIsCardFlipped(false);
                         }}
                       >
                         <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
