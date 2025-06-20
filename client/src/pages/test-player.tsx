@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { QuestionCard } from "@/components/question-card";
 import { QuestionNavigation } from "@/components/question-navigation";
-import { QuestionNavigationBar } from "@/components/question-navigation-bar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -238,18 +237,49 @@ export default function TestPlayer() {
           </div>
 
           {/* Navigation Controls - Only show when question is answered */}
-          <QuestionNavigationBar
-            currentQuestionIndex={currentQuestionIndex}
-            totalQuestions={totalQuestions}
-            onPrevious={handlePrevious}
-            onNext={handleNext}
-            canGoNext={true}
-            canGoPrevious={true}
-            isVisible={!!(currentQuestion as any)?.userAnswer}
-            nextButtonText={currentQuestionIndex === totalQuestions - 1 ? "Complete Test" : "Next"}
-            isNextLoading={completeTestMutation.isPending}
-            statusText={`${answeredQuestions.length} of ${totalQuestions} questions answered`}
-          />
+          {(currentQuestion as any)?.userAnswer && (
+            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-2 sm:p-3 md:p-4 lg:p-5 shadow-lg">
+              <div className={cn(
+                "mx-auto",
+                isRailCollapsed 
+                  ? "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl 3xl:max-w-8xl 4xl:max-w-9xl" 
+                  : "max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl"
+              )}>
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentQuestionIndex === 0}
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-2 sm:order-1 text-xs sm:text-sm md:text-base lg:text-base"
+                  >
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="text-xs sm:text-sm md:text-base text-muted-foreground text-center flex-shrink-0 order-1 sm:order-2">
+                    <span className="block sm:hidden">{answeredQuestions.length}/{totalQuestions} answered</span>
+                    <span className="hidden sm:block lg:hidden">{answeredQuestions.length} of {totalQuestions} answered</span>
+                    <span className="hidden lg:block">{answeredQuestions.length} of {totalQuestions} questions answered</span>
+                  </div>
+
+                  <Button
+                    onClick={handleNext}
+                    disabled={completeTestMutation.isPending}
+                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base lg:text-base"
+                  >
+                    {currentQuestionIndex === totalQuestions - 1 ? (
+                      completeTestMutation.isPending ? "Completing..." : "Complete Test"
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
