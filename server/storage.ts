@@ -137,13 +137,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
-    // Only return question set with ID 2, which contains real CPCU content
-    return await db.select().from(questionSets).where(
-      and(
-        eq(questionSets.courseId, courseId),
-        eq(questionSets.id, 2)
-      )
-    );
+    return await db.select().from(questionSets).where(eq(questionSets.courseId, courseId));
   }
 
   async getQuestionSet(id: number): Promise<QuestionSet | undefined> {

@@ -327,18 +327,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
       
-      // Filter out questions with placeholder content
-      const validQuestions = questionsWithLatestVersions.filter(q => 
-        q.latestVersion && 
-        q.latestVersion.questionText !== 'Question content not yet available'
-      );
-      
-      // If no valid questions found, return empty array
-      if (validQuestions.length === 0) {
-        return res.json([]);
-      }
-      
-      res.json(validQuestions);
+      res.json(questionsWithLatestVersions);
     } catch (error) {
       console.error("Error fetching questions:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
