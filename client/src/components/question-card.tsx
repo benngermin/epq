@@ -188,7 +188,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[700px] max-h-[calc(100vh-100px)] flex flex-col bg-card border shadow-sm">
+            <Card className="h-full min-h-[700px] max-h-[calc(100vh-100px)] flex flex-col bg-card border shadow-sm overflow-hidden">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ChatInterface
                   questionVersionId={question.latestVersion?.id || question.id}
@@ -196,7 +196,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
-              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2">
+              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0 space-y-2 mx-0">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
