@@ -268,7 +268,7 @@ function AISettingsSection() {
                       />
                     </FormControl>
                     <div className="text-xs text-muted-foreground">
-                      This prompt guides how the AI responds to student questions. Use template variables: {{QUESTION_TEXT}}, {{ANSWER_CHOICES}}, {{SELECTED_ANSWER}}, {{CORRECT_ANSWER}}, {{SOURCE_MATERIAL}}
+                      This prompt guides how the AI responds to student questions. Use template variables: {"{"}{"{"} QUESTION_TEXT {"}"}{"}"},  {"{"}{"{"} ANSWER_CHOICES {"}"}{"}"},  {"{"}{"{"} SELECTED_ANSWER {"}"}{"}"},  {"{"}{"{"} CORRECT_ANSWER {"}"}{"}"},  {"{"}{"{"} SOURCE_MATERIAL {"}"}{"}"} 
                     </div>
                     <FormMessage />
                   </FormItem>
