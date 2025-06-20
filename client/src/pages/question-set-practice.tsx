@@ -390,8 +390,6 @@ export default function QuestionSetPractice() {
                 isSubmitting={submitAnswerMutation.isPending}
                 testRunId={0} // Not used for question set practice
                 onFlipChange={setIsCardFlipped}
-                onNextQuestion={handleNextQuestion}
-                hasNextQuestion={currentQuestionIndex < questions.length - 1}
                 isFlipped={isCardFlipped}
               />
             </div>
@@ -400,25 +398,27 @@ export default function QuestionSetPractice() {
           {/* Fixed Navigation Bar at Bottom - Hidden when chatbot is showing */}
           {!isCardFlipped && (
             <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
-              <div className="max-w-4xl mx-auto flex justify-between">
+              <div className="max-w-4xl mx-auto flex justify-between items-center">
                 <Button
                   variant="outline"
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className="min-w-[120px]"
+                  className="text-sm"
                 >
                   Previous
                 </Button>
-                <div className="text-sm text-muted-foreground flex items-center">
+                
+                <div className="text-sm text-muted-foreground">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </div>
+                
                 <Button
                   onClick={handleNextQuestion}
                   disabled={currentQuestionIndex === questions.length - 1}
-                  className="min-w-[120px]"
+                  className="text-sm"
                 >
                   Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                  <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>

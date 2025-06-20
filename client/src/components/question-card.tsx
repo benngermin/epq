@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, RotateCcw } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
 import { cn } from "@/lib/utils";
 
@@ -14,12 +14,10 @@ interface QuestionCardProps {
   isSubmitting: boolean;
   testRunId: number;
   onFlipChange?: (isFlipped: boolean) => void;
-  onNextQuestion?: () => void;
-  hasNextQuestion?: boolean;
   isFlipped?: boolean;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion, isFlipped = false }: QuestionCardProps) {
+export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, isFlipped = false }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
@@ -191,18 +189,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
         </div>
       </div>
 
-      {/* Next Question Button - Always Fixed at Bottom */}
-      {hasNextQuestion && hasAnswer && (
-        <div className="mt-6 w-full">
-          <Button 
-            onClick={onNextQuestion} 
-            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-medium"
-          >
-            Next Question
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
-      )}
+
 
       <style>
         {`.card-flip {
