@@ -32,6 +32,163 @@ const questionSetSchema = z.object({
   courseId: z.number().min(1, "Course selection is required"),
 });
 
+const aiSettingsSchema = z.object({
+  model: z.string().min(1, "Model is required"),
+  temperature: z.number().min(0).max(2),
+  maxTokens: z.number().min(1).max(4000),
+  systemPrompt: z.string().optional(),
+});
+
+// AI Settings Component
+function AISettingsSection() {
+  const { toast } = useToast();
+  
+  const aiSettingsForm = useForm<z.infer<typeof aiSettingsSchema>>({
+    resolver: zodResolver(aiSettingsSchema),
+    defaultValues: {
+      model: "openai/gpt-3.5-turbo",
+      temperature: 0.7,
+      maxTokens: 1000,
+      systemPrompt: "You are a helpful assistant for educational content.",
+    },
+  });
+
+  const updateAISettingsMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof aiSettingsSchema>) => {
+      const res = await apiRequest("POST", "/api/admin/ai-settings", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "AI settings updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update AI settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmitAISettings = (data: z.infer<typeof aiSettingsSchema>) => {
+    updateAISettingsMutation.mutate(data);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Model Configuration</CardTitle>
+        <CardDescription>
+          Configure the AI model parameters for question generation and analysis
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...aiSettingsForm}>
+          <form onSubmit={aiSettingsForm.handleSubmit(onSubmitAISettings)} className="space-y-4">
+            <FormField
+              control={aiSettingsForm.control}
+              name="model"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI Model</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select AI model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                        <SelectItem value="openai/gpt-4">GPT-4</SelectItem>
+                        <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
+                        <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={aiSettingsForm.control}
+              name="temperature"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Temperature ({field.value})</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                  </FormControl>
+                  <div className="text-xs text-muted-foreground">
+                    Higher values make output more random, lower values more deterministic
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={aiSettingsForm.control}
+              name="maxTokens"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max Tokens</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="4000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <div className="text-xs text-muted-foreground">
+                    Maximum number of tokens in the response
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={aiSettingsForm.control}
+              name="systemPrompt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>System Prompt</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter system prompt for the AI model..."
+                      className="resize-none"
+                      rows={4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <div className="text-xs text-muted-foreground">
+                    Instructions that guide the AI's behavior and responses
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" disabled={updateAISettingsMutation.isPending}>
+              {updateAISettingsMutation.isPending ? "Updating..." : "Update Settings"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminPanel() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
