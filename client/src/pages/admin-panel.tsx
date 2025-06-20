@@ -272,6 +272,41 @@ export default function AdminPanel() {
     },
   });
 
+  const importCourseMaterialsMutation = useMutation({
+    mutationFn: async (csvContent: string) => {
+      // Parse CSV client-side and send as JSON
+      const lines = csvContent.split('\n');
+      const materials = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const regex = /"([^"]*)","([^"]*)","([^"]*)","(.*)"/;
+        const match = line.match(regex);
+        
+        if (match) {
+          const [, assignment, course, loid, content] = match;
+          materials.push({ assignment, course, loid, content });
+        }
+      }
+      
+      const res = await apiRequest("POST", "/api/admin/import-course-materials", { materials });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Course materials imported successfully" });
+      setCourseMaterialsDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to import course materials",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // State management
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [editingQuestionSet, setEditingQuestionSet] = useState<any>(null);
@@ -1536,6 +1571,31 @@ export default function AdminPanel() {
 
 
 
+              {/* Course Materials Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    Course Materials
+                    <Button 
+                      onClick={() => setCourseMaterialsDialogOpen(true)}
+                      className="text-sm"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import CSV
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Course materials provide context for the AI chatbot when students get questions wrong. 
+                    Each material is linked to questions via LOID (Learning Objective ID).
+                  </p>
+                  <div className="text-sm">
+                    <p>Upload a CSV file with columns: assignment, course, loid, value</p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Prompt Versions Card */}
               <Card>
                 <CardHeader>
@@ -1704,6 +1764,57 @@ export default function AdminPanel() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Course Materials Import Dialog */}
+      <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Course Materials</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file containing course materials with LOID mapping
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="csv-file">CSV File</Label>
+              <input
+                id="csv-file"
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const csvContent = event.target?.result as string;
+                      importCourseMaterialsMutation.mutate(csvContent);
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded border">
+              <strong>CSV Format:</strong>
+              <ul className="mt-2 space-y-1 list-disc list-inside">
+                <li>assignment: The assignment/chapter name</li>
+                <li>course: Course identifier (e.g., CPCU 500)</li>
+                <li>loid: Learning Objective ID (links to questions)</li>
+                <li>value: The course material content</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setCourseMaterialsDialogOpen(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Prompt Version Dialog */}
       <Dialog open={addVersionDialogOpen} onOpenChange={setAddVersionDialogOpen}>
