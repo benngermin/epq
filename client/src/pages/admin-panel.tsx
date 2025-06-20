@@ -1118,8 +1118,7 @@ export default function AdminPanel() {
                   <h1 className="text-2xl font-bold text-foreground">Import & Upload</h1>
                   <p className="text-muted-foreground mt-2">Upload course materials and question sets</p>
                 </div>
-
-                  <DialogContent>
+              </div>
                     <DialogHeader>
                       <DialogTitle>Create New Question Set</DialogTitle>
                       <DialogDescription>

@@ -5,8 +5,9 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
-  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, type QuestionImport 
+  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport 
 } from "@shared/schema";
+import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
 
