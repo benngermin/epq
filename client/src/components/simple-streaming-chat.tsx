@@ -82,12 +82,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             
             // Update either initial AI response or follow-up message
             if (userMessage) {
-              // Update the latest assistant message for follow-ups
-              setMessages(prev => prev.map((msg, index) => 
-                index === 0 && msg.role === "assistant" 
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              ));
+              // Update the most recent assistant message for follow-ups
+              setMessages(prev => {
+                const updated = [...prev];
+                for (let i = 0; i < updated.length; i++) {
+                  if (updated[i].role === "assistant") {
+                    updated[i] = { ...updated[i], content: accumulatedContent };
+                    break;
+                  }
+                }
+                return updated;
+              });
             } else {
               // Update initial response
               setAiResponse(accumulatedContent);
@@ -124,12 +129,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       });
       
       if (userMessage) {
-        // Update the latest assistant message with error for follow-ups
-        setMessages(prev => prev.map((msg, index) => 
-          index === 0 && msg.role === "assistant" 
-            ? { ...msg, content: "Error loading response. Please try again." }
-            : msg
-        ));
+        // Update the most recent assistant message with error for follow-ups
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = 0; i < updated.length; i++) {
+            if (updated[i].role === "assistant") {
+              updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
+              break;
+            }
+          }
+          return updated;
+        });
       } else {
         setHasResponse(true);
         setAiResponse("Error loading response. Please try again.");
