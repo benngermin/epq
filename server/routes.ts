@@ -967,11 +967,12 @@ export function registerRoutes(app: Express): Server {
   // Initialize streaming
   app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
     console.log("=== INITIALIZING STREAM ===");
-    console.log("Request body received:", req.body);
+    console.log("Request body received:", JSON.stringify(req.body, null, 2));
     
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
-      console.log("Extracted chosenAnswer:", chosenAnswer);
+      console.log("Extracted chosenAnswer:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
+      console.log("chosenAnswer isEmpty?", !chosenAnswer || chosenAnswer.trim() === '');
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
       // Clean up any existing streams for this user to prevent conflicts
