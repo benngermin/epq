@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- June 21, 2025 6:55 PM: Improved responsive design for progress sidebar
+  - Completely redesigned left progress bar for better mobile/tablet experience
+  - Added collapsible sidebar with smooth slide-out animation from left to right
+  - Implemented toggle button showing current progress count for mobile devices
+  - Added overlay and close button for intuitive mobile interaction
+  - Maintained full desktop functionality while enhancing mobile usability
 - June 20, 2025 7:50 PM: Enhanced navigation and title display improvements
   - Removed redundant div component from question card for cleaner interface
   - Added clickable logo navigation to return to dashboard from practice sessions
