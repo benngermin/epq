@@ -31,8 +31,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Clear and show streaming container
     if (streamingRef.current) {
-      streamingRef.current.innerHTML = "Starting response...";
-      streamingRef.current.style.display = "block";
+      streamingRef.current.style.display = "flex";
+      const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
+      if (contentDiv) {
+        contentDiv.innerHTML = "Starting response...";
+      }
     }
 
     try {
@@ -68,9 +71,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           accumulatedContent += chunkData.content;
           currentStreamRef.current = accumulatedContent;
           
-          // Update DOM directly
+          // Update DOM directly and ensure container is visible
           if (streamingRef.current) {
-            streamingRef.current.innerHTML = accumulatedContent.replace(/\n/g, '<br>');
+            streamingRef.current.style.display = "flex";
+            const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
+            if (contentDiv) {
+              contentDiv.innerHTML = accumulatedContent.replace(/\n/g, '<br>');
+            }
             
             // Auto-scroll to bottom
             if (scrollContainerRef.current) {
@@ -91,7 +98,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       });
       
       if (streamingRef.current) {
-        streamingRef.current.style.display = "none";
+        streamingRef.current.style.display = "flex";
+        const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
+        if (contentDiv) {
+          contentDiv.innerHTML = "Error loading response. Please try again.";
+        }
       }
     } finally {
       setIsStreaming(false);
