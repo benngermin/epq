@@ -1032,8 +1032,11 @@ export function registerRoutes(app: Express): Server {
       const stream = activeStreams.get(streamId);
       if (!stream) return;
 
+      console.log("=== PROCESS STREAM BACKGROUND START ===");
       console.log("Processing stream with chosenAnswer:", chosenAnswer, "type:", typeof chosenAnswer);
       console.log("userMessage provided:", JSON.stringify(userMessage), "type:", typeof userMessage);
+      console.log("chosenAnswer truthy check:", !!chosenAnswer);
+      console.log("chosenAnswer after trim:", chosenAnswer?.trim());
 
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
