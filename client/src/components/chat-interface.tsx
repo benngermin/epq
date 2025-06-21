@@ -32,6 +32,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const streamingContentRef = useRef<string>("");
   const streamingMessageIdRef = useRef<string>("");
 
+  // Debug messages state
+  console.log("ChatInterface render - Messages count:", messages.length, "IsStreaming:", isStreaming);
+
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
 
   // Stream chat response function using WebSocket-style approach
@@ -109,11 +112,13 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             
             // Update the streaming message using the message ID
             setMessages(prev => {
-              return prev.map(msg => 
+              const updated = prev.map(msg => 
                 msg.id === streamingMessageIdRef.current && msg.isStreaming
                   ? { ...msg, content: streamingContentRef.current }
                   : msg
               );
+              console.log("Updated messages array:", updated.length, "streaming message found:", updated.some(m => m.isStreaming));
+              return updated;
             });
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
@@ -130,14 +135,14 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         }
 
         // Small delay between polls
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
     } catch (error: any) {
       console.error("Streaming error:", error);
       
       // Remove the streaming message and show error
-      setMessages(prev => prev.filter(msg => !msg.isStreaming));
+      setMessages(prev => prev.filter(msg => msg.id !== streamingMessageIdRef.current));
       
       toast({
         title: "Error",
@@ -146,6 +151,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       });
     } finally {
       setIsStreaming(false);
+      streamingContentRef.current = "";
+      streamingMessageIdRef.current = "";
     }
   };
 
@@ -180,6 +187,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     setHasRequestedInitial(false);
     setMessages([]);
     setIsStreaming(false);
+    streamingContentRef.current = "";
+    streamingMessageIdRef.current = "";
   }, [currentQuestionKey]);
 
   const handleSendMessage = () => {
@@ -223,41 +232,44 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
               </div>
             )}
 
-            {messages.slice().reverse().map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex w-full",
-                  message.role === "assistant" ? "justify-start" : "justify-end"
-                )}
-              >
+            {messages.slice().reverse().map((message, index) => {
+              console.log(`Rendering message ${index}:`, { role: message.role, contentLength: message.content.length, isStreaming: message.isStreaming, id: message.id });
+              return (
                 <div
+                  key={message.id || index}
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm break-words",
-                    message.role === "assistant"
-                      ? "bg-muted text-foreground rounded-tl-none"
-                      : "bg-primary text-primary-foreground rounded-tr-none"
+                    "flex w-full",
+                    message.role === "assistant" ? "justify-start" : "justify-end"
                   )}
                 >
-                  <div className="flex items-start gap-2">
-                    {message.role === "assistant" && (
-                      <Bot className={cn(
-                        "h-4 w-4 mt-0.5 flex-shrink-0 text-primary",
-                        message.isStreaming && "animate-pulse"
-                      )} />
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-lg px-3 py-2 text-sm break-words",
+                      message.role === "assistant"
+                        ? "bg-muted text-foreground rounded-tl-none"
+                        : "bg-primary text-primary-foreground rounded-tr-none"
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="whitespace-pre-wrap leading-relaxed">
-                        {message.content}
-                        {message.isStreaming && (
-                          <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
-                        )}
-                      </p>
+                  >
+                    <div className="flex items-start gap-2">
+                      {message.role === "assistant" && (
+                        <Bot className={cn(
+                          "h-4 w-4 mt-0.5 flex-shrink-0 text-primary",
+                          message.isStreaming && "animate-pulse"
+                        )} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {message.content}
+                          {message.isStreaming && (
+                            <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             <div ref={messagesEndRef} />
           </div>
