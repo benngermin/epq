@@ -446,7 +446,7 @@ export default function QuestionSetPractice() {
                 variant="outline"
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
-                className="min-w-[120px] border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
@@ -458,7 +458,7 @@ export default function QuestionSetPractice() {
                 variant="outline"
                 onClick={handleNextQuestion}
                 disabled={currentQuestionIndex === questions.length - 1}
-                className="min-w-[120px] border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
