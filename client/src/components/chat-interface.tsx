@@ -40,6 +40,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Stream chat response function using WebSocket-style approach
   const streamChatResponse = async (userMessage?: string) => {
+    // Prevent multiple concurrent streams
+    if (isStreamingRef.current) {
+      console.log("Stream already in progress, ignoring request");
+      return;
+    }
+    
     console.log("Starting stream chat response...");
     setIsStreaming(true);
     
@@ -109,17 +115,23 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
               );
             });
             
+            // Clean up streaming state after completion
+            isStreamingRef.current = false;
+            setIsStreaming(false);
             setStreamingContent("");
             streamingContentRef.current = "";
-            setIsStreaming(false);
-            isStreamingRef.current = false;
             break;
           }
 
           if (chunkData.content) {
+            console.log("📥 Received chunk:", chunkData.content.substring(0, 50));
+            
             // Update both state and ref
             streamingContentRef.current += chunkData.content;
             setStreamingContent(streamingContentRef.current);
+            
+            console.log("📊 State updated - Ref length:", streamingContentRef.current.length, "State length:", streamingContent.length);
+            console.log("🔄 Force re-render trigger");
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -150,11 +162,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         variant: "destructive",
       });
     } finally {
+      // Always clean up streaming state
+      isStreamingRef.current = false;
       setIsStreaming(false);
       setStreamingContent("");
       streamingContentRef.current = "";
       streamingMessageIdRef.current = "";
-      isStreamingRef.current = false;
     }
   };
 
@@ -172,7 +185,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Get initial explanation only once per question
   useEffect(() => {
-    if (!hasRequestedInitial && !isStreaming) {
+    if (!hasRequestedInitial && !isStreaming && !isStreamingRef.current) {
       setHasRequestedInitial(true);
       setMessages([]); // Clear previous messages
       streamChatResponse(undefined);
@@ -186,17 +199,20 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       abortControllerRef.current.abort();
     }
     
-    setHasRequestedInitial(false);
-    setMessages([]);
+    // Force cleanup of streaming state
+    isStreamingRef.current = false;
     setIsStreaming(false);
     setStreamingContent("");
     streamingContentRef.current = "";
     streamingMessageIdRef.current = "";
-    isStreamingRef.current = false;
+    
+    // Reset messages and initial request flag
+    setHasRequestedInitial(false);
+    setMessages([]);
   }, [currentQuestionKey]);
 
   const handleSendMessage = () => {
-    if (!userInput.trim() || isStreaming) return;
+    if (!userInput.trim() || isStreaming || isStreamingRef.current) return;
 
     const newUserMessage = { 
       role: "user" as const, 
@@ -247,6 +263,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                         {streamingContent || "Starting response..."}
                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                       </p>
+                      <div className="text-xs text-red-500 mt-1">
+                        Debug: streaming={isStreaming.toString()}, content_length={streamingContent.length}, ref_length={streamingContentRef.current?.length || 0}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -302,7 +321,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!userInput.trim() || isStreaming}
+            disabled={!userInput.trim() || isStreaming || isStreamingRef.current}
             size="sm"
             className="flex-shrink-0 h-9 px-3"
           >
