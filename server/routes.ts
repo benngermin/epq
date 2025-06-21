@@ -789,9 +789,9 @@ First, carefully review the assessment content:
 </correct_answer>
 
 Next, review the provided source material that was used to create this assessment content:
-<source_material>
-{{SOURCE_MATERIAL}}
-</source_material>
+<course_material>
+{{COURSE_MATERIAL}}
+</course_material>
 
 Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
 
