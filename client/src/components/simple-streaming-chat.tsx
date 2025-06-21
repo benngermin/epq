@@ -53,8 +53,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     console.log("Is this a follow-up message?", !!userMessage);
     
     setIsStreaming(true);
-    setHasResponse(true);
-    setAiResponse("Loading AI response...");
     
     try {
       // Initialize streaming
