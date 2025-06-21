@@ -41,9 +41,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     console.log("chosenAnswer prop:", typeof chosenAnswer, "value:", JSON.stringify(chosenAnswer));
     console.log("originalChosenAnswerRef.current:", typeof originalChosenAnswerRef.current, "value:", JSON.stringify(originalChosenAnswerRef.current));
     
-    const finalChosenAnswer = chosenAnswer || originalChosenAnswerRef.current || "";
+    // Always use the original chosen answer for consistency
+    const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
     console.log("Final chosen answer to send:", JSON.stringify(finalChosenAnswer));
     console.log("Request body being sent:", JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }));
+    console.log("Is this a follow-up message?", !!userMessage);
     
     setIsStreaming(true);
     setHasResponse(true);
