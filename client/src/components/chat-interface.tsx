@@ -33,6 +33,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const streamingMessageIdRef = useRef<string>("");
   const isStreamingRef = useRef<boolean>(false);
   const streamingContentRef = useRef<string>("");
+  const currentStreamIdRef = useRef<string>("");
 
 
 
@@ -41,19 +42,21 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   // Stream chat response function using WebSocket-style approach
   const streamChatResponse = async (userMessage?: string) => {
     // Prevent multiple concurrent streams
-    if (isStreamingRef.current) {
+    if (isStreamingRef.current || currentStreamIdRef.current) {
       console.log("Stream already in progress, ignoring request");
       return;
     }
     
     console.log("Starting stream chat response...");
-    setIsStreaming(true);
     
     // Generate unique ID for this streaming message
     const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     streamingMessageIdRef.current = messageId;
+    
+    // Reset and initialize streaming state
     setStreamingContent("");
     streamingContentRef.current = "";
+    setIsStreaming(true);
     isStreamingRef.current = true;
 
     // Add initial assistant message
@@ -85,6 +88,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
       const { streamId } = await response.json();
       console.log("Stream initialized with ID:", streamId);
+      currentStreamIdRef.current = streamId;
 
       // Poll for chunks
       let done = false;
@@ -99,7 +103,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           const chunkData = await chunkResponse.json();
-          console.log("Chunk data received:", chunkData);
+          console.log("🔍 Full chunk data:", chunkData);
           
           if (chunkData.done) {
             done = true;
@@ -124,9 +128,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content) {
-            // Update both state and ref
-            streamingContentRef.current += chunkData.content;
-            setStreamingContent(streamingContentRef.current);
+            console.log("📦 Chunk:", chunkData.content.substring(0, 30));
+            
+            // Force immediate state update with functional setter
+            setStreamingContent(prev => {
+              const newContent = prev + chunkData.content;
+              streamingContentRef.current = newContent;
+              console.log("📊 Updated:", newContent.length, "chars");
+              return newContent;
+            });
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -159,6 +169,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     } finally {
       // Always clean up streaming state
       isStreamingRef.current = false;
+      currentStreamIdRef.current = "";
       setIsStreaming(false);
       setStreamingContent("");
       streamingContentRef.current = "";
@@ -196,6 +207,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     
     // Force cleanup of streaming state
     isStreamingRef.current = false;
+    currentStreamIdRef.current = "";
     setIsStreaming(false);
     setStreamingContent("");
     streamingContentRef.current = "";
@@ -249,16 +261,18 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
             {/* Show streaming content as a live message */}
             {isStreaming && (
-              <div className="flex w-full justify-start">
-                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
+              <div className="flex w-full justify-start" key="streaming-message">
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-blue-100 dark:bg-blue-900 text-foreground rounded-tl-none border-2 border-blue-300">
                   <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary animate-pulse" />
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 animate-pulse" />
                     <div className="flex-1 min-w-0">
-                      <p className="whitespace-pre-wrap leading-relaxed">
-                        {streamingContent || "Starting response..."}
-                        <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+                      <p className="whitespace-pre-wrap leading-relaxed text-blue-900 dark:text-blue-100">
+                        {streamingContent || "🤖 Thinking..."}
+                        <span className="inline-block w-2 h-4 bg-blue-600 animate-pulse ml-1" />
                       </p>
-
+                      <div className="text-xs text-blue-600 mt-1">
+                        Live: {streamingContent.length} chars | Streaming: {isStreaming.toString()}
+                      </div>
                     </div>
                   </div>
                 </div>
