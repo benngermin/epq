@@ -914,7 +914,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get active prompt
-      const activePrompt = await storage.getActivePrompt();
+      const activePrompt = await storage.getActivePromptVersion();
       if (!activePrompt) {
         return res.status(500).json({ error: "No active prompt configured" });
       }
