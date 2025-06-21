@@ -227,7 +227,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
         <div className="flex-1 overflow-y-auto mb-3 min-h-0" style={{ maxHeight: 'calc(100% - 120px)' }}>
           <div className="space-y-3 p-2">
-            {isStreaming && messages.length === 0 && (
+            {isStreaming && !streamingContent && (
               <div className="flex items-center justify-center h-32">
                 <div className="flex items-center space-x-2">
                   <Bot className="h-5 w-5 animate-pulse text-primary" />
