@@ -31,151 +31,95 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
 
-  // Stream chat response function
+  // Stream chat response function using WebSocket-style approach
   const streamChatResponse = async (userMessage?: string) => {
     console.log("Starting stream chat response...");
     setIsStreaming(true);
     
-    // Create abort controller for this request
-    abortControllerRef.current = new AbortController();
+    // Add initial assistant message
+    setMessages(prev => [{
+      role: "assistant",
+      content: "",
+      isStreaming: true
+    }, ...prev]);
+
+    let fullContent = "";
     
     try {
-      console.log("Making fetch request to /api/chatbot/stream");
-      const response = await fetch('/api/chatbot/stream', {
+      // Use a polling approach for reliable streaming
+      const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache',
         },
         body: JSON.stringify({
           questionVersionId,
           chosenAnswer,
           userMessage,
         }),
-        credentials: 'include', // This ensures cookies are sent
-        signal: abortControllerRef.current.signal,
+        credentials: 'include',
       });
 
-      console.log("Response received:", response.status, response.headers.get('content-type'));
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Response error:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Check if the response is actually an SSE stream
-      const contentType = response.headers.get('content-type');
-      console.log("Content-Type header:", contentType);
-      
-      if (!contentType || !contentType.includes('text/event-stream')) {
-        console.error("Invalid content type for SSE:", contentType);
-        
-        // Check if it's HTML (indicating an error page)
-        if (contentType && contentType.includes('text/html')) {
-          console.error("Received HTML response instead of SSE stream");
-          throw new Error('Server returned HTML instead of SSE stream - check authentication');
-        }
-        
-        const responseText = await response.text();
-        console.error("Response body:", responseText);
-        throw new Error('Response is not a valid SSE stream');
-      }
+      const { streamId } = await response.json();
+      console.log("Stream initialized with ID:", streamId);
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      
-      if (!reader) {
-        throw new Error('No response stream available');
-      }
+      // Poll for chunks
+      let done = false;
+      while (!done) {
+        try {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+            credentials: 'include',
+          });
 
-      console.log("Starting to read stream from response...");
-
-      // Add initial assistant message
-      const assistantMessageId = Date.now();
-      setMessages(prev => [{
-        role: "assistant",
-        content: "",
-        isStreaming: true
-      }, ...prev]);
-
-      let fullContent = "";
-
-      let buffer = "";
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          console.log("Stream read completed");
-          break;
-        }
-        
-        const chunk = decoder.decode(value, { stream: true });
-        console.log("Received chunk:", chunk);
-        buffer += chunk;
-        
-        // Process complete lines
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.trim() === '') continue; // Skip empty lines
-          
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            console.log("Processing data:", data.substring(0, 100) + "...");
-            
-            if (data === '[DONE]') {
-              console.log("Received DONE signal, finishing stream");
-              setMessages(prev => prev.map((msg, index) => 
-                index === 0 && msg.isStreaming 
-                  ? { ...msg, isStreaming: false }
-                  : msg
-              ));
-              setIsStreaming(false);
-              return;
-            }
-            
-            if (data && data !== '') {
-              try {
-                const parsed = JSON.parse(data);
-                
-                if (parsed.error) {
-                  throw new Error(parsed.error);
-                }
-                
-                if (parsed.type === "connection") {
-                  console.log("Connection established");
-                  continue;
-                }
-                
-                if (parsed.content) {
-                  fullContent += parsed.content;
-                  console.log("Updated content, total length:", fullContent.length);
-                  
-                  // Update the streaming message
-                  setMessages(prev => prev.map((msg, index) => 
-                    index === 0 && msg.isStreaming 
-                      ? { ...msg, content: fullContent }
-                      : msg
-                  ));
-                  
-                  setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
-                }
-              } catch (e) {
-                console.log("Skipping invalid JSON:", data.substring(0, 50), e);
-              }
-            }
+          if (!chunkResponse.ok) {
+            throw new Error('Failed to fetch chunk');
           }
+
+          const chunkData = await chunkResponse.json();
+          
+          if (chunkData.done) {
+            done = true;
+            setMessages(prev => prev.map((msg, index) => 
+              index === 0 && msg.isStreaming 
+                ? { ...msg, isStreaming: false }
+                : msg
+            ));
+            setIsStreaming(false);
+            break;
+          }
+
+          if (chunkData.content) {
+            fullContent += chunkData.content;
+            
+            // Update the streaming message
+            setMessages(prev => prev.map((msg, index) => 
+              index === 0 && msg.isStreaming 
+                ? { ...msg, content: fullContent }
+                : msg
+            ));
+            
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
+          }
+
+          if (chunkData.error) {
+            throw new Error(chunkData.error);
+          }
+
+        } catch (pollError) {
+          console.error("Polling error:", pollError);
+          // Continue polling on minor errors
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        // Small delay between polls
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
+
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        return; // Request was aborted, don't show error
-      }
-      
       console.error("Streaming error:", error);
       
       // Remove the streaming message and show error
@@ -188,7 +132,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       });
     } finally {
       setIsStreaming(false);
-      abortControllerRef.current = null;
     }
   };
 

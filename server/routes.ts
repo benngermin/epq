@@ -122,21 +122,24 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 }
 
-// Streaming OpenRouter integration
-async function streamOpenRouter(
+// Streaming OpenRouter integration for buffer approach
+async function streamOpenRouterToBuffer(
   prompt: string, 
   settings: any, 
-  res: Response, 
+  streamId: string, 
   userId?: number, 
   systemMessage?: string
 ): Promise<void> {
-  console.log("Starting streamOpenRouter with prompt length:", prompt.length);
+  console.log("Starting streamOpenRouterToBuffer with prompt length:", prompt.length);
   const apiKey = process.env.OPENROUTER_API_KEY;
+  
+  const stream = activeStreams.get(streamId);
+  if (!stream) return;
   
   if (!apiKey) {
     console.error("No OpenRouter API key found");
-    res.write(`data: ${JSON.stringify({ error: "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key." })}\n\n`);
-    res.write('data: [DONE]\n\n');
+    stream.error = "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key.";
+    stream.done = true;
     return;
   }
 
@@ -222,8 +225,8 @@ async function streamOpenRouter(
             
             if (content) {
               fullResponse += content;
-              res.write(`data: ${JSON.stringify({ content })}\n\n`);
-              console.log("Sent content chunk:", content.substring(0, 50) + "...");
+              stream.chunks.push(content);
+              console.log("Added content chunk to buffer:", content.substring(0, 50) + "...");
             }
           } catch (e) {
             console.log("Skipping invalid JSON chunk:", data.substring(0, 100));
@@ -254,8 +257,8 @@ async function streamOpenRouter(
     console.error("OpenRouter streaming error:", error);
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
-    res.write(`data: ${JSON.stringify({ error: errorResponse })}\n\n`);
-    res.write('data: [DONE]\n\n');
+    stream.error = errorResponse;
+    stream.done = true;
     
     // Log the error interaction
     try {
@@ -274,10 +277,9 @@ async function streamOpenRouter(
     }
   }
   
-  // Always send DONE signal at the end
-  res.write('data: [DONE]\n\n');
-  res.end();
-  console.log("streamOpenRouter function completed");
+  // Mark stream as done
+  stream.done = true;
+  console.log("streamOpenRouterToBuffer function completed");
 }
 
 export function registerRoutes(app: Express): Server {
@@ -884,32 +886,65 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // AI chatbot route - streaming
-  app.post("/api/chatbot/stream", requireAuth, async (req, res) => {
-    console.log("=== CHATBOT STREAM REQUEST ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
+  // In-memory store for active streams
+  const activeStreams = new Map<string, { chunks: string[], done: boolean, error?: string }>();
+
+  // Initialize streaming
+  app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
+    console.log("=== INITIALIZING STREAM ===");
     
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
-      // Set up SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
-      res.status(200);
+      // Initialize stream
+      activeStreams.set(streamId, { chunks: [], done: false });
       
-      // Send initial connection event
-      res.write('data: {"type": "connection"}\n\n');
+      // Start background processing
+      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id);
       
-      console.log("SSE headers set, processing request...");
+      res.json({ streamId });
+    } catch (error) {
+      console.error("Error initializing stream:", error);
+      res.status(500).json({ error: "Failed to initialize stream" });
+    }
+  });
+
+  // Get stream chunk
+  app.get("/api/chatbot/stream-chunk/:streamId", requireAuth, async (req, res) => {
+    const streamId = req.params.streamId;
+    const stream = activeStreams.get(streamId);
+    
+    if (!stream) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
+    
+    // Return available chunks
+    const chunks = stream.chunks.splice(0); // Remove returned chunks
+    const content = chunks.join('');
+    
+    res.json({
+      content,
+      done: stream.done,
+      error: stream.error
+    });
+    
+    // Clean up finished streams
+    if (stream.done) {
+      activeStreams.delete(streamId);
+    }
+  });
+
+  // Background stream processing
+  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number) {
+    try {
+      const stream = activeStreams.get(streamId);
+      if (!stream) return;
 
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
-        res.write(`data: ${JSON.stringify({ error: "Question not found" })}\n\n`);
-        res.write('data: [DONE]\n\n');
-        res.end();
+        stream.error = "Question not found";
+        stream.done = true;
         return;
       }
 
@@ -994,14 +1029,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
         prompt = systemPrompt;
       }
 
-      await streamOpenRouter(prompt, aiSettings, res, req.user!.id, activePrompt?.promptText);
+      // Call OpenRouter with streaming
+      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, activePrompt?.promptText);
+      
     } catch (error) {
-      console.error("Error calling chatbot stream:", error);
-      res.write(`data: ${JSON.stringify({ error: "Failed to get AI response" })}\n\n`);
-      res.write('data: [DONE]\n\n');
-      res.end();
+      console.error("Background processing error:", error);
+      const stream = activeStreams.get(streamId);
+      if (stream) {
+        stream.error = "Failed to process request";
+        stream.done = true;
+      }
     }
-  });
+  }
 
   // AI chatbot route - non-streaming (fallback)
   app.post("/api/chatbot", requireAuth, async (req, res) => {
