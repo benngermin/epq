@@ -806,7 +806,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         prompt = systemPrompt;
       }
 
-      const response = await callOpenRouter(prompt, aiSettings);
+      const response = await callOpenRouter(prompt, aiSettings, req.user!.id, activePrompt?.promptText);
       res.json({ response });
     } catch (error) {
       console.error("Error calling chatbot:", error);
@@ -1033,6 +1033,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error activating prompt version:", error);
       res.status(400).json({ message: "Failed to activate prompt version" });
+    }
+  });
+
+  app.get("/api/admin/chatbot-logs", requireAdmin, async (req, res) => {
+    try {
+      const logs = await storage.getChatbotLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching chatbot logs:", error);
+      res.status(500).json({ message: "Failed to fetch chatbot logs" });
     }
   });
 

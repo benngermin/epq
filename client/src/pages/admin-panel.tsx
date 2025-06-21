@@ -587,10 +587,11 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="content">Content Management</TabsTrigger>
             <TabsTrigger value="uploads">Import & Upload</TabsTrigger>
             <TabsTrigger value="settings">AI & Settings</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
 
           <div className="space-y-6">
@@ -893,6 +894,18 @@ export default function AdminPanel() {
                 </div>
 
                 <AISettingsSection />
+              </div>
+            </TabsContent>
+
+            {/* Logs Tab */}
+            <TabsContent value="logs">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Chatbot Logs</h1>
+                  <p className="text-muted-foreground mt-2">View all chatbot interactions and AI model usage</p>
+                </div>
+
+                <ChatbotLogsSection />
               </div>
             </TabsContent>
           </div>
