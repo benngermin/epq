@@ -801,7 +801,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, chosenAnswer)
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-          .replace(/\{\{SOURCE_MATERIAL\}\}/g, sourceMaterial);
+          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
         prompt = systemPrompt;
       }
