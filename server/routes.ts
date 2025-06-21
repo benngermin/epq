@@ -141,7 +141,7 @@ async function streamOpenRouterToBuffer(
   streamId: string, 
   userId?: number, 
   systemMessage?: string
-): Promise<void> {
+) {
   console.log("Starting streamOpenRouterToBuffer with prompt length:", prompt.length);
   const apiKey = process.env.OPENROUTER_API_KEY;
   
@@ -298,7 +298,7 @@ async function streamOpenRouterToBuffer(
   // Mark stream as done
   stream.done = true;
   console.log("streamOpenRouterToBuffer function completed");
-}
+  
   // Cleanup stream after 5 minutes to prevent memory leaks
   setTimeout(() => {
     cleanupStream(streamId);
