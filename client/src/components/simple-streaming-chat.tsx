@@ -44,6 +44,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     setShowStreaming(true);
 
     try {
+      console.log('Starting stream initialization...');
       // Initialize stream
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
@@ -53,9 +54,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         signal: abortControllerRef.current.signal,
       });
 
+      console.log('Stream init response status:', response.status);
       if (!response.ok) throw new Error('Failed to initialize stream');
       
       const { streamId } = await response.json();
+      console.log('Stream ID received:', streamId);
       
       // Poll for chunks
       let done = false;
@@ -63,15 +66,19 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       let consecutiveErrors = 0;
       const maxErrors = 3;
       
+      console.log('Starting polling loop...');
       while (!done && consecutiveErrors < maxErrors) {
         try {
+          console.log(`Fetching chunk ${streamId}...`);
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
             signal: abortControllerRef.current.signal,
           });
           
+          console.log('Chunk response status:', chunkResponse.status);
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
+              console.log('Stream ended (404)');
               // Stream ended or not found, treat as done
               done = true;
               break;
@@ -80,6 +87,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
           
           const chunkData = await chunkResponse.json();
+          console.log('Chunk data:', chunkData);
           
           // Reset error counter on successful response
           consecutiveErrors = 0;
@@ -89,6 +97,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
           
           if (chunkData.done) {
+            console.log('Stream marked as done');
             done = true;
             // Keep the content in streaming container - don't move to messages
           } else if (chunkData.content) {
