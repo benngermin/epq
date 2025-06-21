@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle, ChevronDown, Settings, User, RotateCcw } from "lucide-react";
+import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, ChevronDown, Settings, User, RotateCcw } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 import { useState } from "react";
@@ -446,8 +446,9 @@ export default function QuestionSetPractice() {
                 variant="outline"
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
-                className="min-w-[120px]"
+                className="min-w-[120px] border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
               >
+                <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
               <div className="text-sm text-muted-foreground flex items-center">
