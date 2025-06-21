@@ -45,12 +45,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
         },
         body: JSON.stringify({
           questionVersionId,
           chosenAnswer,
           userMessage,
         }),
+        credentials: 'include', // This ensures cookies are sent
         signal: abortControllerRef.current.signal,
       });
 
@@ -64,8 +67,17 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
       // Check if the response is actually an SSE stream
       const contentType = response.headers.get('content-type');
+      console.log("Content-Type header:", contentType);
+      
       if (!contentType || !contentType.includes('text/event-stream')) {
         console.error("Invalid content type for SSE:", contentType);
+        
+        // Check if it's HTML (indicating an error page)
+        if (contentType && contentType.includes('text/html')) {
+          console.error("Received HTML response instead of SSE stream");
+          throw new Error('Server returned HTML instead of SSE stream - check authentication');
+        }
+        
         const responseText = await response.text();
         console.error("Response body:", responseText);
         throw new Error('Response is not a valid SSE stream');
@@ -109,9 +121,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
         
         for (const line of lines) {
+          if (line.trim() === '') continue; // Skip empty lines
+          
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim();
-            console.log("Processing data:", data);
+            console.log("Processing data:", data.substring(0, 100) + "...");
             
             if (data === '[DONE]') {
               console.log("Received DONE signal, finishing stream");
@@ -132,6 +146,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                   throw new Error(parsed.error);
                 }
                 
+                if (parsed.type === "connection") {
+                  console.log("Connection established");
+                  continue;
+                }
+                
                 if (parsed.content) {
                   fullContent += parsed.content;
                   console.log("Updated content, total length:", fullContent.length);
@@ -146,7 +165,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                   setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
                 }
               } catch (e) {
-                console.log("Skipping invalid JSON:", data, e);
+                console.log("Skipping invalid JSON:", data.substring(0, 50), e);
               }
             }
           }
