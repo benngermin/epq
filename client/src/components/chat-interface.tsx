@@ -32,6 +32,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamingMessageIdRef = useRef<string>("");
   const isStreamingRef = useRef<boolean>(false);
+  const streamingContentRef = useRef<string>("");
 
   // Debug messages state
   console.log("ChatInterface render - Messages count:", messages.length, "IsStreaming:", isStreaming, "StreamingContent length:", streamingContent.length);
@@ -47,6 +48,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     streamingMessageIdRef.current = messageId;
     setStreamingContent("");
+    streamingContentRef.current = "";
     isStreamingRef.current = true;
 
     // Add initial assistant message
@@ -96,10 +98,10 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           
           if (chunkData.done) {
             done = true;
-            console.log("Stream completed, final content length:", streamingContent.length);
+            console.log("Stream completed, final content length:", streamingContentRef.current.length);
             
-            // Move streaming content to final message - capture current content
-            const finalContent = streamingContent;
+            // Move streaming content to final message - use ref value
+            const finalContent = streamingContentRef.current;
             setMessages(prev => {
               return prev.map(msg => 
                 msg.id === streamingMessageIdRef.current && msg.isStreaming
@@ -109,6 +111,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             });
             
             setStreamingContent("");
+            streamingContentRef.current = "";
             setIsStreaming(false);
             isStreamingRef.current = false;
             break;
@@ -117,11 +120,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           if (chunkData.content) {
             console.log("Received content:", chunkData.content.substring(0, 50));
             
-            setStreamingContent(prev => {
-              const newContent = prev + chunkData.content;
-              console.log("Updated streaming content length:", newContent.length);
-              return newContent;
-            });
+            // Update both state and ref
+            streamingContentRef.current += chunkData.content;
+            setStreamingContent(streamingContentRef.current);
+            
+            console.log("Updated streaming content length:", streamingContentRef.current.length);
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -154,6 +157,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     } finally {
       setIsStreaming(false);
       setStreamingContent("");
+      streamingContentRef.current = "";
       streamingMessageIdRef.current = "";
       isStreamingRef.current = false;
     }
@@ -191,6 +195,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     setMessages([]);
     setIsStreaming(false);
     setStreamingContent("");
+    streamingContentRef.current = "";
     streamingMessageIdRef.current = "";
     isStreamingRef.current = false;
   }, [currentQuestionKey]);
