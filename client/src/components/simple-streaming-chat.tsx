@@ -79,8 +79,20 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
           if (chunkData.content && chunkData.content !== accumulatedContent) {
             accumulatedContent = chunkData.content;
-            setAiResponse(accumulatedContent);
-            setHasResponse(true);
+            
+            // Update either initial AI response or follow-up message
+            if (userMessage) {
+              // Update the latest assistant message for follow-ups
+              setMessages(prev => prev.map((msg, index) => 
+                index === 0 && msg.role === "assistant" 
+                  ? { ...msg, content: accumulatedContent }
+                  : msg
+              ));
+            } else {
+              // Update initial response
+              setAiResponse(accumulatedContent);
+              setHasResponse(true);
+            }
             
             // Auto-scroll to bottom during streaming
             setTimeout(() => {
@@ -110,8 +122,18 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         description: error.message || "Failed to get response from AI assistant",
         variant: "destructive",
       });
-      setHasResponse(true);
-      setAiResponse("Error loading response. Please try again.");
+      
+      if (userMessage) {
+        // Update the latest assistant message with error for follow-ups
+        setMessages(prev => prev.map((msg, index) => 
+          index === 0 && msg.role === "assistant" 
+            ? { ...msg, content: "Error loading response. Please try again." }
+            : msg
+        ));
+      } else {
+        setHasResponse(true);
+        setAiResponse("Error loading response. Please try again.");
+      }
     } finally {
       setIsStreaming(false);
     }
@@ -182,6 +204,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       id: Date.now().toString(),
       content: userInput,
       role: "user"
+    }]);
+    
+    // Add AI response placeholder for follow-up
+    setMessages(prev => [...prev, {
+      id: (Date.now() + 1).toString(),
+      content: "Loading response...",
+      role: "assistant"
     }]);
     
     loadAiResponse(userInput);

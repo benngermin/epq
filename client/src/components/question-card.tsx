@@ -45,11 +45,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
     setSubmittedAnswer(selectedAnswer);
     onSubmitAnswer(selectedAnswer);
 
-    // If incorrect, flip the card after a short delay to show chatbot
+    // Always flip the card after submitting to show chatbot feedback
     setTimeout(() => {
-      if (selectedAnswer !== question?.latestVersion?.correctAnswer) {
-        setIsFlipped(true);
-      }
+      setIsFlipped(true);
     }, 1500);
   };
 
@@ -181,7 +179,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
               <div className="flex-1 min-h-0 overflow-hidden">
                 <SimpleStreamingChat
                   questionVersionId={question.latestVersion?.id || question.id}
-                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
+                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || ""}
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
