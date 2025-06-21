@@ -28,6 +28,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   // Update the ref when chosenAnswer changes
   useEffect(() => {
+    console.log("chosenAnswer prop changed:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
     if (chosenAnswer) {
       originalChosenAnswerRef.current = chosenAnswer;
       console.log("Updated originalChosenAnswerRef to:", chosenAnswer);

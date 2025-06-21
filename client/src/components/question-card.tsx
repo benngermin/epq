@@ -189,7 +189,7 @@ export function QuestionCard({
               <div className="flex-1 min-h-0 overflow-hidden">
                 <SimpleStreamingChat
                   questionVersionId={question.latestVersion?.id || question.id}
-                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswerState || selectedAnswer || ""}
+                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
