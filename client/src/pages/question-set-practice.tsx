@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, ChevronDown, Settings, User, RotateCcw } from "lucide-react";
+import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, ChevronDown, Settings, User, RotateCcw, PanelLeft } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 import { useState } from "react";
@@ -34,6 +34,7 @@ export default function QuestionSetPractice() {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   console.log("Route Match:", match);
   console.log("Route Params:", params);
@@ -263,13 +264,48 @@ export default function QuestionSetPractice() {
       
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
+        {/* Toggle Button for Mobile/Tablet */}
+        <div className="lg:hidden mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex items-center gap-2"
+          >
+            <PanelLeft className="h-4 w-4" />
+            Progress ({Object.keys(userAnswers).length}/{questions.length})
+          </Button>
+        </div>
 
-        <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
-          {/* Left Sidebar - Responsive Practice Summary */}
-          <div className="w-16 sm:w-20 md:w-24 lg:w-72 xl:w-80 flex-shrink-0 lg:h-[calc(100vh-200px)]">
-            <Card className="h-full flex flex-col">
+        <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0 relative">
+          {/* Left Sidebar - Collapsible Progress Bar */}
+          <div className={`
+            fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}>
+            {/* Overlay for mobile */}
+            {sidebarOpen && (
+              <div 
+                className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            
+            <Card className="h-full flex flex-col relative z-50 lg:z-auto">
+              {/* Close Button for Mobile */}
+              <div className="lg:hidden absolute top-4 right-4 z-10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+
               {/* Desktop Header */}
-              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden md:block">
+              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden lg:block">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
                 <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
@@ -300,29 +336,51 @@ export default function QuestionSetPractice() {
                 </AlertDialog>
               </CardHeader>
               
-              {/* Mobile Header */}
-              <CardHeader className="p-1 sm:p-2 flex-shrink-0 md:hidden">
-                <div className="text-center">
-                  <div className="text-xs sm:text-sm font-medium leading-tight">
-                    {Object.keys(userAnswers).length}/{questions.length}
-                  </div>
-                  <div className="text-xs text-muted-foreground hidden sm:block">
-                    done
-                  </div>
+              {/* Mobile/Tablet Header */}
+              <CardHeader className="p-4 flex-shrink-0 lg:hidden">
+                <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
+                <div className="mt-3">
+                  <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center text-sm w-full"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reset All
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reset All Questions?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will clear all your answers and start the question set over from the beginning. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleReset} disabled={resetMutation.isPending}>
+                          {resetMutation.isPending ? "Resetting..." : "Reset All"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardHeader>
 
               <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
-                {/* Desktop Summary Stats */}
-                <div className="space-y-4 flex-shrink-0 hidden md:block">
+                {/* Summary Stats */}
+                <div className="space-y-4 flex-shrink-0">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
                     <span>{Object.keys(userAnswers).length} / {questions.length}</span>
                   </div>
                 </div>
                   
-                {/* Desktop: Vertical question list */}
-                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4 hidden md:block">
+                {/* Question list */}
+                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4">
                   {questions.map((question: any, index: number) => {
                     const isAnswered = userAnswers[question.id];
                     const isCurrent = index === currentQuestionIndex;
@@ -344,6 +402,7 @@ export default function QuestionSetPractice() {
                           setCurrentQuestionIndex(index);
                           setShowChat(false);
                           setSelectedAnswer("");
+                          setSidebarOpen(false); // Close sidebar on mobile after selection
                         }}
                       >
                         <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
@@ -379,39 +438,6 @@ export default function QuestionSetPractice() {
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Mobile: Compact number grid */}
-                <div className="md:hidden p-1 sm:p-2 flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 gap-1">
-                    {questions.map((question: any, index: number) => {
-                      const isAnswered = userAnswers[question.id];
-                      const isCurrent = index === currentQuestionIndex;
-                      const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
-                      
-                      return (
-                        <button
-                          key={question.id}
-                          className={`h-7 sm:h-8 md:h-9 w-full text-xs sm:text-sm font-medium relative rounded border transition-colors ${
-                            isCurrent 
-                              ? "ring-1 ring-primary ring-offset-1 border-primary bg-primary text-primary-foreground" 
-                              : isAnswered && isCorrect
-                                ? "bg-green-500 border-green-500 text-white"
-                              : isAnswered && !isCorrect
-                                ? "bg-red-500 border-red-500 text-white" 
-                                : "border-border bg-card text-foreground hover:bg-accent"
-                          }`}
-                          onClick={() => {
-                            setCurrentQuestionIndex(index);
-                            setShowChat(false);
-                            setSelectedAnswer("");
-                          }}
-                        >
-                          {index + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               </CardContent>
             </Card>
