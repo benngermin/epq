@@ -967,9 +967,11 @@ export function registerRoutes(app: Express): Server {
   // Initialize streaming
   app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
     console.log("=== INITIALIZING STREAM ===");
+    console.log("Request body received:", req.body);
     
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      console.log("Extracted chosenAnswer:", chosenAnswer);
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
       // Clean up any existing streams for this user to prevent conflicts
@@ -1029,7 +1031,7 @@ export function registerRoutes(app: Express): Server {
       const stream = activeStreams.get(streamId);
       if (!stream) return;
 
-      console.log("Processing stream with chosenAnswer:", chosenAnswer);
+      console.log("Processing stream with chosenAnswer:", chosenAnswer, "type:", typeof chosenAnswer);
 
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
