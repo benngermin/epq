@@ -580,7 +580,6 @@ export default function AdminPanel() {
           </div>
         </div>
       </header>
-
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
@@ -591,7 +590,7 @@ export default function AdminPanel() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="content">Content Management</TabsTrigger>
             <TabsTrigger value="uploads">Import & Upload</TabsTrigger>
-            <TabsTrigger value="settings">AI & Settings</TabsTrigger>
+            <TabsTrigger value="settings">Chatbot</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
 
@@ -912,7 +911,6 @@ export default function AdminPanel() {
           </div>
         </Tabs>
       </div>
-
       {/* Course Materials Import Dialog */}
       <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
         <DialogContent className="max-w-2xl">
