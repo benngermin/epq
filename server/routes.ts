@@ -970,6 +970,12 @@ export function registerRoutes(app: Express): Server {
     
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      
+      // Debug incoming request
+      console.log("=== STREAM INIT DEBUG ===");
+      console.log("Full request body:", JSON.stringify(req.body, null, 2));
+      console.log("chosenAnswer from request:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
+      console.log("=== END STREAM INIT DEBUG ===");
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
       // Clean up any existing streams for this user to prevent conflicts
