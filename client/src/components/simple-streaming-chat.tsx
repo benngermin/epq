@@ -12,6 +12,8 @@ interface SimpleStreamingChatProps {
 }
 
 export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAnswer }: SimpleStreamingChatProps) {
+  // Store the original chosen answer to use for follow-up questions
+  const originalChosenAnswerRef = useRef(chosenAnswer);
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
@@ -40,7 +42,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionVersionId, chosenAnswer, userMessage }),
+        body: JSON.stringify({ questionVersionId, chosenAnswer: originalChosenAnswerRef.current, userMessage }),
         credentials: 'include',
       });
 
@@ -167,6 +169,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       // Update tracking
       currentQuestionKey.current = questionKey;
+      
+      // Update the stored chosen answer for this question
+      originalChosenAnswerRef.current = chosenAnswer;
       
       // Reset state immediately
       setMessages([]);
