@@ -30,7 +30,7 @@ export default function TestPlayer() {
     if (testRun && !hasInitializedIndex) {
       const answeredQuestions = (testRun as any)?.answers || [];
       const questionOrder = (testRun as any)?.questionOrder || [];
-      
+
       // Find first unanswered question
       let firstUnansweredIndex = 0;
       for (let i = 0; i < questionOrder.length; i++) {
@@ -45,10 +45,10 @@ export default function TestPlayer() {
           firstUnansweredIndex = i;
         }
       }
-      
+
       setCurrentQuestionIndex(firstUnansweredIndex);
       setHasInitializedIndex(true);
-      
+
       // Mark the initial question as visited
       setVisitedQuestions(prev => new Set(prev).add(firstUnansweredIndex));
     }
@@ -135,7 +135,7 @@ export default function TestPlayer() {
 
   const handleSubmitAnswer = (chosenAnswer: string) => {
     if (!currentQuestion) return;
-    
+
     submitAnswerMutation.mutate({
       questionVersionId: (currentQuestion as any).id,
       chosenAnswer,

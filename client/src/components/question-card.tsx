@@ -16,10 +16,20 @@ interface QuestionCardProps {
   onFlipChange?: (isFlipped: boolean) => void;
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
+  selectedAnswer?: string;
 }
 
-export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId, onFlipChange, onNextQuestion, hasNextQuestion }: QuestionCardProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+export function QuestionCard({ 
+  question, 
+  onSubmitAnswer, 
+  isSubmitting, 
+  testRunId,
+  onFlipChange,
+  onNextQuestion,
+  hasNextQuestion,
+  selectedAnswer
+}: QuestionCardProps) {
+  const [selectedAnswerState, setSelectedAnswerState] = useState<string>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
@@ -29,7 +39,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
   // Reset flip state when question changes
   useEffect(() => {
     setIsFlipped(false);
-    setSelectedAnswer("");
+    setSelectedAnswerState("");
     setSubmittedAnswer("");
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
@@ -40,10 +50,10 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
   }, [isFlipped, onFlipChange]);
 
   const handleSubmit = () => {
-    if (!selectedAnswer || hasAnswer) return;
+    if (!selectedAnswerState || hasAnswer) return;
 
-    setSubmittedAnswer(selectedAnswer);
-    onSubmitAnswer(selectedAnswer);
+    setSubmittedAnswer(selectedAnswerState);
+    onSubmitAnswer(selectedAnswerState);
 
     // Always flip the card after submitting to show chatbot feedback
     setTimeout(() => {
@@ -81,8 +91,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   </div>
 
                   <RadioGroup
-                    value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswer}
-                    onValueChange={setSelectedAnswer}
+                    value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                    onValueChange={setSelectedAnswerState}
                     disabled={hasAnswer || isSubmitting}
                   >
                     <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
@@ -90,7 +100,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                         const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                         const isSelected = hasAnswer 
                           ? question.userAnswer.chosenAnswer === choiceLetter
-                          : selectedAnswer === choiceLetter;
+                          : selectedAnswerState === choiceLetter;
                         const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
 
                         return (
@@ -121,9 +131,9 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                     </div>
                   </RadioGroup>
 
-                  
 
-                  
+
+
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
@@ -136,7 +146,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                           <span className="font-medium text-success text-sm">Correct!</span>
                         </div>
                       </div>
-                      
+
                     </div>
                   )}
 
@@ -162,7 +172,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
                   {!hasAnswer && (
                     <Button
                       onClick={handleSubmit}
-                      disabled={!selectedAnswer || isSubmitting}
+                      disabled={!selectedAnswerState || isSubmitting}
                       className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
@@ -179,7 +189,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
               <div className="flex-1 min-h-0 overflow-hidden">
                 <SimpleStreamingChat
                   questionVersionId={question.latestVersion?.id || question.id}
-                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || ""}
+                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
                 />
               </div>
