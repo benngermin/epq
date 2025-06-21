@@ -1114,15 +1114,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         // Format answer choices as a list
         const formattedChoices = questionVersion.answerChoices.join('\n');
-
-        // Debug logging for variable substitution
-        console.log("=== STREAMING VARIABLE SUBSTITUTION DEBUG ===");
-        console.log("chosenAnswer:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer, "length:", chosenAnswer?.length);
-        console.log("questionVersion.correctAnswer:", questionVersion.correctAnswer);
         
         // Ensure chosenAnswer is not empty or undefined
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        console.log("selectedAnswer after processing:", JSON.stringify(selectedAnswer));
 
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
@@ -1131,10 +1125,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-        
-        // Verify substitution worked
-        console.log("After substitution - contains {{SELECTED_ANSWER}}:", systemPrompt.includes("{{SELECTED_ANSWER}}"));
-        console.log("=== END STREAMING SUBSTITUTION DEBUG ===");
         
         prompt = systemPrompt;
       }

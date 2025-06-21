@@ -91,6 +91,14 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        success: {
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
+        },
+        error: {
+          DEFAULT: "var(--error)",
+          foreground: "var(--error-foreground)",
+        },
       },
       keyframes: {
         "accordion-down": {

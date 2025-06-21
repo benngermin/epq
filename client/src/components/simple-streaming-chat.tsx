@@ -51,7 +51,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionVersionId, chosenAnswer: chosenAnswer || originalChosenAnswerRef.current, userMessage }),
+        body: JSON.stringify({ questionVersionId, chosenAnswer: chosenAnswer || originalChosenAnswerRef.current || "", userMessage }),
         credentials: 'include',
       });
 
