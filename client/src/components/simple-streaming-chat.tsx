@@ -17,16 +17,19 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [showStreaming, setShowStreaming] = useState(false);
+
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isInitializedRef = useRef(false);
   const currentStreamRef = useRef<string>("");
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isInitializingRef = useRef<boolean>(false);
 
   const startStream = async (userMessage?: string) => {
-    if (isStreaming) return;
+    if (isStreaming || isInitializingRef.current) return;
+    
+    isInitializingRef.current = true;
     
     // Cancel any existing requests
     if (abortControllerRef.current) {
@@ -44,7 +47,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     setShowStreaming(true);
 
     try {
-      console.log('Starting stream initialization...');
       // Initialize stream
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
@@ -54,11 +56,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('Stream init response status:', response.status);
       if (!response.ok) throw new Error('Failed to initialize stream');
       
       const { streamId } = await response.json();
-      console.log('Stream ID received:', streamId);
       
       // Poll for chunks
       let done = false;
@@ -66,19 +66,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       let consecutiveErrors = 0;
       const maxErrors = 3;
       
-      console.log('Starting polling loop...');
       while (!done && consecutiveErrors < maxErrors) {
         try {
-          console.log(`Fetching chunk ${streamId}...`);
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
             signal: abortControllerRef.current.signal,
           });
           
-          console.log('Chunk response status:', chunkResponse.status);
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
-              console.log('Stream ended (404)');
               // Stream ended or not found, treat as done
               done = true;
               break;
@@ -87,7 +83,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
           
           const chunkData = await chunkResponse.json();
-          console.log('Chunk data:', chunkData);
           
           // Reset error counter on successful response
           consecutiveErrors = 0;
@@ -97,7 +92,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
           
           if (chunkData.done) {
-            console.log('Stream marked as done');
             done = true;
             // Keep the content in streaming container - don't move to messages
           } else if (chunkData.content) {
@@ -105,7 +99,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             currentStreamRef.current = accumulatedContent;
             
             // Update streaming content with React state
-            console.log('Setting streaming content:', accumulatedContent.substring(0, 100) + '...');
             setStreamingContent(accumulatedContent);
             setShowStreaming(true);
             
@@ -125,7 +118,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
           
           consecutiveErrors++;
-          console.warn(`Chunk fetch error (${consecutiveErrors}/${maxErrors}):`, chunkError);
           
           if (consecutiveErrors >= maxErrors) {
             throw chunkError;
@@ -142,8 +134,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         return;
       }
       
-      console.error("Streaming error:", error);
-      
       // Only show error toast if we don't have any content to display
       if (!currentStreamRef.current) {
         toast({
@@ -158,30 +148,33 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
+      isInitializingRef.current = false;
     }
   };
 
-  // Reset and initialize when question changes
+  // Initialize/reset when question changes
   useEffect(() => {
     const questionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
     
-    // If this is a new question, reset everything
+    // Always process new questions
     if (currentQuestionKey.current !== questionKey) {
-      currentQuestionKey.current = questionKey;
-      
-      // Clear any pending initialization timeout
+      // Cancel any existing operations
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
       }
-      
-      // Cancel any ongoing requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
       
-      // Reset state
+      // Reset initialization flag
+      isInitializingRef.current = false;
+      
+      // Update tracking
+      currentQuestionKey.current = questionKey;
+      
+      // Reset state immediately
       setMessages([]);
       setUserInput("");
       setIsStreaming(false);
@@ -189,15 +182,23 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setShowStreaming(false);
       currentStreamRef.current = "";
       
-      // Initialize new stream after a short delay
+      // Start new stream with a small delay to ensure state is reset
       initTimeoutRef.current = setTimeout(() => {
         startStream();
         initTimeoutRef.current = null;
-      }, 500);
+      }, 300);
     }
+    
+    // Cleanup function
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+    };
   }, [questionVersionId, chosenAnswer, correctAnswer]);
 
-  // Cleanup timeout and abort controller on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (initTimeoutRef.current) {
@@ -261,14 +262,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               </div>
             )}
             
-            {/* Debug info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-muted-foreground p-2 border rounded">
-                <div>Show Streaming: {showStreaming ? 'true' : 'false'}</div>
-                <div>Content Length: {streamingContent.length}</div>
-                <div>Is Streaming: {isStreaming ? 'true' : 'false'}</div>
-              </div>
-            )}
+
 
             {/* Regular messages */}
             {messages.slice().reverse().map((message) => (
