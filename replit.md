@@ -115,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- June 21, 2025 7:15 PM: Enhanced mobile navigation layout for iPhone
+  - Moved Dashboard button out of navigation bar for mobile devices
+  - Aligned Dashboard button to right side of screen with Progress button on left
+  - Improved space utilization and accessibility on mobile screens
+  - Maintained clean desktop navigation while optimizing mobile experience
 - June 21, 2025 6:55 PM: Improved responsive design for progress sidebar
   - Completely redesigned left progress bar for better mobile/tablet experience
   - Added collapsible sidebar with smooth slide-out animation from left to right
