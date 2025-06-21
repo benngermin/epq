@@ -14,8 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle, ChevronDown, Settings, User } from "lucide-react";
+import { ArrowLeft, GraduationCap, LogOut, BookOpen, ChevronRight, CheckCircle, XCircle, ChevronDown, Settings, User, RotateCcw } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 import { useState } from "react";
@@ -32,6 +33,7 @@ export default function QuestionSetPractice() {
   const [showChat, setShowChat] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   console.log("Route Match:", match);
   console.log("Route Params:", params);
@@ -125,6 +127,26 @@ export default function QuestionSetPractice() {
     }
   };
 
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      // Reset user answers by clearing localStorage or making API call
+      // For now, we'll just reset the local state
+      setUserAnswers({});
+      setCurrentQuestionIndex(0);
+      setSelectedAnswer("");
+      setShowChat(false);
+      setIsCardFlipped(false);
+      setResetDialogOpen(false);
+    },
+    onSuccess: () => {
+      console.log("Reset completed successfully");
+    }
+  });
+
+  const handleReset = () => {
+    resetMutation.mutate();
+  };
+
   if (questionSetLoading || questionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -187,7 +209,18 @@ export default function QuestionSetPractice() {
                 </div>
               </div>
             </div>
-            <DropdownMenu>
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/")}
+                className="flex items-center text-sm"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
                   <Avatar className="h-8 w-8">
@@ -221,7 +254,8 @@ export default function QuestionSetPractice() {
                   <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </nav>
@@ -238,15 +272,32 @@ export default function QuestionSetPractice() {
               <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden md:block">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/")}
-                  className="flex items-center text-sm mt-3 w-full"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
+                <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center text-sm mt-3 w-full"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset All
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset All Questions?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear all your answers and start the question set over from the beginning. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset} disabled={resetMutation.isPending}>
+                        {resetMutation.isPending ? "Resetting..." : "Reset All"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardHeader>
               
               {/* Mobile Header */}
