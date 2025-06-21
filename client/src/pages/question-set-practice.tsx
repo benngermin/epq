@@ -21,7 +21,7 @@ import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
-import { ChatInterface } from "@/components/chat-interface";
+import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();

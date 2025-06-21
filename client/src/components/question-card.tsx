@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
-import { ChatInterface } from "./chat-interface";
+import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
 
 interface QuestionCardProps {
@@ -179,7 +179,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
           <div className="card-flip-back">
             <Card className="h-full min-h-[600px] max-h-[calc(100vh-150px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
-                <ChatInterface
+                <SimpleStreamingChat
                   questionVersionId={question.latestVersion?.id || question.id}
                   chosenAnswer={submittedAnswer || question.userAnswer?.chosenAnswer || ""}
                   correctAnswer={question.latestVersion?.correctAnswer || ""}
