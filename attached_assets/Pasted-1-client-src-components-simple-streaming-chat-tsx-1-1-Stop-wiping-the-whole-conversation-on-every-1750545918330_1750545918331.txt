@@ -1,0 +1,81 @@
+1 ⃣ client/src/components/simple‑streaming‑chat.tsx
+1.1  Stop wiping the whole conversation on every call
+When the user sends a follow‑up, we were still calling setMessages([]) inside loadAiResponse().
+That nukes the previous assistant explanation, so the UI shows only “Loading AI response…”.
+
+diff
+Copy
+@@   const loadAiResponse = async (userMessage?: string) => {
+-    /* —— ‼️ BAD: this deletes all previous chat bubbles —— */
+-    setMessages([]);
+-
+-    // show a placeholder so the UI doesn't look empty
+-    setMessages([
+-      { role: "assistant", content: "Loading AI response…", pending: true },
+-    ]);
++    /* Keep the existing history. Just append the placeholder. */
++    setMessages((prev) => [
++      ...prev,
++      { role: "assistant", content: "Loading AI response…", pending: true },
++    ]);
+1.2  Append the user’s follow‑up correctly (no stale closure)
+diff
+Copy
+@@   const handleSend = () => {
+-    if (!input.trim()) return;
+-    const msg = input.trim();
+-    setInput("");
+-    /* OLD: history lost because messages prop was a stale snapshot */
+-    setMessages([...messages, { role: "user", content: msg }]);
+-    loadAiResponse(msg);
++    const msg = input.trim();
++    if (!msg) return;
++    setInput("");
++
++    /* Functional update guarantees we keep the latest history */
++    setMessages((prev) => [...prev, { role: "user", content: msg }]);
++    loadAiResponse(msg);          // stream the assistant’s reply
+   };
+1.3  Flush history only when the question really changes
+Previously we reset whenever anything triggered the useEffect, creating a race that
+also wiped messages during long streams.
+
+diff
+Copy
+@@   useEffect(() => {
+-    if (chosenAnswer && !hasResponse) {
+-      // reset old conversation if we switched questions
+-      setMessages([]);
+-      abortControllerRef.current?.abort?.();
+-      abortControllerRef.current = null;
+-
+-      loadAiResponse();            // first assistant explanation
+-    }
++    const isNewQuestion =
++      questionVersionId !== prevQuestionIdRef.current;
++    if (isNewQuestion && chosenAnswer) {
++      setMessages([]);                        // brand‑new thread
++      abortControllerRef.current?.abort?.();
++      abortControllerRef.current = null;
++      prevQuestionIdRef.current = questionVersionId;
++      loadAiResponse();                       // kick off first answer
++    }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [questionVersionId, chosenAnswer]);
++
++/* -------------------------------------------------------------
++   Track the last question ID so we only wipe history when needed
++-------------------------------------------------------------- */
++const prevQuestionIdRef = useRef<number | string | undefined>(undefined);
+1.4  Include the follow‑up in the payload we send to the backend
+(If you already merged this from the first patch you can skip it – leaving it
+here so the diff is complete.)
+
+diff
+Copy
+@@   const loadAiResponse = async (userMessage?: string) => {
+     /* Construct the full message stack we’ll POST */
+-    const payloadMessages = messages;
++    const payloadMessages = userMessage
++      ? [...messages, { role: "user", content: userMessage }]
++      : messages;

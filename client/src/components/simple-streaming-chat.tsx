@@ -25,6 +25,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const prevQuestionIdRef = useRef<number | string | undefined>(undefined);
 
   // Keep a *stable* reference to the learner's first submitted answer
   useEffect(() => {
@@ -103,7 +104,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             
             // Update either initial AI response or follow-up message
             if (userMessage) {
-              // Update the most recent assistant message for follow-ups
+              // For follow-ups, find and update the last assistant message
               setMessages(prev => {
                 const updated = [...prev];
                 for (let i = updated.length - 1; i >= 0; i--) {
@@ -150,17 +151,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       });
       
       if (userMessage) {
-        // Update the most recent assistant message with error for follow-ups
-        setMessages(prev => {
-          const updated = [...prev];
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].role === "assistant") {
-              updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
-              break;
-            }
-          }
-          return updated;
-        });
+        // Add error message as new assistant response for follow-ups
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          content: "Error loading response. Please try again.",
+          role: "assistant"
+        }]);
       } else {
         setHasResponse(true);
         setAiResponse("Error loading response. Please try again.");
@@ -175,13 +171,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
    * or when the question itself changes.
    * --------------------------------------------------------- */
   useEffect(() => {
-    if (chosenAnswer && !hasResponse) {
-      // reset old conversation if we switched questions
-      setMessages([]);
+    const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
+    if (isNewQuestion && chosenAnswer) {
+      setMessages([]);                        // brand-new thread
+      setAiResponse("");
+      setHasResponse(false);
       abortControllerRef.current?.abort?.();
       abortControllerRef.current = null;
-
-      loadAiResponse();            // first assistant explanation
+      prevQuestionIdRef.current = questionVersionId;
+      loadAiResponse();                       // kick off first answer
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionVersionId, chosenAnswer]);
@@ -199,24 +197,27 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   }, []);
 
   const handleSendMessage = () => {
-    if (!userInput.trim() || isStreaming) return;
-
-    // Add user message to regular messages
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      content: userInput,
-      role: "user"
-    }]);
+    const msg = userInput.trim();
+    if (!msg || isStreaming) return;
     
-    // Add AI response placeholder for follow-up
-    setMessages(prev => [...prev, {
-      id: (Date.now() + 1).toString(),
-      content: "Loading response...",
-      role: "assistant"
-    }]);
-    
-    loadAiResponse(userInput);
     setUserInput("");
+
+    // Add user message and AI placeholder in sequence
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        content: msg,
+        role: "user"
+      },
+      {
+        id: (Date.now() + 1).toString(),
+        content: "Loading response...",
+        role: "assistant"
+      }
+    ]);
+    
+    loadAiResponse(msg);  // stream the assistant's reply
     
     // Auto-scroll after adding user message
     setTimeout(() => {
