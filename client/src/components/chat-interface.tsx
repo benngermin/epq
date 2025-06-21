@@ -44,7 +44,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   // Stream chat response function using WebSocket-style approach
   const streamChatResponse = async (userMessage?: string) => {
     // Prevent multiple concurrent streams
-    if (isStreamingRef.current || currentStreamIdRef.current) {
+    if (isStreamingRef.current) {
       console.log("Stream already in progress, ignoring request");
       return;
     }
@@ -101,13 +101,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
       // Poll for chunks
       let done = false;
-      while (!done) {
+      while (!done && isStreamingRef.current) {
         try {
-          // Only poll if this is still the current stream
-          if (currentStreamIdRef.current !== streamId) {
-            console.log("Stream ID mismatch, stopping poll");
-            break;
-          }
 
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
@@ -119,8 +114,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
           const chunkData = await chunkResponse.json();
           
-          if (chunkData.done && currentStreamIdRef.current === streamId) {
+          if (chunkData.done && isStreamingRef.current) {
             done = true;
+            console.log("🟢 Stream completed, moving to final message");
             
             // Move streaming content to final message
             const finalContent = streamingContentRef.current;
@@ -142,7 +138,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             break;
           }
 
-          if (chunkData.content && currentStreamIdRef.current === streamId) {
+          if (chunkData.content && isStreamingRef.current) {
             console.log("🟢 Frontend received chunk:", chunkData.content.substring(0, 50));
             
             // Update content with multiple approaches for maximum reliability
@@ -220,10 +216,18 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Get initial explanation only once per question
   useEffect(() => {
-    if (!hasRequestedInitial && !isStreaming && !isStreamingRef.current && !currentStreamIdRef.current) {
+    if (!hasRequestedInitial && !isStreamingRef.current) {
       setHasRequestedInitial(true);
       setMessages([]); // Clear previous messages
-      setTimeout(() => streamChatResponse(undefined), 100); // Small delay to prevent race conditions
+      
+      // Use a delay to prevent multiple calls
+      const timer = setTimeout(() => {
+        if (!isStreamingRef.current) {
+          streamChatResponse(undefined);
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
   }, [currentQuestionKey]);
 
