@@ -1,12 +1,13 @@
 import {
   users, courses, questionSets, practiceTests, questions, questionVersions, 
-  userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials,
+  userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
-  type CourseMaterial, type InsertCourseMaterial, type QuestionImport
+  type CourseMaterial, type InsertCourseMaterial, type ChatbotLog, type InsertChatbotLog,
+  type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, not, inArray } from "drizzle-orm";
@@ -78,6 +79,10 @@ export interface IStorage {
   
   // Course material methods
   getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined>;
+  
+  // Chatbot log methods
+  getChatbotLogs(): Promise<ChatbotLog[]>;
+  createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog>;
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
@@ -449,6 +454,15 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return result[0];
+  }
+
+  async getChatbotLogs(): Promise<ChatbotLog[]> {
+    return await db.select().from(chatbotLogs).orderBy(desc(chatbotLogs.createdAt));
+  }
+
+  async createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog> {
+    const [newLog] = await db.insert(chatbotLogs).values(log).returning();
+    return newLog;
   }
 }
 

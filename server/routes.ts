@@ -21,14 +21,25 @@ function assertAuthenticated(req: Request): asserts req is Request & { user: Non
 }
 
 // OpenRouter integration
-async function callOpenRouter(prompt: string, settings: any): Promise<string> {
+async function callOpenRouter(prompt: string, settings: any, userId?: number, systemMessage?: string): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   if (!apiKey) {
     return "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key.";
   }
 
+  const startTime = Date.now();
+  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
+  const temperature = (settings?.temperature || 70) / 100;
+  const maxTokens = settings?.maxTokens || 150;
+
   try {
+    const messages = [];
+    if (systemMessage) {
+      messages.push({ role: "system", content: systemMessage });
+    }
+    messages.push({ role: "user", content: prompt });
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -37,10 +48,10 @@ async function callOpenRouter(prompt: string, settings: any): Promise<string> {
         "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
       },
       body: JSON.stringify({
-        model: settings?.modelName || "anthropic/claude-3.5-sonnet",
-        messages: [{ role: "user", content: prompt }],
-        temperature: (settings?.temperature || 70) / 100,
-        max_tokens: settings?.maxTokens || 150,
+        model: modelName,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
       }),
     });
 
@@ -56,10 +67,47 @@ async function callOpenRouter(prompt: string, settings: any): Promise<string> {
       return "I'm sorry, I received an unexpected response from the AI service.";
     }
     
-    return data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+    const aiResponse = data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+    const responseTime = Date.now() - startTime;
+
+    // Log the interaction
+    try {
+      await storage.createChatbotLog({
+        userId,
+        modelName,
+        systemMessage,
+        userMessage: prompt,
+        aiResponse,
+        temperature: Math.round(temperature * 100), // Store as integer
+        maxTokens,
+        responseTime,
+      });
+    } catch (logError) {
+      console.error("Failed to log chatbot interaction:", logError);
+    }
+    
+    return aiResponse;
   } catch (error) {
     console.error("OpenRouter error:", error);
-    return "I'm sorry, there was an error connecting to the AI service. Please try again later.";
+    const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
+    
+    // Log the error interaction
+    try {
+      await storage.createChatbotLog({
+        userId,
+        modelName,
+        systemMessage,
+        userMessage: prompt,
+        aiResponse: errorResponse,
+        temperature: Math.round(temperature * 100),
+        maxTokens,
+        responseTime: Date.now() - startTime,
+      });
+    } catch (logError) {
+      console.error("Failed to log chatbot error:", logError);
+    }
+    
+    return errorResponse;
   }
 }
 

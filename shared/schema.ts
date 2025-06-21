@@ -93,6 +93,19 @@ export const courseMaterials = pgTable("course_materials", {
   content: text("content").notNull(),
 });
 
+export const chatbotLogs = pgTable("chatbot_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  modelName: text("model_name").notNull(),
+  systemMessage: text("system_message"),
+  userMessage: text("user_message").notNull(),
+  aiResponse: text("ai_response").notNull(),
+  temperature: integer("temperature").notNull(),
+  maxTokens: integer("max_tokens").notNull(),
+  responseTime: integer("response_time"), // in milliseconds
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   testRuns: many(userTestRuns),
@@ -182,6 +195,7 @@ export const insertUserAnswerSchema = createInsertSchema(userAnswers).omit({
 export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
+export const insertChatbotLogSchema = createInsertSchema(chatbotLogs);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -206,6 +220,8 @@ export type PromptVersion = typeof promptVersions.$inferSelect;
 export type InsertPromptVersion = z.infer<typeof insertPromptVersionSchema>;
 export type CourseMaterial = typeof courseMaterials.$inferSelect;
 export type InsertCourseMaterial = z.infer<typeof insertCourseMaterialSchema>;
+export type ChatbotLog = typeof chatbotLogs.$inferSelect;
+export type InsertChatbotLog = z.infer<typeof insertChatbotLogSchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
