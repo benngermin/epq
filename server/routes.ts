@@ -218,7 +218,6 @@ async function streamOpenRouterToBuffer(
           
           if (data === '[DONE]') {
             console.log("Received [DONE] signal");
-            res.write('data: [DONE]\n\n');
             break;
           }
           

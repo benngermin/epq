@@ -80,6 +80,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           const chunkData = await chunkResponse.json();
+          console.log("Chunk data received:", chunkData);
           
           if (chunkData.done) {
             done = true;
@@ -94,6 +95,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
           if (chunkData.content) {
             fullContent += chunkData.content;
+            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", fullContent.length);
             
             // Update the streaming message
             setMessages(prev => prev.map((msg, index) => 
