@@ -26,14 +26,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const [userInput, setUserInput] = useState("");
   const [hasRequestedInitial, setHasRequestedInitial] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<string>("");
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const streamingContentRef = useRef<string>("");
   const streamingMessageIdRef = useRef<string>("");
+  const isStreamingRef = useRef<boolean>(false);
 
   // Debug messages state
-  console.log("ChatInterface render - Messages count:", messages.length, "IsStreaming:", isStreaming);
+  console.log("ChatInterface render - Messages count:", messages.length, "IsStreaming:", isStreaming, "StreamingContent length:", streamingContent.length);
 
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
 
@@ -45,7 +46,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     // Generate unique ID for this streaming message
     const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     streamingMessageIdRef.current = messageId;
-    streamingContentRef.current = "";
+    setStreamingContent("");
+    isStreamingRef.current = true;
 
     // Add initial assistant message
     setMessages(prev => [{
@@ -94,32 +96,28 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           
           if (chunkData.done) {
             done = true;
-            console.log("Stream completed, final content length:", streamingContentRef.current.length);
+            console.log("Stream completed, final content length:", streamingContent.length);
+            
+            // Move streaming content to final message
             setMessages(prev => {
               return prev.map(msg => 
                 msg.id === streamingMessageIdRef.current && msg.isStreaming
-                  ? { ...msg, isStreaming: false }
+                  ? { ...msg, content: streamingContent, isStreaming: false }
                   : msg
               );
             });
+            
+            setStreamingContent("");
             setIsStreaming(false);
+            isStreamingRef.current = false;
             break;
           }
 
           if (chunkData.content) {
-            streamingContentRef.current += chunkData.content;
-            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", streamingContentRef.current.length);
+            const newContent = streamingContent + chunkData.content;
+            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", newContent.length);
             
-            // Update the streaming message using the message ID
-            setMessages(prev => {
-              const updated = prev.map(msg => 
-                msg.id === streamingMessageIdRef.current && msg.isStreaming
-                  ? { ...msg, content: streamingContentRef.current }
-                  : msg
-              );
-              console.log("Updated messages array:", updated.length, "streaming message found:", updated.some(m => m.isStreaming));
-              return updated;
-            });
+            setStreamingContent(newContent);
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -151,8 +149,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       });
     } finally {
       setIsStreaming(false);
-      streamingContentRef.current = "";
+      setStreamingContent("");
       streamingMessageIdRef.current = "";
+      isStreamingRef.current = false;
     }
   };
 
@@ -187,8 +186,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     setHasRequestedInitial(false);
     setMessages([]);
     setIsStreaming(false);
-    streamingContentRef.current = "";
+    setStreamingContent("");
     streamingMessageIdRef.current = "";
+    isStreamingRef.current = false;
   }, [currentQuestionKey]);
 
   const handleSendMessage = () => {
@@ -232,8 +232,29 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
               </div>
             )}
 
+            {/* Show streaming content as a live message */}
+            {isStreaming && streamingContent && (
+              <div className="flex w-full justify-start">
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
+                  <div className="flex items-start gap-2">
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                      <p className="whitespace-pre-wrap leading-relaxed">
+                        {streamingContent}
+                        <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {messages.slice().reverse().map((message, index) => {
               console.log(`Rendering message ${index}:`, { role: message.role, contentLength: message.content.length, isStreaming: message.isStreaming, id: message.id });
+              
+              // Skip streaming messages since we handle them separately above
+              if (message.isStreaming) return null;
+              
               return (
                 <div
                   key={message.id || index}
@@ -252,17 +273,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                   >
                     <div className="flex items-start gap-2">
                       {message.role === "assistant" && (
-                        <Bot className={cn(
-                          "h-4 w-4 mt-0.5 flex-shrink-0 text-primary",
-                          message.isStreaming && "animate-pulse"
-                        )} />
+                        <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="whitespace-pre-wrap leading-relaxed">
                           {message.content}
-                          {message.isStreaming && (
-                            <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
-                          )}
                         </p>
                       </div>
                     </div>
