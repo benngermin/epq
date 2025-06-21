@@ -15,141 +15,55 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
-  const [streamingContent, setStreamingContent] = useState("");
-  const [showStreaming, setShowStreaming] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [hasResponse, setHasResponse] = useState(false);
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const currentStreamRef = useRef<string>("");
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isInitializingRef = useRef<boolean>(false);
 
-  const startStream = async (userMessage?: string) => {
-    if (isStreaming || isInitializingRef.current) return;
-    
-    isInitializingRef.current = true;
-    
-    // Cancel any existing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
+  const loadAiResponse = async (userMessage?: string) => {
+    if (isStreaming) return;
     
     setIsStreaming(true);
-    currentStreamRef.current = "";
+    setAiResponse("Loading AI response...");
+    setHasResponse(true);
     
-    // Clear and show streaming container
-    setStreamingContent(prev => "Starting response...");
-    setShowStreaming(prev => true);
-
     try {
-      // Initialize stream
-      const response = await fetch('/api/chatbot/stream-init', {
+      // Use a simple POST request to get the AI response
+      const response = await fetch('/api/chatbot/simple-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer, userMessage }),
         credentials: 'include',
-        signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) throw new Error('Failed to initialize stream');
-      
-      const { streamId } = await response.json();
-      
-      // Poll for chunks
-      let done = false;
-      let accumulatedContent = "";
-      let consecutiveErrors = 0;
-      const maxErrors = 3;
-      
-      while (!done && consecutiveErrors < maxErrors) {
-        try {
-          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
-            credentials: 'include',
-            signal: abortControllerRef.current.signal,
-          });
-          
-          if (!chunkResponse.ok) {
-            if (chunkResponse.status === 404) {
-              // Stream ended or not found, treat as done
-              done = true;
-              break;
-            }
-            throw new Error(`HTTP ${chunkResponse.status}: Failed to fetch chunk`);
-          }
-          
-          const chunkData = await chunkResponse.json();
-          
-          // Reset error counter on successful response
-          consecutiveErrors = 0;
-          
-          if (chunkData.error) {
-            throw new Error(chunkData.error);
-          }
-          
-          if (chunkData.done) {
-            done = true;
-            // Keep the content in streaming container - don't move to messages
-          } else if (chunkData.content) {
-            accumulatedContent += chunkData.content;
-            currentStreamRef.current = accumulatedContent;
-            
-            // Force React to update by using functional state update
-
-            setStreamingContent(prev => accumulatedContent);
-            setShowStreaming(prev => true);
-            
-            // Auto-scroll to bottom
-            setTimeout(() => {
-              if (scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-              }
-            }, 10);
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (chunkError: any) {
-          if (chunkError.name === 'AbortError') {
-            // Request was cancelled, exit gracefully
-            return;
-          }
-          
-          consecutiveErrors++;
-          
-          if (consecutiveErrors >= maxErrors) {
-            throw chunkError;
-          }
-          
-          // Wait a bit longer before retrying
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
       }
+      
+      const data = await response.json();
+      setAiResponse(data.response || "AI response received but no content available.");
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+      }, 100);
       
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        // Request was cancelled, don't show error
-        return;
-      }
-      
-      // Only show error toast if we don't have any content to display
-      if (!currentStreamRef.current) {
-        toast({
-          title: "Error",
-          description: "Failed to get response from AI assistant",
-          variant: "destructive",
-        });
-        
-        setStreamingContent("Error loading response. Please try again.");
-        setShowStreaming(true);
-      }
+      console.error("AI response error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get response from AI assistant",
+        variant: "destructive",
+      });
+      setAiResponse("Error loading response. Please try again.");
     } finally {
       setIsStreaming(false);
-      abortControllerRef.current = null;
-      isInitializingRef.current = false;
     }
   };
 
@@ -164,13 +78,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-      
-      // Reset initialization flag
-      isInitializingRef.current = false;
       
       // Update tracking
       currentQuestionKey.current = questionKey;
@@ -179,13 +86,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setMessages([]);
       setUserInput("");
       setIsStreaming(false);
-      setStreamingContent("");
-      setShowStreaming(false);
-      currentStreamRef.current = "";
+      setAiResponse("");
+      setHasResponse(false);
       
-      // Start new stream with a small delay to ensure state is reset
+      // Load AI response with a small delay to ensure state is reset
       initTimeoutRef.current = setTimeout(() => {
-        startStream();
+        loadAiResponse();
         initTimeoutRef.current = null;
       }, 300);
     }
@@ -221,7 +127,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       role: "user"
     }]);
     
-    startStream(userInput);
+    loadAiResponse(userInput);
     setUserInput("");
     
     // Auto-scroll after adding user message
@@ -247,15 +153,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         >
           <div className="space-y-3 p-2">
             
-            {/* Live streaming display */}
-            {showStreaming && (
+            {/* AI Response Display */}
+            {hasResponse && (
               <div className="flex w-full justify-start">
                 <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
                   <div className="flex items-start gap-2">
                     <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                     <div className="flex-1 min-w-0">
                       <div className="whitespace-pre-wrap leading-relaxed">
-                        {streamingContent}
+                        {aiResponse}
                       </div>
                     </div>
                   </div>

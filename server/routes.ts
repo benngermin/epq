@@ -888,6 +888,62 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Simple chatbot response (non-streaming)
+  app.post("/api/chatbot/simple-response", requireAuth, async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      const userId = req.user!.id;
+
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+
+      // Get AI settings
+      const aiSettings = await storage.getAiSettings();
+      if (!aiSettings) {
+        return res.status(500).json({ error: "AI settings not configured" });
+      }
+
+      // Get active prompt
+      const activePrompt = await storage.getActivePrompt();
+      if (!activePrompt) {
+        return res.status(500).json({ error: "No active prompt configured" });
+      }
+
+      // Call OpenRouter to get response
+      const response = await callOpenRouter(
+        activePrompt.promptText,
+        aiSettings,
+        userId,
+        JSON.stringify({
+          question: questionVersion.questionText,
+          answerChoices: questionVersion.answerChoices,
+          correctAnswer: questionVersion.correctAnswer,
+          chosenAnswer: chosenAnswer,
+          userMessage: userMessage,
+          courseMaterial: courseMaterial ? {
+            assignment: courseMaterial.assignment,
+            content: courseMaterial.content
+          } : null
+        })
+      );
+
+      res.json({ response });
+    } catch (error) {
+      console.error("Simple chatbot error:", error);
+      res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+
   // Initialize streaming
   app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
     console.log("=== INITIALIZING STREAM ===");
