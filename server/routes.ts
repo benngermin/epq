@@ -1033,6 +1033,7 @@ export function registerRoutes(app: Express): Server {
       if (!stream) return;
 
       console.log("Processing stream with chosenAnswer:", chosenAnswer, "type:", typeof chosenAnswer);
+      console.log("userMessage provided:", JSON.stringify(userMessage), "type:", typeof userMessage);
 
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
