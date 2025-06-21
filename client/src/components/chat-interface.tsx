@@ -33,12 +33,14 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Stream chat response function
   const streamChatResponse = async (userMessage?: string) => {
+    console.log("Starting stream chat response...");
     setIsStreaming(true);
     
     // Create abort controller for this request
     abortControllerRef.current = new AbortController();
     
     try {
+      console.log("Making fetch request to /api/chatbot/stream");
       const response = await fetch('/api/chatbot/stream', {
         method: 'POST',
         headers: {
@@ -52,8 +54,21 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         signal: abortControllerRef.current.signal,
       });
 
+      console.log("Response received:", response.status, response.headers.get('content-type'));
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Check if the response is actually an SSE stream
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('text/event-stream')) {
+        console.error("Invalid content type for SSE:", contentType);
+        const responseText = await response.text();
+        console.error("Response body:", responseText);
+        throw new Error('Response is not a valid SSE stream');
       }
 
       const reader = response.body?.getReader();
@@ -62,6 +77,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       if (!reader) {
         throw new Error('No response stream available');
       }
+
+      console.log("Starting to read stream from response...");
 
       // Add initial assistant message
       const assistantMessageId = Date.now();
@@ -73,19 +90,31 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
       let fullContent = "";
 
+      let buffer = "";
+      
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) break;
+        if (done) {
+          console.log("Stream read completed");
+          break;
+        }
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        console.log("Received chunk:", chunk);
+        buffer += chunk;
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
+            console.log("Processing data:", data);
             
             if (data === '[DONE]') {
+              console.log("Received DONE signal, finishing stream");
               setMessages(prev => prev.map((msg, index) => 
                 index === 0 && msg.isStreaming 
                   ? { ...msg, isStreaming: false }
@@ -95,27 +124,30 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
               return;
             }
             
-            try {
-              const parsed = JSON.parse(data);
-              
-              if (parsed.error) {
-                throw new Error(parsed.error);
-              }
-              
-              if (parsed.content) {
-                fullContent += parsed.content;
+            if (data && data !== '') {
+              try {
+                const parsed = JSON.parse(data);
                 
-                // Update the streaming message
-                setMessages(prev => prev.map((msg, index) => 
-                  index === 0 && msg.isStreaming 
-                    ? { ...msg, content: fullContent }
-                    : msg
-                ));
+                if (parsed.error) {
+                  throw new Error(parsed.error);
+                }
                 
-                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
+                if (parsed.content) {
+                  fullContent += parsed.content;
+                  console.log("Updated content, total length:", fullContent.length);
+                  
+                  // Update the streaming message
+                  setMessages(prev => prev.map((msg, index) => 
+                    index === 0 && msg.isStreaming 
+                      ? { ...msg, content: fullContent }
+                      : msg
+                  ));
+                  
+                  setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
+                }
+              } catch (e) {
+                console.log("Skipping invalid JSON:", data, e);
               }
-            } catch (e) {
-              // Skip invalid JSON chunks
             }
           }
         }

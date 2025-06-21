@@ -274,6 +274,9 @@ async function streamOpenRouter(
     }
   }
   
+  // Always send DONE signal at the end
+  res.write('data: [DONE]\n\n');
+  res.end();
   console.log("streamOpenRouter function completed");
 }
 
@@ -890,13 +893,15 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       
       // Set up SSE headers
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-      });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+      res.status(200);
+      
+      // Send initial connection event
+      res.write('data: {"type": "connection"}\n\n');
       
       console.log("SSE headers set, processing request...");
 
@@ -990,7 +995,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
 
       await streamOpenRouter(prompt, aiSettings, res, req.user!.id, activePrompt?.promptText);
-      res.end();
     } catch (error) {
       console.error("Error calling chatbot stream:", error);
       res.write(`data: ${JSON.stringify({ error: "Failed to get AI response" })}\n\n`);
