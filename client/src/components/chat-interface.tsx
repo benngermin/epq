@@ -18,6 +18,7 @@ interface ChatMessage {
   role: "assistant" | "user";
   content: string;
   isStreaming?: boolean;
+  id?: string;
 }
 
 export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }: ChatInterfaceProps) {
@@ -28,6 +29,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamingContentRef = useRef<string>("");
+  const streamingMessageIdRef = useRef<string>("");
 
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
 
@@ -36,14 +39,18 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     console.log("Starting stream chat response...");
     setIsStreaming(true);
     
+    // Generate unique ID for this streaming message
+    const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    streamingMessageIdRef.current = messageId;
+    streamingContentRef.current = "";
+
     // Add initial assistant message
     setMessages(prev => [{
       role: "assistant",
       content: "",
-      isStreaming: true
+      isStreaming: true,
+      id: messageId
     }, ...prev]);
-
-    let fullContent = "";
     
     try {
       // Use a polling approach for reliable streaming
@@ -84,25 +91,30 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           
           if (chunkData.done) {
             done = true;
-            setMessages(prev => prev.map((msg, index) => 
-              index === 0 && msg.isStreaming 
-                ? { ...msg, isStreaming: false }
-                : msg
-            ));
+            console.log("Stream completed, final content length:", streamingContentRef.current.length);
+            setMessages(prev => {
+              return prev.map(msg => 
+                msg.id === streamingMessageIdRef.current && msg.isStreaming
+                  ? { ...msg, isStreaming: false }
+                  : msg
+              );
+            });
             setIsStreaming(false);
             break;
           }
 
           if (chunkData.content) {
-            fullContent += chunkData.content;
-            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", fullContent.length);
+            streamingContentRef.current += chunkData.content;
+            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", streamingContentRef.current.length);
             
-            // Update the streaming message
-            setMessages(prev => prev.map((msg, index) => 
-              index === 0 && msg.isStreaming 
-                ? { ...msg, content: fullContent }
-                : msg
-            ));
+            // Update the streaming message using the message ID
+            setMessages(prev => {
+              return prev.map(msg => 
+                msg.id === streamingMessageIdRef.current && msg.isStreaming
+                  ? { ...msg, content: streamingContentRef.current }
+                  : msg
+              );
+            });
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -156,7 +168,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       setMessages([]); // Clear previous messages
       streamChatResponse(undefined);
     }
-  }, [currentQuestionKey, hasRequestedInitial, isStreaming]);
+  }, [currentQuestionKey]);
 
   // Reset when question changes
   useEffect(() => {
@@ -173,7 +185,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const handleSendMessage = () => {
     if (!userInput.trim() || isStreaming) return;
 
-    const newUserMessage = { role: "user" as const, content: userInput };
+    const newUserMessage = { 
+      role: "user" as const, 
+      content: userInput, 
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    };
     setMessages(prev => [newUserMessage, ...prev]);
     
     streamChatResponse(userInput);
