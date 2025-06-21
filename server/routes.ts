@@ -1029,6 +1029,8 @@ export function registerRoutes(app: Express): Server {
       const stream = activeStreams.get(streamId);
       if (!stream) return;
 
+      console.log("Processing stream with chosenAnswer:", chosenAnswer);
+
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
         stream.error = "Question not found";

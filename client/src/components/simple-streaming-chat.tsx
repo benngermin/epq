@@ -28,6 +28,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     if (isStreaming) return;
     
     console.log("Starting AI response load...", { questionVersionId, chosenAnswer, userMessage });
+    console.log("chosenAnswer type:", typeof chosenAnswer, "value:", chosenAnswer);
     
     setIsStreaming(true);
     setHasResponse(true);
