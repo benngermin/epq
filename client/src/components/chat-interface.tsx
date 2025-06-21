@@ -27,8 +27,10 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const [hasRequestedInitial, setHasRequestedInitial] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState<string>("");
+  const [forceRender, setForceRender] = useState(0);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const streamingDisplayRef = useRef<HTMLParagraphElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamingMessageIdRef = useRef<string>("");
   const isStreamingRef = useRef<boolean>(false);
@@ -58,6 +60,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     streamingContentRef.current = "";
     setIsStreaming(true);
     isStreamingRef.current = true;
+    setForceRender(0);
+    
+    // Clear DOM display
+    if (streamingDisplayRef.current) {
+      streamingDisplayRef.current.textContent = "";
+    }
 
     // Add initial assistant message
     setMessages(prev => [{
@@ -129,17 +137,22 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             setIsStreaming(false);
             setStreamingContent("");
             streamingContentRef.current = "";
+            setForceRender(0);
             break;
           }
 
           if (chunkData.content && currentStreamIdRef.current === streamId) {
-            // Update content using functional state setter for immediate rendering
-            setStreamingContent(prev => {
-              const newContent = prev + chunkData.content;
-              streamingContentRef.current = newContent;
-              return newContent;
-            });
+            // Update content and force immediate DOM update
+            const newContent = streamingContentRef.current + chunkData.content;
+            streamingContentRef.current = newContent;
+            setStreamingContent(newContent);
             
+            // Direct DOM manipulation for immediate display
+            if (streamingDisplayRef.current) {
+              streamingDisplayRef.current.textContent = newContent;
+            }
+            
+            setForceRender(prev => prev + 1);
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
 
@@ -176,6 +189,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       setStreamingContent("");
       streamingContentRef.current = "";
       streamingMessageIdRef.current = "";
+      setForceRender(0);
     }
   };
 
@@ -263,15 +277,22 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
             {/* Show streaming content as a live message */}
             {isStreaming && (
-              <div className="flex w-full justify-start" key={`streaming-${streamingMessageIdRef.current}`}>
-                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
+              <div className="flex w-full justify-start" key={`streaming-${forceRender}`}>
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-foreground rounded-tl-none">
                   <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary animate-pulse" />
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 animate-pulse" />
                     <div className="flex-1 min-w-0">
-                      <p className="whitespace-pre-wrap leading-relaxed">
-                        {streamingContent || "Thinking..."}
-                        <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+                      <div className="text-xs text-blue-600 mb-1 font-medium">AI Assistant (Live)</div>
+                      <p 
+                        ref={streamingDisplayRef}
+                        className="whitespace-pre-wrap leading-relaxed text-blue-900 dark:text-blue-100"
+                      >
+                        {streamingContent || "Starting response..."}
+                        <span className="inline-block w-2 h-4 bg-blue-600 animate-pulse ml-1" />
                       </p>
+                      <div className="text-xs text-blue-500 mt-1">
+                        {streamingContent.length} characters received
+                      </div>
                     </div>
                   </div>
                 </div>
