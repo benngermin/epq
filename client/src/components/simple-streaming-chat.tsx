@@ -17,8 +17,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
-  const [aiResponse, setAiResponse] = useState("");
-  const [hasResponse, setHasResponse] = useState(false);
+  const [hasInitialResponse, setHasInitialResponse] = useState(false);
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -102,23 +101,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           if (chunkData.content) {
             accumulatedContent = chunkData.content;
             
-            // Update either initial AI response or follow-up message
-            if (userMessage) {
-              // For follow-ups, find and update the last assistant message
-              setMessages(prev => {
-                const updated = [...prev];
-                for (let i = updated.length - 1; i >= 0; i--) {
-                  if (updated[i].role === "assistant") {
-                    updated[i] = { ...updated[i], content: accumulatedContent };
-                    break;
-                  }
+            // Update the last assistant message in the messages array
+            setMessages(prev => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].role === "assistant") {
+                  updated[i] = { ...updated[i], content: accumulatedContent };
+                  break;
                 }
-                return updated;
-              });
-            } else {
-              // Update initial response
-              setAiResponse(accumulatedContent);
-              setHasResponse(true);
+              }
+              return updated;
+            });
+            
+            // Mark initial response as received if this is the first response
+            if (!userMessage && !hasInitialResponse) {
+              setHasInitialResponse(true);
             }
             
             // Auto-scroll to bottom during streaming
@@ -150,17 +147,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         variant: "destructive",
       });
       
-      if (userMessage) {
-        // Add error message as new assistant response for follow-ups
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          content: "Error loading response. Please try again.",
-          role: "assistant"
-        }]);
-      } else {
-        setHasResponse(true);
-        setAiResponse("Error loading response. Please try again.");
-      }
+      // Update the last assistant message with error
+      setMessages(prev => {
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].role === "assistant") {
+            updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
+            break;
+          }
+        }
+        return updated;
+      });
     } finally {
       setIsStreaming(false);
     }
@@ -173,9 +170,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   useEffect(() => {
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
     if (isNewQuestion && chosenAnswer) {
-      setMessages([]);                        // brand-new thread
-      setAiResponse("");
-      setHasResponse(false);
+      // Start fresh with initial assistant message
+      setMessages([{
+        id: "initial-response",
+        content: "Loading AI response...",
+        role: "assistant"
+      }]);
+      setHasInitialResponse(false);
       abortControllerRef.current?.abort?.();
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -227,7 +228,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }, 100);
   };
 
-  console.log("SimpleStreamingChat render", { questionVersionId, chosenAnswer, correctAnswer, hasResponse, aiResponse: aiResponse.substring(0, 50) + "..." });
+  console.log("SimpleStreamingChat render", { questionVersionId, chosenAnswer, correctAnswer, hasInitialResponse, messagesCount: messages.length });
 
   return (
     <Card className="bg-background w-full h-full">
@@ -243,28 +244,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           style={{ maxHeight: 'calc(100% - 120px)' }}
         >
           <div className="space-y-3 p-2">
-            
-            {/* AI Response Display */}
-            {hasResponse && (
-              <div className="flex w-full justify-start">
-                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
-                  <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
-                    <div className="flex-1 min-w-0">
-                      <div className="whitespace-pre-wrap leading-relaxed">
-                        {aiResponse}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-
-            
-
-
-            {/* Follow-up conversation messages */}
+            {/* All conversation messages */}
             {messages.map((message) => (
               <div
                 key={message.id}
