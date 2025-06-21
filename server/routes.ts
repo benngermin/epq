@@ -130,12 +130,13 @@ async function streamOpenRouter(
   userId?: number, 
   systemMessage?: string
 ): Promise<void> {
+  console.log("Starting streamOpenRouter with prompt length:", prompt.length);
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   if (!apiKey) {
+    console.error("No OpenRouter API key found");
     res.write(`data: ${JSON.stringify({ error: "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key." })}\n\n`);
     res.write('data: [DONE]\n\n');
-    res.end();
     return;
   }
 
@@ -161,6 +162,7 @@ async function streamOpenRouter(
     }
     messages.push({ role: "user", content: prompt });
 
+    console.log("Making OpenRouter API request with model:", modelName);
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -177,8 +179,11 @@ async function streamOpenRouter(
       }),
     });
 
+    console.log("OpenRouter response status:", response.status);
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error("OpenRouter API error:", response.status, errorText);
+      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
     let fullResponse = "";
@@ -189,10 +194,14 @@ async function streamOpenRouter(
       throw new Error("No response stream available");
     }
 
+    console.log("Starting to read stream...");
     while (true) {
       const { done, value } = await reader.read();
       
-      if (done) break;
+      if (done) {
+        console.log("Stream reading completed");
+        break;
+      }
       
       const chunk = decoder.decode(value);
       const lines = chunk.split('\n');
@@ -202,6 +211,7 @@ async function streamOpenRouter(
           const data = line.slice(6);
           
           if (data === '[DONE]') {
+            console.log("Received [DONE] signal");
             res.write('data: [DONE]\n\n');
             break;
           }
@@ -213,9 +223,10 @@ async function streamOpenRouter(
             if (content) {
               fullResponse += content;
               res.write(`data: ${JSON.stringify({ content })}\n\n`);
+              console.log("Sent content chunk:", content.substring(0, 50) + "...");
             }
           } catch (e) {
-            // Skip invalid JSON chunks
+            console.log("Skipping invalid JSON chunk:", data.substring(0, 100));
           }
         }
       }
@@ -262,6 +273,8 @@ async function streamOpenRouter(
       console.error("Failed to log chatbot error:", logError);
     }
   }
+  
+  console.log("streamOpenRouter function completed");
 }
 
 export function registerRoutes(app: Express): Server {
@@ -870,6 +883,9 @@ export function registerRoutes(app: Express): Server {
 
   // AI chatbot route - streaming
   app.post("/api/chatbot/stream", requireAuth, async (req, res) => {
+    console.log("=== CHATBOT STREAM REQUEST ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       
@@ -881,6 +897,8 @@ export function registerRoutes(app: Express): Server {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
+      
+      console.log("SSE headers set, processing request...");
 
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
