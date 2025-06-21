@@ -34,8 +34,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     setAiResponse("Loading AI response...");
     
     try {
-      // Use a simple POST request to get the AI response
-      const response = await fetch('/api/chatbot/simple-response', {
+      // Initialize streaming
+      const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer, userMessage }),
@@ -50,22 +50,56 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
       }
       
-      const data = await response.json();
-      console.log("AI response data:", data);
+      const { streamId } = await response.json();
+      console.log("Stream initialized with ID:", streamId);
+
+      // Poll for streaming chunks
+      let done = false;
+      let accumulatedContent = "";
       
-      const responseText = data.response || "AI response received but no content available.";
-      console.log("Setting AI response:", responseText.substring(0, 100) + "...");
-      
-      // Force state updates to happen together
-      setAiResponse(responseText);
-      setHasResponse(true);
-      
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      while (!done && !abortControllerRef.current?.signal.aborted) {
+        try {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+            credentials: 'include',
+          });
+
+          if (!chunkResponse.ok) {
+            throw new Error('Failed to fetch chunk');
+          }
+
+          const chunkData = await chunkResponse.json();
+          
+          if (chunkData.done) {
+            done = true;
+            console.log("Stream completed");
+            break;
+          }
+
+          if (chunkData.content && chunkData.content !== accumulatedContent) {
+            accumulatedContent = chunkData.content;
+            setAiResponse(accumulatedContent);
+            setHasResponse(true);
+            
+            // Auto-scroll to bottom during streaming
+            setTimeout(() => {
+              if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+              }
+            }, 10);
+          }
+
+          if (chunkData.error) {
+            throw new Error(chunkData.error);
+          }
+
+        } catch (pollError) {
+          console.error("Polling error:", pollError);
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-      }, 100);
+
+        // Small delay between polls
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
       
     } catch (error: any) {
       console.error("AI response error:", error);
