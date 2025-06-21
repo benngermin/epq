@@ -218,7 +218,7 @@ export default function QuestionSetPractice() {
                 className="flex items-center text-sm"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Dashboard
+                Return to Dashboard
               </Button>
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
