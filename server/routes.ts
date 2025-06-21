@@ -896,6 +896,14 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
+      // Clean up any existing streams for this user to prevent conflicts
+      const userId = req.user!.id;
+      for (const [existingStreamId, stream] of activeStreams.entries()) {
+        if (existingStreamId.includes(userId.toString())) {
+          activeStreams.delete(existingStreamId);
+        }
+      }
+      
       // Initialize stream
       activeStreams.set(streamId, { chunks: [], done: false });
       

@@ -94,6 +94,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       let done = false;
       while (!done) {
         try {
+          // Only poll if this is still the current stream
+          if (currentStreamIdRef.current !== streamId) {
+            console.log("Stream ID mismatch, stopping poll");
+            break;
+          }
+
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
           });
@@ -103,13 +109,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           const chunkData = await chunkResponse.json();
-          console.log("🔍 Full chunk data:", chunkData);
           
-          if (chunkData.done) {
+          if (chunkData.done && currentStreamIdRef.current === streamId) {
             done = true;
-            console.log("Stream completed, final content length:", streamingContentRef.current.length);
             
-            // Move streaming content to final message - use ref value
+            // Move streaming content to final message
             const finalContent = streamingContentRef.current;
             setMessages(prev => {
               return prev.map(msg => 
@@ -120,6 +124,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             });
             
             // Clean up streaming state after completion
+            currentStreamIdRef.current = "";
             isStreamingRef.current = false;
             setIsStreaming(false);
             setStreamingContent("");
@@ -127,14 +132,11 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             break;
           }
 
-          if (chunkData.content) {
-            console.log("📦 Chunk:", chunkData.content.substring(0, 30));
-            
-            // Force immediate state update with functional setter
+          if (chunkData.content && currentStreamIdRef.current === streamId) {
+            // Update content using functional state setter for immediate rendering
             setStreamingContent(prev => {
               const newContent = prev + chunkData.content;
               streamingContentRef.current = newContent;
-              console.log("📊 Updated:", newContent.length, "chars");
               return newContent;
             });
             
@@ -152,7 +154,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         }
 
         // Small delay between polls
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
 
     } catch (error: any) {
@@ -191,10 +193,10 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Get initial explanation only once per question
   useEffect(() => {
-    if (!hasRequestedInitial && !isStreaming && !isStreamingRef.current) {
+    if (!hasRequestedInitial && !isStreaming && !isStreamingRef.current && !currentStreamIdRef.current) {
       setHasRequestedInitial(true);
       setMessages([]); // Clear previous messages
-      streamChatResponse(undefined);
+      setTimeout(() => streamChatResponse(undefined), 100); // Small delay to prevent race conditions
     }
   }, [currentQuestionKey]);
 
@@ -261,18 +263,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
             {/* Show streaming content as a live message */}
             {isStreaming && (
-              <div className="flex w-full justify-start" key="streaming-message">
-                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-blue-100 dark:bg-blue-900 text-foreground rounded-tl-none border-2 border-blue-300">
+              <div className="flex w-full justify-start" key={`streaming-${streamingMessageIdRef.current}`}>
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
                   <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 animate-pulse" />
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary animate-pulse" />
                     <div className="flex-1 min-w-0">
-                      <p className="whitespace-pre-wrap leading-relaxed text-blue-900 dark:text-blue-100">
-                        {streamingContent || "🤖 Thinking..."}
-                        <span className="inline-block w-2 h-4 bg-blue-600 animate-pulse ml-1" />
+                      <p className="whitespace-pre-wrap leading-relaxed">
+                        {streamingContent || "Thinking..."}
+                        <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                       </p>
-                      <div className="text-xs text-blue-600 mt-1">
-                        Live: {streamingContent.length} chars | Streaming: {isStreaming.toString()}
-                      </div>
                     </div>
                   </div>
                 </div>
