@@ -15,8 +15,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
+  const [streamingContent, setStreamingContent] = useState("");
+  const [showStreaming, setShowStreaming] = useState(false);
   const { toast } = useToast();
-  const streamingRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
   const currentStreamRef = useRef<string>("");
@@ -30,13 +31,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     currentStreamRef.current = "";
     
     // Clear and show streaming container
-    if (streamingRef.current) {
-      streamingRef.current.style.display = "flex";
-      const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
-      if (contentDiv) {
-        contentDiv.innerHTML = "Starting response...";
-      }
-    }
+    setStreamingContent("Starting response...");
+    setShowStreaming(true);
 
     try {
       // Initialize stream
@@ -71,19 +67,16 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           accumulatedContent += chunkData.content;
           currentStreamRef.current = accumulatedContent;
           
-          // Update DOM directly and ensure container is visible
-          if (streamingRef.current) {
-            streamingRef.current.style.display = "flex";
-            const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
-            if (contentDiv) {
-              contentDiv.innerHTML = accumulatedContent.replace(/\n/g, '<br>');
-            }
-            
-            // Auto-scroll to bottom
+          // Update streaming content with React state
+          setStreamingContent(accumulatedContent);
+          setShowStreaming(true);
+          
+          // Auto-scroll to bottom
+          setTimeout(() => {
             if (scrollContainerRef.current) {
               scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
             }
-          }
+          }, 10);
         }
         
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -97,13 +90,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         variant: "destructive",
       });
       
-      if (streamingRef.current) {
-        streamingRef.current.style.display = "flex";
-        const contentDiv = streamingRef.current.querySelector('.whitespace-pre-wrap');
-        if (contentDiv) {
-          contentDiv.innerHTML = "Error loading response. Please try again.";
-        }
-      }
+      setStreamingContent("Error loading response. Please try again.");
+      setShowStreaming(true);
     } finally {
       setIsStreaming(false);
     }
@@ -127,13 +115,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setMessages([]);
       setUserInput("");
       setIsStreaming(false);
+      setStreamingContent("");
+      setShowStreaming(false);
       currentStreamRef.current = "";
-      
-      // Clear streaming container
-      if (streamingRef.current) {
-        streamingRef.current.innerHTML = "";
-        streamingRef.current.style.display = "none";
-      }
       
       // Initialize new stream after a short delay
       initTimeoutRef.current = setTimeout(() => {
@@ -189,22 +173,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           <div className="space-y-3 p-2">
             
             {/* Live streaming display */}
-            <div 
-              ref={streamingRef}
-              style={{ display: 'none' }}
-              className="flex w-full justify-start"
-            >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
-                <div className="flex items-start gap-2">
-                  <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
-                  <div className="flex-1 min-w-0">
-                    <div className="whitespace-pre-wrap leading-relaxed">
-                      Loading...
+            {showStreaming && (
+              <div className="flex w-full justify-start">
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
+                  <div className="flex items-start gap-2">
+                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                    <div className="flex-1 min-w-0">
+                      <div 
+                        className="whitespace-pre-wrap leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: streamingContent.replace(/\n/g, '<br>') }}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Regular messages */}
             {messages.slice().reverse().map((message) => (
