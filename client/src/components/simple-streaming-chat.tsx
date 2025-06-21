@@ -99,7 +99,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             currentStreamRef.current = accumulatedContent;
             
             // Force React to update by using functional state update
-            console.log('Updating streaming content:', accumulatedContent.length, 'chars');
+
             setStreamingContent(prev => accumulatedContent);
             setShowStreaming(prev => true);
             
@@ -263,14 +263,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               </div>
             )}
 
-            {/* Debug info */}
-            <div className="text-xs text-muted-foreground p-2 border rounded bg-yellow-50">
-              <div>Show Streaming: {showStreaming ? 'true' : 'false'}</div>
-              <div>Content Length: {streamingContent.length}</div>
-              <div>Is Streaming: {isStreaming ? 'true' : 'false'}</div>
-              <div>Question Key: {currentQuestionKey.current}</div>
-              <div>Content Preview: {streamingContent.substring(0, 50)}...</div>
-            </div>
+
             
 
 
