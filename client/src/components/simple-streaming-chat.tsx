@@ -40,7 +40,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     console.log("Starting AI response load...", { questionVersionId, chosenAnswer, userMessage });
     console.log("chosenAnswer prop:", typeof chosenAnswer, "value:", JSON.stringify(chosenAnswer));
     console.log("originalChosenAnswerRef.current:", typeof originalChosenAnswerRef.current, "value:", JSON.stringify(originalChosenAnswerRef.current));
-    console.log("Request body being sent:", JSON.stringify({ questionVersionId, chosenAnswer: originalChosenAnswerRef.current, userMessage }));
+    
+    const finalChosenAnswer = chosenAnswer || originalChosenAnswerRef.current || "";
+    console.log("Final chosen answer to send:", JSON.stringify(finalChosenAnswer));
+    console.log("Request body being sent:", JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }));
     
     setIsStreaming(true);
     setHasResponse(true);
@@ -51,7 +54,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionVersionId, chosenAnswer: chosenAnswer || originalChosenAnswerRef.current || "", userMessage }),
+        body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }),
         credentials: 'include',
       });
 

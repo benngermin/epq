@@ -972,10 +972,10 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       
       // Debug incoming request
-      console.log("=== STREAM INIT DEBUG ===");
+      console.log("🔥🔥🔥 STREAM INIT DEBUG START 🔥🔥🔥");
       console.log("Full request body:", JSON.stringify(req.body, null, 2));
       console.log("chosenAnswer from request:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
-      console.log("=== END STREAM INIT DEBUG ===");
+      console.log("🔥🔥🔥 STREAM INIT DEBUG END 🔥🔥🔥");
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
       // Clean up any existing streams for this user to prevent conflicts
@@ -1115,7 +1115,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const formattedChoices = questionVersion.answerChoices.join('\n');
         
         // Debug logging for variable substitution
-        console.log("=== STREAMING VARIABLE SUBSTITUTION DEBUG ===");
+        console.log("🚀🚀🚀 STREAMING VARIABLE SUBSTITUTION DEBUG 🚀🚀🚀");
         console.log("chosenAnswer:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer, "length:", chosenAnswer?.length);
         
         // Ensure chosenAnswer is not empty or undefined
@@ -1133,7 +1133,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Verify substitution worked
         console.log("After substitution - contains {{SELECTED_ANSWER}}:", systemPrompt.includes("{{SELECTED_ANSWER}}"));
         console.log("Final prompt snippet with selected answer:", systemPrompt.substring(systemPrompt.indexOf('<selected_answer>'), systemPrompt.indexOf('</selected_answer>') + 18));
-        console.log("=== END STREAMING SUBSTITUTION DEBUG ===");
+        console.log("🚀🚀🚀 END STREAMING SUBSTITUTION DEBUG 🚀🚀🚀");
         
         prompt = systemPrompt;
       }
