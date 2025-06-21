@@ -124,14 +124,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content) {
-            console.log("📥 Received chunk:", chunkData.content.substring(0, 50));
-            
             // Update both state and ref
             streamingContentRef.current += chunkData.content;
             setStreamingContent(streamingContentRef.current);
-            
-            console.log("📊 State updated - Ref length:", streamingContentRef.current.length, "State length:", streamingContent.length);
-            console.log("🔄 Force re-render trigger");
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -263,9 +258,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                         {streamingContent || "Starting response..."}
                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                       </p>
-                      <div className="text-xs text-red-500 mt-1">
-                        Debug: streaming={isStreaming.toString()}, content_length={streamingContent.length}, ref_length={streamingContentRef.current?.length || 0}
-                      </div>
+
                     </div>
                   </div>
                 </div>
