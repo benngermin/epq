@@ -98,11 +98,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             done = true;
             console.log("Stream completed, final content length:", streamingContent.length);
             
-            // Move streaming content to final message
+            // Move streaming content to final message - capture current content
+            const finalContent = streamingContent;
             setMessages(prev => {
               return prev.map(msg => 
                 msg.id === streamingMessageIdRef.current && msg.isStreaming
-                  ? { ...msg, content: streamingContent, isStreaming: false }
+                  ? { ...msg, content: finalContent, isStreaming: false }
                   : msg
               );
             });
@@ -114,10 +115,13 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content) {
-            const newContent = streamingContent + chunkData.content;
-            console.log("Received content:", chunkData.content.substring(0, 50), "Total length:", newContent.length);
+            console.log("Received content:", chunkData.content.substring(0, 50));
             
-            setStreamingContent(newContent);
+            setStreamingContent(prev => {
+              const newContent = prev + chunkData.content;
+              console.log("Updated streaming content length:", newContent.length);
+              return newContent;
+            });
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
