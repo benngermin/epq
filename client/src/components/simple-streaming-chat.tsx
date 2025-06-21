@@ -17,6 +17,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
   const { toast } = useToast();
   const streamingRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
   const currentStreamRef = useRef<string>("");
 
@@ -60,17 +61,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         
         if (chunkData.done) {
           done = true;
-          // Move to final messages
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            content: accumulatedContent,
-            role: "assistant"
-          }]);
-          
-          // Hide streaming container
-          if (streamingRef.current) {
-            streamingRef.current.style.display = "none";
-          }
+          // Keep the content in streaming container - don't move to messages
         } else if (chunkData.content) {
           accumulatedContent += chunkData.content;
           currentStreamRef.current = accumulatedContent;
@@ -78,6 +69,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           // Update DOM directly
           if (streamingRef.current) {
             streamingRef.current.innerHTML = accumulatedContent.replace(/\n/g, '<br>');
+            
+            // Auto-scroll to bottom
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
           }
         }
         
@@ -111,6 +107,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const handleSendMessage = () => {
     if (!userInput.trim() || isStreaming) return;
 
+    // Add user message to regular messages
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       content: userInput,
@@ -119,6 +116,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     startStream(userInput);
     setUserInput("");
+    
+    // Auto-scroll after adding user message
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   return (
@@ -129,7 +133,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           <span className="font-medium text-foreground text-base">AI Assistant</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto mb-3 min-h-0" style={{ maxHeight: 'calc(100% - 120px)' }}>
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto mb-3 min-h-0" 
+          style={{ maxHeight: 'calc(100% - 120px)' }}
+        >
           <div className="space-y-3 p-2">
             
             {/* Live streaming display */}
@@ -138,12 +146,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               style={{ display: 'none' }}
               className="flex w-full justify-start"
             >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-green-50 dark:bg-green-900 border-2 border-green-300 text-foreground rounded-tl-none">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
                 <div className="flex items-start gap-2">
-                  <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 animate-pulse" />
+                  <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-green-700 mb-1 font-bold">LIVE STREAMING</div>
-                    <div className="whitespace-pre-wrap leading-relaxed text-green-900 dark:text-green-100">
+                    <div className="whitespace-pre-wrap leading-relaxed">
                       Loading...
                     </div>
                   </div>
