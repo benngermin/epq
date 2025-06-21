@@ -35,8 +35,6 @@ const questionSetSchema = z.object({
 
 const aiSettingsSchema = z.object({
   modelName: z.string().min(1, "Model is required"),
-  temperature: z.number().min(0).max(2),
-  maxTokens: z.number().min(1).max(4000),
 });
 
 const promptSchema = z.object({
@@ -62,8 +60,6 @@ function AISettingsSection() {
     resolver: zodResolver(aiSettingsSchema),
     defaultValues: {
       modelName: "anthropic/claude-sonnet-4",
-      temperature: 0.7,
-      maxTokens: 1000,
     },
   });
 
@@ -79,8 +75,6 @@ function AISettingsSection() {
     if (aiSettings) {
       aiSettingsForm.reset({
         modelName: aiSettings.modelName || "anthropic/claude-sonnet-4",
-        temperature: aiSettings.temperature || 0.7,
-        maxTokens: aiSettings.maxTokens || 1000,
       });
     }
   }, [aiSettings, aiSettingsForm]);
@@ -187,53 +181,13 @@ function AISettingsSection() {
                 )}
               />
 
-              <FormField
-                control={aiSettingsForm.control}
-                name="temperature"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Temperature ({field.value})</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="range"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                    </FormControl>
-                    <div className="text-xs text-muted-foreground">
-                      Higher values make output more random, lower values more deterministic
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={aiSettingsForm.control}
-                name="maxTokens"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Max Tokens</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="4000"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
-                    </FormControl>
-                    <div className="text-xs text-muted-foreground">
-                      Maximum number of tokens in the response
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded border">
+                <p><strong>Model Settings:</strong></p>
+                <ul className="mt-1 space-y-1">
+                  <li>• Temperature: Always set to 0 (deterministic responses)</li>
+                  <li>• Max Tokens: Automatically set to model maximum (Claude: 4096, GPT-4: 8192)</li>
+                </ul>
+              </div>
 
               <Button type="submit" disabled={updateAISettingsMutation.isPending}>
                 {updateAISettingsMutation.isPending ? "Updating..." : "Update Model Settings"}

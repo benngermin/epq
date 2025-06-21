@@ -30,8 +30,19 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 
   const startTime = Date.now();
   const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
-  const temperature = (settings?.temperature || 70) / 100;
-  const maxTokens = settings?.maxTokens || 150;
+  const temperature = 0; // Always use deterministic output
+  
+  // Set max tokens based on model
+  let maxTokens = 4096; // Default fallback
+  if (modelName.includes('claude-3-haiku')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-sonnet-4')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('gpt-3.5-turbo')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('gpt-4')) {
+    maxTokens = 8192;
+  }
 
   try {
     const messages = [];
@@ -78,7 +89,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         systemMessage,
         userMessage: prompt,
         aiResponse,
-        temperature: Math.round(temperature * 100), // Store as integer
+        temperature: 0, // Always deterministic
         maxTokens,
         responseTime,
       });
@@ -99,7 +110,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         systemMessage,
         userMessage: prompt,
         aiResponse: errorResponse,
-        temperature: Math.round(temperature * 100),
+        temperature: 0,
         maxTokens,
         responseTime: Date.now() - startTime,
       });
@@ -827,11 +838,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.put("/api/admin/ai-settings", requireAdmin, async (req, res) => {
     try {
-      const { modelName, temperature, maxTokens } = req.body;
+      const { modelName } = req.body;
       const settings = await storage.updateAiSettings({
-        modelName,
-        temperature,
-        maxTokens
+        modelName
       });
       res.json(settings);
     } catch (error) {
