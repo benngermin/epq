@@ -146,7 +146,10 @@ async function streamOpenRouterToBuffer(
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   const stream = activeStreams.get(streamId);
-  if (!stream) return;
+  if (!stream) {
+    console.warn(`Stream ${streamId} not found in activeStreams`);
+    return;
+  }
   
   if (!apiKey) {
     console.error("No OpenRouter API key found");
@@ -234,13 +237,16 @@ async function streamOpenRouterToBuffer(
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             
-            if (content) {
+            if (content && typeof content === 'string') {
               fullResponse += content;
               stream.chunks.push(content);
               console.log("Added content chunk to buffer:", content.substring(0, 50) + "...");
             }
           } catch (e) {
-            console.log("Skipping invalid JSON chunk:", data.substring(0, 100));
+            // Skip invalid JSON chunks - this is normal for streaming
+            if (data.trim() && !data.includes('ping')) {
+              console.log("Skipping invalid JSON chunk:", data.substring(0, 100));
+            }
           }
         }
       }

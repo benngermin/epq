@@ -405,16 +405,16 @@ export default function QuestionSetPractice() {
                 <div className="space-y-4 flex-shrink-0">
                   <div className="flex justify-between text-sm">
                     <span>Questions Answered</span>
-                    <span>{Object.keys(userAnswers).length} / {questions.length}</span>
+                    <span>{Object.keys(userAnswers).length} / {questions?.length || 0}</span>
                   </div>
                 </div>
                   
                 {/* Question list */}
                 <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4">
-                  {questions.map((question: any, index: number) => {
-                    const isAnswered = userAnswers[question.id];
+                  {questions?.map((question: any, index: number) => {
+                    const isAnswered = question?.id ? userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
-                    const isCorrect = isAnswered && userAnswers[question.id] === question.latestVersion?.correctAnswer;
+                    const isCorrect = isAnswered && userAnswers[question.id] === question?.latestVersion?.correctAnswer;
                     
                     return (
                       <div
