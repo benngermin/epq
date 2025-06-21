@@ -139,30 +139,23 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content && isStreamingRef.current) {
-            console.log("🟢 Frontend received chunk:", chunkData.content.substring(0, 50));
-            
-            // Update content with multiple approaches for maximum reliability
-            const newContent = streamingContentRef.current + chunkData.content;
-            streamingContentRef.current = newContent;
-            
-            console.log("🟢 Updated content length:", newContent.length);
-            
-            // 1. React state update
-            setStreamingContent(newContent);
-            
-            // 2. Direct DOM manipulation
-            const streamingDiv = document.getElementById('streaming-content-display');
-            if (streamingDiv) {
-              streamingDiv.textContent = newContent;
-              console.log("🟢 DOM updated directly");
-            } else {
-              console.log("🔴 DOM element not found");
+            // Only append new content if it's different from what we already have
+            if (chunkData.content !== streamingContentRef.current) {
+              streamingContentRef.current = chunkData.content;
+              setStreamingContent(chunkData.content);
+              
+              // Update the streaming message in the list
+              setMessages(prev => {
+                return prev.map(msg => 
+                  msg.id === streamingMessageIdRef.current && msg.isStreaming
+                    ? { ...msg, content: chunkData.content }
+                    : msg
+                );
+              });
+              
+              setForceRender(prev => prev + 1);
+              setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
             }
-            
-            // 3. Force component re-render
-            setForceRender(prev => prev + 1);
-            
-            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
 
           if (chunkData.error) {

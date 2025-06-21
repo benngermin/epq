@@ -1002,9 +1002,14 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).json({ error: "Stream not found" });
     }
     
-    // Return available chunks
-    const chunks = stream.chunks.splice(0); // Remove returned chunks
+    // Return available chunks without removing them until stream is done
+    const chunks = [...stream.chunks]; // Copy chunks instead of splicing
     const content = chunks.join('');
+    
+    // Only clear chunks when stream is complete
+    if (stream.done && chunks.length > 0) {
+      stream.chunks = [];
+    }
     
     res.json({
       content,
