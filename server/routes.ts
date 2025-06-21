@@ -1066,18 +1066,21 @@ export function registerRoutes(app: Express): Server {
       if (userMessage) {
         // Follow-up question with course material context and selected answer
         const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+        console.log("🔄 STREAMING FOLLOW-UP - User message:", JSON.stringify(userMessage));
         console.log("🔄 STREAMING FOLLOW-UP - Selected answer:", JSON.stringify(selectedAnswerText));
         
-        prompt = `${userMessage}
+        prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
 
-Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. 
-Student selected: ${selectedAnswerText}
-The correct answer is ${questionVersion.correctAnswer}.
+Previous context:
+- Question: "${questionVersion.questionText}"
+- Answer choices: ${questionVersion.answerChoices.join(', ')}
+- Student selected: ${selectedAnswerText}
+- Correct answer: ${questionVersion.correctAnswer}
 
 Relevant course material:
 ${sourceMaterial}
 
-Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
+Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
