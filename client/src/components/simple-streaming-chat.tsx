@@ -30,8 +30,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     console.log("Starting AI response load...", { questionVersionId, chosenAnswer, userMessage });
     
     setIsStreaming(true);
-    setAiResponse("Loading AI response...");
     setHasResponse(true);
+    setAiResponse("Loading AI response...");
     
     try {
       // Use a simple POST request to get the AI response
@@ -55,7 +55,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       const responseText = data.response || "AI response received but no content available.";
       console.log("Setting AI response:", responseText.substring(0, 100) + "...");
+      
+      // Force state updates to happen together
       setAiResponse(responseText);
+      setHasResponse(true);
       
       // Auto-scroll to bottom
       setTimeout(() => {
@@ -71,6 +74,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         description: error.message || "Failed to get response from AI assistant",
         variant: "destructive",
       });
+      setHasResponse(true);
       setAiResponse("Error loading response. Please try again.");
     } finally {
       setIsStreaming(false);
