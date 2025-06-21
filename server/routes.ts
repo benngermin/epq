@@ -122,6 +122,148 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 }
 
+// Streaming OpenRouter integration
+async function streamOpenRouter(
+  prompt: string, 
+  settings: any, 
+  res: Response, 
+  userId?: number, 
+  systemMessage?: string
+): Promise<void> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  
+  if (!apiKey) {
+    res.write(`data: ${JSON.stringify({ error: "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key." })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+    return;
+  }
+
+  const startTime = Date.now();
+  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
+  const temperature = 0;
+  
+  let maxTokens = 4096;
+  if (modelName.includes('claude-3-haiku')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-sonnet-4')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('gpt-3.5-turbo')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('gpt-4')) {
+    maxTokens = 8192;
+  }
+
+  try {
+    const messages = [];
+    if (systemMessage) {
+      messages.push({ role: "system", content: systemMessage });
+    }
+    messages.push({ role: "user", content: prompt });
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    let fullResponse = "";
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      throw new Error("No response stream available");
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          
+          if (data === '[DONE]') {
+            res.write('data: [DONE]\n\n');
+            break;
+          }
+          
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            
+            if (content) {
+              fullResponse += content;
+              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            }
+          } catch (e) {
+            // Skip invalid JSON chunks
+          }
+        }
+      }
+    }
+
+    const responseTime = Date.now() - startTime;
+
+    // Log the complete interaction
+    try {
+      await storage.createChatbotLog({
+        userId,
+        modelName,
+        systemMessage,
+        userMessage: prompt,
+        aiResponse: fullResponse,
+        temperature: 0,
+        maxTokens,
+        responseTime,
+      });
+    } catch (logError) {
+      console.error("Failed to log chatbot interaction:", logError);
+    }
+
+  } catch (error) {
+    console.error("OpenRouter streaming error:", error);
+    const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
+    
+    res.write(`data: ${JSON.stringify({ error: errorResponse })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    
+    // Log the error interaction
+    try {
+      await storage.createChatbotLog({
+        userId,
+        modelName,
+        systemMessage,
+        userMessage: prompt,
+        aiResponse: errorResponse,
+        temperature: 0,
+        maxTokens,
+        responseTime: Date.now() - startTime,
+      });
+    } catch (logError) {
+      console.error("Failed to log chatbot error:", logError);
+    }
+  }
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -726,7 +868,120 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // AI chatbot route
+  // AI chatbot route - streaming
+  app.post("/api/chatbot/stream", requireAuth, async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      
+      // Set up SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        res.write(`data: ${JSON.stringify({ error: "Question not found" })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+
+      const aiSettings = await storage.getAiSettings();
+      const activePrompt = await storage.getActivePromptVersion();
+      
+      // Get source material for both initial and follow-up responses
+      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
+      
+      if (courseMaterial) {
+        sourceMaterial = courseMaterial.content;
+      }
+      
+      let prompt;
+      if (userMessage) {
+        // Follow-up question with course material context
+        prompt = `${userMessage}
+
+Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.
+
+Relevant course material:
+${sourceMaterial}
+
+Please provide a helpful response based on the course material above.`;
+      } else {
+        // Initial explanation with variable substitution
+        let systemPrompt = activePrompt?.promptText || 
+          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Next, review the provided source material that was used to create this assessment content:
+<course_material>
+{{COURSE_MATERIAL}}
+</course_material>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
+
+##Criteria:
+- Only use the provided content
+- Use clear, jargon-free wording
+- State clearly why each choice is ✅ Correct or ❌ Incorrect.
+- In 2-4 sentences, explain the concept that makes the choice right or wrong.
+- Paraphrase relevant ideas and reference section titles from the Source Material
+- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+        
+        // Format answer choices as a list
+        const formattedChoices = questionVersion.answerChoices.join('\n');
+
+        // Substitute variables in the prompt
+        systemPrompt = systemPrompt
+          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, chosenAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
+        
+        prompt = systemPrompt;
+      }
+
+      await streamOpenRouter(prompt, aiSettings, res, req.user!.id, activePrompt?.promptText);
+      res.end();
+    } catch (error) {
+      console.error("Error calling chatbot stream:", error);
+      res.write(`data: ${JSON.stringify({ error: "Failed to get AI response" })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    }
+  });
+
+  // AI chatbot route - non-streaming (fallback)
   app.post("/api/chatbot", requireAuth, async (req, res) => {
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
