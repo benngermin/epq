@@ -23,9 +23,18 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const currentStreamRef = useRef<string>("");
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const startStream = async (userMessage?: string) => {
     if (isStreaming) return;
+    
+    // Cancel any existing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
     
     setIsStreaming(true);
     currentStreamRef.current = "";
@@ -41,6 +50,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer, userMessage }),
         credentials: 'include',
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) throw new Error('Failed to initialize stream');
@@ -50,50 +60,94 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       // Poll for chunks
       let done = false;
       let accumulatedContent = "";
+      let consecutiveErrors = 0;
+      const maxErrors = 3;
       
-      while (!done) {
-        const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
-          credentials: 'include',
-        });
-        
-        if (!chunkResponse.ok) throw new Error('Failed to fetch chunk');
-        
-        const chunkData = await chunkResponse.json();
-        
-        if (chunkData.done) {
-          done = true;
-          // Keep the content in streaming container - don't move to messages
-        } else if (chunkData.content) {
-          accumulatedContent += chunkData.content;
-          currentStreamRef.current = accumulatedContent;
+      while (!done && consecutiveErrors < maxErrors) {
+        try {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+            credentials: 'include',
+            signal: abortControllerRef.current.signal,
+          });
           
-          // Update streaming content with React state
-          setStreamingContent(accumulatedContent);
-          setShowStreaming(true);
-          
-          // Auto-scroll to bottom
-          setTimeout(() => {
-            if (scrollContainerRef.current) {
-              scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          if (!chunkResponse.ok) {
+            if (chunkResponse.status === 404) {
+              // Stream ended or not found, treat as done
+              done = true;
+              break;
             }
-          }, 10);
+            throw new Error(`HTTP ${chunkResponse.status}: Failed to fetch chunk`);
+          }
+          
+          const chunkData = await chunkResponse.json();
+          
+          // Reset error counter on successful response
+          consecutiveErrors = 0;
+          
+          if (chunkData.error) {
+            throw new Error(chunkData.error);
+          }
+          
+          if (chunkData.done) {
+            done = true;
+            // Keep the content in streaming container - don't move to messages
+          } else if (chunkData.content) {
+            accumulatedContent += chunkData.content;
+            currentStreamRef.current = accumulatedContent;
+            
+            // Update streaming content with React state
+            setStreamingContent(accumulatedContent);
+            setShowStreaming(true);
+            
+            // Auto-scroll to bottom
+            setTimeout(() => {
+              if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+              }
+            }, 10);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (chunkError: any) {
+          if (chunkError.name === 'AbortError') {
+            // Request was cancelled, exit gracefully
+            return;
+          }
+          
+          consecutiveErrors++;
+          console.warn(`Chunk fetch error (${consecutiveErrors}/${maxErrors}):`, chunkError);
+          
+          if (consecutiveErrors >= maxErrors) {
+            throw chunkError;
+          }
+          
+          // Wait a bit longer before retrying
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-    } catch (error) {
-      console.error("Streaming error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get response from AI assistant",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        // Request was cancelled, don't show error
+        return;
+      }
       
-      setStreamingContent("Error loading response. Please try again.");
-      setShowStreaming(true);
+      console.error("Streaming error:", error);
+      
+      // Only show error toast if we don't have any content to display
+      if (!currentStreamRef.current) {
+        toast({
+          title: "Error",
+          description: "Failed to get response from AI assistant",
+          variant: "destructive",
+        });
+        
+        setStreamingContent("Error loading response. Please try again.");
+        setShowStreaming(true);
+      }
     } finally {
       setIsStreaming(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -109,6 +163,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
+      }
+      
+      // Cancel any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
       
       // Reset state
@@ -127,11 +187,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [questionVersionId, chosenAnswer, correctAnswer]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and abort controller on unmount
   useEffect(() => {
     return () => {
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, []);
