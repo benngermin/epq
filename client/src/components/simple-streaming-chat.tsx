@@ -20,6 +20,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
   const currentStreamRef = useRef<string>("");
+  const currentQuestionKey = useRef<string>("");
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const startStream = async (userMessage?: string) => {
     if (isStreaming) return;
@@ -96,13 +98,48 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   };
 
-  // Initialize on mount
+  // Reset and initialize when question changes
   useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      setTimeout(() => startStream(), 500);
+    const questionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
+    
+    // If this is a new question, reset everything
+    if (currentQuestionKey.current !== questionKey) {
+      currentQuestionKey.current = questionKey;
+      
+      // Clear any pending initialization timeout
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      
+      // Reset state
+      setMessages([]);
+      setUserInput("");
+      setIsStreaming(false);
+      currentStreamRef.current = "";
+      
+      // Clear streaming container
+      if (streamingRef.current) {
+        streamingRef.current.innerHTML = "";
+        streamingRef.current.style.display = "none";
+      }
+      
+      // Initialize new stream after a short delay
+      initTimeoutRef.current = setTimeout(() => {
+        startStream();
+        initTimeoutRef.current = null;
+      }, 500);
     }
   }, [questionVersionId, chosenAnswer, correctAnswer]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSendMessage = () => {
     if (!userInput.trim() || isStreaming) return;
