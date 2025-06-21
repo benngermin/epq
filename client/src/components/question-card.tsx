@@ -23,8 +23,8 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
-  const hasAnswer = !!question.userAnswer;
-  const isCorrect = question.userAnswer?.isCorrect;
+  const hasAnswer = !!question?.userAnswer;
+  const isCorrect = question?.userAnswer?.isCorrect;
 
   // Reset flip state when question changes
   useEffect(() => {
@@ -47,7 +47,7 @@ export function QuestionCard({ question, onSubmitAnswer, isSubmitting, testRunId
 
     // If incorrect, flip the card after a short delay to show chatbot
     setTimeout(() => {
-      if (selectedAnswer !== question.latestVersion?.correctAnswer) {
+      if (selectedAnswer !== question?.latestVersion?.correctAnswer) {
         setIsFlipped(true);
       }
     }, 1500);

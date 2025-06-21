@@ -41,7 +41,7 @@ export default function QuestionSetPractice() {
   const questionSetId = parseInt(params?.id || "0");
   console.log("Parsed Question Set ID:", questionSetId);
 
-  const { data: questionSet, isLoading: questionSetLoading } = useQuery({
+  const { data: questionSet, isLoading: questionSetLoading, error: questionSetError } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
     queryFn: () => fetch(`/api/question-sets/${questionSetId}`, { 
       credentials: "include" 
@@ -50,6 +50,8 @@ export default function QuestionSetPractice() {
       return res.json();
     }),
     enabled: !!questionSetId,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: courses } = useQuery({
@@ -96,7 +98,7 @@ export default function QuestionSetPractice() {
   });
 
   const currentQuestion = questions?.[currentQuestionIndex];
-  const hasAnswered = currentQuestion && userAnswers[currentQuestion.id];
+  const hasAnswered = currentQuestion?.id ? userAnswers[currentQuestion.id] : false;
 
   const handleSubmitAnswer = (answer: string) => {
     if (!currentQuestion?.latestVersion) return;
@@ -165,6 +167,25 @@ export default function QuestionSetPractice() {
   console.log("Questions Data:", questions);
   console.log("Questions Error:", questionsError);
   console.log("Questions Loading:", questionsLoading);
+
+  if (questionSetError || questionsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Error Loading Questions</h3>
+            <p className="text-muted-foreground mb-4">
+              {questionSetError?.message || questionsError?.message || "Failed to load questions. Please try again."}
+            </p>
+            <Button onClick={() => setLocation("/")}>
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!questionSet || !questions || questions.length === 0) {
     console.log("Showing no questions available screen");

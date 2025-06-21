@@ -125,6 +125,15 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 // In-memory store for active streams - declare at module level
 const activeStreams = new Map<string, { chunks: string[], done: boolean, error?: string }>();
 
+// Cleanup function to prevent memory leaks
+function cleanupStream(streamId: string) {
+  const stream = activeStreams.get(streamId);
+  if (stream) {
+    stream.chunks = [];
+    activeStreams.delete(streamId);
+  }
+}
+
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(
   prompt: string, 
@@ -282,6 +291,11 @@ async function streamOpenRouterToBuffer(
   // Mark stream as done
   stream.done = true;
   console.log("streamOpenRouterToBuffer function completed");
+  
+  // Cleanup stream after 5 minutes to prevent memory leaks
+  setTimeout(() => {
+    cleanupStream(streamId);
+  }, 5 * 60 * 1000);
 }
 
 export function registerRoutes(app: Express): Server {
