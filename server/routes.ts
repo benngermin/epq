@@ -122,6 +122,9 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 }
 
+// In-memory store for active streams - declare at module level
+const activeStreams = new Map<string, { chunks: string[], done: boolean, error?: string }>();
+
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(
   prompt: string, 
@@ -885,9 +888,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to complete test" });
     }
   });
-
-  // In-memory store for active streams
-  const activeStreams = new Map<string, { chunks: string[], done: boolean, error?: string }>();
 
   // Initialize streaming
   app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
