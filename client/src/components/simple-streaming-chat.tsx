@@ -79,10 +79,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   // Initialize/reset when question changes
   useEffect(() => {
+    console.log("SimpleStreamingChat useEffect triggered", { questionVersionId, chosenAnswer, correctAnswer });
+    
     const questionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
     
     // Always process new questions
     if (currentQuestionKey.current !== questionKey) {
+      console.log("New question detected, resetting chat", { oldKey: currentQuestionKey.current, newKey: questionKey });
+      
       // Cancel any existing operations
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
@@ -101,9 +105,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       // Load AI response with a small delay to ensure state is reset
       initTimeoutRef.current = setTimeout(() => {
+        console.log("Loading AI response after delay");
         loadAiResponse();
         initTimeoutRef.current = null;
       }, 300);
+    } else {
+      console.log("Same question key, not reloading", questionKey);
     }
     
     // Cleanup function
@@ -147,6 +154,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
     }, 100);
   };
+
+  console.log("SimpleStreamingChat render", { questionVersionId, chosenAnswer, correctAnswer, hasResponse, aiResponse: aiResponse.substring(0, 50) + "..." });
 
   return (
     <Card className="bg-background w-full h-full">
