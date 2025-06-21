@@ -63,8 +63,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     setForceRender(0);
     
     // Clear DOM display
-    if (streamingDisplayRef.current) {
-      streamingDisplayRef.current.textContent = "";
+    const streamingDiv = document.getElementById('streaming-content-display');
+    if (streamingDiv) {
+      streamingDiv.textContent = "";
     }
 
     // Add initial assistant message
@@ -142,17 +143,29 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content && currentStreamIdRef.current === streamId) {
-            // Update content and force immediate DOM update
+            console.log("🟢 Frontend received chunk:", chunkData.content.substring(0, 50));
+            
+            // Update content with multiple approaches for maximum reliability
             const newContent = streamingContentRef.current + chunkData.content;
             streamingContentRef.current = newContent;
+            
+            console.log("🟢 Updated content length:", newContent.length);
+            
+            // 1. React state update
             setStreamingContent(newContent);
             
-            // Direct DOM manipulation for immediate display
-            if (streamingDisplayRef.current) {
-              streamingDisplayRef.current.textContent = newContent;
+            // 2. Direct DOM manipulation
+            const streamingDiv = document.getElementById('streaming-content-display');
+            if (streamingDiv) {
+              streamingDiv.textContent = newContent;
+              console.log("🟢 DOM updated directly");
+            } else {
+              console.log("🔴 DOM element not found");
             }
             
+            // 3. Force component re-render
             setForceRender(prev => prev + 1);
+            
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
 
@@ -275,29 +288,26 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
               </div>
             )}
 
-            {/* Show streaming content as a live message */}
-            {isStreaming && (
-              <div className="flex w-full justify-start" key={`streaming-${forceRender}`}>
-                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-foreground rounded-tl-none">
-                  <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 animate-pulse" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-blue-600 mb-1 font-medium">AI Assistant (Live)</div>
-                      <p 
-                        ref={streamingDisplayRef}
-                        className="whitespace-pre-wrap leading-relaxed text-blue-900 dark:text-blue-100"
-                      >
-                        {streamingContent || "Starting response..."}
-                        <span className="inline-block w-2 h-4 bg-blue-600 animate-pulse ml-1" />
-                      </p>
-                      <div className="text-xs text-blue-500 mt-1">
-                        {streamingContent.length} characters received
-                      </div>
+            {/* Show streaming content as a live message - Always render when streaming */}
+            <div className="flex w-full justify-start" style={{ display: isStreaming ? 'flex' : 'none' }}>
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
+                <div className="flex items-start gap-2">
+                  <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-600 animate-pulse" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-yellow-700 mb-1 font-bold">🔴 LIVE STREAMING</div>
+                    <div 
+                      id="streaming-content-display"
+                      className="whitespace-pre-wrap leading-relaxed text-yellow-900 dark:text-yellow-100 min-h-[20px]"
+                    >
+                      {isStreaming ? (streamingContent || "Waiting for content...") : "Not streaming"}
+                    </div>
+                    <div className="text-xs text-yellow-600 mt-1 font-mono">
+                      Content length: {streamingContent?.length || 0} | Streaming: {isStreaming ? 'YES' : 'NO'} | Render: {forceRender}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {messages.slice().reverse().map((message, index) => {
               // Skip streaming messages since we handle them separately above
