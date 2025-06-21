@@ -95,7 +95,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               // Update the most recent assistant message for follow-ups
               setMessages(prev => {
                 const updated = [...prev];
-                for (let i = 0; i < updated.length; i++) {
+                for (let i = updated.length - 1; i >= 0; i--) {
                   if (updated[i].role === "assistant") {
                     updated[i] = { ...updated[i], content: accumulatedContent };
                     break;
@@ -142,7 +142,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         // Update the most recent assistant message with error for follow-ups
         setMessages(prev => {
           const updated = [...prev];
-          for (let i = 0; i < updated.length; i++) {
+          for (let i = updated.length - 1; i >= 0; i--) {
             if (updated[i].role === "assistant") {
               updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
               break;
@@ -284,8 +284,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             
 
 
-            {/* Regular messages */}
-            {messages.slice().reverse().map((message) => (
+            {/* Follow-up conversation messages */}
+            {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex w-full ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
