@@ -27,6 +27,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
     
+    console.log("Starting AI response load...", { questionVersionId, chosenAnswer, userMessage });
+    
     setIsStreaming(true);
     setAiResponse("Loading AI response...");
     setHasResponse(true);
@@ -40,12 +42,20 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         credentials: 'include',
       });
 
+      console.log("Response status:", response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
+        throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      setAiResponse(data.response || "AI response received but no content available.");
+      console.log("AI response data:", data);
+      
+      const responseText = data.response || "AI response received but no content available.";
+      console.log("Setting AI response:", responseText.substring(0, 100) + "...");
+      setAiResponse(responseText);
       
       // Auto-scroll to bottom
       setTimeout(() => {
@@ -58,7 +68,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       console.error("AI response error:", error);
       toast({
         title: "Error",
-        description: "Failed to get response from AI assistant",
+        description: error.message || "Failed to get response from AI assistant",
         variant: "destructive",
       });
       setAiResponse("Error loading response. Please try again.");
