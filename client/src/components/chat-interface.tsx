@@ -34,8 +34,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const isStreamingRef = useRef<boolean>(false);
   const streamingContentRef = useRef<string>("");
 
-  // Debug messages state
-  console.log("ChatInterface render - Messages count:", messages.length, "IsStreaming:", isStreaming, "StreamingContent length:", streamingContent.length);
+
 
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
 
@@ -118,13 +117,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
           if (chunkData.content) {
-            console.log("Received content:", chunkData.content.substring(0, 50));
-            
             // Update both state and ref
             streamingContentRef.current += chunkData.content;
             setStreamingContent(streamingContentRef.current);
-            
-            console.log("Updated streaming content length:", streamingContentRef.current.length);
             
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
           }
@@ -242,14 +237,14 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             )}
 
             {/* Show streaming content as a live message */}
-            {isStreaming && streamingContent && (
+            {isStreaming && (
               <div className="flex w-full justify-start">
                 <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-muted text-foreground rounded-tl-none">
                   <div className="flex items-start gap-2">
                     <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary animate-pulse" />
                     <div className="flex-1 min-w-0">
                       <p className="whitespace-pre-wrap leading-relaxed">
-                        {streamingContent}
+                        {streamingContent || "Starting response..."}
                         <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                       </p>
                     </div>
@@ -259,8 +254,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             )}
 
             {messages.slice().reverse().map((message, index) => {
-              console.log(`Rendering message ${index}:`, { role: message.role, contentLength: message.content.length, isStreaming: message.isStreaming, id: message.id });
-              
               // Skip streaming messages since we handle them separately above
               if (message.isStreaming) return null;
               
