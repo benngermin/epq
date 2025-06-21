@@ -263,9 +263,13 @@ export default function TestPlayer() {
                   </div>
 
                   <Button
+                    variant={currentQuestionIndex === totalQuestions - 1 ? "default" : "outline"}
                     onClick={handleNext}
                     disabled={completeTestMutation.isPending}
-                    className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base lg:text-base"
+                    className={cn(
+                      "flex items-center gap-1 sm:gap-2 w-full sm:w-auto sm:min-w-[90px] md:min-w-[100px] lg:min-w-[120px] order-3 text-xs sm:text-sm md:text-base lg:text-base",
+                      currentQuestionIndex !== totalQuestions - 1 && "border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                    )}
                   >
                     {currentQuestionIndex === totalQuestions - 1 ? (
                       completeTestMutation.isPending ? "Completing..." : "Complete Test"

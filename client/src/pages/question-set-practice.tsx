@@ -454,9 +454,10 @@ export default function QuestionSetPractice() {
                 Question {currentQuestionIndex + 1} of {questions.length}
               </div>
               <Button
+                variant="outline"
                 onClick={handleNextQuestion}
                 disabled={currentQuestionIndex === questions.length - 1}
-                className="min-w-[120px]"
+                className="min-w-[120px] border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
