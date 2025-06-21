@@ -26,6 +26,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Update the ref when chosenAnswer changes
+  useEffect(() => {
+    if (chosenAnswer) {
+      originalChosenAnswerRef.current = chosenAnswer;
+      console.log("Updated originalChosenAnswerRef to:", chosenAnswer);
+    }
+  }, [chosenAnswer]);
+
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
     
