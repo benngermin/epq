@@ -43,8 +43,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     currentStreamRef.current = "";
     
     // Clear and show streaming container
-    setStreamingContent("Starting response...");
-    setShowStreaming(true);
+    setStreamingContent(prev => "Starting response...");
+    setShowStreaming(prev => true);
 
     try {
       // Initialize stream
@@ -98,9 +98,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             accumulatedContent += chunkData.content;
             currentStreamRef.current = accumulatedContent;
             
-            // Update streaming content with React state
-            setStreamingContent(accumulatedContent);
-            setShowStreaming(true);
+            // Force React to update by using functional state update
+            console.log('Updating streaming content:', accumulatedContent.length, 'chars');
+            setStreamingContent(prev => accumulatedContent);
+            setShowStreaming(prev => true);
             
             // Auto-scroll to bottom
             setTimeout(() => {
@@ -261,6 +262,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 </div>
               </div>
             )}
+
+            {/* Debug info */}
+            <div className="text-xs text-muted-foreground p-2 border rounded bg-yellow-50">
+              <div>Show Streaming: {showStreaming ? 'true' : 'false'}</div>
+              <div>Content Length: {streamingContent.length}</div>
+              <div>Is Streaming: {isStreaming ? 'true' : 'false'}</div>
+              <div>Question Key: {currentQuestionKey.current}</div>
+              <div>Content Preview: {streamingContent.substring(0, 50)}...</div>
+            </div>
             
 
 
