@@ -26,12 +26,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Update the ref when chosenAnswer changes
+  // Keep a *stable* reference to the learner's first submitted answer
   useEffect(() => {
-    console.log("chosenAnswer prop changed:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
     if (chosenAnswer) {
       originalChosenAnswerRef.current = chosenAnswer;
-      console.log("Updated originalChosenAnswerRef to:", chosenAnswer);
     }
   }, [chosenAnswer]);
 
@@ -42,8 +40,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     console.log("chosenAnswer prop:", typeof chosenAnswer, "value:", JSON.stringify(chosenAnswer));
     console.log("originalChosenAnswerRef.current:", typeof originalChosenAnswerRef.current, "value:", JSON.stringify(originalChosenAnswerRef.current));
     
-    // Always use the original chosen answer for consistency
+    /* Guard against accidental empty submissions */
     const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
+    if (!finalChosenAnswer && !userMessage) {
+      console.warn(
+        "Aborting AI call – no chosen answer or user message available"
+      );
+      return;
+    }
     console.log("Final chosen answer to send:", JSON.stringify(finalChosenAnswer));
     console.log("Request body being sent:", JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }));
     console.log("Is this a follow-up message?", !!userMessage);
@@ -76,7 +80,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       let done = false;
       let accumulatedContent = "";
       
-      while (!done && !abortControllerRef.current?.signal.aborted) {
+      while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
         try {
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
@@ -166,53 +170,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   };
 
-  // Initialize/reset when question changes
+  /* -----------------------------------------------------------
+   * Trigger the assistant *only when we actually have an answer*,
+   * or when the question itself changes.
+   * --------------------------------------------------------- */
   useEffect(() => {
-    console.log("SimpleStreamingChat useEffect triggered", { questionVersionId, chosenAnswer, correctAnswer });
-    
-    const questionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
-    
-    // Always process new questions
-    if (currentQuestionKey.current !== questionKey) {
-      console.log("New question detected, resetting chat", { oldKey: currentQuestionKey.current, newKey: questionKey });
-      
-      // Cancel any existing operations
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-        initTimeoutRef.current = null;
-      }
-      
-      // Update tracking
-      currentQuestionKey.current = questionKey;
-      
-      // Update the stored chosen answer for this question
-      originalChosenAnswerRef.current = chosenAnswer;
-      
-      // Reset state immediately
+    if (chosenAnswer && !hasResponse) {
+      // reset old conversation if we switched questions
       setMessages([]);
-      setUserInput("");
-      setIsStreaming(false);
-      setAiResponse("");
-      setHasResponse(false);
-      
-      // Load AI response with a small delay to ensure state is reset
-      initTimeoutRef.current = setTimeout(() => {
-        console.log("Loading AI response after delay");
-        loadAiResponse();
-        initTimeoutRef.current = null;
-      }, 300);
-    } else {
-      console.log("Same question key, not reloading", questionKey);
+      abortControllerRef.current?.abort?.();
+      abortControllerRef.current = null;
+
+      loadAiResponse();            // first assistant explanation
     }
-    
-    // Cleanup function
-    return () => {
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-        initTimeoutRef.current = null;
-      }
-    };
-  }, [questionVersionId, chosenAnswer, correctAnswer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionVersionId, chosenAnswer]);
 
   // Cleanup on unmount
   useEffect(() => {
