@@ -69,6 +69,11 @@ export function QuestionCard({
     setIsFlipped(true);
   };
 
+  // We only want to mount the chatbot *after* an answer has been captured
+  const showChatbot =
+    isFlipped &&
+    (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
+
   return (
     <div className="w-full">
       <div className={cn("card-flip w-full", isFlipped && "flipped")}>
@@ -187,11 +192,15 @@ export function QuestionCard({
           <div className="card-flip-back">
             <Card className="h-full min-h-[600px] max-h-[calc(100vh-150px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
-                <SimpleStreamingChat
-                  questionVersionId={question.latestVersion?.id || question.id}
-                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
-                  correctAnswer={question.latestVersion?.correctAnswer || ""}
-                />
+                {showChatbot && (
+                  <SimpleStreamingChat
+                    /* key forces a fresh instance when we change questions */
+                    key={question.id}
+                    questionVersionId={question.latestVersion?.id || question.id}
+                    chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
+                    correctAnswer={question.latestVersion?.correctAnswer || ""}
+                  />
+                )}
               </div>
               <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0">
                 <Button 
