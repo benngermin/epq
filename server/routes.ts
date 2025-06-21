@@ -1064,15 +1064,20 @@ export function registerRoutes(app: Express): Server {
       
       let prompt;
       if (userMessage) {
-        // Follow-up question with course material context
+        // Follow-up question with course material context and selected answer
+        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+        console.log("🔄 STREAMING FOLLOW-UP - Selected answer:", JSON.stringify(selectedAnswerText));
+        
         prompt = `${userMessage}
 
-Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.
+Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. 
+Student selected: ${selectedAnswerText}
+The correct answer is ${questionVersion.correctAnswer}.
 
 Relevant course material:
 ${sourceMaterial}
 
-Please provide a helpful response based on the course material above.`;
+Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1181,15 +1186,20 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       let prompt;
       if (userMessage) {
-        // Follow-up question with course material context
+        // Follow-up question with course material context and selected answer
+        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+        console.log("🔄 NON-STREAMING FOLLOW-UP - Selected answer:", JSON.stringify(selectedAnswerText));
+        
         prompt = `${userMessage}
 
-Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. The correct answer is ${questionVersion.correctAnswer}.
+Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. 
+Student selected: ${selectedAnswerText}
+The correct answer is ${questionVersion.correctAnswer}.
 
 Relevant course material:
 ${sourceMaterial}
 
-Please provide a helpful response based on the course material above.`;
+Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
