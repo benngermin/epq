@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
+import { ChatbotLogsSection } from "@/components/chatbot-logs-section";
 
 const courseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
