@@ -98,7 +98,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             break;
           }
 
-          if (chunkData.content && chunkData.content !== accumulatedContent) {
+          if (chunkData.content) {
             accumulatedContent = chunkData.content;
             
             // Update either initial AI response or follow-up message

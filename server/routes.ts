@@ -239,7 +239,8 @@ async function streamOpenRouterToBuffer(
             
             if (content && typeof content === 'string') {
               fullResponse += content;
-              stream.chunks.push(content);
+              // Store accumulated content, not individual chunks
+              stream.chunks = [fullResponse];
               console.log("Added content chunk to buffer:", content.substring(0, 50) + "...");
             }
           } catch (e) {
@@ -297,7 +298,7 @@ async function streamOpenRouterToBuffer(
   // Mark stream as done
   stream.done = true;
   console.log("streamOpenRouterToBuffer function completed");
-  
+}
   // Cleanup stream after 5 minutes to prevent memory leaks
   setTimeout(() => {
     cleanupStream(streamId);
@@ -1008,12 +1009,11 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).json({ error: "Stream not found" });
     }
     
-    // Return available chunks without removing them until stream is done
-    const chunks = [...stream.chunks]; // Copy chunks instead of splicing
-    const content = chunks.join('');
+    // Return accumulated content
+    const content = stream.chunks.join('');
     
     // Only clear chunks when stream is complete
-    if (stream.done && chunks.length > 0) {
+    if (stream.done && content.length > 0) {
       stream.chunks = [];
     }
     
