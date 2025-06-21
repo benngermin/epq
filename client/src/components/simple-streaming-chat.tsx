@@ -96,6 +96,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             currentStreamRef.current = accumulatedContent;
             
             // Update streaming content with React state
+            console.log('Setting streaming content:', accumulatedContent.substring(0, 100) + '...');
             setStreamingContent(accumulatedContent);
             setShowStreaming(true);
             
@@ -242,13 +243,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                   <div className="flex items-start gap-2">
                     <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                     <div className="flex-1 min-w-0">
-                      <div 
-                        className="whitespace-pre-wrap leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: streamingContent.replace(/\n/g, '<br>') }}
-                      />
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {streamingContent}
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {/* Debug info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-muted-foreground p-2 border rounded">
+                <div>Show Streaming: {showStreaming ? 'true' : 'false'}</div>
+                <div>Content Length: {streamingContent.length}</div>
+                <div>Is Streaming: {isStreaming ? 'true' : 'false'}</div>
               </div>
             )}
 
