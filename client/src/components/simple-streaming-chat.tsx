@@ -279,13 +279,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 handleSendMessage();
               }
             }}
-            className="flex-1 text-sm min-w-0 h-9 border-2 border-border hover:border-primary/50 focus-visible:border-primary transition-colors"
+            className="flex-1 text-sm min-w-0 h-11 border-2 border-border hover:border-primary/50 focus-visible:border-primary transition-colors"
           />
           <Button
             onClick={handleSendMessage}
             disabled={!userInput.trim() || isStreaming}
             size="sm"
-            className="flex-shrink-0 h-9 px-3"
+            className="flex-shrink-0 h-11 px-3"
           >
             <Send className="h-4 w-4" />
           </Button>
