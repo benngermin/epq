@@ -55,9 +55,12 @@ export function QuestionCard({
     setSubmittedAnswer(selectedAnswerState);
     onSubmitAnswer(selectedAnswerState);
 
-    // Always flip the card after submitting to show chatbot feedback
+    // Only flip the card if the answer is incorrect
     setTimeout(() => {
-      setIsFlipped(true);
+      const isAnswerCorrect = selectedAnswerState === question.latestVersion?.correctAnswer;
+      if (!isAnswerCorrect) {
+        setIsFlipped(true);
+      }
     }, 1500);
   };
 
