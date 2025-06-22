@@ -78,8 +78,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     }, ...prev]);
     
     try {
-      // Use a polling approach for reliable streaming
-      const response = await fetch('/api/chatbot/stream-init', {
+      // Use non-streaming endpoint
+      const response = await fetch('/api/chatbot/simple-response', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
