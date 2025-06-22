@@ -56,8 +56,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     setIsStreaming(true);
     
     try {
-      // Initialize streaming
-      const response = await fetch('/api/chatbot/stream-init', {
+      // Use non-streaming endpoint as fallback due to streaming issues
+      const response = await fetch('/api/chatbot/simple-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }),

@@ -59,7 +59,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
   return (
     <span className={`whitespace-pre-wrap leading-relaxed ${className}`}>
       {parsedContent.map((part, index) => (
-        <React.Fragment key={index}>{part}</React.Fragment>
+        <span key={index}>{part}</span>
       ))}
     </span>
   );
