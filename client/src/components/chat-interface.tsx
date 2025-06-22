@@ -274,7 +274,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           <span className="font-medium text-foreground text-base">AI Assistant</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto mb-3 min-h-0" style={{ maxHeight: 'calc(100% - 120px)' }}>
+        <div className="flex-1 overflow-y-auto mb-2 min-h-0">
           <div className="space-y-3 p-2">
             {isStreaming && !streamingContent && (
               <div className="flex items-center justify-center h-32">

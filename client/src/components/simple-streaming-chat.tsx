@@ -238,8 +238,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-3 min-h-0" 
-          style={{ maxHeight: 'calc(100% - 120px)' }}
+          className="flex-1 overflow-y-auto mb-2 min-h-0" 
         >
           <div className="space-y-3 p-2">
             {/* All conversation messages */}
