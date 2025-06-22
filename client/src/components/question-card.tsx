@@ -154,7 +154,14 @@ export function QuestionCard({
                           <span className="font-medium text-success text-sm">Correct!</span>
                         </div>
                       </div>
-
+                      <Button
+                        onClick={handleShowChatbot}
+                        variant="outline"
+                        className="w-full py-3 border-muted-foreground/30 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Review with AI Assistant
+                      </Button>
                     </div>
                   )}
 
