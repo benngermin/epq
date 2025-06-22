@@ -351,7 +351,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="flex-1 text-sm min-w-0 h-9"
+            className="flex-1 text-sm min-w-0 h-9 border-2 border-border hover:border-primary/50 focus-visible:border-primary transition-colors"
           />
           <Button
             onClick={handleSendMessage}

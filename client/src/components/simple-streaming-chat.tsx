@@ -279,7 +279,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 handleSendMessage();
               }
             }}
-            className="flex-1 text-sm min-w-0 h-9"
+            className="flex-1 text-sm min-w-0 h-9 border-2 border-border hover:border-primary/50 focus-visible:border-primary transition-colors"
           />
           <Button
             onClick={handleSendMessage}
