@@ -115,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- June 22, 2025 2:41 PM: Optimized AI Assistant card layout
+  - Removed fixed height constraints and reduced bottom margins
+  - Eliminated dead space below "Ask a followup question" prompt box
+  - Improved visual alignment between chat content and input controls
+  - Applied consistent spacing across all chat interface components
 - June 21, 2025 7:15 PM: Enhanced mobile navigation layout for iPhone
   - Moved Dashboard button out of navigation bar for mobile devices
   - Aligned Dashboard button to right side of screen with Progress button on left
