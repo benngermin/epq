@@ -56,8 +56,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     setIsStreaming(true);
     
     try {
-      // Use non-streaming endpoint as fallback due to streaming issues
-      const response = await fetch('/api/chatbot/simple-response', {
+      // Initialize streaming
+      const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }),
@@ -72,25 +72,79 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
       }
       
-      const data = await response.json();
+      const { streamId } = await response.json();
+      console.log("Stream initialized with ID:", streamId);
+
+      // Poll for streaming chunks
+      let done = false;
+      let accumulatedContent = "";
       
-      // Add the AI response to messages
-      setMessages(prev => [{
-        role: "assistant",
-        content: data.response || "I'm sorry, I couldn't generate a response.",
-      }, ...prev]);
-      
-      // Mark initial response as received
-      if (!userMessage && !hasInitialResponse) {
-        setHasInitialResponse(true);
-      }
-      
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
+        try {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+            credentials: 'include',
+          });
+
+          if (!chunkResponse.ok) {
+            console.error('Failed to fetch chunk:', chunkResponse.status);
+            if (chunkResponse.status === 404) {
+              console.log("Stream not found (404), ending polling");
+              break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
+          }
+
+          const chunkData = await chunkResponse.json();
+          
+          if (chunkData.done) {
+            done = true;
+            console.log("Stream completed");
+            break;
+          }
+          
+          if (chunkData.content) {
+            accumulatedContent = chunkData.content;
+            
+            // Update the last assistant message in the messages array
+            setMessages(prev => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].role === "assistant") {
+                  updated[i] = { ...updated[i], content: accumulatedContent };
+                  break;
+                }
+              }
+              return updated;
+            });
+            
+            // Mark initial response as received if this is the first response
+            if (!userMessage && !hasInitialResponse) {
+              setHasInitialResponse(true);
+            }
+            
+            // Auto-scroll to bottom during streaming
+            setTimeout(() => {
+              if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+              }
+            }, 10);
+          }
+
+          if (chunkData.error) {
+            throw new Error(chunkData.error);
+          }
+
+        } catch (pollError) {
+          console.error("Polling error:", pollError);
+          // Break the loop if stream is not found (404 error)
+          if (pollError.message?.includes('404') || pollError.message?.includes('not found')) {
+            console.log("Stream not found, ending polling");
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-      }, 10);
+      }
       
     } catch (error: any) {
       console.error("AI response error:", error);

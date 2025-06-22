@@ -78,8 +78,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     }, ...prev]);
     
     try {
-      // Use non-streaming endpoint
-      const response = await fetch('/api/chatbot/simple-response', {
+      // Use streaming endpoint
+      const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,15 +102,22 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
       // Poll for chunks
       let done = false;
+      let accumulatedContent = "";
+      
       while (!done && isStreamingRef.current) {
         try {
-
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
             credentials: 'include',
           });
 
           if (!chunkResponse.ok) {
-            throw new Error('Failed to fetch chunk');
+            if (chunkResponse.status === 404) {
+              console.log("Stream not found (404), ending polling");
+              break;
+            }
+            console.error('Failed to fetch chunk:', chunkResponse.status);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
           }
 
           const chunkData = await chunkResponse.json();
