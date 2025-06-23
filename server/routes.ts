@@ -1012,11 +1012,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       
-      // Debug incoming request
-      console.log("🔥🔥🔥 STREAM INIT DEBUG START 🔥🔥🔥");
-      console.log("Full request body:", JSON.stringify(req.body, null, 2));
-      console.log("chosenAnswer from request:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer);
-      console.log("🔥🔥🔥 STREAM INIT DEBUG END 🔥🔥🔥");
+
       const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
       // Clean up any existing streams for this user to prevent conflicts
@@ -1162,13 +1158,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Format answer choices as a list
         const formattedChoices = questionVersion.answerChoices.join('\n');
         
-        // Debug logging for variable substitution
-        console.log("🚀🚀🚀 STREAMING VARIABLE SUBSTITUTION DEBUG 🚀🚀🚀");
-        console.log("chosenAnswer:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer, "length:", chosenAnswer?.length);
-        
         // Ensure chosenAnswer is not empty or undefined
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        console.log("selectedAnswer after processing:", JSON.stringify(selectedAnswer));
 
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
@@ -1178,10 +1169,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
-        // Verify substitution worked
-        console.log("After substitution - contains {{SELECTED_ANSWER}}:", systemPrompt.includes("{{SELECTED_ANSWER}}"));
-        console.log("Final prompt snippet with selected answer:", systemPrompt.substring(systemPrompt.indexOf('<selected_answer>'), systemPrompt.indexOf('</selected_answer>') + 18));
-        console.log("🚀🚀🚀 END STREAMING SUBSTITUTION DEBUG 🚀🚀🚀");
+
         
         prompt = systemPrompt;
       }
@@ -1284,13 +1272,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Format answer choices as a list
         const formattedChoices = questionVersion.answerChoices.join('\n');
 
-        // Debug logging for variable substitution
-        console.log("=== NON-STREAMING VARIABLE SUBSTITUTION DEBUG ===");
-        console.log("chosenAnswer:", JSON.stringify(chosenAnswer), "type:", typeof chosenAnswer, "length:", chosenAnswer?.length);
-        
         // Ensure chosenAnswer is not empty or undefined
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        console.log("selectedAnswer after processing:", JSON.stringify(selectedAnswer));
 
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
@@ -1300,9 +1283,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
-        // Verify substitution worked
-        console.log("After substitution - contains {{SELECTED_ANSWER}}:", systemPrompt.includes("{{SELECTED_ANSWER}}"));
-        console.log("=== END NON-STREAMING SUBSTITUTION DEBUG ===");
+
         
         prompt = systemPrompt;
       }
