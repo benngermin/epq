@@ -16,7 +16,9 @@ import { eq, sql, desc, asc } from "drizzle-orm";
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
   if (!req.isAuthenticated() || !req.user) {
-    throw new Error('Authentication required');
+    const error = new Error('Authentication required') as any;
+    error.status = 401;
+    throw error;
   }
 }
 

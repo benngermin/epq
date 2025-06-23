@@ -142,7 +142,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCourse(id: number): Promise<boolean> {
     const result = await db.delete(courses).where(eq(courses.id, id));
-    return result.rowCount! > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
@@ -200,7 +200,7 @@ export class DatabaseStorage implements IStorage {
 
       // Finally, delete the question set
       const result = await db.delete(questionSets).where(eq(questionSets.id, id));
-      return result.rowCount! > 0;
+      return (result.rowCount || 0) > 0;
     } catch (error) {
       console.error('Error in deleteQuestionSet:', error);
       throw error;
