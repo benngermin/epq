@@ -98,10 +98,13 @@ export default function QuestionSetPractice() {
   });
 
   const currentQuestion = questions?.[currentQuestionIndex];
-  const hasAnswered = currentQuestion?.id ? userAnswers[currentQuestion.id] : false;
+  const hasAnswered = currentQuestion?.id ? !!userAnswers[currentQuestion.id] : false;
 
   const handleSubmitAnswer = (answer: string) => {
-    if (!currentQuestion?.latestVersion) return;
+    if (!currentQuestion?.latestVersion?.id) {
+      console.error("No question version ID available");
+      return;
+    }
     
     setUserAnswers(prev => ({
       ...prev,
@@ -162,13 +165,20 @@ export default function QuestionSetPractice() {
   }
 
   // Debug logging
-  console.log("Question Set ID:", questionSetId);
-  console.log("Question Set Data:", questionSet);
-  console.log("Questions Data:", questions);
-  console.log("Questions Error:", questionsError);
-  console.log("Questions Loading:", questionsLoading);
+  if (questionSetError || questionsError) {
+    console.error("Question Set Error:", questionSetError);
+    console.error("Questions Error:", questionsError);
+  }
 
   if (questionSetError || questionsError) {
+    const errorMessage = questionSetError?.message || questionsError?.message || "Failed to load questions. Please try again.";
+    const isAuthError = errorMessage.includes('401') || errorMessage.includes('Authentication required');
+    
+    if (isAuthError) {
+      setLocation("/auth");
+      return null;
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -176,11 +186,16 @@ export default function QuestionSetPractice() {
             <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
             <h3 className="text-lg font-semibold mb-2">Error Loading Questions</h3>
             <p className="text-muted-foreground mb-4">
-              {questionSetError?.message || questionsError?.message || "Failed to load questions. Please try again."}
+              {errorMessage}
             </p>
-            <Button onClick={() => setLocation("/")}>
-              Back to Dashboard
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={() => setLocation("/")} className="w-full">
+                Back to Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

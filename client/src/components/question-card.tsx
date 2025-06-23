@@ -50,7 +50,7 @@ export function QuestionCard({
   }, [isFlipped, onFlipChange]);
 
   const handleSubmit = () => {
-    if (!selectedAnswerState || hasAnswer) return;
+    if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
 
     setSubmittedAnswer(selectedAnswerState);
     onSubmitAnswer(selectedAnswerState);

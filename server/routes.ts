@@ -564,7 +564,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const questionSet = await storage.getQuestionSet(id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questionSet = await withCircuitBreaker(() => storage.getQuestionSet(id));
       
       if (!questionSet) {
         return res.status(404).json({ message: "Question set not found" });
@@ -573,7 +577,13 @@ export function registerRoutes(app: Express): Server {
       res.json(questionSet);
     } catch (error) {
       console.error("Error fetching question set:", error);
-      res.status(500).json({ message: "Failed to fetch question set" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to fetch question set" });
+      }
     }
   });
 
