@@ -284,7 +284,7 @@ async function streamOpenRouterToBuffer(
   
   // Mark stream as done
   stream.done = true;
-  console.log("streamOpenRouterToBuffer function completed");
+
   
   // Cleanup stream after 5 minutes to prevent memory leaks
   setTimeout(() => {
