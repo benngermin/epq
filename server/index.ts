@@ -43,7 +43,9 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    console.error("Server error:", err);
+    if (process.env.NODE_ENV === "development") {
+      console.error("Server error:", err);
+    }
     
     // Don't throw the error after sending response - this causes memory leaks
     if (!res.headersSent) {

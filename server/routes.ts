@@ -101,7 +101,6 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
     
     return aiResponse;
   } catch (error) {
-    console.error("OpenRouter error:", error);
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
     // Log the error interaction
@@ -144,17 +143,14 @@ async function streamOpenRouterToBuffer(
   userId?: number, 
   systemMessage?: string
 ) {
-  console.log("Starting streamOpenRouterToBuffer with prompt length:", prompt.length);
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   const stream = activeStreams.get(streamId);
   if (!stream) {
-    console.warn(`Stream ${streamId} not found in activeStreams`);
     return;
   }
   
   if (!apiKey) {
-    console.error("No OpenRouter API key found");
     stream.error = "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key.";
     stream.done = true;
     return;
@@ -182,7 +178,7 @@ async function streamOpenRouterToBuffer(
     }
     messages.push({ role: "user", content: prompt });
 
-    console.log("Making OpenRouter API request with model:", modelName);
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
