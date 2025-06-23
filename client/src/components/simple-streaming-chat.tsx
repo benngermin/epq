@@ -37,21 +37,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
     
-    console.log("Starting AI response load...", { questionVersionId, chosenAnswer, userMessage });
-    console.log("chosenAnswer prop:", typeof chosenAnswer, "value:", JSON.stringify(chosenAnswer));
-    console.log("originalChosenAnswerRef.current:", typeof originalChosenAnswerRef.current, "value:", JSON.stringify(originalChosenAnswerRef.current));
+
     
     /* Guard against accidental empty submissions */
     const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
     if (!finalChosenAnswer && !userMessage) {
-      console.warn(
-        "Aborting AI call – no chosen answer or user message available"
-      );
       return;
     }
-    console.log("Final chosen answer to send:", JSON.stringify(finalChosenAnswer));
-    console.log("Request body being sent:", JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }));
-    console.log("Is this a follow-up message?", !!userMessage);
     
     setIsStreaming(true);
     
@@ -64,16 +56,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         credentials: 'include',
       });
 
-      console.log("Response status:", response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Response error:", errorText);
         throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
       }
       
       const { streamId } = await response.json();
-      console.log("Stream initialized with ID:", streamId);
 
       // Poll for streaming chunks
       let done = false;
@@ -86,9 +75,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           });
 
           if (!chunkResponse.ok) {
-            console.error('Failed to fetch chunk:', chunkResponse.status);
             if (chunkResponse.status === 404) {
-              console.log("Stream not found (404), ending polling");
               break;
             }
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -99,7 +86,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           
           if (chunkData.done) {
             done = true;
-            console.log("Stream completed");
             break;
           }
           
@@ -136,10 +122,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
 
         } catch (pollError) {
-          console.error("Polling error:", pollError);
           // Break the loop if stream is not found (404 error)
           if (pollError.message?.includes('404') || pollError.message?.includes('not found')) {
-            console.log("Stream not found, ending polling");
             break;
           }
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -147,7 +131,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       
     } catch (error: any) {
-      console.error("AI response error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to get response from AI assistant",
@@ -235,7 +218,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }, 100);
   };
 
-  console.log("SimpleStreamingChat render", { questionVersionId, chosenAnswer, correctAnswer, hasInitialResponse, messagesCount: messages.length });
 
   return (
     <Card className="bg-background w-full h-full">

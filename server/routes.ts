@@ -73,10 +73,8 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
     }
 
     const data = await response.json();
-    console.log("OpenRouter response:", JSON.stringify(data, null, 2));
     
     if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      console.error("Invalid response structure:", data);
       return "I'm sorry, I received an unexpected response from the AI service.";
     }
     
@@ -195,10 +193,8 @@ async function streamOpenRouterToBuffer(
       }),
     });
 
-    console.log("OpenRouter response status:", response.status);
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenRouter API error:", response.status, errorText);
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -210,12 +206,10 @@ async function streamOpenRouterToBuffer(
       throw new Error("No response stream available");
     }
 
-    console.log("Starting to read stream...");
     while (true) {
       const { done, value } = await reader.read();
       
       if (done) {
-        console.log("Stream reading completed");
         break;
       }
       
@@ -227,7 +221,6 @@ async function streamOpenRouterToBuffer(
           const data = line.slice(6);
           
           if (data === '[DONE]') {
-            console.log("Received [DONE] signal");
             break;
           }
           
@@ -239,13 +232,9 @@ async function streamOpenRouterToBuffer(
               fullResponse += content;
               // Store accumulated content, not individual chunks
               stream.chunks = [fullResponse];
-              console.log("Added content chunk to buffer:", content.substring(0, 50) + "...");
             }
           } catch (e) {
             // Skip invalid JSON chunks - this is normal for streaming
-            if (data.trim() && !data.includes('ping')) {
-              console.log("Skipping invalid JSON chunk:", data.substring(0, 100));
-            }
           }
         }
       }
@@ -311,8 +300,8 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
-    // Allow demo user or users with admin flag
-    if (!req.user.isAdmin && req.user.email !== "demo@example.com") {
+    // Only allow users with admin flag (demo user restricted in production)
+    if (!req.user.isAdmin || (process.env.NODE_ENV === "production" && req.user.email === "demo@example.com")) {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();

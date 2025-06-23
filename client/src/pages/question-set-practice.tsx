@@ -36,10 +36,7 @@ export default function QuestionSetPractice() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  console.log("Route Match:", match);
-  console.log("Route Params:", params);
   const questionSetId = parseInt(params?.id || "0");
-  console.log("Parsed Question Set ID:", questionSetId);
 
   const { data: questionSet, isLoading: questionSetLoading, error: questionSetError } = useQuery({
     queryKey: ["/api/question-sets", questionSetId],
@@ -72,7 +69,6 @@ export default function QuestionSetPractice() {
       credentials: "include" 
     }).then(res => {
       if (!res.ok) {
-        console.error(`Questions API error: ${res.status} ${res.statusText}`);
         throw new Error(`${res.status}: ${res.statusText}`);
       }
       return res.json();
@@ -93,7 +89,6 @@ export default function QuestionSetPractice() {
       setShowChat(true);
     },
     onError: (error: Error) => {
-      console.error("Failed to submit answer:", error.message);
     },
   });
 
@@ -102,7 +97,6 @@ export default function QuestionSetPractice() {
 
   const handleSubmitAnswer = (answer: string) => {
     if (!currentQuestion?.latestVersion?.id) {
-      console.error("No question version ID available");
       return;
     }
     
@@ -145,7 +139,6 @@ export default function QuestionSetPractice() {
       setResetDialogOpen(false);
     },
     onSuccess: () => {
-      console.log("Reset completed successfully");
     }
   });
 
@@ -166,8 +159,6 @@ export default function QuestionSetPractice() {
 
   // Debug logging
   if (questionSetError || questionsError) {
-    console.error("Question Set Error:", questionSetError);
-    console.error("Questions Error:", questionsError);
   }
 
   if (questionSetError || questionsError) {
@@ -203,7 +194,6 @@ export default function QuestionSetPractice() {
   }
 
   if (!questionSet || !questions || questions.length === 0) {
-    console.log("Showing no questions available screen");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">

@@ -61,10 +61,6 @@ export default function TestPlayer() {
     }
   }, [currentQuestionIndex]);
 
-  console.log("Test Player - runId:", runId);
-  console.log("Test Player - testRun:", testRun);
-  console.log("Test Player - testRunLoading:", testRunLoading);
-  console.log("Test Player - testRunError:", testRunError);
 
   const { data: currentQuestion, isLoading: questionLoading } = useQuery({
     queryKey: [`/api/test-runs/${runId}/question/${currentQuestionIndex}`],

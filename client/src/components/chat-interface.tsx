@@ -46,11 +46,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const streamChatResponse = async (userMessage?: string) => {
     // Prevent multiple concurrent streams
     if (isStreamingRef.current) {
-      console.log("Stream already in progress, ignoring request");
       return;
     }
     
-    console.log("Starting stream chat response...");
     
     // Generate unique ID for this streaming message
     const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -97,7 +95,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       }
 
       const { streamId } = await response.json();
-      console.log("Stream initialized with ID:", streamId);
       currentStreamIdRef.current = streamId;
 
       // Poll for chunks
@@ -112,10 +109,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
-              console.log("Stream not found (404), ending polling");
               break;
             }
-            console.error('Failed to fetch chunk:', chunkResponse.status);
             await new Promise(resolve => setTimeout(resolve, 500));
             continue;
           }
@@ -124,7 +119,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           
           if (chunkData.done && isStreamingRef.current) {
             done = true;
-            console.log("🟢 Stream completed, moving to final message");
             
             // Move streaming content to final message
             const finalContent = streamingContentRef.current;
@@ -171,7 +165,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
         } catch (pollError) {
-          console.error("Polling error:", pollError);
           // Continue polling on minor errors
           await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -181,7 +174,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       }
 
     } catch (error: any) {
-      console.error("Streaming error:", error);
       
       // Remove the streaming message and show error
       setMessages(prev => prev.filter(msg => msg.id !== streamingMessageIdRef.current));
@@ -206,7 +198,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   const chatMutation = useMutation({
     mutationFn: streamChatResponse,
     onError: (error: Error) => {
-      console.error("Chat error:", error.message);
       toast({
         title: "Error",
         description: "Failed to get response from AI assistant",

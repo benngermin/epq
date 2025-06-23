@@ -46,7 +46,6 @@ export function QuestionNavigation({
     const question = allQuestions[index];
     if (!question) return `Question ${index + 1}`;
     
-    console.log('Question data for index', index, ':', question);
     
     // Use topic focus if available (no truncation)
     if (question.topicFocus && question.topicFocus.trim() !== "") {

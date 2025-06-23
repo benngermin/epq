@@ -407,7 +407,6 @@ export default function AdminPanel() {
         i++;
       }
       
-      console.log(`Parsed ${materials.length} complete materials from CSV`);
       const res = await apiRequest("POST", "/api/admin/import-course-materials", { materials });
       return await res.json();
     },
