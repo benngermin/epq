@@ -921,6 +921,49 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Question set answer submission endpoint
+  app.post("/api/question-sets/:questionSetId/answer", requireAuth, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      const { questionVersionId, answer } = req.body;
+
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+
+      if (!questionVersionId || !answer) {
+        return res.status(400).json({ message: "Question version ID and answer are required" });
+      }
+
+      // Get the question version to validate the answer
+      const questionVersion = await withCircuitBreaker(() => storage.getQuestionVersion(questionVersionId));
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      const isCorrect = answer === questionVersion.correctAnswer;
+
+      // For question set practice, we return the answer validation result
+      const answerData = {
+        questionVersionId,
+        chosenAnswer: answer,
+        isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+      };
+
+      res.json(answerData);
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to submit answer" });
+      }
+    }
+  });
+
   // Simple chatbot response (non-streaming)
   app.post("/api/chatbot/simple-response", requireAuth, async (req, res) => {
     try {
