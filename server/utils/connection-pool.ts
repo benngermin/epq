@@ -53,7 +53,9 @@ class DatabaseCircuitBreaker {
 
     if (this.state.failures >= this.failureThreshold) {
       this.state.state = 'OPEN';
-      console.warn('Circuit breaker opened due to repeated failures');
+      if (process.env.NODE_ENV === "development") {
+        console.warn('Circuit breaker opened due to repeated failures');
+      }
     }
   }
 

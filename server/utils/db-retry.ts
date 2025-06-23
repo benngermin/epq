@@ -27,7 +27,9 @@ export async function withRetry<T>(
         throw error;
       }
       
-      console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      }
       
       // Exponential backoff with jitter
       const baseDelay = delayMs * Math.pow(1.5, attempt - 1);
