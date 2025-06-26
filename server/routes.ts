@@ -69,7 +69,16 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`OpenRouter API error details (non-streaming):`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        headers: Object.fromEntries(response.headers.entries()),
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey?.length || 0
+      });
+      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -195,6 +204,14 @@ async function streamOpenRouterToBuffer(
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`OpenRouter API error details:`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        headers: Object.fromEntries(response.headers.entries()),
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey?.length || 0
+      });
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -1017,7 +1034,8 @@ export function registerRoutes(app: Express): Server {
       
       // Clean up any existing streams for this user to prevent conflicts
       const userId = req.user!.id;
-      for (const [existingStreamId, stream] of activeStreams.entries()) {
+      const streamEntries = Array.from(activeStreams.entries());
+      for (const [existingStreamId, stream] of streamEntries) {
         if (existingStreamId.includes(userId.toString())) {
           activeStreams.delete(existingStreamId);
         }
