@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- June 26, 2025 6:14 PM: Fixed critical chatbot authentication errors
+  - Resolved session authentication issues preventing chatbot from working
+  - Fixed password hashing format causing login failures with scrypt implementation
+  - Added detailed error logging to identify authentication problems
+  - Verified OpenRouter API integration is functioning properly with authentic responses
+  - Confirmed chatbot now works correctly with insurance practice questions
 - June 22, 2025 3:47 PM: Enhanced prompt box styling and sizing
   - Increased prompt box height from h-9 to h-11 for better usability
   - Made border more prominent with border-2 and interactive states
