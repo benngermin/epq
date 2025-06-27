@@ -145,4 +145,14 @@ export function setupAuth(app: Express) {
     }
     res.json(req.user);
   });
+
+  // Session health check endpoint
+  app.get("/api/session-health", (req, res) => {
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionId: req.sessionID,
+      timestamp: new Date().toISOString()
+    });
+  });
 }

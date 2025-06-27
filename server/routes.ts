@@ -332,7 +332,8 @@ export function registerRoutes(app: Express): Server {
           isAuthenticated: req.isAuthenticated(),
           hasUser: !!req.user,
           sessionId: req.sessionID,
-          userAgent: req.headers['user-agent']?.slice(0, 50)
+          userAgent: req.headers['user-agent']?.slice(0, 50),
+          isChatbotEndpoint: req.path.includes('/chatbot')
         });
       }
       return res.status(401).json({ message: "Authentication required" });

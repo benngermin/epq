@@ -115,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- June 27, 2025 3:58 PM: Enhanced authentication system reliability and debugging
+  - Fixed GET /api/user 401 errors with improved session handling and debugging logs
+  - Extended session cookie lifetime to 7 days for better user experience
+  - Added comprehensive authentication failure logging for troubleshooting
+  - Implemented session health check endpoint for monitoring authentication state
+  - Enhanced query client caching to reduce unnecessary authentication requests
+  - Added specific logging for chatbot endpoint authentication issues
 - June 26, 2025 6:14 PM: Fixed critical chatbot authentication errors
   - Resolved session authentication issues preventing chatbot from working
   - Fixed password hashing format causing login failures with scrypt implementation
