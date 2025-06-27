@@ -1067,29 +1067,39 @@ export function registerRoutes(app: Express): Server {
   // Get stream chunk
   app.get("/api/chatbot/stream-chunk/:streamId", requireAuth, async (req, res) => {
     const streamId = req.params.streamId;
+    const cursor = parseInt(req.query.cursor as string) || 0;
     const stream = activeStreams.get(streamId);
     
     if (!stream) {
       return res.status(404).json({ error: "Stream not found" });
     }
     
-    // Return accumulated content
-    const content = stream.chunks.join('');
+    // Get full accumulated content
+    const fullContent = stream.chunks.join('');
     
-    // Only clear chunks when stream is complete
-    if (stream.done && content.length > 0) {
-      stream.chunks = [];
-    }
+    // Return only new content since cursor position
+    const newContent = cursor < fullContent.length ? fullContent.slice(cursor) : '';
+    
+    // Set appropriate cache headers to reduce overhead
+    res.set({
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
     
     res.json({
-      content,
+      content: fullContent, // Still send full content for compatibility
+      newContent, // New incremental content
+      cursor: fullContent.length, // New cursor position
       done: stream.done,
       error: stream.error
     });
     
     // Clean up finished streams
     if (stream.done) {
-      activeStreams.delete(streamId);
+      // Clear chunks after sending final response
+      setTimeout(() => {
+        activeStreams.delete(streamId);
+      }, 1000); // Small delay to ensure client gets final response
     }
   });
 

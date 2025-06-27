@@ -64,13 +64,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       const { streamId } = await response.json();
 
-      // Poll for streaming chunks
+      // Poll for streaming chunks with adaptive delay
       let done = false;
       let accumulatedContent = "";
+      let cursor = 0; // Track position in stream
+      let pollDelay = 150; // Start with 150ms delay
+      const maxDelay = 1000;
+      const minDelay = 100;
       
       while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
         try {
-          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
           });
 
@@ -89,10 +93,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             break;
           }
           
-          if (chunkData.content) {
+          if (chunkData.content && chunkData.content.length > accumulatedContent.length) {
+            // New content available - append only the new part
+            const newContent = chunkData.content.slice(accumulatedContent.length);
             accumulatedContent = chunkData.content;
+            cursor = accumulatedContent.length;
             
-            // Update the last assistant message in the messages array
+            // Update the last assistant message by appending new content
             setMessages(prev => {
               const updated = [...prev];
               for (let i = updated.length - 1; i >= 0; i--) {
@@ -109,21 +116,33 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               setHasInitialResponse(true);
             }
             
+            // Shrink delay when we get new content (faster polling for active streams)
+            pollDelay = Math.max(minDelay, pollDelay * 0.8);
+            
             // Auto-scroll to bottom during streaming
             setTimeout(() => {
               if (scrollContainerRef.current) {
                 scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
               }
             }, 10);
+          } else {
+            // No new content - grow delay to reduce polling frequency
+            pollDelay = Math.min(maxDelay, pollDelay * 1.2);
           }
 
           if (chunkData.error) {
             throw new Error(chunkData.error);
           }
 
+          // Adaptive delay before next poll
+          if (!done) {
+            await new Promise(resolve => setTimeout(resolve, pollDelay));
+          }
+
         } catch (pollError) {
           // Break the loop if stream is not found (404 error)
-          if (pollError.message?.includes('404') || pollError.message?.includes('not found')) {
+          const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
+          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
             break;
           }
           await new Promise(resolve => setTimeout(resolve, 500));
