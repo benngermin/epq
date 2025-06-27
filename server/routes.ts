@@ -326,13 +326,15 @@ export function registerRoutes(app: Express): Server {
 
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
-      console.error(`Authentication failed for ${req.method} ${req.path}:`, {
-        isAuthenticated: req.isAuthenticated(),
-        hasUser: !!req.user,
-        sessionId: req.sessionID,
-        cookies: req.headers.cookie,
-        userAgent: req.headers['user-agent']
-      });
+      // Only log errors for non-user endpoint requests to reduce noise
+      if (req.path !== '/api/user') {
+        console.error(`Authentication failed for ${req.method} ${req.path}:`, {
+          isAuthenticated: req.isAuthenticated(),
+          hasUser: !!req.user,
+          sessionId: req.sessionID,
+          userAgent: req.headers['user-agent']?.slice(0, 50)
+        });
+      }
       return res.status(401).json({ message: "Authentication required" });
     }
     next();

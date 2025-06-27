@@ -46,11 +46,11 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
       sameSite: 'lax'
     },
     rolling: true, // Reset expiration on each request
-    name: 'sessionId', // Consistent session name
+    name: 'connect.sid', // Standard session name for better compatibility
   };
 
   app.set("trust proxy", 1);
@@ -131,7 +131,18 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated() || !req.user) {
+      // Log authentication failure details for debugging
+      console.log(`/api/user authentication check failed:`, {
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user,
+        sessionId: req.sessionID,
+        method: req.method,
+        path: req.path,
+        userAgent: req.headers['user-agent']?.slice(0, 50)
+      });
+      return res.status(401).json({ message: "Not authenticated" });
+    }
     res.json(req.user);
   });
 }
