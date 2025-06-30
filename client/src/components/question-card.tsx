@@ -179,7 +179,7 @@ export function QuestionCard({
                         className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Get AI Help
+                        Get Help
                       </Button>
                     </div>
                   )}
