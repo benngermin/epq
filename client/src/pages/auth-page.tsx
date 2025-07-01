@@ -86,47 +86,47 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
-            <h1 className="text-3xl font-bold text-foreground">Exam Practice Questions</h1>
-          </div>
+        <div className="text-center mb-8">
+          <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
+          <h1 className="text-3xl font-bold text-foreground">Exam Practice Questions</h1>
+        </div>
 
-          <div className="mb-6 space-y-3">
+        <div className="mb-6 space-y-3">
+          <Button 
+            onClick={onDemoLogin}
+            variant="default"
+            className="w-full"
+            disabled={demoLoginMutation.isPending}
+          >
+            {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
+          </Button>
+          
+          {authConfig?.hasCognitoSSO && (
             <Button 
-              onClick={onDemoLogin}
-              variant="default"
+              onClick={() => window.location.href = authConfig.cognitoLoginUrl!}
+              variant="outline"
               className="w-full"
-              disabled={demoLoginMutation.isPending}
             >
-              {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
+              <Shield className="w-4 h-4 mr-2" />
+              Sign in with Single Sign-On
             </Button>
-            
-            {authConfig?.hasCognitoSSO && (
-              <Button 
-                onClick={() => window.location.href = authConfig.cognitoLoginUrl!}
-                variant="outline"
-                className="w-full"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Sign in with Single Sign-On
-              </Button>
-            )}
-          </div>
+          )}
+        </div>
 
-          {authConfig?.hasLocalAuth && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
+        {authConfig?.hasLocalAuth && (
+          <>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
               </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -261,10 +261,10 @@ export default function AuthPage() {
                   </form>
                 </CardContent>
               </Card>
-            </TabsContent>
-              </Tabs>
-            </>
-          )}
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   );
