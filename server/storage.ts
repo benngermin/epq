@@ -18,6 +18,7 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByCognitoSub(cognitoSub: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
   // Course methods
@@ -113,6 +114,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.cognitoSub, cognitoSub));
     return user || undefined;
   }
 

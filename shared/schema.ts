@@ -7,7 +7,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"), // Make optional for SSO users
+  cognitoSub: text("cognito_sub").unique(), // AWS Cognito subject ID
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -181,6 +182,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   email: true,
   password: true,
+  cognitoSub: true,
+}).extend({
+  password: z.string().optional(), // Make password optional for SSO users
 });
 
 export const insertCourseSchema = createInsertSchema(courses);
