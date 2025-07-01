@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
 
 declare global {
   namespace Express {
@@ -61,7 +62,7 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       const user = await storage.getUserByEmail(email);
-      if (!user || !(await comparePasswords(password, user.password))) {
+      if (!user || !user.password || !(await comparePasswords(password, user.password))) {
         return done(null, false);
       } else {
         return done(null, user);
