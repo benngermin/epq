@@ -29,7 +29,7 @@ type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation, demoLoginMutation } = useAuth();
+  const { user, authConfig, loginMutation, registerMutation, demoLoginMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
 
@@ -100,20 +100,33 @@ export default function AuthPage() {
             >
               {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
             </Button>
+            
+            {authConfig?.hasCognitoSSO && (
+              <Button 
+                onClick={() => window.location.href = authConfig.cognitoLoginUrl!}
+                variant="outline"
+                className="w-full"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Sign in with Single Sign-On
+              </Button>
+            )}
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+          {authConfig?.hasLocalAuth && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -249,7 +262,9 @@ export default function AuthPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
+              </Tabs>
+            </>
+          )}
       </div>
     </div>
   );
