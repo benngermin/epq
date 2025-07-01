@@ -8,10 +8,18 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+type AuthConfig = {
+  hasLocalAuth: boolean;
+  hasCognitoSSO: boolean;
+  cognitoLoginUrl: string | null;
+  cognitoDomain: string | null;
+};
+
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
+  authConfig: AuthConfig | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
@@ -35,6 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: true, // Only refetch on reconnect
+  });
+
+  const { data: authConfig } = useQuery<AuthConfig>({
+    queryKey: ["/api/auth/config"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/config");
+      return response.json();
+    },
+    staleTime: 60 * 60 * 1000, // Cache auth config for 1 hour
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const loginMutation = useMutation({
@@ -110,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: user ?? null,
         isLoading,
         error,
+        authConfig: authConfig ?? null,
         loginMutation,
         logoutMutation,
         registerMutation,

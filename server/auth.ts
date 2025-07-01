@@ -22,7 +22,10 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
-async function comparePasswords(supplied: string, stored: string) {
+async function comparePasswords(supplied: string, stored: string | null) {
+  if (!stored) {
+    return false;
+  }
   const [hashed, salt] = stored.split(".");
   if (!hashed || !salt) {
     return false;
@@ -58,6 +61,27 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Initialize Cognito SSO if environment variables are provided
+  const cognitoDomain = process.env.COGNITO_DOMAIN;
+  const cognitoClientId = process.env.COGNITO_CLIENT_ID;
+  const cognitoClientSecret = process.env.COGNITO_CLIENT_SECRET;
+  const cognitoRedirectUri = process.env.COGNITO_REDIRECT_URI;
+
+  let cognitoAuth: CognitoAuth | null = null;
+  
+  if (cognitoDomain && cognitoClientId && cognitoClientSecret && cognitoRedirectUri) {
+    try {
+      cognitoAuth = createCognitoAuth(cognitoDomain, cognitoClientId, cognitoClientSecret, cognitoRedirectUri);
+      cognitoAuth.initialize();
+      cognitoAuth.setupRoutes(app);
+      console.log('✓ Cognito SSO authentication enabled');
+    } catch (error) {
+      console.warn('⚠ Failed to initialize Cognito SSO:', error);
+    }
+  } else {
+    console.log('ℹ Cognito SSO not configured - using local authentication only');
+  }
 
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
@@ -145,6 +169,19 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     res.json(req.user);
+  });
+
+  // Authentication configuration endpoint
+  app.get("/api/auth/config", (req, res) => {
+    const hasLocalAuth = true; // Always available
+    const hasCognitoSSO = !!(cognitoDomain && cognitoClientId && cognitoClientSecret && cognitoRedirectUri);
+    
+    res.json({
+      hasLocalAuth,
+      hasCognitoSSO,
+      cognitoLoginUrl: hasCognitoSSO ? '/auth/cognito' : null,
+      cognitoDomain: cognitoDomain || null,
+    });
   });
 
   // Session health check endpoint
