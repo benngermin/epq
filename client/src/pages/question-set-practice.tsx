@@ -275,7 +275,7 @@ export default function QuestionSetPractice() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
         {/* Mobile Control Buttons */}
-        <div className="lg:hidden mb-4 flex items-center justify-between">
+        <div className="lg:hidden mb-4 flex items-center justify-start">
           <Button
             variant="outline"
             size="sm"
@@ -284,15 +284,6 @@ export default function QuestionSetPractice() {
           >
             <PanelLeft className="h-4 w-4" />
             Progress ({Object.keys(userAnswers).length}/{questions.length})
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Dashboard
           </Button>
         </div>
 
