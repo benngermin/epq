@@ -13,6 +13,7 @@ import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
 import { eq, sql, desc, asc } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
+import { getDebugStatus } from "./debug-status";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
@@ -1686,7 +1687,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Debug endpoint to check application status
+  app.get("/api/debug/status", async (req, res) => {
+    try {
+      const status = await getDebugStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting debug status:", error);
+      res.status(500).json({ 
+        message: "Failed to get debug status", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
 
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
 
   const httpServer = createServer(app);
   return httpServer;
