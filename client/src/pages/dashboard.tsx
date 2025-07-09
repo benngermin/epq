@@ -6,10 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
-import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
+import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User, Activity } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
+import { lazy, Suspense } from "react";
+
+const Debug = lazy(() => import("@/pages/Debug"));
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -134,11 +138,20 @@ export default function Dashboard() {
         </div>
       </nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Courses</h1>
-        </div>
+        <Tabs defaultValue="courses" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="courses" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              My Courses
+            </TabsTrigger>
+            <TabsTrigger value="debug" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              System Debug
+            </TabsTrigger>
+          </TabsList>
 
-        {!courses || !Array.isArray(courses) || courses.length === 0 ? (
+          <TabsContent value="courses" className="space-y-4">
+            {!courses || !Array.isArray(courses) || courses.length === 0 ? (
           <Card className="max-w-md mx-auto bg-card border shadow-sm">
             <CardContent className="pt-6 text-center">
               <BookOpen className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
@@ -223,6 +236,18 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="debug" className="space-y-4">
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            }>
+              <Debug />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

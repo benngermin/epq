@@ -526,9 +526,6 @@ export default function AdminPanel() {
                   <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLocation("/debug")}>
-                    System Debug
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => logoutMutation.mutate()}
