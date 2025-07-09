@@ -115,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 9, 2025 8:31 PM: Updated question set practice header layout
+  - Redesigned header with course name on left using Open Sans 28pt font
+  - Positioned The Institutes logo in the center
+  - Added question set dropdown selector on the right for easy navigation between sets
+  - Imported Open Sans font family from Google Fonts
+  - Implemented responsive layout with three-column header structure
+  - Added query to fetch all question sets for the current course
 - January 9, 2025 2:48 PM: Fixed critical database connection and performance issues
   - Replaced Neon HTTP driver with WebSocket-based connection pooling for better connection management
   - Implemented proper connection pool with 10 max connections and timeout configurations

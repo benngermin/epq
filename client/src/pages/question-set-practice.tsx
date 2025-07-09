@@ -13,6 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
@@ -62,6 +69,18 @@ export default function QuestionSetPractice() {
   });
 
   const course = courses?.find((c: any) => c.id === questionSet?.courseId);
+
+  // Fetch all question sets for the current course
+  const { data: courseQuestionSets } = useQuery({
+    queryKey: ["/api/courses", questionSet?.courseId, "question-sets"],
+    queryFn: () => fetch(`/api/courses/${questionSet?.courseId}/question-sets`, { 
+      credentials: "include" 
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return res.json();
+    }),
+    enabled: !!questionSet?.courseId,
+  });
 
   const { data: questions, isLoading: questionsLoading, error: questionsError } = useQuery({
     queryKey: ["/api/questions", questionSetId],
@@ -216,71 +235,77 @@ export default function QuestionSetPractice() {
     <div className="min-h-screen bg-background">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <img 
-                  src={institutesLogo} 
-                  alt="The Institutes" 
-                  className="h-6 w-6 text-primary mr-3 cursor-pointer hover:opacity-80 transition-opacity" 
-                  onClick={() => setLocation("/")}
-                />
-                <div>
-                  <span 
-                    className="font-semibold text-lg text-foreground cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setLocation("/")}
-                  >
-                    {course?.title && questionSet?.title ? `${course.title}: ${questionSet.title}` : questionSet?.title || "Loading..."}
-                  </span>
-                </div>
-              </div>
+        <div className="w-full px-6">
+          <div className="flex justify-between items-center h-20">
+            {/* Left - Course Name */}
+            <div className="flex-1">
+              <h1 className="text-[28px] font-semibold" style={{ fontFamily: '"Open Sans", sans-serif' }}>
+                {course?.title || "Loading..."}
+              </h1>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
+            {/* Center - Logo */}
+            <div className="flex-shrink-0 mx-8">
+              <img 
+                src={institutesLogo} 
+                alt="The Institutes" 
+                className="h-10 cursor-pointer hover:opacity-80 transition-opacity" 
                 onClick={() => setLocation("/")}
-                className="hidden lg:flex items-center text-sm"
+              />
+            </div>
+            
+            {/* Right - Question Set Dropdown */}
+            <div className="flex-1 flex justify-end items-center space-x-4">
+              <Select
+                value={questionSetId.toString()}
+                onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Return to Dashboard
-              </Button>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Select a question set" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courseQuestionSets?.map((qs: any) => (
+                    <SelectItem key={qs.id} value={qs.id.toString()}>
+                      {qs.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.name}</p>
-                    <p className="text-sm leading-none text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setLocation("/")}>
-                  <GraduationCap className="mr-2 h-4 w-4" />
-                  <span>Dashboard</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation("/admin")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Admin</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.name}</p>
+                      <p className="text-sm leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLocation("/")}>
+                    <GraduationCap className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/admin")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Admin</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
