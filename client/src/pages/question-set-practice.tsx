@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
+import { OptimizedImage } from "@/components/optimized-image";
 
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
@@ -287,7 +288,7 @@ export default function QuestionSetPractice() {
             
             {/* Center - Logo (Absolutely positioned) */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
-              <img 
+              <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
                 className="h-10 cursor-pointer hover:opacity-80 transition-opacity" 

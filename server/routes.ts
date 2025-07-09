@@ -12,6 +12,7 @@ import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
 import { eq, sql, desc, asc } from "drizzle-orm";
+import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
@@ -628,28 +629,10 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
-      const questions = await withCircuitBreaker(() => storage.getQuestionsByQuestionSet(questionSetId));
       
-      // Get the latest version for each question with circuit breaker protection
-      const questionsWithLatestVersions = await Promise.all(
-        questions.map(async (question) => {
-          try {
-            const versions = await withCircuitBreaker(() => storage.getQuestionVersionsByQuestion(question.id));
-            const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
-            return {
-              ...question,
-              latestVersion
-            };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.warn(`Failed to fetch versions for question ${question.id}:`, errorMessage);
-            // Return question without version if version fetch fails
-            return {
-              ...question,
-              latestVersion: null
-            };
-          }
-        })
+      // Use optimized batch query instead of N+1 queries
+      const questionsWithLatestVersions = await withCircuitBreaker(() => 
+        batchFetchQuestionsWithVersions(questionSetId)
       );
       
       res.json(questionsWithLatestVersions);

@@ -47,8 +47,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 10 * 60 * 1000, // 10 minutes for better caching
-      gcTime: 15 * 60 * 1000, // Keep data longer in cache
+      staleTime: 30 * 60 * 1000, // Increased to 30 minutes for better caching
+      gcTime: 60 * 60 * 1000, // Keep data for 1 hour in cache
       retry: (failureCount, error) => {
         // Don't retry on 401/403 errors
         if (error && typeof error === 'object' && 'message' in error) {
@@ -57,22 +57,13 @@ export const queryClient = new QueryClient({
             return false;
           }
         }
-        // Retry up to 2 times for other errors (reduced from 3)
-        return failureCount < 2;
+        // Retry only once for other errors
+        return failureCount < 1;
       },
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
+      retryDelay: () => 1000, // Fixed 1 second delay for faster retries
     },
     mutations: {
-      retry: (failureCount, error) => {
-        // Don't retry mutations by default, except for network errors
-        if (error && typeof error === 'object' && 'message' in error) {
-          const message = String(error.message);
-          if (message.includes('NetworkError') || message.includes('fetch')) {
-            return failureCount < 1; // Reduced retry attempts
-          }
-        }
-        return false;
-      },
+      retry: false, // Don't retry mutations by default
     },
   },
 });
