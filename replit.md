@@ -115,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 9, 2025 8:44 PM: Refined course name and centered logo layout
+  - Updated course name to "CPCU 500: Becoming a Leader in Risk Management and Insurance"
+  - Positioned logo absolutely in the center to ensure it stays centered regardless of content
+  - Set max-width of 40% on course name to ensure earlier truncation
+  - Improved responsive behavior to match Moodle course design
 - January 9, 2025 8:37 PM: Updated course name and implemented text truncation
   - Changed course name from "CPCU 500" to "Becoming a Leader in Risk Management and Insurance"
   - Added text truncation with ellipsis for course name to prevent overlap with logo

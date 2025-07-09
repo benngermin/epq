@@ -227,9 +227,9 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-6">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex items-center h-20 relative">
             {/* Left - Course Name */}
-            <div className="flex-1 pr-4">
+            <div className="flex-1 min-w-0 max-w-[40%]">
               <h1 
                 className="text-[28px] font-semibold truncate" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
@@ -239,8 +239,8 @@ export default function QuestionSetPractice() {
               </h1>
             </div>
             
-            {/* Center - Logo */}
-            <div className="flex-shrink-0 mx-8">
+            {/* Center - Logo (Absolutely positioned) */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
               <img 
                 src={institutesLogo} 
                 alt="The Institutes" 
