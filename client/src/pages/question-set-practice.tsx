@@ -229,8 +229,12 @@ export default function QuestionSetPractice() {
         <div className="w-full px-6">
           <div className="flex justify-between items-center h-20">
             {/* Left - Course Name */}
-            <div className="flex-1">
-              <h1 className="text-[28px] font-semibold" style={{ fontFamily: '"Open Sans", sans-serif' }}>
+            <div className="flex-1 pr-4">
+              <h1 
+                className="text-[28px] font-semibold truncate" 
+                style={{ fontFamily: '"Open Sans", sans-serif' }}
+                title={course?.title || "Loading..."}
+              >
                 {course?.title || "Loading..."}
               </h1>
             </div>

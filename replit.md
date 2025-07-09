@@ -115,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 9, 2025 8:37 PM: Updated course name and implemented text truncation
+  - Changed course name from "CPCU 500" to "Becoming a Leader in Risk Management and Insurance"
+  - Added text truncation with ellipsis for course name to prevent overlap with logo
+  - Added title attribute to show full course name on hover
+  - Implemented padding and responsive text handling
 - January 9, 2025 8:31 PM: Updated question set practice header layout
   - Redesigned header with course name on left using Open Sans 28pt font
   - Positioned The Institutes logo in the center
