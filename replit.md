@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 9, 2025 9:00 PM: Added "Before You Begin" popup modal to practice interface
+  - Created modal dialog that appears when users first visit a question set
+  - Added yellow warning box with important disclaimer about practice tool limitations
+  - Implemented checkbox requirement that must be checked before "Begin Practice" button is enabled
+  - Added proper button styling with disabled state for better UX
+  - Updated question set names to include "CPCU 500:" prefix for consistency
 - January 9, 2025 8:44 PM: Refined course name and centered logo layout
   - Updated course name to "CPCU 500: Becoming a Leader in Risk Management and Insurance"
   - Positioned logo absolutely in the center to ensure it stays centered regardless of content

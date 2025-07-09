@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
@@ -33,6 +35,8 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showBeginDialog, setShowBeginDialog] = useState(true);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const questionSetId = parseInt(params?.id || "0");
 
@@ -224,6 +228,48 @@ export default function QuestionSetPractice() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Before You Begin Dialog */}
+      <Dialog open={showBeginDialog} onOpenChange={setShowBeginDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold mb-4">Before You Begin</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Warning Box */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Important:</span> These practice questions familiarize you with the exam format, but don't cover every possible topic. Use them alongside other study materials for complete preparation.
+              </p>
+            </div>
+            
+            {/* Checkbox */}
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="agree-terms"
+                checked={agreedToTerms}
+                onCheckedChange={setAgreedToTerms}
+              />
+              <label 
+                htmlFor="agree-terms" 
+                className="text-sm text-gray-700 cursor-pointer"
+              >
+                I understand this is a practice tool, not my only study resource.
+              </label>
+            </div>
+            
+            {/* Begin Practice Button */}
+            <Button
+              onClick={() => setShowBeginDialog(false)}
+              disabled={!agreedToTerms}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Begin Practice
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-6">
