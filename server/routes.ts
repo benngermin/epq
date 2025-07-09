@@ -578,6 +578,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Public endpoint for getting question sets by course ID
+  app.get("/api/courses/:courseId/question-sets", requireAuth, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const questionSets = await storage.getQuestionSetsByCourse(courseId);
+      
+      // Sort question sets by title (extracting numbers for proper numerical sorting)
+      questionSets.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      res.json(questionSets);
+    } catch (error) {
+      console.error("Error fetching question sets:", error);
+      res.status(500).json({ message: "Failed to fetch question sets" });
+    }
+  });
+
   // Question set practice routes
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
