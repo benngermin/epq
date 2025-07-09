@@ -59,7 +59,7 @@ function AISettingsSection() {
   const aiSettingsForm = useForm<z.infer<typeof aiSettingsSchema>>({
     resolver: zodResolver(aiSettingsSchema),
     defaultValues: {
-      modelName: "anthropic/claude-sonnet-4",
+      modelName: "google/gemini-2.5-flash",
     },
   });
 
@@ -168,10 +168,20 @@ function AISettingsSection() {
                           <SelectValue placeholder="Select AI model" />
                         </SelectTrigger>
                         <SelectContent>
+                          {/* Google Models */}
+                          <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                          <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                          
+                          {/* OpenAI Models */}
                           <SelectItem value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
                           <SelectItem value="openai/gpt-4">GPT-4</SelectItem>
+                          <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
+                          
+                          {/* Anthropic Models */}
                           <SelectItem value="anthropic/claude-3-haiku">Claude 3 Haiku</SelectItem>
                           <SelectItem value="anthropic/claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                          <SelectItem value="anthropic/claude-3-opus">Claude 3 Opus</SelectItem>
+                          <SelectItem value="anthropic/claude-opus-4">Claude Opus 4</SelectItem>
                           <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
                         </SelectContent>
                       </Select>
@@ -185,7 +195,10 @@ function AISettingsSection() {
                 <p><strong>Model Settings:</strong></p>
                 <ul className="mt-1 space-y-1">
                   <li>• Temperature: Always set to 0 (deterministic responses)</li>
-                  <li>• Max Tokens: Automatically set to model maximum (Claude: 4096, GPT-4: 8192)</li>
+                  <li>• Max Tokens: Automatically set to model maximum</li>
+                  <li className="ml-4">- Claude models: 4096 tokens</li>
+                  <li className="ml-4">- GPT models: 8192 tokens</li>
+                  <li className="ml-4">- Gemini models: 8192 tokens</li>
                 </ul>
               </div>
 

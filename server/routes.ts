@@ -38,12 +38,16 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   let maxTokens = 4096; // Default fallback
   if (modelName.includes('claude-3-haiku')) {
     maxTokens = 4096;
-  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-sonnet-4')) {
+  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-3-opus')) {
+    maxTokens = 4096;
+  } else if (modelName.includes('claude-sonnet-4') || modelName.includes('claude-opus-4')) {
     maxTokens = 4096;
   } else if (modelName.includes('gpt-3.5-turbo')) {
     maxTokens = 4096;
   } else if (modelName.includes('gpt-4')) {
     maxTokens = 8192;
+  } else if (modelName.includes('gemini-2.5-flash') || modelName.includes('gemini-2.5-pro')) {
+    maxTokens = 8192; // Gemini models support up to 8192 tokens
   }
 
   try {

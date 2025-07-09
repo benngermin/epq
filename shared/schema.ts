@@ -72,7 +72,7 @@ export const userAnswers = pgTable("user_answers", {
 
 export const aiSettings = pgTable("ai_settings", {
   id: serial("id").primaryKey(),
-  modelName: text("model_name").default("anthropic/claude-sonnet-4"),
+  modelName: text("model_name").default("google/gemini-2.5-flash"),
   temperature: integer("temperature").default(70), // stored as integer (0-100)
   maxTokens: integer("max_tokens").default(150),
 });
