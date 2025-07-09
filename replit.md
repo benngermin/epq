@@ -115,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 9, 2025 2:48 PM: Fixed critical database connection and performance issues
+  - Replaced Neon HTTP driver with WebSocket-based connection pooling for better connection management
+  - Implemented proper connection pool with 10 max connections and timeout configurations
+  - Added graceful shutdown handlers to properly close database connections on server restart
+  - Fixed missing Gemini model token configuration in streaming endpoints (now correctly set to 8192)
+  - Added connection pool monitoring and logging for better debugging in development
+  - Resolved "Too many connections attempts" errors that were causing circuit breaker to open repeatedly
 - January 9, 2025 1:57 PM: Streamlined AI model selection
   - Added support for Google Gemini 2.5 Flash and Pro models
   - Added OpenAI GPT-4o as the only OpenAI model

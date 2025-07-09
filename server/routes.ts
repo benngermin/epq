@@ -180,6 +180,8 @@ async function streamOpenRouterToBuffer(
     maxTokens = 4096;
   } else if (modelName.includes('gpt-4')) {
     maxTokens = 8192;
+  } else if (modelName.includes('gemini-2.5-flash') || modelName.includes('gemini-2.5-pro')) {
+    maxTokens = 8192; // Gemini models support up to 8192 tokens
   }
 
   try {
