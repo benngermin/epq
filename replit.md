@@ -115,13 +115,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
-- January 9, 2025 1:53 PM: Enhanced AI model selection and configuration
+- January 9, 2025 1:57 PM: Streamlined AI model selection
   - Added support for Google Gemini 2.5 Flash and Pro models
-  - Added OpenAI GPT-4o to available models
-  - Added Claude 3 Opus and Claude Opus 4 models
+  - Added OpenAI GPT-4o as the only OpenAI model
+  - Added Claude Opus 4 as the only Anthropic model
+  - Removed all Claude 3 models (Haiku, Sonnet, Opus) and older GPT models (3.5, 4)
   - Changed default chatbot model from Claude Sonnet 4 to Gemini 2.5 Flash
   - Updated max token configurations: Gemini models support 8192 tokens
-  - Improved admin panel model settings display with grouped model categories
+  - Simplified admin panel with only 4 high-quality model options
 - June 27, 2025 4:24 PM: Optimized chatbot streaming performance with adaptive polling
   - Implemented adaptive delay system (150ms-1000ms) that adjusts based on content availability
   - Added cursor-based incremental updates to reduce JSON payload size and network overhead
