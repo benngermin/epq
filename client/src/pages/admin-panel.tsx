@@ -22,6 +22,9 @@ import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { ChatbotLogsSection } from "@/components/chatbot-logs-section";
+import { lazy, Suspense } from "react";
+
+const Debug = lazy(() => import("@/pages/Debug"));
 
 const courseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
@@ -547,11 +550,12 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="content">Content Management</TabsTrigger>
             <TabsTrigger value="uploads">Import & Upload</TabsTrigger>
             <TabsTrigger value="settings">Chatbot</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="debug">System Debug</TabsTrigger>
           </TabsList>
 
           <div className="space-y-6">
@@ -866,6 +870,24 @@ export default function AdminPanel() {
                 </div>
 
                 <ChatbotLogsSection />
+              </div>
+            </TabsContent>
+
+            {/* Debug Tab */}
+            <TabsContent value="debug">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">System Debug</h1>
+                  <p className="text-muted-foreground mt-2">Monitor system health and performance metrics</p>
+                </div>
+
+                <Suspense fallback={
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                }>
+                  <Debug />
+                </Suspense>
               </div>
             </TabsContent>
           </div>
