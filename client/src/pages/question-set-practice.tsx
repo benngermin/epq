@@ -198,8 +198,8 @@ export default function QuestionSetPractice() {
               <Button onClick={() => window.location.reload()} className="w-full">
                 Try Again
               </Button>
-              <Button variant="outline" onClick={() => setLocation("/")} className="w-full">
-                Back to Dashboard
+              <Button variant="outline" onClick={() => setLocation(`/course/${questionSet?.courseId || 1}`)} className="w-full">
+                Back to Course
               </Button>
             </div>
           </CardContent>
@@ -218,8 +218,8 @@ export default function QuestionSetPractice() {
             <p className="text-muted-foreground mb-4">
               This question set doesn't contain any questions yet.
             </p>
-            <Button onClick={() => setLocation("/")}>
-              Back to Dashboard
+            <Button onClick={() => setLocation(`/course/${questionSet?.courseId || 1}`)}>
+              Back to Course
             </Button>
           </CardContent>
         </Card>
@@ -292,7 +292,7 @@ export default function QuestionSetPractice() {
                 src={institutesLogo} 
                 alt="The Institutes" 
                 className="h-10 cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => setLocation("/")}
+                onClick={() => setLocation(`/course/${questionSet?.courseId || 1}`)}
               />
             </div>
             

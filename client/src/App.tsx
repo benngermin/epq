@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -11,7 +11,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 // Lazy load pages for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
-const Dashboard = lazy(() => import("@/pages/dashboard"));
+const CoursePage = lazy(() => import("@/pages/course-page"));
 const TestPlayer = lazy(() => import("@/pages/test-player"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
 const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice"));
@@ -28,8 +28,10 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <ProtectedRoute path="/" component={Dashboard} />
-        <ProtectedRoute path="/dashboard" component={Dashboard} />
+        <Route path="/">
+          <Redirect to="/course/1" />
+        </Route>
+        <ProtectedRoute path="/course/:courseId" component={CoursePage} />
         <ProtectedRoute path="/test/:runId" component={TestPlayer} />
         <ProtectedRoute path="/question-set/:id" component={QuestionSetPractice} />
         <ProtectedRoute path="/admin" component={AdminPanel} />
