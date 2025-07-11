@@ -115,14 +115,6 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
-- January 11, 2025 12:11 AM: Restructured application routing for direct course access
-  - Removed My Courses/Dashboard page entirely - courses are now accessed directly via URL
-  - Implemented course-specific URLs (/course/:courseId) for Moodle integration
-  - Created new CoursePage component that displays all question sets for a course
-  - Updated all navigation references to point to course pages instead of dashboard
-  - Default route (/) now redirects to /course/1 (CPCU 500)
-  - Maintains existing admin panel and question set practice functionality
-  - Each course can be accessed directly via unique URL for seamless Moodle linking
 - January 9, 2025 9:34 PM: Moved System Debug to admin panel tabs
   - Created comprehensive debug monitoring page showing server health, database status, memory usage, and performance metrics
   - Added debug endpoint (/api/debug/status) to provide real-time system information
