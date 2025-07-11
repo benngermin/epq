@@ -302,7 +302,7 @@ export default function QuestionSetPractice() {
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <SelectTrigger className="w-[280px]">
+                <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
