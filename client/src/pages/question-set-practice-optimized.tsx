@@ -389,10 +389,9 @@ export default function QuestionSetPractice() {
 
         {/* Right Main Content - Question */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-4">
-            <div className="min-h-full flex items-center justify-center">
-              <div className="w-full max-w-4xl">
-                <QuestionCard
+          <div className="flex-1 p-4 overflow-hidden">
+            <div className="w-full max-w-4xl mx-auto">
+              <QuestionCard
                   question={{
                     ...currentQuestion,
                     questionIndex: currentQuestionIndex,
@@ -409,7 +408,6 @@ export default function QuestionSetPractice() {
                   hasNextQuestion={currentQuestionIndex < questions.length - 1}
                   selectedAnswer={selectedAnswer}
                 />
-              </div>
             </div>
           </div>
 
