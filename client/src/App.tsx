@@ -28,7 +28,11 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <ProtectedRoute path="/" component={Dashboard} />
+        <ProtectedRoute path="/" component={() => {
+          // Redirect to default question set (CPCU 500, Question Set 1 = ID 7)
+          window.location.href = "/question-set/7";
+          return <PageLoader />;
+        }} />
         <ProtectedRoute path="/dashboard" component={Dashboard} />
         <ProtectedRoute path="/test/:runId" component={TestPlayer} />
         <ProtectedRoute path="/question-set/:id" component={QuestionSetPractice} />

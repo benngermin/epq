@@ -36,8 +36,8 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showBeginDialog, setShowBeginDialog] = useState(true);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showBeginDialog, setShowBeginDialog] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
 
   const questionSetId = parseInt(params?.id || "0");
 
@@ -198,9 +198,6 @@ export default function QuestionSetPractice() {
               <Button onClick={() => window.location.reload()} className="w-full">
                 Try Again
               </Button>
-              <Button variant="outline" onClick={() => setLocation("/")} className="w-full">
-                Back to Dashboard
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -218,8 +215,8 @@ export default function QuestionSetPractice() {
             <p className="text-muted-foreground mb-4">
               This question set doesn't contain any questions yet.
             </p>
-            <Button onClick={() => setLocation("/")}>
-              Back to Dashboard
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
             </Button>
           </CardContent>
         </Card>
@@ -291,8 +288,7 @@ export default function QuestionSetPractice() {
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
-                className="h-10 cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => setLocation("/")}
+                className="h-10" 
               />
             </div>
             

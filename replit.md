@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 15, 2025: Removed landing page and direct exam access
+  - Application now goes directly to CPCU 500 Question Set 1 when launched
+  - Removed dashboard/home page entirely - users start directly in exam interface
+  - Fixed main content area not showing issue by disabling "Before You Begin" dialog
+  - Question set dropdown in top right allows switching between exams
+  - Prepared architecture for future course ID URL parameter integration
 - January 15, 2025: Implemented dynamic SSO redirect URI detection
   - Added automatic detection of development URLs for AWS Cognito SSO
   - No longer requires manual COGNITO_REDIRECT_URI configuration for development
