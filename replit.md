@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 15, 2025: Implemented dynamic SSO redirect URI detection
+  - Added automatic detection of development URLs for AWS Cognito SSO
+  - No longer requires manual COGNITO_REDIRECT_URI configuration for development
+  - Automatically uses Replit development domains in dev environment
+  - Falls back to production URL or environment variable when deployed
+  - Updated documentation to explain multi-environment Cognito setup
 - January 9, 2025 9:34 PM: Moved System Debug to admin panel tabs
   - Created comprehensive debug monitoring page showing server health, database status, memory usage, and performance metrics
   - Added debug endpoint (/api/debug/status) to provide real-time system information

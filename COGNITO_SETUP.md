@@ -20,9 +20,15 @@ Your client needs to provide the following information from their AWS Cognito Us
 **How they find it:** In AWS Console > Cognito > User Pool > App Integration > App Clients > Show Details
 
 ### 4. Redirect URI Configuration
-**What you need to tell them:** They need to add your app's callback URL to their allowed redirect URIs
-**The URL to give them:** `https://your-app-domain.replit.app/auth/cognito/callback`
+**What you need to tell them:** They need to add BOTH your development and production callback URLs to their allowed redirect URIs
+
+**URLs to give them:**
+- **Development:** `https://[your-repl-name].[your-username].repl.co/auth/cognito/callback`
+- **Production:** `https://your-app-domain.replit.app/auth/cognito/callback`
+
 **Where they configure it:** In AWS Console > Cognito > User Pool > App Integration > App Clients > Hosted UI
+
+**Important:** AWS Cognito allows multiple redirect URIs. They should add both URLs to support both development and production environments.
 
 ## Required Cognito Settings
 
@@ -45,8 +51,14 @@ Once you have the information, add these environment variables to your Replit pr
 COGNITO_DOMAIN=users.login.theinstitutes.org
 COGNITO_CLIENT_ID=6r574u9jasn360o9hg4ekht6g3
 COGNITO_CLIENT_SECRET=mgv0r2q6rk44m35peopfnc05sjpsh37bh03
-COGNITO_REDIRECT_URI=https://your-app-domain.replit.app/auth/cognito/callback
+# COGNITO_REDIRECT_URI is optional - it will be auto-detected in development
+# Only set this for production if your production URL differs from the auto-detected one
+# COGNITO_REDIRECT_URI=https://your-app-domain.replit.app/auth/cognito/callback
 ```
+
+**Note:** The application now automatically detects the correct redirect URI based on your environment:
+- In development: Uses your Replit development URL automatically
+- In production: Uses the COGNITO_REDIRECT_URI if set, otherwise auto-detects from Replit environment
 
 ## Testing the Integration
 

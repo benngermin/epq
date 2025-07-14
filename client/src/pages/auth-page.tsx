@@ -60,7 +60,15 @@ export default function AuthPage() {
 
   // Auto-redirect to SSO if it's required
   useEffect(() => {
+    console.log('Auth config check:', {
+      authConfig,
+      ssoRequired: authConfig?.ssoRequired,
+      cognitoLoginUrl: authConfig?.cognitoLoginUrl,
+      hasUser: !!user
+    });
+    
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
+      console.log('Redirecting to SSO:', authConfig.cognitoLoginUrl);
       // Immediately redirect to SSO
       window.location.href = authConfig.cognitoLoginUrl;
     }

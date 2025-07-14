@@ -66,7 +66,28 @@ export function setupAuth(app: Express) {
   const cognitoDomain = process.env.COGNITO_DOMAIN;
   const cognitoClientId = process.env.COGNITO_CLIENT_ID;
   const cognitoClientSecret = process.env.COGNITO_CLIENT_SECRET;
-  const cognitoRedirectUri = process.env.COGNITO_REDIRECT_URI;
+  
+  // Dynamic redirect URI detection
+  let cognitoRedirectUri = process.env.COGNITO_REDIRECT_URI;
+  
+  // If no redirect URI is set, or if we're in development, use dynamic detection
+  if (!cognitoRedirectUri || process.env.NODE_ENV === 'development') {
+    // In Replit, we can use the REPL_SLUG and REPL_OWNER to construct the URL
+    const replSlug = process.env.REPL_SLUG;
+    const replOwner = process.env.REPL_OWNER;
+    const replitDomains = process.env.REPLIT_DOMAINS;
+    
+    if (replSlug && replOwner && replitDomains) {
+      // Use the first domain from REPLIT_DOMAINS
+      const domain = replitDomains.split(',')[0];
+      cognitoRedirectUri = `https://${domain}/auth/cognito/callback`;
+      console.log(`✓ Using dynamic redirect URI for development: ${cognitoRedirectUri}`);
+    } else {
+      // Fallback to localhost for local development
+      cognitoRedirectUri = `http://localhost:${process.env.PORT || 5000}/auth/cognito/callback`;
+      console.log(`✓ Using localhost redirect URI: ${cognitoRedirectUri}`);
+    }
+  }
 
   let cognitoAuth: CognitoAuth | null = null;
   
@@ -76,13 +97,15 @@ export function setupAuth(app: Express) {
       cognitoAuth.initialize();
       cognitoAuth.setupRoutes(app);
       console.log('✓ Cognito SSO authentication enabled (MANDATORY)');
+      console.log(`✓ Redirect URI: ${cognitoRedirectUri}`);
     } catch (error) {
       console.error('❌ CRITICAL: Failed to initialize Cognito SSO - Authentication will not work!', error);
       throw new Error('Cognito SSO configuration is required but failed to initialize');
     }
   } else {
     console.error('❌ CRITICAL: Cognito SSO environment variables are missing!');
-    console.error('Required: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET, COGNITO_REDIRECT_URI');
+    console.error('Required: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET');
+    console.error('Optional: COGNITO_REDIRECT_URI (will be auto-detected if not provided)');
     throw new Error('Cognito SSO configuration is required but missing');
   }
 
