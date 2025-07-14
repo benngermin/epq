@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 type AuthConfig = {
   hasLocalAuth: boolean;
   hasCognitoSSO: boolean;
+  ssoRequired?: boolean;
   cognitoLoginUrl: string | null;
   cognitoDomain: string | null;
 };

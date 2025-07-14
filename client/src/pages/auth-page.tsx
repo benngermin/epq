@@ -58,6 +58,14 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
+  // Auto-redirect to SSO if it's required
+  useEffect(() => {
+    if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
+      // Immediately redirect to SSO
+      window.location.href = authConfig.cognitoLoginUrl;
+    }
+  }, [authConfig, user]);
+
   const onLogin = (data: LoginData) => {
     loginMutation.mutate({
       email: data.email,
@@ -82,6 +90,19 @@ export default function AuthPage() {
       onSuccess: () => setLocation("/"),
     });
   };
+
+  // Show loading state while redirecting to SSO
+  if (authConfig?.ssoRequired && !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <div className="text-center">
+          <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Redirecting to Single Sign-On...</h2>
+          <p className="text-muted-foreground">Please wait while we redirect you to the login page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-8">

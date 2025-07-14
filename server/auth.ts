@@ -62,7 +62,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Initialize Cognito SSO if environment variables are provided
+  // Initialize Cognito SSO - REQUIRED for authentication
   const cognitoDomain = process.env.COGNITO_DOMAIN;
   const cognitoClientId = process.env.COGNITO_CLIENT_ID;
   const cognitoClientSecret = process.env.COGNITO_CLIENT_SECRET;
@@ -75,22 +75,23 @@ export function setupAuth(app: Express) {
       cognitoAuth = createCognitoAuth(cognitoDomain, cognitoClientId, cognitoClientSecret, cognitoRedirectUri);
       cognitoAuth.initialize();
       cognitoAuth.setupRoutes(app);
-      console.log('✓ Cognito SSO authentication enabled');
+      console.log('✓ Cognito SSO authentication enabled (MANDATORY)');
     } catch (error) {
-      console.warn('⚠ Failed to initialize Cognito SSO:', error);
+      console.error('❌ CRITICAL: Failed to initialize Cognito SSO - Authentication will not work!', error);
+      throw new Error('Cognito SSO configuration is required but failed to initialize');
     }
   } else {
-    console.log('ℹ Cognito SSO not configured - using local authentication only');
+    console.error('❌ CRITICAL: Cognito SSO environment variables are missing!');
+    console.error('Required: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET, COGNITO_REDIRECT_URI');
+    throw new Error('Cognito SSO configuration is required but missing');
   }
 
+  // Local authentication is disabled - SSO only
+  // Keeping the strategy for potential admin/emergency access only
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      const user = await storage.getUserByEmail(email);
-      if (!user || !user.password || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        return done(null, user);
-      }
+      // Local auth is disabled for SSO-only mode
+      return done(null, false);
     }),
   );
 
@@ -100,52 +101,17 @@ export function setupAuth(app: Express) {
     done(null, user);
   });
 
+  // Local authentication endpoints are disabled - SSO only
   app.post("/api/register", async (req, res, next) => {
-    // Handle both username and email fields from frontend
-    const email = req.body.email || req.body.username;
-    const existingUser = await storage.getUserByEmail(email);
-    if (existingUser) {
-      return res.status(400).send("Email already exists");
-    }
-
-    const user = await storage.createUser({
-      name: req.body.name,
-      email: email,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
+    res.status(403).json({ message: "Registration is disabled. Please use Single Sign-On." });
   });
 
   app.post("/api/login", (req, res, next) => {
-    // Handle both username and email fields from frontend
-    if (req.body.username && !req.body.email) {
-      req.body.email = req.body.username;
-    }
-    passport.authenticate("local")(req, res, next);
-  }, (req, res) => {
-    res.status(200).json(req.user);
+    res.status(403).json({ message: "Local login is disabled. Please use Single Sign-On." });
   });
 
   app.post("/api/demo-login", async (req, res, next) => {
-    // Create or get demo user
-    let demoUser = await storage.getUserByEmail("demo@example.com");
-    
-    if (!demoUser) {
-      demoUser = await storage.createUser({
-        name: "Demo User",
-        email: "demo@example.com",
-        password: await hashPassword("demo123"),
-      });
-    }
-
-    req.login(demoUser, (err) => {
-      if (err) return next(err);
-      res.status(200).json(demoUser);
-    });
+    res.status(403).json({ message: "Demo login is disabled. Please use Single Sign-On." });
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -173,13 +139,15 @@ export function setupAuth(app: Express) {
 
   // Authentication configuration endpoint
   app.get("/api/auth/config", (req, res) => {
-    const hasLocalAuth = true; // Always available
-    const hasCognitoSSO = !!(cognitoDomain && cognitoClientId && cognitoClientSecret && cognitoRedirectUri);
+    const hasLocalAuth = false; // Disabled for SSO-only mode
+    const hasCognitoSSO = true; // Always required
+    const ssoRequired = true; // New field to indicate SSO is mandatory
     
     res.json({
       hasLocalAuth,
       hasCognitoSSO,
-      cognitoLoginUrl: hasCognitoSSO ? '/auth/cognito' : null,
+      ssoRequired,
+      cognitoLoginUrl: '/auth/cognito',
       cognitoDomain: cognitoDomain || null,
     });
   });
