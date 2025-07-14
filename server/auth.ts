@@ -161,4 +161,29 @@ export function setupAuth(app: Express) {
       timestamp: new Date().toISOString()
     });
   });
+
+  // Debug endpoint to list all registered routes
+  app.get("/api/debug/routes", (req, res) => {
+    const routes: any[] = [];
+    app._router.stack.forEach((middleware: any) => {
+      if (middleware.route) {
+        // Routes registered directly on the app
+        routes.push({
+          path: middleware.route.path,
+          methods: Object.keys(middleware.route.methods)
+        });
+      } else if (middleware.name === 'router') {
+        // Routes registered via Router
+        middleware.handle.stack.forEach((handler: any) => {
+          if (handler.route) {
+            routes.push({
+              path: handler.route.path,
+              methods: Object.keys(handler.route.methods)
+            });
+          }
+        });
+      }
+    });
+    res.json(routes);
+  });
 }

@@ -88,8 +88,11 @@ export class CognitoAuth {
   }
 
   setupRoutes(app: Express) {
+    console.log('Setting up Cognito routes...');
+    
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
+      console.log('Cognito login route hit');
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
       
@@ -102,17 +105,24 @@ export class CognitoAuth {
     // Callback route
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
+        console.log('Cognito callback route hit!');
+        console.log('Query params:', req.query);
+        console.log('Session state:', req.session.state);
+        
         // Verify state parameter
         if (req.query.state !== req.session.state) {
+          console.log('State mismatch - returning error');
           return res.status(400).json({ error: 'Invalid state parameter' });
         }
         
+        console.log('State verified, authenticating with Cognito...');
         passport.authenticate('cognito', {
           failureRedirect: '/auth?error=cognito_failed',
         })(req, res, next);
       },
       (req: Request, res: Response) => {
         // Successful authentication
+        console.log('Authentication successful, redirecting to dashboard');
         res.redirect('/dashboard');
       }
     );
