@@ -165,9 +165,9 @@ export default function TestPlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       {/* Header */}
-      <nav className="bg-card shadow-sm border-b sticky top-0 z-40">
+      <nav className="bg-card shadow-sm border-b z-40">
         <div className="max-w-[2000px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center h-12 sm:h-14 md:h-16">
             <div className="flex items-center min-w-0 flex-1">

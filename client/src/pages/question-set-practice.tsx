@@ -228,7 +228,7 @@ export default function QuestionSetPractice() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden flex flex-col">
       {/* Before You Begin Dialog */}
       <Dialog open={showBeginDialog} onOpenChange={setShowBeginDialog}>
         <DialogContent className="sm:max-w-[500px]">
@@ -320,21 +320,22 @@ export default function QuestionSetPractice() {
 
       
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 pb-24">
-        {/* Mobile Control Buttons */}
-        <div className="lg:hidden mb-4 flex items-center justify-start">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center gap-2"
-          >
-            <PanelLeft className="h-4 w-4" />
-            Progress ({Object.keys(userAnswers).length}/{questions.length})
-          </Button>
-        </div>
+      <div className="flex-1 flex overflow-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 w-full flex flex-col">
+          {/* Mobile Control Buttons */}
+          <div className="lg:hidden mb-4 flex items-center justify-start">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-2"
+            >
+              <PanelLeft className="h-4 w-4" />
+              Progress ({Object.keys(userAnswers).length}/{questions.length})
+            </Button>
+          </div>
 
-        <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0 relative">
+          <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative">
           {/* Left Sidebar - Collapsible Progress Bar */}
           <div className={`
             fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0
@@ -501,52 +502,54 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0">
-            <div className="w-full max-w-4xl mx-auto">
-              <QuestionCard
-                question={{
-                  ...currentQuestion,
-                  questionIndex: currentQuestionIndex,
-                  userAnswer: userAnswers[currentQuestion?.id] ? {
-                    chosenAnswer: userAnswers[currentQuestion.id],
-                    isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
-                  } : null
-                }}
-                onSubmitAnswer={handleSubmitAnswer}
-                isSubmitting={submitAnswerMutation.isPending}
-                testRunId={0} // Not used for question set practice
-                onFlipChange={setIsCardFlipped}
-                onNextQuestion={handleNextQuestion}
-                hasNextQuestion={currentQuestionIndex < questions.length - 1}
-                selectedAnswer={selectedAnswer}
-              />
-            </div>
-          </div>
-
-          {/* Fixed Navigation Bar at Bottom - Always visible */}
-          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
-            <div className="max-w-4xl mx-auto flex justify-between">
-              <Button
-                variant="outline"
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-              <div className="text-sm text-muted-foreground flex items-center">
-                Question {currentQuestionIndex + 1} of {questions.length}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-4xl mx-auto px-4">
+                <QuestionCard
+                  question={{
+                    ...currentQuestion,
+                    questionIndex: currentQuestionIndex,
+                    userAnswer: userAnswers[currentQuestion?.id] ? {
+                      chosenAnswer: userAnswers[currentQuestion.id],
+                      isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
+                    } : null
+                  }}
+                  onSubmitAnswer={handleSubmitAnswer}
+                  isSubmitting={submitAnswerMutation.isPending}
+                  testRunId={0} // Not used for question set practice
+                  onFlipChange={setIsCardFlipped}
+                  onNextQuestion={handleNextQuestion}
+                  hasNextQuestion={currentQuestionIndex < questions.length - 1}
+                  selectedAnswer={selectedAnswer}
+                />
               </div>
-              <Button
-                variant="outline"
-                onClick={handleNextQuestion}
-                disabled={currentQuestionIndex === questions.length - 1}
-                className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
+            </div>
+
+            {/* Navigation Controls at Bottom - Always visible */}
+            <div className="bg-background border-t border-border p-4 flex-shrink-0">
+              <div className="max-w-4xl mx-auto flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <div className="text-sm text-muted-foreground flex items-center">
+                  Question {currentQuestionIndex + 1} of {questions.length}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleNextQuestion}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                  className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
