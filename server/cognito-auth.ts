@@ -32,10 +32,14 @@ export class CognitoAuth {
     private clientSecret: string,
     private redirectUri: string
   ) {
+    // Clean the domain - remove protocol if included
+    const cleanDomain = this.cognitoDomain.replace(/^https?:\/\//, '');
+    this.cognitoDomain = cleanDomain;
+    
     // Initialize the OAuth2 strategy for Cognito
     this.strategy = new OAuth2Strategy({
-      authorizationURL: `https://${this.cognitoDomain}/oauth2/authorize`,
-      tokenURL: `https://${this.cognitoDomain}/oauth2/token`,
+      authorizationURL: `https://${cleanDomain}/oauth2/authorize`,
+      tokenURL: `https://${cleanDomain}/oauth2/token`,
       clientID: this.clientId,
       clientSecret: this.clientSecret,
       callbackURL: this.redirectUri,
