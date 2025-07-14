@@ -214,8 +214,8 @@ export default function TestPlayer() {
 
         {/* Main Question Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8" style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))' }}>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 w-full">
               <div className={cn(
                 "mx-auto w-full",
                 isRailCollapsed 
@@ -234,7 +234,7 @@ export default function TestPlayer() {
 
           {/* Navigation Controls - Only show when question is answered */}
           {(currentQuestion as any)?.userAnswer && (
-            <div className="absolute bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm p-2 sm:p-3 md:p-4 lg:p-5 shadow-lg">
+            <div className="border-t bg-card/95 backdrop-blur-sm p-2 sm:p-3 md:p-4 lg:p-5 shadow-lg flex-shrink-0">
               <div className={cn(
                 "mx-auto",
                 isRailCollapsed 
