@@ -109,11 +109,29 @@ export function setupAuth(app: Express) {
     throw new Error('Cognito SSO configuration is required but missing');
   }
 
-  // Local authentication is disabled - SSO only
-  // Keeping the strategy for potential admin/emergency access only
+  // Local authentication strategy
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      // Local auth is disabled for SSO-only mode
+      // In development, allow local auth as a bypass
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (!user) {
+            return done(null, false);
+          }
+          
+          const isValid = await comparePasswords(password, user.password);
+          if (!isValid) {
+            return done(null, false);
+          }
+          
+          return done(null, user);
+        } catch (err) {
+          return done(err);
+        }
+      }
+      
+      // In production, SSO only
       return done(null, false);
     }),
   );
@@ -124,17 +142,66 @@ export function setupAuth(app: Express) {
     done(null, user);
   });
 
-  // Local authentication endpoints are disabled - SSO only
+  // Local authentication endpoints - available in development only
   app.post("/api/register", async (req, res, next) => {
-    res.status(403).json({ message: "Registration is disabled. Please use Single Sign-On." });
+    if (process.env.NODE_ENV === 'development') {
+      const userWithEmail = await storage.getUserByEmail(req.body.email);
+      if (userWithEmail) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const userInsert = insertUserSchema.parse(req.body);
+      const hashedPassword = await hashPassword(userInsert.password);
+      const user = await storage.createUser({
+        ...userInsert,
+        password: hashedPassword,
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    } else {
+      res.status(403).json({ message: "Registration is disabled. Please use Single Sign-On." });
+    }
   });
 
   app.post("/api/login", (req, res, next) => {
-    res.status(403).json({ message: "Local login is disabled. Please use Single Sign-On." });
+    if (process.env.NODE_ENV === 'development') {
+      passport.authenticate("local", (err: any, user: any, info: any) => {
+        if (err) return next(err);
+        if (!user) {
+          return res.status(401).json({ message: "Invalid email or password" });
+        }
+        req.login(user, (err) => {
+          if (err) return next(err);
+          res.json(user);
+        });
+      })(req, res, next);
+    } else {
+      res.status(403).json({ message: "Local login is disabled. Please use Single Sign-On." });
+    }
   });
 
   app.post("/api/demo-login", async (req, res, next) => {
-    res.status(403).json({ message: "Demo login is disabled. Please use Single Sign-On." });
+    if (process.env.NODE_ENV === 'development') {
+      // Create or get demo user
+      let demoUser = await storage.getUserByEmail("demo@example.com");
+      if (!demoUser) {
+        const hashedPassword = await hashPassword("demo123");
+        demoUser = await storage.createUser({
+          name: "Demo User",
+          email: "demo@example.com",
+          password: hashedPassword,
+        });
+      }
+      req.login(demoUser, (err) => {
+        if (err) return next(err);
+        res.json(demoUser);
+      });
+    } else {
+      res.status(403).json({ message: "Demo login is disabled. Please use Single Sign-On." });
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -162,9 +229,10 @@ export function setupAuth(app: Express) {
 
   // Authentication configuration endpoint
   app.get("/api/auth/config", (req, res) => {
-    const hasLocalAuth = false; // Disabled for SSO-only mode
-    const hasCognitoSSO = true; // Always required
-    const ssoRequired = true; // New field to indicate SSO is mandatory
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasLocalAuth = isDevelopment; // Enabled in development only
+    const hasCognitoSSO = true; // Always available
+    const ssoRequired = !isDevelopment; // SSO required in production only
     
     res.json({
       hasLocalAuth,

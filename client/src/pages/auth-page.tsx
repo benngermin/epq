@@ -99,7 +99,7 @@ export default function AuthPage() {
     });
   };
 
-  // Show loading state while redirecting to SSO
+  // Show loading state while redirecting to SSO (production only)
   if (authConfig?.ssoRequired && !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
