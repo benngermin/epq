@@ -230,7 +230,6 @@ export function QuestionCard({
       <style>
         {`.card-flip {
           perspective: 1000px;
-          min-height: 650px;
           position: relative;
           z-index: 1;
         }
@@ -238,7 +237,6 @@ export function QuestionCard({
           position: relative;
           width: 100%;
           height: 100%;
-          min-height: inherit;
           text-align: left;
           transition: transform 0.6s;
           transform-style: preserve-3d;
@@ -249,8 +247,7 @@ export function QuestionCard({
         .card-flip-front, .card-flip-back {
           position: absolute;
           width: 100%;
-          height: 100%;
-          min-height: inherit;
+          height: auto;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
           top: 0;

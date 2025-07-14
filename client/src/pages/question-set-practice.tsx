@@ -316,8 +316,8 @@ export default function QuestionSetPractice() {
 
       
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 w-full flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full w-full flex flex-col">
           {/* Mobile Control Buttons */}
           <div className="lg:hidden mb-4 flex items-center justify-start">
             <Button
@@ -331,9 +331,9 @@ export default function QuestionSetPractice() {
             </Button>
           </div>
 
-          <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative">
+          <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative h-full">
           {/* Left Sidebar - Collapsible Progress Bar */}
-          <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+          <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0 lg:h-full ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             {/* Overlay for mobile */}
             {sidebarOpen && (
               <div 
@@ -431,7 +431,7 @@ export default function QuestionSetPractice() {
                 </div>
                   
                 {/* Question list */}
-                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4">
+                <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1 mt-4 max-h-[calc(100vh-400px)]">
                   {questions?.map((question: any, index: number) => {
                     const isAnswered = question?.id ? userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
@@ -495,9 +495,9 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-full max-w-4xl mx-auto px-4">
+          <div className="flex-1 min-w-0 flex flex-col h-full p-4">
+            <div className="flex-1 flex items-center justify-center min-h-0">
+              <div className="w-full max-w-4xl mx-auto">
                 <QuestionCard
                   question={{
                     ...currentQuestion,

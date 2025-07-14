@@ -14,7 +14,7 @@ const AuthPage = lazy(() => import("@/pages/auth-page"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const TestPlayer = lazy(() => import("@/pages/test-player"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
-const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice"));
+const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice-optimized"));
 const Debug = lazy(() => import("@/pages/Debug"));
 
 // Loading component

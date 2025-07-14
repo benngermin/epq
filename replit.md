@@ -115,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 15, 2025: Fixed exam interface issues and performance optimizations
+  - Resolved main content area visibility by removing fixed height constraints from card-flip component
+  - Fixed left sidebar scrolling by implementing proper overflow handling with max-height calculation
+  - Optimized page load performance by consolidating multiple API calls into single query
+  - Created question-set-practice-optimized.tsx with improved layout structure
+  - Improved responsive design with better height management for all screen sizes
+  - Cached practice data for 5 minutes to reduce redundant API calls
 - January 15, 2025: Removed landing page and direct exam access
   - Application now goes directly to CPCU 500 Question Set 1 when launched
   - Removed dashboard/home page entirely - users start directly in exam interface
