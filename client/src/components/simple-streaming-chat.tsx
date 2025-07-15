@@ -250,8 +250,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <div className="w-full h-full bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <div className="p-3 md:p-4 flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0">
+    <div className="w-full h-full bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+      <div className="flex-1 p-3 md:p-4 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0 overflow-hidden">
         <div className="flex items-center mb-3 flex-shrink-0">
           <Bot className="h-5 w-5 text-primary mr-2" />
           <span className="font-medium text-foreground text-base">AI Assistant</span>
@@ -259,7 +259,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-2 min-h-0 bg-transparent" 
+          className="flex-1 overflow-y-auto mb-3 bg-transparent" 
+          style={{ minHeight: "0px" }}
         >
           <div className="space-y-3 p-2">
             {/* Show placeholder when no messages */}
