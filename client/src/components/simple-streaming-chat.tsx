@@ -185,7 +185,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       // Start fresh with initial assistant message
       setMessages([{
         id: "initial-response",
-        content: "Loading AI response...",
+        content: "",
         role: "assistant"
       }]);
       setHasInitialResponse(false);
@@ -271,7 +271,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               >
                 <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm break-words ${
                   message.role === "assistant"
-                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
+                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none min-h-[60px]"
                     : "bg-primary text-primary-foreground rounded-tr-none"
                 }`}>
                   <div className="flex items-start gap-2">
@@ -279,7 +279,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                       <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <HtmlLinkRenderer content={message.content} />
+                      {message.role === "assistant" && !message.content && (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      )}
+                      {message.content && <HtmlLinkRenderer content={message.content} />}
                     </div>
                   </div>
                 </div>
