@@ -254,10 +254,22 @@ async function streamOpenRouterToBuffer(
     }
 
     let buffer = '';
+    let isDone = false;
+    const streamStartTime = Date.now();
+    const STREAM_MAX_DURATION = 60000; // 60 seconds max for a single stream
+    
     while (true) {
       // Check if stream was aborted
       if (stream.aborted) {
         console.log(`Stream ${streamId} aborted during processing`);
+        reader.cancel();
+        break;
+      }
+      
+      // Check if stream has been running too long
+      if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
+        console.warn(`Stream ${streamId} exceeded max duration of ${STREAM_MAX_DURATION}ms`);
+        stream.error = "Response took too long. Please try again.";
         reader.cancel();
         break;
       }
@@ -282,6 +294,7 @@ async function streamOpenRouterToBuffer(
           const data = line.slice(6).trim();
           
           if (data === '[DONE]') {
+            isDone = true;
             break;
           }
           
@@ -295,13 +308,26 @@ async function streamOpenRouterToBuffer(
               stream.chunks = [fullResponse];
               stream.lastActivity = Date.now(); // Update activity timestamp
             }
+            
+            // Check for finish reason which might indicate premature end
+            const finishReason = parsed.choices?.[0]?.finish_reason;
+            if (finishReason) {
+              console.log(`Stream ${streamId} finished with reason: ${finishReason}`);
+              if (finishReason === 'length') {
+                console.warn(`Stream ${streamId} hit max token limit`);
+              }
+            }
           } catch (e) {
             // Log parsing errors for debugging
             if (data && data !== '') {
-              console.warn(`Failed to parse streaming chunk: ${e.message}`);
+              console.warn(`Failed to parse streaming chunk: ${e.message}, data: ${data.substring(0, 100)}`);
             }
           }
         }
+      }
+      
+      if (isDone) {
+        break;
       }
     }
     
@@ -323,6 +349,14 @@ async function streamOpenRouterToBuffer(
     }
 
     const responseTime = Date.now() - startTime;
+    
+    // Log stream completion details
+    console.log(`Stream ${streamId} completed:`, {
+      responseLength: fullResponse.length,
+      responseTime: `${responseTime}ms`,
+      modelName,
+      lastChars: fullResponse.slice(-50), // Last 50 chars to see if it was cut off
+    });
 
     // Log the complete interaction
     try {
