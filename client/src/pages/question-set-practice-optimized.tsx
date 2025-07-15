@@ -258,7 +258,7 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Left Sidebar - Fixed height with proper scrolling */}
-        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full lg:h-auto`} style={{ height: 'calc(100vh - 144px)' }}>
+        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full lg:h-auto`} style={{ height: 'calc(100vh - 150px)' }}>
           {/* Overlay for mobile */}
           {sidebarOpen && (
             <div 
@@ -267,7 +267,7 @@ export default function QuestionSetPractice() {
             />
           )}
           
-          <Card className="h-full flex flex-col relative z-50 overflow-hidden">
+          <Card className="h-full flex flex-col relative z-50 overflow-hidden border-0 rounded-none shadow-none">
             {/* Close Button for Mobile */}
             <div className="lg:hidden absolute top-4 right-4 z-10">
               <Button
