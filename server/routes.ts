@@ -316,6 +316,9 @@ async function streamOpenRouterToBuffer(
               if (finishReason === 'length') {
                 console.warn(`Stream ${streamId} hit max token limit`);
               }
+              // Mark as done when we receive a finish reason
+              isDone = true;
+              break;
             }
           } catch (e) {
             // Log parsing errors for debugging
@@ -375,7 +378,9 @@ async function streamOpenRouterToBuffer(
     }
     
     // Mark stream as done after successful completion
+    console.log(`Stream ${streamId} marking as done with full response length: ${fullResponse.length}`);
     stream.done = true;
+    stream.chunks = [fullResponse]; // Ensure final content is set
 
   } catch (error) {
     console.error("OpenRouter streaming error:", error);

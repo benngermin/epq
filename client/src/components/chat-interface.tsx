@@ -128,6 +128,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           chunkData = await chunkResponse.json();
           
           if (chunkData.done && isStreamingRef.current) {
+            console.log(`Stream ${streamId} marked as done. Final content length: ${streamingContentRef.current.length}`);
             done = true;
             
             // Move streaming content to final message
@@ -158,6 +159,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           if (chunkData.content && isStreamingRef.current) {
             // Only update if we have new content
             if (chunkData.content !== streamingContentRef.current) {
+              console.log(`Stream ${streamId} updating content. New length: ${chunkData.content.length}, Previous: ${streamingContentRef.current.length}`);
               streamingContentRef.current = chunkData.content;
               setStreamingContent(chunkData.content);
               
@@ -196,6 +198,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       }
 
     } catch (error: any) {
+      console.error("Stream interrupted with error:", error);
+      console.log(`Stream state at interruption - Content length: ${streamingContentRef.current.length}, isStreaming: ${isStreamingRef.current}`);
       
       // Remove the streaming message and show error
       setMessages(prev => prev.filter(msg => msg.id !== streamingMessageIdRef.current));
@@ -206,6 +210,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         variant: "destructive",
       });
     } finally {
+      console.log(`Stream cleanup - Final content length: ${streamingContentRef.current.length}`);
       // Always clean up streaming state
       isStreamingRef.current = false;
       currentStreamIdRef.current = "";
