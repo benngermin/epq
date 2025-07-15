@@ -92,6 +92,18 @@
 
 /* Card flip animation styles - removed duplicate to fix CSS conflicts */
 
+/* Fix border connection issues */
+.border {
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* Ensure cards have proper border rendering */
+.card {
+  overflow: hidden;
+  border-style: solid;
+}
+
 /* Line clamp utilities for text truncation */
 .line-clamp-2 {
   display: -webkit-box;

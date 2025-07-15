@@ -200,7 +200,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[500px] max-h-[calc(100vh-240px)] flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm">
+            <Card className="h-full min-h-[500px] max-h-[calc(100vh-240px)] flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -212,7 +212,7 @@ export function QuestionCard({
                   />
                 )}
               </div>
-              <div className="p-3 md:p-4 border-t bg-accent flex-shrink-0">
+              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
