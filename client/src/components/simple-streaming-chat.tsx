@@ -260,7 +260,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-2 min-h-0" 
+          className="flex-1 overflow-y-auto mb-2 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-lg" 
         >
           <div className="space-y-3 p-2">
             {/* All conversation messages */}
