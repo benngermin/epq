@@ -200,8 +200,8 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[500px] max-h-[calc(100vh-240px)] flex flex-col bg-card border shadow-sm">
-              <div className="flex-1 min-h-0 overflow-hidden">
+            <Card className="h-full min-h-[500px] max-h-[calc(100vh-240px)] flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm">
+              <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900">
                 {showChatbot && (
                   <SimpleStreamingChat
                     /* key forces a fresh instance when we change questions */
