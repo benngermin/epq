@@ -258,7 +258,7 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Left Sidebar - Fixed height with proper scrolling */}
-        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full lg:h-auto`} style={{ height: 'calc(100vh - 160px)' }}>
+        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
           {sidebarOpen && (
             <div 
@@ -389,7 +389,7 @@ export default function QuestionSetPractice() {
         {/* Right Main Content - Question */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 overflow-hidden">
-            <div className="w-full max-w-6xl mx-auto">
+            <div className="w-full max-w-5xl mx-auto">
               <QuestionCard
                   question={{
                     ...currentQuestion,
@@ -415,7 +415,7 @@ export default function QuestionSetPractice() {
 
       {/* Navigation Controls at Bottom - Full Width */}
       <div className="bg-background border-t border-border p-4 flex-shrink-0">
-        <div className="max-w-6xl mx-auto flex justify-between">
+        <div className="max-w-5xl mx-auto flex justify-between">
           <Button
             variant="outline"
             onClick={handlePreviousQuestion}
