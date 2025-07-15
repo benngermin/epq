@@ -271,7 +271,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               >
                 <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm break-words ${
                   message.role === "assistant"
-                    ? "bg-muted text-foreground rounded-tl-none"
+                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
                     : "bg-primary text-primary-foreground rounded-tr-none"
                 }`}>
                   <div className="flex items-start gap-2">
