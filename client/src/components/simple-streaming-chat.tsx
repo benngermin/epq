@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HtmlLinkRenderer } from "@/components/html-link-renderer";
@@ -251,8 +250,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <Card className="bg-background w-full h-full">
-      <CardContent className="p-3 md:p-4 h-full flex flex-col">
+    <div className="w-full h-full bg-gray-50 dark:bg-gray-900 rounded-lg border">
+      <div className="p-3 md:p-4 h-full flex flex-col">
         <div className="flex items-center mb-3">
           <Bot className="h-5 w-5 text-primary mr-2" />
           <span className="font-medium text-foreground text-base">AI Assistant</span>
@@ -260,9 +259,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-2 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-lg" 
+          className="flex-1 overflow-y-auto mb-2 min-h-0 bg-transparent" 
         >
           <div className="space-y-3 p-2">
+            {/* Show placeholder when no messages */}
+            {messages.length === 0 && (
+              <div className="flex w-full justify-center items-center min-h-[200px]">
+                <div className="text-muted-foreground text-sm">
+                  Answer the question to see AI explanation
+                </div>
+              </div>
+            )}
             {/* All conversation messages */}
             {messages.map((message) => (
               <div
@@ -271,7 +278,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
               >
                 <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm break-words ${
                   message.role === "assistant"
-                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none min-h-[60px]"
+                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none min-h-[100px]"
                     : "bg-primary text-primary-foreground rounded-tr-none"
                 }`}>
                   <div className="flex items-start gap-2">
@@ -317,7 +324,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             <Send className="h-4 w-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
