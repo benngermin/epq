@@ -25,6 +25,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentStreamIdRef = useRef<string>("");
   const prevQuestionIdRef = useRef<number | string | undefined>(undefined);
 
   // Keep a *stable* reference to the learner's first submitted answer
@@ -63,6 +64,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       
       const { streamId } = await response.json();
+      currentStreamIdRef.current = streamId;
 
       // Poll for streaming chunks with adaptive delay
       let done = false;
@@ -169,6 +171,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       });
     } finally {
       setIsStreaming(false);
+      currentStreamIdRef.current = "";
     }
   };
 
@@ -202,6 +205,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      // Abort any active stream on server
+      if (currentStreamIdRef.current) {
+        fetch(`/api/chatbot/stream-abort/${currentStreamIdRef.current}`, {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(() => {
+          // Ignore abort errors
+        });
       }
     };
   }, []);

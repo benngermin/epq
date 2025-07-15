@@ -137,7 +137,29 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 }
 
 // In-memory store for active streams - declare at module level
-const activeStreams = new Map<string, { chunks: string[], done: boolean, error?: string }>();
+const activeStreams = new Map<string, { 
+  chunks: string[], 
+  done: boolean, 
+  error?: string,
+  lastActivity: number,
+  aborted?: boolean 
+}>();
+
+// Heartbeat interval to detect stalled streams
+const STREAM_HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const STREAM_TIMEOUT = 120000; // 2 minutes
+
+// Start heartbeat monitor for streams
+setInterval(() => {
+  const now = Date.now();
+  activeStreams.forEach((stream, streamId) => {
+    if (!stream.done && !stream.aborted && (now - stream.lastActivity) > STREAM_TIMEOUT) {
+      console.warn(`Stream ${streamId} timed out - marking as done`);
+      stream.error = "Stream timed out. Please try again.";
+      stream.done = true;
+    }
+  });
+}, STREAM_HEARTBEAT_INTERVAL);
 
 // Cleanup function to prevent memory leaks
 function cleanupStream(streamId: string) {
@@ -231,19 +253,33 @@ async function streamOpenRouterToBuffer(
       throw new Error("No response stream available");
     }
 
+    let buffer = '';
     while (true) {
+      // Check if stream was aborted
+      if (stream.aborted) {
+        console.log(`Stream ${streamId} aborted during processing`);
+        reader.cancel();
+        break;
+      }
+
       const { done, value } = await reader.read();
       
       if (done) {
         break;
       }
       
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      
+      // Process complete lines
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
       
       for (const line of lines) {
+        if (line.trim() === '') continue;
+        
         if (line.startsWith('data: ')) {
-          const data = line.slice(6);
+          const data = line.slice(6).trim();
           
           if (data === '[DONE]') {
             break;
@@ -257,10 +293,31 @@ async function streamOpenRouterToBuffer(
               fullResponse += content;
               // Store accumulated content, not individual chunks
               stream.chunks = [fullResponse];
+              stream.lastActivity = Date.now(); // Update activity timestamp
             }
           } catch (e) {
-            // Skip invalid JSON chunks - this is normal for streaming
+            // Log parsing errors for debugging
+            if (data && data !== '') {
+              console.warn(`Failed to parse streaming chunk: ${e.message}`);
+            }
           }
+        }
+      }
+    }
+    
+    // Process any remaining data in buffer
+    if (buffer.trim() && buffer.startsWith('data: ')) {
+      const data = buffer.slice(6).trim();
+      if (data && data !== '[DONE]') {
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content && typeof content === 'string') {
+            fullResponse += content;
+            stream.chunks = [fullResponse];
+          }
+        } catch (e) {
+          console.warn(`Failed to parse final buffer: ${e.message}`);
         }
       }
     }
@@ -1061,8 +1118,13 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Initialize stream
-      activeStreams.set(streamId, { chunks: [], done: false });
+      // Initialize stream with timestamp
+      activeStreams.set(streamId, { 
+        chunks: [], 
+        done: false, 
+        lastActivity: Date.now(),
+        aborted: false 
+      });
       
       // Start background processing
       processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id);
@@ -1084,6 +1146,22 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).json({ error: "Stream not found" });
     }
     
+    // Check if stream was aborted
+    if (stream.aborted) {
+      return res.json({
+        content: "",
+        newContent: "",
+        cursor: 0,
+        done: true,
+        error: "Stream was aborted"
+      });
+    }
+    
+    // Update activity timestamp for active streams
+    if (!stream.done) {
+      stream.lastActivity = Date.now();
+    }
+    
     // Get full accumulated content
     const fullContent = stream.chunks.join('');
     
@@ -1093,7 +1171,8 @@ export function registerRoutes(app: Express): Server {
     // Set appropriate cache headers to reduce overhead
     res.set({
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      'X-Content-Type-Options': 'nosniff'
     });
     
     res.json({
@@ -1105,19 +1184,34 @@ export function registerRoutes(app: Express): Server {
     });
     
     // Clean up finished streams
-    if (stream.done) {
+    if (stream.done && !stream.error) {
       // Clear chunks after sending final response
       setTimeout(() => {
-        activeStreams.delete(streamId);
-      }, 1000); // Small delay to ensure client gets final response
+        cleanupStream(streamId);
+      }, 2000); // Slightly longer delay to ensure client gets final response
     }
+  });
+
+  // Abort stream endpoint
+  app.post("/api/chatbot/stream-abort/:streamId", requireAuth, async (req, res) => {
+    const streamId = req.params.streamId;
+    const stream = activeStreams.get(streamId);
+    
+    if (stream) {
+      stream.aborted = true;
+      stream.done = true;
+      stream.error = "Stream aborted by user";
+      console.log(`Stream ${streamId} aborted by user`);
+    }
+    
+    res.json({ success: true });
   });
 
   // Background stream processing
   async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number) {
     try {
       const stream = activeStreams.get(streamId);
-      if (!stream) return;
+      if (!stream || stream.aborted) return;
 
       // Process stream with proper chosenAnswer handling
 

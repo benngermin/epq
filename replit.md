@@ -115,6 +115,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 16, 2025: Enhanced chatbot streaming reliability
+  - Added heartbeat monitoring to detect and clean up stalled streams automatically
+  - Implemented stream abort functionality to properly cancel ongoing streams
+  - Added retry logic with exponential backoff for network failures
+  - Improved error handling with better recovery mechanisms
+  - Added activity timestamps to track stream health
+  - Fixed buffer handling for incomplete SSE chunks
+  - Added cursor-based polling to reduce redundant data transfer
+  - Implemented proper cleanup on component unmount and question changes
+  - Added 10-second timeout per polling request to prevent hanging
+  - Enhanced server-side stream state management with abort detection
 - January 15, 2025: Fixed exam interface issues and performance optimizations
   - Resolved main content area visibility by removing fixed height constraints from card-flip component
   - Fixed left sidebar scrolling by implementing proper overflow handling with max-height calculation

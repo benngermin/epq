@@ -97,24 +97,32 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       const { streamId } = await response.json();
       currentStreamIdRef.current = streamId;
 
-      // Poll for chunks
+      // Poll for chunks with improved error handling
       let done = false;
       let accumulatedContent = "";
+      let pollErrors = 0;
+      const MAX_POLL_ERRORS = 5;
+      let cursor = 0;
       
-      while (!done && isStreamingRef.current) {
+      while (!done && isStreamingRef.current && pollErrors < MAX_POLL_ERRORS) {
         try {
-          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}`, {
+          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
+            signal: AbortSignal.timeout(10000), // 10 second timeout per request
           });
 
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
+              console.warn('Stream not found, likely cleaned up');
               break;
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
+            pollErrors++;
+            await new Promise(resolve => setTimeout(resolve, Math.min(1000 * pollErrors, 5000)));
             continue;
           }
 
+          // Reset error count on successful response
+          pollErrors = 0;
           const chunkData = await chunkResponse.json();
           
           if (chunkData.done && isStreamingRef.current) {
@@ -140,8 +148,13 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             break;
           }
 
+          // Update cursor if provided
+          if (chunkData.cursor !== undefined) {
+            cursor = chunkData.cursor;
+          }
+
           if (chunkData.content && isStreamingRef.current) {
-            // Only append new content if it's different from what we already have
+            // Only update if we have new content
             if (chunkData.content !== streamingContentRef.current) {
               streamingContentRef.current = chunkData.content;
               setStreamingContent(chunkData.content);
@@ -165,12 +178,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           }
 
         } catch (pollError) {
-          // Continue polling on minor errors
-          await new Promise(resolve => setTimeout(resolve, 100));
+          pollErrors++;
+          console.warn(`Polling error (${pollErrors}/${MAX_POLL_ERRORS}):`, pollError);
+          // Exponential backoff on errors
+          await new Promise(resolve => setTimeout(resolve, Math.min(1000 * pollErrors, 5000)));
         }
 
-        // Small delay between polls
-        await new Promise(resolve => setTimeout(resolve, 150));
+        // Adaptive delay between polls based on content flow
+        const delay = chunkData?.newContent ? 100 : 250;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
     } catch (error: any) {
@@ -228,6 +244,16 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     // Abort any ongoing stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+    
+    // Abort server-side stream if active
+    if (currentStreamIdRef.current) {
+      fetch(`/api/chatbot/stream-abort/${currentStreamIdRef.current}`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {
+        // Ignore abort errors
+      });
     }
     
     // Force cleanup of streaming state
