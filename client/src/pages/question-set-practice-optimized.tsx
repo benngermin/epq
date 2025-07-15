@@ -322,7 +322,7 @@ export default function QuestionSetPractice() {
                 
               {/* Question list - with proper scrolling */}
               <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto space-y-2 pr-2 pb-2">
+                <div className="h-full overflow-y-auto space-y-2 pr-2 pb-3 sm:pb-6">
                   {questions?.map((question: any, index: number) => {
                     const isAnswered = question?.id ? userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
