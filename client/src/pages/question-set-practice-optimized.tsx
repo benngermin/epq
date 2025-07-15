@@ -282,8 +282,7 @@ export default function QuestionSetPractice() {
 
             {/* Header */}
             <CardHeader className="pb-3 sm:pb-6 flex-shrink-0">
-              <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
-              <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
+              <CardTitle className="text-lg font-semibold">{questionSet?.title || "Question Set"}</CardTitle>
               <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button
