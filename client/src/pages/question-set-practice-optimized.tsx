@@ -312,7 +312,7 @@ export default function QuestionSetPractice() {
               </AlertDialog>
             </CardHeader>
 
-            <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
+            <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
               {/* Summary Stats */}
               <div className="space-y-4 flex-shrink-0 mb-4">
                 <div className="flex justify-between text-sm">
@@ -323,7 +323,7 @@ export default function QuestionSetPractice() {
                 
               {/* Question list - with proper scrolling */}
               <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto space-y-2 pr-2">
+                <div className="h-full overflow-y-auto space-y-2 pr-2 pb-4">
                   {questions?.map((question: any, index: number) => {
                     const isAnswered = question?.id ? userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
