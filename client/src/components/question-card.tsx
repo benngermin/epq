@@ -83,7 +83,7 @@ export function QuestionCard({
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="max-h-[calc(100vh-200px)] bg-card border shadow-sm flex flex-col">
+            <Card className="max-h-[calc(100vh-240px)] bg-card border shadow-sm flex flex-col">
               <CardContent className="p-3 sm:p-4 md:p-4 lg:p-5 xl:p-6 flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-y-auto">
                   <div className="mb-2 sm:mb-3 md:mb-4">
@@ -200,7 +200,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[600px] max-h-[calc(100vh-150px)] flex flex-col bg-card border shadow-sm">
+            <Card className="h-full min-h-[500px] max-h-[calc(100vh-240px)] flex flex-col bg-card border shadow-sm">
               <div className="flex-1 min-h-0 overflow-hidden">
                 {showChatbot && (
                   <SimpleStreamingChat
