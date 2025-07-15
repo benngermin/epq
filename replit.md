@@ -115,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 16, 2025: Simplified authentication UI
+  - Removed signup/signin forms from the auth page
+  - Kept only Quick Demo Access and Single Sign-On options
+  - Cleaned up unused imports and code related to manual login/registration
+  - Streamlined user experience for accessing the application
 - January 16, 2025: Enhanced chatbot streaming reliability
   - Added heartbeat monitoring to detect and clean up stalled streams automatically
   - Implemented stream abort functionality to properly cancel ongoing streams
