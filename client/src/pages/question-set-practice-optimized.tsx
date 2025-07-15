@@ -258,7 +258,7 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Left Sidebar - Fixed height with proper scrolling */}
-        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} h-full`}>
+        <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full lg:h-auto`} style={{ height: 'calc(100vh - 144px)' }}>
           {/* Overlay for mobile */}
           {sidebarOpen && (
             <div 
@@ -267,7 +267,7 @@ export default function QuestionSetPractice() {
             />
           )}
           
-          <Card className="h-full flex flex-col relative z-50">
+          <Card className="h-full flex flex-col relative z-50 overflow-hidden">
             {/* Close Button for Mobile */}
             <div className="lg:hidden absolute top-4 right-4 z-10">
               <Button
@@ -312,7 +312,7 @@ export default function QuestionSetPractice() {
               </AlertDialog>
             </CardHeader>
 
-            <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
               {/* Summary Stats */}
               <div className="space-y-4 flex-shrink-0 mb-4">
                 <div className="flex justify-between text-sm">
