@@ -105,6 +105,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       let cursor = 0;
       
       while (!done && isStreamingRef.current && pollErrors < MAX_POLL_ERRORS) {
+        let chunkData: any = null;
+        
         try {
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
@@ -123,7 +125,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
           // Reset error count on successful response
           pollErrors = 0;
-          const chunkData = await chunkResponse.json();
+          chunkData = await chunkResponse.json();
           
           if (chunkData.done && isStreamingRef.current) {
             done = true;
@@ -182,11 +184,15 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           console.warn(`Polling error (${pollErrors}/${MAX_POLL_ERRORS}):`, pollError);
           // Exponential backoff on errors
           await new Promise(resolve => setTimeout(resolve, Math.min(1000 * pollErrors, 5000)));
+          continue; // Skip the normal delay and continue to next iteration
         }
 
         // Adaptive delay between polls based on content flow
-        const delay = chunkData?.newContent ? 100 : 250;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // Only apply delay if we successfully got data
+        if (chunkData) {
+          const delay = chunkData.newContent ? 100 : 250;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
 
     } catch (error: any) {

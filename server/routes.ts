@@ -373,6 +373,9 @@ async function streamOpenRouterToBuffer(
     } catch (logError) {
       console.error("Failed to log chatbot interaction:", logError);
     }
+    
+    // Mark stream as done after successful completion
+    stream.done = true;
 
   } catch (error) {
     console.error("OpenRouter streaming error:", error);
@@ -397,9 +400,6 @@ async function streamOpenRouterToBuffer(
       console.error("Failed to log chatbot error:", logError);
     }
   }
-  
-  // Mark stream as done
-  stream.done = true;
 
   
   // Cleanup stream after 5 minutes to prevent memory leaks
