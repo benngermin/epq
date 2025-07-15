@@ -389,7 +389,7 @@ export default function QuestionSetPractice() {
         {/* Right Main Content - Question */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 overflow-hidden">
-            <div className="w-full max-w-4xl mx-auto">
+            <div className="w-full max-w-6xl mx-auto">
               <QuestionCard
                   question={{
                     ...currentQuestion,
@@ -415,7 +415,7 @@ export default function QuestionSetPractice() {
 
       {/* Navigation Controls at Bottom - Full Width */}
       <div className="bg-background border-t border-border p-4 flex-shrink-0">
-        <div className="max-w-4xl mx-auto flex justify-between">
+        <div className="max-w-6xl mx-auto flex justify-between">
           <Button
             variant="outline"
             onClick={handlePreviousQuestion}
