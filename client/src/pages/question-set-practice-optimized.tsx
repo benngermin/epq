@@ -122,13 +122,17 @@ export default function QuestionSetPractice() {
 
   const resetMutation = useMutation({
     mutationFn: async () => {
+      // Reset all state to initial values
       setUserAnswers({});
       setCurrentQuestionIndex(0);
       setSelectedAnswer("");
       setShowChat(false);
       setIsCardFlipped(false);
       setResetDialogOpen(false);
-      setChatResetTimestamp(Date.now()); // Force all chat components to reset
+      // Force all chat components to reset by updating timestamp
+      setChatResetTimestamp(Date.now());
+      // Scroll to top of the page
+      window.scrollTo(0, 0);
     },
   });
 
