@@ -115,6 +115,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- July 16, 2025: Fixed SSO state validation error
+  - Resolved "Invalid state parameter" error that occurred after Cognito SSO redirect
+  - Enhanced session configuration with resave: true and saveUninitialized: true for OAuth flow
+  - Added proper session save before OAuth redirect to ensure state persistence
+  - Implemented better error handling with user-friendly messages on auth page
+  - Added session debugging logs to track session state through OAuth flow
+  - Made state validation more lenient in development to handle session issues
+  - Updated cookie configuration for better cross-origin compatibility
 - July 16, 2025: Updated site favicon with The Institutes logo
   - Added official The Institutes logo as favicon across all browser formats
   - Created multiple favicon formats: ICO, PNG (16x16, 32x32, 192x192, 512x512), and Apple Touch Icon

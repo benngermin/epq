@@ -44,14 +44,14 @@ async function comparePasswords(supplied: string, stored: string | null) {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Force resave to ensure state is persisted
+    saveUninitialized: true, // Save uninitialized sessions for OAuth flow
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // Use 'none' in production for cross-origin
       path: '/', // Explicitly set path to ensure cookie is sent with all requests
       domain: undefined // Let the browser handle domain automatically
     },

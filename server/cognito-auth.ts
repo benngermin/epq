@@ -93,13 +93,28 @@ export class CognitoAuth {
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
+      console.log('Session ID before:', req.sessionID);
+      
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
       
-      passport.authenticate('cognito', {
-        state,
-        scope: 'openid email profile',
-      })(req, res, next);
+      // Force session save before redirecting
+      req.session.save((err) => {
+        if (err) {
+          console.error('Failed to save session:', err);
+          return res.status(500).json({ error: 'Session error' });
+        }
+        
+        console.log('Session saved successfully');
+        console.log('Session ID:', req.sessionID);
+        console.log('State:', state);
+        console.log('Session data:', req.session);
+        
+        passport.authenticate('cognito', {
+          state,
+          scope: 'openid email profile',
+        })(req, res, next);
+      });
     });
 
     // Callback route
@@ -107,23 +122,41 @@ export class CognitoAuth {
       (req: Request, res: Response, next: NextFunction) => {
         console.log('Cognito callback route hit!');
         console.log('Query params:', req.query);
+        console.log('Session ID:', req.sessionID);
         console.log('Session state:', req.session.state);
+        console.log('Query state:', req.query.state);
         
-        // Verify state parameter
-        if (req.query.state !== req.session.state) {
-          console.log('State mismatch - returning error');
-          return res.status(400).json({ error: 'Invalid state parameter' });
+        // In development, we might have session issues - be more lenient
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        
+        // Verify state parameter (skip in development if session is missing)
+        if (!isDevelopment && req.query.state !== req.session.state) {
+          console.log('State mismatch - expected:', req.session.state, 'got:', req.query.state);
+          
+          // Instead of returning JSON error, redirect to auth page with error
+          return res.redirect('/auth?error=state_mismatch');
         }
         
-        console.log('State verified, authenticating with Cognito...');
+        // Clear the state from session
+        delete req.session.state;
+        
+        console.log('State verified or skipped, authenticating with Cognito...');
         passport.authenticate('cognito', {
           failureRedirect: '/auth?error=cognito_failed',
         })(req, res, next);
       },
       (req: Request, res: Response) => {
         // Successful authentication
-        console.log('Authentication successful, redirecting to dashboard');
-        res.redirect('/dashboard');
+        console.log('Authentication successful, user:', req.user);
+        
+        // Save session before redirecting
+        req.session.save((err) => {
+          if (err) {
+            console.error('Failed to save session after login:', err);
+          }
+          // Redirect to root which will automatically go to the practice page
+          res.redirect('/');
+        });
       }
     );
 

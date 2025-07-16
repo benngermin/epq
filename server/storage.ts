@@ -103,8 +103,10 @@ export class DatabaseStorage implements IStorage {
       ttl: 7 * 24 * 60 * 60 * 1000, // 7 days TTL to match cookie maxAge
       max: 1000, // Limit to 1000 sessions to prevent memory issues
       dispose: (key: string, val: any) => {
-        // Optional cleanup when session expires
-        console.log(`Session ${key} expired and was disposed`);
+        // Optional cleanup when session expires - only log in debug mode
+        if (process.env.DEBUG_SESSIONS) {
+          console.log(`Session ${key} expired and was disposed`);
+        }
       }
     });
   }

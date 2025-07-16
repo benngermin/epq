@@ -1,13 +1,19 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
+import { Shield, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 export default function AuthPage() {
   const { user, authConfig, demoLoginMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const searchParams = useSearch();
+  
+  // Parse error from URL params
+  const urlParams = new URLSearchParams(searchParams);
+  const error = urlParams.get('error');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -60,6 +66,17 @@ export default function AuthPage() {
           <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
           <h1 className="text-3xl font-bold text-foreground">Exam Practice Questions</h1>
         </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error === 'state_mismatch' && 'Session expired. Please try signing in again.'}
+              {error === 'cognito_failed' && 'Authentication failed. Please try again.'}
+              {error && !['state_mismatch', 'cognito_failed'].includes(error) && 'An error occurred during sign in.'}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6 space-y-3">
           <Button 
