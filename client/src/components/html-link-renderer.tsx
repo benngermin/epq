@@ -8,16 +8,19 @@ interface HtmlLinkRendererProps {
 export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererProps) {
   // Function to parse HTML links and convert them to JSX elements
   const parseContent = (text: string) => {
-    // Regular expression to match HTML anchor tags
-    const linkRegex = /<a\s+href="([^"]*)"[^>]*>(.*?)<\/a>/gi;
+    // Create a new regex instance for each parse to avoid lastIndex issues
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
-    let match;
-
-    while ((match = linkRegex.exec(text)) !== null) {
+    
+    // Use matchAll instead of exec to avoid regex state issues
+    const matches = Array.from(text.matchAll(/<a\s+href="([^"]*)"[^>]*>(.*?)<\/a>/gi));
+    
+    for (const match of matches) {
+      const matchIndex = match.index!;
+      
       // Add text before the link
-      if (match.index > lastIndex) {
-        const beforeText = text.slice(lastIndex, match.index);
+      if (matchIndex > lastIndex) {
+        const beforeText = text.slice(lastIndex, matchIndex);
         if (beforeText) {
           parts.push(beforeText);
         }
@@ -29,7 +32,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
       
       parts.push(
         <a
-          key={match.index}
+          key={matchIndex}
           href={href}
           target="_blank"
           rel="noopener noreferrer"
@@ -39,7 +42,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         </a>
       );
 
-      lastIndex = linkRegex.lastIndex;
+      lastIndex = matchIndex + match[0].length;
     }
 
     // Add remaining text after the last link
@@ -50,7 +53,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
       }
     }
 
-    // If no links were found, return the original text
+    // If no links were found or if we have no parts, return the original text
     return parts.length > 0 ? parts : [text];
   };
 
