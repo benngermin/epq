@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./hooks/use-auth";
 import { QuestionProvider } from "./contexts/question-context";
 import { ProtectedRoute } from "./lib/protected-route";
+import { initializePerformanceOptimizations } from "./lib/prefetch";
 
 // Lazy load pages for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -46,6 +47,11 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize performance optimizations on app load
+    initializePerformanceOptimizations();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

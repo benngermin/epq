@@ -115,6 +115,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 17, 2025: Comprehensive loading and performance optimizations
+  - Created optimized API endpoints that combine multiple queries into single requests
+  - Implemented `/api/question-sets/:id/optimized` endpoint to fetch all practice data in one call
+  - Added `/api/courses/optimized` endpoint with batched queries for dashboard
+  - Enhanced React Query caching: Increased stale time to 60 minutes and cache time to 2 hours
+  - Improved OptimizedImage component with intersection observer for true lazy loading
+  - Added resource prefetching utility for critical assets and API endpoints
+  - Implemented service worker for offline support and better asset caching
+  - Added preconnect hints for external domains (OpenRouter, Google Fonts)
+  - Reduced retry delays to 500ms for faster error recovery
+  - Optimized database queries with JOINs and batch fetching to eliminate N+1 queries
 - January 16, 2025: Simplified authentication UI
   - Removed signup/signin forms from the auth page
   - Kept only Quick Demo Access and Single Sign-On options

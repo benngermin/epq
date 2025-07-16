@@ -17,7 +17,9 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   const { data: courses, isLoading } = useQuery({
-    queryKey: ["/api/courses"],
+    queryKey: ["/api/courses/optimized"],
+    staleTime: 1000 * 60 * 15, // Cache for 15 minutes
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
 
   const startTestMutation = useMutation({

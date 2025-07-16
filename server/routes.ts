@@ -13,6 +13,13 @@ import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
 import { eq, sql, desc, asc } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
+import { 
+  batchFetchQuestionsWithVersionsOptimized, 
+  batchFetchUserProgress,
+  fetchCourseWithCounts,
+  batchFetchQuestionCounts,
+  prefetchQuestionSetData
+} from "./utils/query-optimization";
 import { getDebugStatus } from "./debug-status";
 
 // Type assertion helper for authenticated requests
@@ -445,6 +452,75 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
+  // Optimized courses endpoint with batched queries
+  app.get("/api/courses/optimized", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Fetch all courses
+      const courses = await storage.getAllCourses();
+      
+      // Batch fetch all related data
+      const [allQuestionSets, allPracticeTests] = await Promise.all([
+        db.select().from(questionSets),
+        db.select().from(practiceTests),
+      ]);
+      
+      // Get question counts for all question sets at once
+      const questionSetIds = allQuestionSets.map(qs => qs.id);
+      const questionCounts = await batchFetchQuestionCounts(questionSetIds);
+      
+      // Get user progress for all courses
+      const progressData = await Promise.all(
+        courses.map(course => batchFetchUserProgress(userId, course.id))
+      );
+      
+      // Build the response
+      const coursesWithProgress = courses.map((course, index) => {
+        const courseQuestionSets = allQuestionSets
+          .filter(qs => qs.courseId === course.id)
+          .map(qs => ({
+            ...qs,
+            questionCount: questionCounts.get(qs.id) || 0,
+          }));
+        
+        const coursePracticeTests = allPracticeTests
+          .filter(pt => pt.courseId === course.id);
+        
+        const courseProgress = progressData[index];
+        
+        // Calculate progress
+        let progressPercentage = 0;
+        if (courseProgress.length > 0) {
+          const latestTestRun = courseProgress
+            .filter(p => p.testRun)
+            .sort((a, b) => {
+              const aDate = new Date(a.testRun?.startedAt || 0);
+              const bDate = new Date(b.testRun?.startedAt || 0);
+              return bDate.getTime() - aDate.getTime();
+            })[0];
+          
+          if (latestTestRun && latestTestRun.testRun) {
+            const totalQuestions = latestTestRun.testRun.questionOrder?.length || 85;
+            progressPercentage = Math.round((latestTestRun.answerCount / totalQuestions) * 100);
+          }
+        }
+        
+        return {
+          ...course,
+          progress: progressPercentage,
+          practiceTests: coursePracticeTests,
+          questionSets: courseQuestionSets,
+        };
+      });
+      
+      res.json(coursesWithProgress);
+    } catch (error) {
+      console.error("Error fetching optimized courses:", error);
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
   // Course routes
   app.get("/api/courses", requireAuth, async (req, res) => {
     try {
@@ -723,13 +799,41 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Optimized endpoint to get question set data with all related data in one request
+  app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.id);
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Fetch all data in parallel
+      const data = await withCircuitBreaker(() => prefetchQuestionSetData(questionSetId));
+      
+      if (!data.questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching optimized question set data:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to fetch question set data" });
+      }
+    }
+  });
+
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
       
       // Use optimized batch query instead of N+1 queries
       const questionsWithLatestVersions = await withCircuitBreaker(() => 
-        batchFetchQuestionsWithVersions(questionSetId)
+        batchFetchQuestionsWithVersionsOptimized(questionSetId)
       );
       
       res.json(questionsWithLatestVersions);
