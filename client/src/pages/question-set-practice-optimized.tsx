@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft } from "lucide-react";
@@ -281,14 +281,14 @@ export default function QuestionSetPractice() {
             </div>
 
             {/* Header */}
-            <CardHeader className="pb-3 sm:pb-6 flex-shrink-0">
-              <CardTitle className="text-lg font-semibold">Question Set 1</CardTitle>
+            <CardHeader className="pb-4 flex-shrink-0">
+              <CardTitle className="text-lg font-semibold mb-3">Question Set 1</CardTitle>
               <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex items-center text-sm mt-3 w-full"
+                    className="flex items-center justify-center text-sm w-full"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset All
@@ -313,7 +313,7 @@ export default function QuestionSetPractice() {
 
             <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
               {/* Summary Stats */}
-              <div className="space-y-4 flex-shrink-0 mb-4">
+              <div className="flex-shrink-0 mb-4">
                 <div className="flex justify-between text-sm">
                   <span>Questions Answered</span>
                   <span>{Object.keys(userAnswers).length} / {questions?.length || 0}</span>
@@ -322,7 +322,7 @@ export default function QuestionSetPractice() {
                 
               {/* Question list - with proper scrolling */}
               <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto space-y-2 pr-2 pb-3 sm:pb-6">
+                <div className="h-full overflow-y-auto space-y-2 pr-2 pb-4">
                   {questions?.map((question: any, index: number) => {
                     const isAnswered = question?.id ? userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
@@ -347,7 +347,7 @@ export default function QuestionSetPractice() {
                           setSidebarOpen(false);
                         }}
                       >
-                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium flex-shrink-0 ${
                           isCurrent
                             ? "bg-primary text-primary-foreground"
                             : isAnswered && isCorrect
@@ -370,12 +370,12 @@ export default function QuestionSetPractice() {
                           <p className="text-sm font-medium truncate">
                             Question {index + 1}
                           </p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {question.latestVersion?.topicFocus || "General topic"}
                           </p>
                         </div>
                         {isCurrent && (
-                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                         )}
                       </div>
                     );
@@ -445,6 +445,9 @@ export default function QuestionSetPractice() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold mb-4">Before You Begin</DialogTitle>
+            <DialogDescription className="sr-only">
+              Important information about using this practice tool for exam preparation
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
