@@ -305,13 +305,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   return (
     <Card className="bg-background w-full h-full">
       <CardContent className="p-3 md:p-4 h-full flex flex-col">
-        <div className="flex items-center mb-3">
-          <Bot className="h-5 w-5 text-primary mr-2" />
-          <span className="font-medium text-foreground text-base">AI Assistant</span>
-        </div>
-
         <div className="flex-1 overflow-y-auto mb-2 min-h-0">
-          <div className="space-y-3 p-2">
+          <div className="space-y-3 p-2 pt-4">
             {isStreaming && !streamingContent && (
               <div className="flex items-center justify-center h-32">
                 <div className="flex items-center space-x-2">
@@ -323,7 +318,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
             {/* Show streaming content as a live message - Always render when streaming */}
             <div className="flex w-full justify-start" style={{ display: isStreaming ? 'flex' : 'none' }}>
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-base break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
                 <div className="flex items-start gap-2">
                   <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-600 animate-pulse" />
                   <div className="flex-1 min-w-0">
@@ -356,7 +351,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                 >
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-lg px-3 py-2 text-sm break-words",
+                      "max-w-[85%] rounded-lg px-3 py-2 text-base break-words",
                       message.role === "assistant"
                         ? "bg-muted text-foreground rounded-tl-none"
                         : "bg-primary text-primary-foreground rounded-tr-none"

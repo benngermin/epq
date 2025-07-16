@@ -287,17 +287,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   return (
     <div className="w-full h-full bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       <div className="flex-1 p-3 md:p-4 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0 overflow-hidden">
-        <div className="flex items-center mb-3 flex-shrink-0">
-          <Bot className="h-5 w-5 text-primary mr-2" />
-          <span className="font-medium text-foreground text-base">AI Assistant</span>
-        </div>
-
         <div 
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth" 
           style={{ minHeight: "0px" }}
         >
-          <div className="space-y-3 p-2">
+          <div className="space-y-3 p-2 pt-4">
             {/* Show placeholder when no messages */}
             {messages.length === 0 && (
               <div className="flex w-full justify-center items-center min-h-[200px]">
@@ -312,7 +307,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 key={message.id}
                 className={`flex w-full ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
               >
-                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm break-words ${
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-base break-words ${
                   message.role === "assistant"
                     ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
                     : "bg-primary text-primary-foreground rounded-tr-none"
