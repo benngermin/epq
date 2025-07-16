@@ -43,15 +43,26 @@ export default function QuestionSetPractice() {
   const questionSetId = parseInt(params?.id || "0");
 
   // Fetch all courses with their question sets
-  const { data: allCoursesData } = useQuery({
+  const { data: allCoursesData, error: coursesError } = useQuery({
     queryKey: ["/api/courses-with-question-sets"],
     queryFn: async () => {
       const res = await fetch("/api/courses-with-question-sets", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch courses");
-      return res.json();
+      const data = await res.json();
+      console.log("Fetched courses data:", data);
+      return data;
     },
+    enabled: !!user, // Only fetch when user is authenticated
     staleTime: 1000 * 60 * 10, // Cache for 10 minutes
   });
+
+  // Log any errors
+  if (coursesError) {
+    console.error("Error fetching courses:", coursesError);
+  }
+
+  console.log("User authenticated:", !!user);
+  console.log("All courses data:", allCoursesData);
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
@@ -248,22 +259,28 @@ export default function QuestionSetPractice() {
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[400px] overflow-y-auto">
-                  {allCoursesData?.map((course: any) => (
-                    <div key={course.id}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                        {course.title}
+                  {allCoursesData && allCoursesData.length > 0 ? (
+                    allCoursesData.map((course: any) => (
+                      <div key={course.id}>
+                        <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                          {course.title}
+                        </div>
+                        {course.questionSets?.map((qs: any) => (
+                          <SelectItem 
+                            key={qs.id} 
+                            value={qs.id.toString()}
+                            className="pl-6"
+                          >
+                            {qs.title}
+                          </SelectItem>
+                        ))}
                       </div>
-                      {course.questionSets?.map((qs: any) => (
-                        <SelectItem 
-                          key={qs.id} 
-                          value={qs.id.toString()}
-                          className="pl-6"
-                        >
-                          {qs.title}
-                        </SelectItem>
-                      ))}
+                    ))
+                  ) : (
+                    <div className="px-2 py-2 text-sm text-muted-foreground">
+                      {coursesError ? "Error loading courses" : "Loading courses..."}
                     </div>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
