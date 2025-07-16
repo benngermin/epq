@@ -312,13 +312,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                     ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
                     : "bg-primary text-primary-foreground rounded-tr-none"
                 }`}>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-center gap-2">
                     {message.role === "assistant" && (
-                      <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                      <Bot className="h-4 w-4 flex-shrink-0 text-primary" />
                     )}
                     <div className="flex-1 min-w-0">
                       {message.role === "assistant" && !message.content && (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center space-x-2 py-2">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>

@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- January 16, 2025: Enhanced chatbot interface styling
+  - Removed "AI Assistant" title from both chatbot components for cleaner appearance
+  - Aligned chatbot messages with question text positioning using proper top padding
+  - Increased chatbot message font size from text-sm to text-base for better readability
+  - Centered loading animation dots vertically within message bubbles
+  - Improved visual alignment between question and answer cards when flipping
 - January 16, 2025: Simplified authentication UI
   - Removed signup/signin forms from the auth page
   - Kept only Quick Demo Access and Single Sign-On options
