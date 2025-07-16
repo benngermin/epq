@@ -288,7 +288,9 @@ export default function QuestionSetPractice() {
 
             {/* Header */}
             <CardHeader className="pb-4 flex-shrink-0">
-              <CardTitle className="text-lg font-semibold mb-3">Question Set 1</CardTitle>
+              <CardTitle className="text-lg font-semibold mb-3">
+                {questionSet?.title?.replace(/^CPCU \d+:\s*/, '') || 'Question Set'}
+              </CardTitle>
               <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button
