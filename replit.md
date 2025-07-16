@@ -143,6 +143,16 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 ## Recent Changes
 
 Recent Updates:
+- July 16, 2025: Removed ALL Practice Test functionality
+  - Deleted practice test tables from database schema (practiceTests, userTestRuns, userAnswers)
+  - Removed all practice test storage methods from server/storage.ts
+  - Cleaned up all practice test API routes from server/routes.ts
+  - Deleted test-player.tsx component and its route from App.tsx
+  - Removed QuestionNavigation component that was only used by test player
+  - Updated QuestionCard component to remove testRunId dependency
+  - Fixed all TypeScript errors related to the removal
+  - Platform now only supports Question Sets for casual practice
+  - Simplified overall architecture by removing test run complexity
 - July 16, 2025: Added course ID mappings for client integration
   - Inserted all 16 courses with their external IDs into the database
   - System now supports automatic course routing based on client's course IDs

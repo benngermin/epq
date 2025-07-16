@@ -12,7 +12,6 @@ interface QuestionCardProps {
   question: any;
   onSubmitAnswer: (answer: string) => void;
   isSubmitting: boolean;
-  testRunId: number;
   onFlipChange?: (isFlipped: boolean) => void;
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
@@ -23,8 +22,7 @@ interface QuestionCardProps {
 export function QuestionCard({ 
   question, 
   onSubmitAnswer, 
-  isSubmitting, 
-  testRunId,
+  isSubmitting,
   onFlipChange,
   onNextQuestion,
   hasNextQuestion,

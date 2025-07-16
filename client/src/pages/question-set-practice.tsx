@@ -511,7 +511,6 @@ export default function QuestionSetPractice() {
                   }}
                   onSubmitAnswer={handleSubmitAnswer}
                   isSubmitting={submitAnswerMutation.isPending}
-                  testRunId={0} // Not used for question set practice
                   onFlipChange={setIsCardFlipped}
                   onNextQuestion={handleNextQuestion}
                   hasNextQuestion={currentQuestionIndex < questions.length - 1}

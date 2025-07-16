@@ -12,7 +12,6 @@ import { ProtectedRoute } from "./lib/protected-route";
 const NotFound = lazy(() => import("@/pages/not-found"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
-const TestPlayer = lazy(() => import("@/pages/test-player"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
 const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice-optimized"));
 const Debug = lazy(() => import("@/pages/Debug"));
@@ -34,7 +33,6 @@ function Router() {
           return <PageLoader />;
         }} />
         <ProtectedRoute path="/dashboard" component={Dashboard} />
-        <ProtectedRoute path="/test/:runId" component={TestPlayer} />
         <ProtectedRoute path="/question-set/:id" component={QuestionSetPractice} />
         <ProtectedRoute path="/admin" component={AdminPanel} />
         <ProtectedRoute path="/debug" component={Debug} />
