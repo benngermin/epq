@@ -136,6 +136,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 }
                 return updated;
               });
+              
+              // Auto-scroll to bottom when new content arrives
+              requestAnimationFrame(() => {
+                if (scrollContainerRef.current) {
+                  scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                }
+              });
             }
             
             // Mark initial response as received if this is the first response
@@ -146,12 +153,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             // Shrink delay when we get new content (faster polling for active streams)
             pollDelay = Math.max(minDelay, pollDelay * 0.8);
             
-            // Auto-scroll to bottom during streaming
-            setTimeout(() => {
-              if (scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-              }
-            }, 10);
+
           } else {
             // No new content - grow delay to reduce polling frequency
             pollDelay = Math.min(maxDelay, pollDelay * 1.2);
@@ -218,6 +220,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
       loadAiResponse();                       // kick off first answer
+      
+      // Auto-scroll when initial message is added
+      requestAnimationFrame(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionVersionId, chosenAnswer]);
@@ -285,7 +294,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-3 bg-transparent" 
+          className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth" 
           style={{ minHeight: "0px" }}
         >
           <div className="space-y-3 p-2">
