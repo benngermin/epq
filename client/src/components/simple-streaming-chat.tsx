@@ -90,27 +90,53 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           const chunkData = await chunkResponse.json();
           
           if (chunkData.done) {
+            // Log what we received when done
+            console.log('Final chunk received:', {
+              contentLength: chunkData.content?.length,
+              accumulatedLength: accumulatedContent.length,
+              done: chunkData.done,
+              last100Chars: chunkData.content?.slice(-100)
+            });
+            
+            // Make sure to update with final content before marking as done
+            if (chunkData.content && chunkData.content.length > accumulatedContent.length) {
+              accumulatedContent = chunkData.content;
+              setMessages(prev => {
+                const updated = [...prev];
+                for (let i = updated.length - 1; i >= 0; i--) {
+                  if (updated[i].role === "assistant") {
+                    updated[i] = { ...updated[i], content: accumulatedContent };
+                    break;
+                  }
+                }
+                return updated;
+              });
+            }
             done = true;
             break;
           }
           
-          if (chunkData.content && chunkData.content.length > accumulatedContent.length) {
-            // New content available - append only the new part
-            const newContent = chunkData.content.slice(accumulatedContent.length);
-            accumulatedContent = chunkData.content;
-            cursor = accumulatedContent.length;
+          if (chunkData.content) {
+            // Always use the full content from server, don't rely on accumulation
+            const serverContent = chunkData.content;
             
-            // Update the last assistant message by appending new content
-            setMessages(prev => {
-              const updated = [...prev];
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].role === "assistant") {
-                  updated[i] = { ...updated[i], content: accumulatedContent };
-                  break;
+            if (serverContent.length > accumulatedContent.length) {
+              // New content available
+              accumulatedContent = serverContent;
+              cursor = serverContent.length;
+              
+              // Update the last assistant message with full server content
+              setMessages(prev => {
+                const updated = [...prev];
+                for (let i = updated.length - 1; i >= 0; i--) {
+                  if (updated[i].role === "assistant") {
+                    updated[i] = { ...updated[i], content: serverContent };
+                    break;
+                  }
                 }
-              }
-              return updated;
-            });
+                return updated;
+              });
+            }
             
             // Mark initial response as received if this is the first response
             if (!userMessage && !hasInitialResponse) {

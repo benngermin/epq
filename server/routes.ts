@@ -1214,6 +1214,17 @@ export function registerRoutes(app: Express): Server {
       'X-Content-Type-Options': 'nosniff'
     });
     
+    // Log details about what we're sending
+    if (stream.done && fullContent.length > 0) {
+      console.log(`Sending final chunk for stream ${streamId}:`, {
+        totalLength: fullContent.length,
+        done: stream.done,
+        last100Chars: fullContent.slice(-100),
+        cursor: cursor,
+        newCursor: fullContent.length
+      });
+    }
+    
     res.json({
       content: fullContent, // Still send full content for compatibility
       newContent, // New incremental content
