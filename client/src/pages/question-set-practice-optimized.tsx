@@ -38,6 +38,7 @@ export default function QuestionSetPractice() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showBeginDialog, setShowBeginDialog] = useState(true);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   const questionSetId = parseInt(params?.id || "0");
 
@@ -127,6 +128,7 @@ export default function QuestionSetPractice() {
       setShowChat(false);
       setIsCardFlipped(false);
       setResetDialogOpen(false);
+      setChatResetTimestamp(Date.now()); // Force all chat components to reset
     },
   });
 
@@ -406,6 +408,7 @@ export default function QuestionSetPractice() {
                   onNextQuestion={handleNextQuestion}
                   hasNextQuestion={currentQuestionIndex < questions.length - 1}
                   selectedAnswer={selectedAnswer}
+                  chatResetTimestamp={chatResetTimestamp}
                 />
             </div>
           </div>

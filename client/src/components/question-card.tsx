@@ -17,6 +17,7 @@ interface QuestionCardProps {
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
   selectedAnswer?: string;
+  chatResetTimestamp?: number;
 }
 
 export function QuestionCard({ 
@@ -27,7 +28,8 @@ export function QuestionCard({
   onFlipChange,
   onNextQuestion,
   hasNextQuestion,
-  selectedAnswer
+  selectedAnswer,
+  chatResetTimestamp
 }: QuestionCardProps) {
   const [selectedAnswerState, setSelectedAnswerState] = useState<string>("");
   const [isFlipped, setIsFlipped] = useState(false);
@@ -204,8 +206,8 @@ export function QuestionCard({
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
-                    /* key forces a fresh instance when we change questions */
-                    key={question.id}
+                    /* key forces a fresh instance when we change questions or reset all */
+                    key={`${question.id}-${chatResetTimestamp || 0}`}
                     questionVersionId={question.latestVersion?.id || question.id}
                     chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
                     correctAnswer={question.latestVersion?.correctAnswer || ""}
