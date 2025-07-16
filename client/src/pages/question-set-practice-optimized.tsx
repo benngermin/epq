@@ -297,7 +297,7 @@ export default function QuestionSetPractice() {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Reset All Questions?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription className="text-base text-foreground leading-relaxed">
                       This will clear all your answers and start the question set over from the beginning. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
