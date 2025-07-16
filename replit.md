@@ -115,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- July 16, 2025: Enhanced SSO redirection with URL parameter support
+  - Added functionality to capture and preserve courseId and assignmentName URL parameters through OAuth flow
+  - Modified auth page to forward URL parameters when redirecting to Cognito SSO
+  - Updated SSO callback to redirect users to specific course based on courseId parameter
+  - Created session type declarations for TypeScript support of custom session properties
+  - System now ready to handle course-specific routing when embedded in client's site
+  - Parameters are preserved through the entire authentication flow and used for post-login redirection
 - July 16, 2025: Fixed SSO state validation error
   - Resolved "Invalid state parameter" error that occurred after Cognito SSO redirect
   - Enhanced session configuration with resave: true and saveUninitialized: true for OAuth flow

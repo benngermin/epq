@@ -32,11 +32,28 @@ export default function AuthPage() {
     });
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
-      console.log('Redirecting to SSO:', authConfig.cognitoLoginUrl);
-      // Immediately redirect to SSO
-      window.location.href = authConfig.cognitoLoginUrl;
+      // Preserve URL parameters when redirecting to SSO
+      const courseId = urlParams.get('courseId');
+      const assignmentName = urlParams.get('assignmentName');
+      
+      let ssoUrl = authConfig.cognitoLoginUrl;
+      const ssoParams = new URLSearchParams();
+      
+      if (courseId) {
+        ssoParams.append('courseId', courseId);
+      }
+      if (assignmentName) {
+        ssoParams.append('assignmentName', assignmentName);
+      }
+      
+      if (ssoParams.toString()) {
+        ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
+      }
+      
+      console.log('Redirecting to SSO with params:', ssoUrl);
+      window.location.href = ssoUrl;
     }
-  }, [authConfig, user]);
+  }, [authConfig, user, urlParams]);
 
 
 
@@ -90,7 +107,27 @@ export default function AuthPage() {
           
           {authConfig?.hasCognitoSSO && (
             <Button 
-              onClick={() => window.location.href = authConfig.cognitoLoginUrl!}
+              onClick={() => {
+                // Preserve URL parameters when clicking SSO button
+                const courseId = urlParams.get('courseId');
+                const assignmentName = urlParams.get('assignmentName');
+                
+                let ssoUrl = authConfig.cognitoLoginUrl!;
+                const ssoParams = new URLSearchParams();
+                
+                if (courseId) {
+                  ssoParams.append('courseId', courseId);
+                }
+                if (assignmentName) {
+                  ssoParams.append('assignmentName', assignmentName);
+                }
+                
+                if (ssoParams.toString()) {
+                  ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
+                }
+                
+                window.location.href = ssoUrl;
+              }}
               variant="outline"
               className="w-full"
             >

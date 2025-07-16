@@ -94,9 +94,20 @@ export class CognitoAuth {
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
       console.log('Session ID before:', req.sessionID);
+      console.log('Query params:', req.query);
       
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
+      
+      // Capture URL parameters to preserve them through the OAuth flow
+      if (req.query.courseId) {
+        req.session.courseId = req.query.courseId as string;
+        console.log('Captured courseId:', req.session.courseId);
+      }
+      if (req.query.assignmentName) {
+        req.session.assignmentName = req.query.assignmentName as string;
+        console.log('Captured assignmentName:', req.session.assignmentName);
+      }
       
       // Force session save before redirecting
       req.session.save((err) => {
@@ -149,13 +160,32 @@ export class CognitoAuth {
         // Successful authentication
         console.log('Authentication successful, user:', req.user);
         
+        // Check if we have stored courseId from the initial request
+        const courseId = req.session.courseId;
+        const assignmentName = req.session.assignmentName;
+        
+        console.log('Retrieved courseId from session:', courseId);
+        console.log('Retrieved assignmentName from session:', assignmentName);
+        
+        // Clear the stored parameters from session
+        delete req.session.courseId;
+        delete req.session.assignmentName;
+        
         // Save session before redirecting
         req.session.save((err) => {
           if (err) {
             console.error('Failed to save session after login:', err);
           }
-          // Redirect to root which will automatically go to the practice page
-          res.redirect('/');
+          
+          // Redirect based on courseId if available
+          if (courseId) {
+            // For now, redirect to question set based on courseId
+            // This will need to be updated once we have the course ID mappings
+            res.redirect(`/question-set/${courseId}`);
+          } else {
+            // Default redirect to root which will go to the default practice page
+            res.redirect('/');
+          }
         });
       }
     );
