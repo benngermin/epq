@@ -200,7 +200,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full min-h-[400px] max-h-[calc(100vh-180px)] flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+            <Card className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -247,7 +247,8 @@ export function QuestionCard({
         .card-flip-front, .card-flip-back {
           position: absolute;
           width: 100%;
-          height: auto;
+          height: calc(100vh - 180px);
+          min-height: 400px;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
           top: 0;
