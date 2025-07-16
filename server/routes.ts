@@ -561,6 +561,42 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Bulk insert courses with external IDs
+  app.post("/api/admin/courses/bulk", requireAdmin, async (req, res) => {
+    try {
+      const coursesData = z.array(z.object({
+        title: z.string(),
+        externalId: z.string(),
+        description: z.string().optional()
+      })).parse(req.body);
+      
+      const results = [];
+      for (const courseData of coursesData) {
+        try {
+          // Check if course with external ID already exists
+          const existing = await storage.getCourseByExternalId(courseData.externalId);
+          if (existing) {
+            results.push({ ...existing, status: 'exists' });
+          } else {
+            const newCourse = await storage.createCourse({
+              title: courseData.title,
+              description: courseData.description || `${courseData.title} course materials`,
+              externalId: courseData.externalId
+            });
+            results.push({ ...newCourse, status: 'created' });
+          }
+        } catch (error) {
+          results.push({ title: courseData.title, externalId: courseData.externalId, status: 'error', error: String(error) });
+        }
+      }
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error bulk inserting courses:", error);
+      res.status(400).json({ message: "Invalid course data" });
+    }
+  });
+
   // Question set routes
   app.get("/api/admin/question-sets", requireAdmin, async (req, res) => {
     try {

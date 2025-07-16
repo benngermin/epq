@@ -112,9 +112,42 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 
 Preferred communication style: Simple, everyday language.
 
+## Course ID Mappings
+
+The following courses are configured with their external IDs from the client's system:
+
+| Course Title | External ID | Internal ID |
+|-------------|-------------|-------------|
+| CPCU 500: Becoming a Leader in Risk Management and Insurance | 8433 | 1 |
+| CPCU 520 | 8434 | 9 |
+| CPCU 530 | 8435 | 8 |
+| CPCU 540 | 8436 | 7 |
+| CPCU 550 | 8437 | 6 |
+| CPCU 551 | 8438 | 3 |
+| CPCU 552 | 8439 | 2 |
+| CPCU 555 | 8440 | 5 |
+| CPCU 556 | 8441 | 4 |
+| AIC 300 | 6128 | 16 |
+| AIC 301 | 8428 | 15 |
+| AIC 302 | 8429 | 14 |
+| AIC 303 | 8430 | 13 |
+| AIC 304 | 8431 | 12 |
+| AIC 305 | 8432 | 11 |
+| AIC 330 | 8442 | 10 |
+
+When the app is launched with URL parameters like `?courseId=8433&assignmentName=CPCU500_Set1`, the system will:
+1. Look up the course by external ID
+2. Find the first question set for that course
+3. Redirect the user to that question set after SSO authentication
+
 ## Recent Changes
 
 Recent Updates:
+- July 16, 2025: Added course ID mappings for client integration
+  - Inserted all 16 courses with their external IDs into the database
+  - System now supports automatic course routing based on client's course IDs
+  - CPCU 500 (external ID: 8433) already has 3 question sets configured
+  - Other courses are ready to have question sets added as needed
 - July 16, 2025: Enhanced SSO redirection with URL parameter support
   - Added functionality to capture and preserve courseId and assignmentName URL parameters through OAuth flow
   - Modified auth page to forward URL parameters when redirecting to Cognito SSO

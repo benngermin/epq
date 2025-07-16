@@ -156,20 +156,48 @@ export class CognitoAuth {
           failureRedirect: '/auth?error=cognito_failed',
         })(req, res, next);
       },
-      (req: Request, res: Response) => {
+      async (req: Request, res: Response) => {
         // Successful authentication
         console.log('Authentication successful, user:', req.user);
         
         // Check if we have stored courseId from the initial request
-        const courseId = req.session.courseId;
+        const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
         
-        console.log('Retrieved courseId from session:', courseId);
+        console.log('Retrieved courseId from session:', externalCourseId);
         console.log('Retrieved assignmentName from session:', assignmentName);
         
         // Clear the stored parameters from session
         delete req.session.courseId;
         delete req.session.assignmentName;
+        
+        // Determine redirect URL based on external course ID
+        let redirectUrl = '/';
+        
+        if (externalCourseId) {
+          try {
+            // Import storage to look up course
+            const { storage } = await import('./storage.js');
+            const course = await storage.getCourseByExternalId(externalCourseId);
+            
+            if (course) {
+              // Get the first question set for this course
+              const questionSets = await storage.getQuestionSetsByCourse(course.id);
+              
+              if (questionSets.length > 0) {
+                // Redirect to the first question set of the course
+                redirectUrl = `/question-set/${questionSets[0].id}`;
+                console.log(`Redirecting to question set ${questionSets[0].id} for course ${course.title}`);
+              } else {
+                console.warn(`No question sets found for course ${course.title}`);
+              }
+            } else {
+              console.warn(`No course found with external ID: ${externalCourseId}`);
+            }
+          } catch (error) {
+            console.error('Error looking up course:', error);
+          }
+        }
         
         // Save session before redirecting
         req.session.save((err) => {
@@ -177,15 +205,7 @@ export class CognitoAuth {
             console.error('Failed to save session after login:', err);
           }
           
-          // Redirect based on courseId if available
-          if (courseId) {
-            // For now, redirect to question set based on courseId
-            // This will need to be updated once we have the course ID mappings
-            res.redirect(`/question-set/${courseId}`);
-          } else {
-            // Default redirect to root which will go to the default practice page
-            res.redirect('/');
-          }
+          res.redirect(redirectUrl);
         });
       }
     );

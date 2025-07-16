@@ -17,6 +17,7 @@ export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  externalId: text("external_id").unique(), // Client's course ID
 });
 
 export const questionSets = pgTable("question_sets", {
@@ -187,7 +188,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: z.string().optional(), // Make password optional for SSO users
 });
 
-export const insertCourseSchema = createInsertSchema(courses);
+export const insertCourseSchema = createInsertSchema(courses).extend({
+  externalId: z.string().optional(),
+});
 export const insertQuestionSetSchema = createInsertSchema(questionSets);
 export const insertPracticeTestSchema = createInsertSchema(practiceTests);
 export const insertQuestionSchema = createInsertSchema(questions);
