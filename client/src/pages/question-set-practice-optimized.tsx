@@ -41,23 +41,33 @@ export default function QuestionSetPractice() {
 
   const questionSetId = parseInt(params?.id || "0");
 
-  // Use optimized endpoint that fetches all data in one request
+  // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
-    queryKey: ["/api/question-sets", questionSetId, "optimized"],
+    queryKey: ["/api/practice-data", questionSetId],
     queryFn: async () => {
-      const res = await fetch(`/api/question-sets/${questionSetId}/optimized`, { 
-        credentials: "include" 
-      });
+      const [questionSetRes, questionsRes] = await Promise.all([
+        fetch(`/api/question-sets/${questionSetId}`, { credentials: "include" }),
+        fetch(`/api/questions/${questionSetId}`, { credentials: "include" })
+      ]);
 
-      if (!res.ok) {
+      if (!questionSetRes.ok || !questionsRes.ok) {
         throw new Error(`Failed to load practice data`);
       }
 
-      return res.json();
+      const questionSet = await questionSetRes.json();
+      const questions = await questionsRes.json();
+
+      // Fetch course and question sets info
+      const courseRes = await fetch(`/api/courses/${questionSet.courseId}`, { credentials: "include" });
+      const questionSetsRes = await fetch(`/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
+
+      const course = courseRes.ok ? await courseRes.json() : null;
+      const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
+
+      return { questionSet, questions, course, courseQuestionSets };
     },
     enabled: !!questionSetId,
-    staleTime: 1000 * 60 * 10, // Cache for 10 minutes
-    gcTime: 1000 * 60 * 30, // Keep cached data for 30 minutes
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   const submitAnswerMutation = useMutation({
