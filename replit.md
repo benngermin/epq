@@ -115,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Recent Updates:
+- July 16, 2025: Updated site favicon with The Institutes logo
+  - Added official The Institutes logo as favicon across all browser formats
+  - Created multiple favicon formats: ICO, PNG (16x16, 32x32, 192x192, 512x512), and Apple Touch Icon
+  - Added proper HTML meta tags for comprehensive browser and mobile support
+  - Included web app manifest for PWA functionality with consistent branding
+  - Added descriptive page title: "CPC Practice - CPCU 500 Exam Preparation"
 - January 16, 2025: Enhanced chatbot interface styling
   - Removed "AI Assistant" title from both chatbot components for cleaner appearance
   - Aligned chatbot messages with question text positioning using proper top padding
