@@ -236,7 +236,7 @@ export default function QuestionSetPractice() {
           <div className="space-y-6">
             {/* Warning Box */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-gray-700">
+              <p className="text-base text-foreground leading-relaxed">
                 <span className="font-semibold">Important:</span> These practice questions familiarize you with the exam format, but don't cover every possible topic. Use them alongside other study materials for complete preparation.
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function QuestionSetPractice() {
               />
               <label 
                 htmlFor="agree-terms" 
-                className="text-sm text-gray-700 cursor-pointer"
+                className="text-base text-foreground leading-relaxed cursor-pointer"
               >
                 I understand this is a practice tool, not my only study resource.
               </label>
