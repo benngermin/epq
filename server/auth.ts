@@ -51,7 +51,9 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/', // Explicitly set path to ensure cookie is sent with all requests
+      domain: undefined // Let the browser handle domain automatically
     },
     rolling: true, // Reset expiration on each request
     name: 'connect.sid', // Standard session name for better compatibility
@@ -61,6 +63,19 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Add middleware to ensure session is saved
+  app.use((req, res, next) => {
+    // Save session after each request to ensure persistence
+    if (req.session && req.session.save) {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+        }
+      });
+    }
+    next();
+  });
 
   // Initialize Cognito SSO - REQUIRED for authentication
   const cognitoDomain = process.env.COGNITO_DOMAIN;
@@ -212,15 +227,24 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    // Add session debugging
+    if (!req.session) {
+      console.error('No session object found on request');
+      return res.status(500).json({ message: "Session not initialized" });
+    }
+
     if (!req.isAuthenticated() || !req.user) {
       // Log authentication failure details for debugging
       console.log(`/api/user authentication check failed:`, {
         isAuthenticated: req.isAuthenticated(),
         hasUser: !!req.user,
         sessionId: req.sessionID,
+        sessionExists: !!req.session,
+        sessionData: req.session ? Object.keys(req.session) : [],
         method: req.method,
         path: req.path,
-        userAgent: req.headers['user-agent']?.slice(0, 50)
+        userAgent: req.headers['user-agent']?.slice(0, 50),
+        cookies: req.headers.cookie?.slice(0, 100)
       });
       return res.status(401).json({ message: "Not authenticated" });
     }
