@@ -739,6 +739,41 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Optimized endpoint for question set with questions
+  app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Fetch question set and questions in parallel
+      const [questionSet, questions] = await Promise.all([
+        withCircuitBreaker(() => storage.getQuestionSet(id)),
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(id))
+      ]);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Return combined data
+      res.json({
+        questionSet,
+        questions
+      });
+    } catch (error) {
+      console.error("Error fetching optimized question set:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to fetch question set data" });
+      }
+    }
+  });
+
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
