@@ -1,0 +1,82 @@
+{
+  "questions": [
+    {
+      "question_number": 1,
+      "loid": "12345",
+      "question_type": "fill_in_blank",
+      "versions": [
+        {
+          "version_number": 1,
+          "topic_focus": "Insurance Basics",
+          "question_text": "The standard deductible for comprehensive coverage is typically _____ dollars.",
+          "answer_choices": [],
+          "correct_answer": "500",
+          "acceptable_answers": ["$500", "five hundred"],
+          "case_sensitive": false
+        }
+      ]
+    },
+    {
+      "question_number": 2,
+      "loid": "12346",
+      "question_type": "true_false",
+      "versions": [
+        {
+          "version_number": 1,
+          "topic_focus": "Coverage Types",
+          "question_text": "Comprehensive coverage includes protection against collision damage.",
+          "answer_choices": ["True", "False"],
+          "correct_answer": "False"
+        }
+      ]
+    },
+    {
+      "question_number": 3,
+      "loid": "12347",
+      "question_type": "pick_from_list",
+      "versions": [
+        {
+          "version_number": 1,
+          "topic_focus": "Coverage Types",
+          "question_text": "From the list below, select the type of coverage that protects against theft:",
+          "answer_choices": ["Liability", "Collision", "Comprehensive", "Medical Payments"],
+          "correct_answer": "Comprehensive",
+          "allow_multiple": false
+        }
+      ]
+    },
+    {
+      "question_number": 4,
+      "loid": "12348",
+      "question_type": "matching",
+      "versions": [
+        {
+          "version_number": 1,
+          "topic_focus": "Insurance Terms",
+          "question_text": "Match each insurance term with its correct definition:",
+          "answer_choices": [
+            {"left": "Premium", "right": "Amount paid for insurance coverage"},
+            {"left": "Deductible", "right": "Out-of-pocket amount before insurance pays"},
+            {"left": "Liability", "right": "Legal responsibility for damages"}
+          ],
+          "correct_answer": "[{\"left\":\"Premium\",\"right\":\"Amount paid for insurance coverage\"},{\"left\":\"Deductible\",\"right\":\"Out-of-pocket amount before insurance pays\"},{\"left\":\"Liability\",\"right\":\"Legal responsibility for damages\"}]"
+        }
+      ]
+    },
+    {
+      "question_number": 5,
+      "loid": "12349", 
+      "question_type": "ordering",
+      "versions": [
+        {
+          "version_number": 1,
+          "topic_focus": "Claims Process",
+          "question_text": "Arrange the following steps in the claims process in the correct order:",
+          "answer_choices": ["File the claim", "Document the damage", "Contact your insurance company", "Receive payment"],
+          "correct_answer": "[\"Document the damage\",\"Contact your insurance company\",\"File the claim\",\"Receive payment\"]",
+          "correct_order": [1, 2, 0, 3]
+        }
+      ]
+    }
+  ]
+}

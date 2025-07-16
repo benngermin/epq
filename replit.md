@@ -40,6 +40,13 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 - Support for multiple question versions with different topic focus
 - Original question numbering and LOID (Learning Objective ID) tracking
 - JSON storage for answer choices with correct answer tracking
+- Support for multiple question types:
+  - Multiple Choice (original)
+  - Fill in the Blank (with case sensitivity and acceptable answers)
+  - True/False
+  - Pick from List (single or multiple selection)
+  - Matching (drag and drop pairs)
+  - Ordering (sequence arrangement)
 
 ### Practice Test Engine
 - Dynamic test generation from question pools
@@ -107,6 +114,16 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 2. Backend bundles with esbuild to `dist/index.js`
 3. Static assets served from build directory
 4. Production optimization with tree shaking and minification
+
+## Recent Changes
+
+### January 16, 2025
+- Expanded question type support beyond multiple choice
+- Added 5 new question types: Fill in the Blank, True/False, Pick from List, Matching, and Ordering
+- Updated database schema to support additional question type fields
+- Created individual React components for each question type
+- Enhanced answer validation logic to handle different question formats
+- Updated import functionality to support new question type metadata
 
 ## User Preferences
 

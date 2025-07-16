@@ -41,8 +41,15 @@ export const questionVersions = pgTable("question_versions", {
   versionNumber: integer("version_number").notNull(),
   topicFocus: text("topic_focus").notNull(),
   questionText: text("question_text").notNull(),
-  answerChoices: json("answer_choices").$type<string[]>().notNull(),
-  correctAnswer: varchar("correct_answer", { length: 1 }).notNull(),
+  questionType: text("question_type").default("multiple_choice").notNull(),
+  answerChoices: json("answer_choices").$type<any[]>().notNull(), // Changed to any[] to support different formats
+  correctAnswer: text("correct_answer").notNull(), // Changed from varchar(1) to text to support longer answers
+  // Additional fields for different question types
+  acceptableAnswers: text("acceptable_answers").array(), // For fill_in_blank
+  caseSensitive: boolean("case_sensitive").default(false), // For fill_in_blank
+  allowMultiple: boolean("allow_multiple").default(false), // For pick_from_list
+  correctOrder: integer("correct_order").array(), // For ordering questions
+  matchingPairs: json("matching_pairs").$type<Array<{left: string, right: string}>>(), // For matching questions
 });
 
 export const aiSettings = pgTable("ai_settings", {
@@ -158,12 +165,21 @@ export const questionImportSchema = z.object({
   question_number: z.number(),
   type: z.string(),
   loid: z.string(),
+  question_type: z.enum(["multiple_choice", "fill_in_blank", "matching", "true_false", "pick_from_list", "ordering"]).optional(),
   versions: z.array(z.object({
     version_number: z.number(),
     topic_focus: z.string(),
     question_text: z.string(),
-    answer_choices: z.array(z.string()),
+    answer_choices: z.array(z.any()), // Changed to support different formats
     correct_answer: z.string(),
+    acceptable_answers: z.array(z.string()).optional(),
+    case_sensitive: z.boolean().optional(),
+    allow_multiple: z.boolean().optional(),
+    correct_order: z.array(z.number()).optional(),
+    matching_pairs: z.array(z.object({
+      left: z.string(),
+      right: z.string(),
+    })).optional(),
   })),
 });
 

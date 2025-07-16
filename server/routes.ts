@@ -836,7 +836,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid question set ID" });
       }
 
-      if (!questionVersionId || !answer) {
+      if (!questionVersionId || answer === undefined || answer === null) {
         return res.status(400).json({ message: "Question version ID and answer are required" });
       }
 
@@ -846,7 +846,78 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question version not found" });
       }
 
-      const isCorrect = answer === questionVersion.correctAnswer;
+      const questionType = questionVersion.questionType || "multiple_choice";
+      let isCorrect = false;
+
+      // Validate answer based on question type
+      switch (questionType) {
+        case "fill_in_blank":
+          // Check main answer and acceptable answers
+          const userAnswer = answer.toString().trim();
+          const correctAnswer = questionVersion.correctAnswer.trim();
+          const acceptableAnswers = questionVersion.acceptableAnswers || [];
+          const caseSensitive = questionVersion.caseSensitive || false;
+          
+          if (caseSensitive) {
+            isCorrect = userAnswer === correctAnswer || acceptableAnswers.includes(userAnswer);
+          } else {
+            const lowerUserAnswer = userAnswer.toLowerCase();
+            const lowerCorrectAnswer = correctAnswer.toLowerCase();
+            const lowerAcceptableAnswers = acceptableAnswers.map(a => a.toLowerCase());
+            isCorrect = lowerUserAnswer === lowerCorrectAnswer || lowerAcceptableAnswers.includes(lowerUserAnswer);
+          }
+          break;
+          
+        case "true_false":
+          isCorrect = answer === questionVersion.correctAnswer;
+          break;
+          
+        case "pick_from_list":
+          if (questionVersion.allowMultiple) {
+            // For multiple selection, check if all selected items match
+            const selectedItems = answer.split(",").map((item: string) => item.trim()).sort();
+            const correctItems = questionVersion.correctAnswer.split(",").map((item: string) => item.trim()).sort();
+            isCorrect = JSON.stringify(selectedItems) === JSON.stringify(correctItems);
+          } else {
+            isCorrect = answer === questionVersion.correctAnswer;
+          }
+          break;
+          
+        case "matching":
+          try {
+            const userPairs = JSON.parse(answer);
+            const correctPairs = JSON.parse(questionVersion.correctAnswer);
+            
+            if (userPairs.length !== correctPairs.length) {
+              isCorrect = false;
+            } else {
+              // Check if all pairs match
+              isCorrect = userPairs.every((userPair: any) => 
+                correctPairs.some((correctPair: any) => 
+                  userPair.left === correctPair.left && userPair.right === correctPair.right
+                )
+              );
+            }
+          } catch {
+            isCorrect = false;
+          }
+          break;
+          
+        case "ordering":
+          try {
+            const userOrder = JSON.parse(answer);
+            const correctOrder = JSON.parse(questionVersion.correctAnswer);
+            isCorrect = JSON.stringify(userOrder) === JSON.stringify(correctOrder);
+          } catch {
+            isCorrect = false;
+          }
+          break;
+          
+        case "multiple_choice":
+        default:
+          isCorrect = answer === questionVersion.correctAnswer;
+          break;
+      }
 
       // For question set practice, we return the answer validation result
       const answerData = {

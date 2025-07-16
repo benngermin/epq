@@ -285,14 +285,34 @@ export class DatabaseStorage implements IStorage {
 
       // Create question versions
       for (const versionData of questionData.versions) {
-        await this.createQuestionVersion({
+        const versionToCreate: any = {
           questionId: question.id,
           versionNumber: versionData.version_number,
           topicFocus: versionData.topic_focus,
           questionText: versionData.question_text,
           answerChoices: [...versionData.answer_choices],
           correctAnswer: versionData.correct_answer,
-        });
+          questionType: questionData.question_type || "multiple_choice",
+        };
+
+        // Add optional fields based on question type
+        if (versionData.acceptable_answers) {
+          versionToCreate.acceptableAnswers = versionData.acceptable_answers;
+        }
+        if (versionData.case_sensitive !== undefined) {
+          versionToCreate.caseSensitive = versionData.case_sensitive;
+        }
+        if (versionData.allow_multiple !== undefined) {
+          versionToCreate.allowMultiple = versionData.allow_multiple;
+        }
+        if (versionData.correct_order) {
+          versionToCreate.correctOrder = versionData.correct_order;
+        }
+        if (versionData.matching_pairs) {
+          versionToCreate.matchingPairs = versionData.matching_pairs;
+        }
+
+        await this.createQuestionVersion(versionToCreate);
       }
     }
   }
