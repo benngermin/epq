@@ -712,6 +712,40 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get all courses with their question sets
+  app.get("/api/courses-with-question-sets", requireAuth, async (req, res) => {
+    try {
+      const courses = await storage.getAllCourses();
+      
+      // Fetch question sets for each course
+      const coursesWithQuestionSets = await Promise.all(
+        courses.map(async (course) => {
+          const questionSets = await storage.getQuestionSetsByCourse(course.id);
+          
+          // Sort question sets by title (extracting numbers for proper numerical sorting)
+          questionSets.sort((a, b) => {
+            const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+            const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+            return aNum - bNum;
+          });
+          
+          return {
+            ...course,
+            questionSets
+          };
+        })
+      );
+      
+      // Filter out courses without question sets
+      const coursesWithContent = coursesWithQuestionSets.filter(course => course.questionSets.length > 0);
+      
+      res.json(coursesWithContent);
+    } catch (error) {
+      console.error("Error fetching courses with question sets:", error);
+      res.status(500).json({ message: "Failed to fetch courses with question sets" });
+    }
+  });
+
   // Question set practice routes
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
