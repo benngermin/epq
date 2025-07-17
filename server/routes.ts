@@ -759,6 +759,49 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Handle optimized endpoint by redirecting to regular endpoints
+  app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
+    console.log(`Handling optimized endpoint request for question set ${req.params.id}`);
+    const questionSetId = parseInt(req.params.id);
+    
+    try {
+      // Get the data using the same logic as the practice-data endpoint
+      const [questionSet, questions] = await Promise.all([
+        withCircuitBreaker(() => storage.getQuestionSet(questionSetId)),
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId))
+      ]);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Get course and question sets info
+      const [course, courseQuestionSets] = await Promise.all([
+        withCircuitBreaker(() => storage.getCourse(questionSet.courseId)),
+        withCircuitBreaker(() => storage.getQuestionSetsByCourse(questionSet.courseId))
+      ]);
+      
+      // Sort question sets
+      courseQuestionSets.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      // Return combined data matching the expected format
+      res.json({ questionSet, questions, course, courseQuestionSets });
+    } catch (error) {
+      console.error("Error in optimized endpoint:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to load practice data" });
+      }
+    }
+  });
+
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);

@@ -163,9 +163,10 @@ Recent Updates:
 - July 17, 2025: Fixed "Error Loading Questions" JSON parsing error on sign-in
   - Identified issue with non-existent `/api/question-sets/7/optimized` endpoint returning HTML instead of JSON
   - Added proper 404 JSON error handler for unmatched API routes in server/index.ts
-  - Added fetch interceptor to redirect any optimized endpoint requests to regular endpoints
-  - Enhanced cache clearing to remove stale queries and browser storage
-  - The error was caused by Vite middleware serving HTML for non-existent API routes
+  - Created server endpoint `/api/question-sets/:id/optimized` that returns combined data format
+  - Added multiple layers of protection: fetch interceptors, query-level redirection, selective cache clearing
+  - Fixed aggressive cache clearing that was breaking authentication
+  - The optimized endpoint now properly returns question set data with course info in expected format
 - July 16, 2025: Added course ID mappings for client integration
   - Inserted all 16 courses with their external IDs into the database
   - System now supports automatic course routing based on client's course IDs
