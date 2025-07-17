@@ -44,20 +44,30 @@ export default function QuestionSetPractice() {
 
   // Clear any stale cache on mount to prevent optimized endpoint errors
   useEffect(() => {
-    // Clear any cached queries that might reference the old optimized endpoint
-    queryClient.removeQueries({ queryKey: ["/api/question-sets", questionSetId, "optimized"] });
-    // Also clear any queries that might contain the optimized path
-    queryClient.removeQueries({ 
-      predicate: (query) => {
-        const key = query.queryKey[0];
-        return typeof key === 'string' && key.includes('optimized');
+    // Remove ALL queries to ensure no stale optimized endpoints exist
+    queryClient.getQueryCache().getAll().forEach(query => {
+      const key = query.queryKey;
+      if (Array.isArray(key) && key.some(k => typeof k === 'string' && k.includes('optimized'))) {
+        queryClient.removeQueries({ queryKey: key, exact: true });
       }
     });
-    // Clear browser storage that might contain stale data
+    
+    // Clear all potential cache sources
+    queryClient.removeQueries({ queryKey: ["/api/question-sets", questionSetId, "optimized"] });
+    queryClient.removeQueries({ queryKey: [`/api/question-sets/${questionSetId}/optimized`] });
+    
+    // Clear only optimized-related storage
     if (typeof window !== 'undefined') {
       try {
-        localStorage.removeItem('optimized-cache');
-        sessionStorage.clear();
+        // Clear specific localStorage items
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.includes('optimized')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
       } catch (e) {
         console.error('Failed to clear storage:', e);
       }

@@ -46,15 +46,31 @@ function Router() {
 }
 
 function App() {
-  // Clear any stale cache on app initialization
+  // Clear only optimized endpoint queries on app initialization
   useEffect(() => {
-    // Remove any cached queries that might reference the old optimized endpoint
-    queryClient.removeQueries({ queryKey: ["/api/question-sets"] });
-    // Clear browser cache for development
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
-      });
+    // Only remove queries that contain 'optimized' to avoid breaking authentication
+    queryClient.getQueryCache().getAll().forEach(query => {
+      const key = query.queryKey;
+      if (Array.isArray(key) && key.some(k => typeof k === 'string' && k.includes('optimized'))) {
+        queryClient.removeQueries({ queryKey: key, exact: true });
+      }
+    });
+    
+    // Remove any persisted data related to optimized endpoints
+    if (typeof window !== 'undefined') {
+      try {
+        // Only clear localStorage items that contain 'optimized'
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.includes('optimized')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      } catch (e) {
+        console.error('Failed to clear storage:', e);
+      }
     }
   }, []);
 
