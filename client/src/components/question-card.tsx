@@ -8,6 +8,13 @@ import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lu
 import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
 
+// Import question type components
+import { FillInBlank } from "./question-types/fill-in-blank";
+import { TrueFalse } from "./question-types/true-false";
+import { PickFromList } from "./question-types/pick-from-list";
+import { Matching } from "./question-types/matching";
+import { Ordering } from "./question-types/ordering";
+
 interface QuestionCardProps {
   question: any;
   onSubmitAnswer: (answer: string) => void;
@@ -31,12 +38,13 @@ export function QuestionCard({
   selectedAnswer,
   chatResetTimestamp
 }: QuestionCardProps) {
-  const [selectedAnswerState, setSelectedAnswerState] = useState<string>("");
+  const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
 
   const hasAnswer = !!question?.userAnswer;
   const isCorrect = question?.userAnswer?.isCorrect;
+  const questionType = question?.latestVersion?.questionType || "multiple_choice";
 
   // Reset flip state when question changes
   useEffect(() => {
@@ -54,12 +62,45 @@ export function QuestionCard({
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
 
-    setSubmittedAnswer(selectedAnswerState);
-    onSubmitAnswer(selectedAnswerState);
+    // Convert answer to string format for storage
+    let answerString = selectedAnswerState;
+    if (typeof selectedAnswerState === 'object') {
+      answerString = JSON.stringify(selectedAnswerState);
+    }
 
-    // Only flip the card if the answer is incorrect
+    setSubmittedAnswer(answerString);
+    onSubmitAnswer(answerString);
+
+    // Check if answer is correct based on question type
     setTimeout(() => {
-      const isAnswerCorrect = selectedAnswerState === question.latestVersion?.correctAnswer;
+      let isAnswerCorrect = false;
+      
+      switch (questionType) {
+        case "fill_in_blank":
+          const caseSensitive = question.latestVersion.caseSensitive;
+          const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
+          const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
+          
+          isAnswerCorrect = userAnswer === correctAnswer;
+          
+          // Check acceptable answers
+          if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+            const acceptableAnswers = question.latestVersion.acceptableAnswers.map(a => 
+              caseSensitive ? a : a.toLowerCase()
+            );
+            isAnswerCorrect = acceptableAnswers.includes(userAnswer);
+          }
+          break;
+          
+        case "matching":
+        case "ordering":
+          isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+          break;
+          
+        default:
+          isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+      }
+      
       if (!isAnswerCorrect) {
         setIsFlipped(true);
       }
@@ -94,52 +135,148 @@ export function QuestionCard({
                     </Badge>
                   </div>
 
-                  <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
-                    <p className="text-base text-foreground leading-relaxed text-left">
-                      {question.latestVersion?.questionText}
-                    </p>
-                  </div>
-
-                  <RadioGroup
-                    value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                    onValueChange={setSelectedAnswerState}
-                    disabled={hasAnswer || isSubmitting}
-                  >
-                    <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
-                      {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
-                        const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
-                        const isSelected = hasAnswer 
-                          ? question.userAnswer.chosenAnswer === choiceLetter
-                          : selectedAnswerState === choiceLetter;
-                        const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
-
+                  {/* Render question based on type */}
+                  {(() => {
+                    switch (questionType) {
+                      case "fill_in_blank":
                         return (
-                          <div key={choiceLetter}>
-                            <Label
-                              htmlFor={choiceLetter}
-                              className={cn(
-                                "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
-                                "hover:border-primary hover:bg-accent",
-                                isSelected && "border-primary bg-primary/10",
-                                hasAnswer && "cursor-default"
-                              )}
-                            >
-                              <RadioGroupItem
-                                value={choiceLetter}
-                                id={choiceLetter}
-                                className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="text-base text-foreground leading-relaxed">
-                                  {choice.replace(/^[A-D]\.\s*/, '')}
-                                </span>
-                              </div>
-                            </Label>
-                          </div>
+                          <FillInBlank
+                            questionText={question.latestVersion?.questionText || ""}
+                            value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                            onChange={setSelectedAnswerState}
+                            disabled={hasAnswer || isSubmitting}
+                            isCorrect={isCorrect}
+                            correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            acceptableAnswers={hasAnswer ? question.latestVersion?.acceptableAnswers : undefined}
+                          />
                         );
-                      })}
-                    </div>
-                  </RadioGroup>
+                        
+                      case "true_false":
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <TrueFalse
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              disabled={hasAnswer || isSubmitting}
+                              isCorrect={isCorrect}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            />
+                          </>
+                        );
+                        
+                      case "pick_from_list":
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <PickFromList
+                              answerChoices={question.latestVersion?.answerChoices || []}
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              allowMultiple={question.latestVersion?.allowMultiple}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            />
+                          </>
+                        );
+                        
+                      case "matching":
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <Matching
+                              answerChoices={question.latestVersion?.answerChoices || []}
+                              value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            />
+                          </>
+                        );
+                        
+                      case "ordering":
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <Ordering
+                              answerChoices={question.latestVersion?.answerChoices || []}
+                              value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              correctOrder={question.latestVersion?.correctOrder}
+                            />
+                          </>
+                        );
+                        
+                      default: // multiple_choice
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <RadioGroup
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onValueChange={setSelectedAnswerState}
+                              disabled={hasAnswer || isSubmitting}
+                            >
+                              <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
+                                {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
+                                  const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
+                                  const isSelected = hasAnswer 
+                                    ? question.userAnswer.chosenAnswer === choiceLetter
+                                    : selectedAnswerState === choiceLetter;
+                                  const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
+
+                                  return (
+                                    <div key={choiceLetter}>
+                                      <Label
+                                        htmlFor={choiceLetter}
+                                        className={cn(
+                                          "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                          "hover:border-primary hover:bg-accent",
+                                          isSelected && "border-primary bg-primary/10",
+                                          hasAnswer && "cursor-default"
+                                        )}
+                                      >
+                                        <RadioGroupItem
+                                          value={choiceLetter}
+                                          id={choiceLetter}
+                                          className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <span className="text-base text-foreground leading-relaxed">
+                                            {choice.replace(/^[A-D]\.\s*/, '')}
+                                          </span>
+                                        </div>
+                                      </Label>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </RadioGroup>
+                          </>
+                        );
+                    }
+                  })()}
 
 
 

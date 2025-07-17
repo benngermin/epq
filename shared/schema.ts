@@ -49,8 +49,14 @@ export const questionVersions = pgTable("question_versions", {
   versionNumber: integer("version_number").notNull(),
   topicFocus: text("topic_focus").notNull(),
   questionText: text("question_text").notNull(),
-  answerChoices: json("answer_choices").$type<string[]>().notNull(),
-  correctAnswer: varchar("correct_answer", { length: 1 }).notNull(),
+  questionType: text("question_type").default("multiple_choice").notNull(),
+  answerChoices: json("answer_choices").$type<any>().notNull(),
+  correctAnswer: text("correct_answer").notNull(),
+  acceptableAnswers: json("acceptable_answers").$type<string[]>(),
+  caseSensitive: boolean("case_sensitive").default(false),
+  allowMultiple: boolean("allow_multiple").default(false),
+  matchingPairs: json("matching_pairs").$type<Array<{left: string, right: string}>>(),
+  correctOrder: json("correct_order").$type<number[]>(),
 });
 
 export const userTestRuns = pgTable("user_test_runs", {
@@ -66,7 +72,7 @@ export const userAnswers = pgTable("user_answers", {
   id: serial("id").primaryKey(),
   userTestRunId: integer("user_test_run_id").references(() => userTestRuns.id).notNull(),
   questionVersionId: integer("question_version_id").references(() => questionVersions.id).notNull(),
-  chosenAnswer: varchar("chosen_answer", { length: 1 }).notNull(),
+  chosenAnswer: text("chosen_answer").notNull(), // Changed from varchar(1) to text to support all answer types
   isCorrect: boolean("is_correct").notNull(),
   answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
@@ -239,8 +245,17 @@ export const questionImportSchema = z.object({
     version_number: z.number(),
     topic_focus: z.string(),
     question_text: z.string(),
-    answer_choices: z.array(z.string()),
+    question_type: z.string().optional(), // For new question types
+    answer_choices: z.union([
+      z.array(z.string()), // For multiple choice, true/false, pick_from_list, ordering
+      z.array(z.object({ left: z.string(), right: z.string() })), // For matching
+    ]),
     correct_answer: z.string(),
+    acceptable_answers: z.array(z.string()).optional(), // For fill_in_blank
+    case_sensitive: z.boolean().optional(), // For fill_in_blank
+    allow_multiple: z.boolean().optional(), // For pick_from_list
+    matching_pairs: z.array(z.object({ left: z.string(), right: z.string() })).optional(), // For matching
+    correct_order: z.array(z.number()).optional(), // For ordering
   })),
 });
 

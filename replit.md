@@ -40,6 +40,13 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 - Support for multiple question versions with different topic focus
 - Original question numbering and LOID (Learning Objective ID) tracking
 - JSON storage for answer choices with correct answer tracking
+- Support for multiple question types:
+  - Multiple Choice (default)
+  - Fill in the Blank (with case sensitivity and acceptable answers)
+  - True/False
+  - Pick from List (single or multiple selection)
+  - Matching (drag and drop pairs)
+  - Ordering (arrange items in sequence)
 
 ### Practice Test Engine
 - Dynamic test generation from question pools
@@ -141,6 +148,16 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 17, 2025: Expanded question types support
+  - Added support for 5 new question types beyond multiple choice
+  - Fill in the Blank: Text input with case sensitivity and acceptable answers
+  - True/False: Simple binary choice questions
+  - Pick from List: Dropdown or multi-select options
+  - Matching: Interactive pairing of items from two columns
+  - Ordering: Drag-and-drop to arrange items in correct sequence
+  - Updated database schema to support new question type fields
+  - Created modular UI components for each question type
+  - Enhanced answer validation logic for different question formats
 
 Recent Updates:
 - July 16, 2025: Added course ID mappings for client integration
