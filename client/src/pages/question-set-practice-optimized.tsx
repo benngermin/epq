@@ -28,6 +28,13 @@ export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
+  
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (user === null) { // null means definitely not authenticated, undefined means still loading
+      setLocation("/auth");
+    }
+  }, [user, setLocation]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
@@ -79,6 +86,12 @@ export default function QuestionSetPractice() {
     queryKey: ["/api/practice-data", questionSetId],
     queryFn: async () => {
       try {
+        // First check if we're authenticated
+        const authRes = await fetch('/api/user', { credentials: "include" });
+        if (!authRes.ok) {
+          throw new Error('Authentication required');
+        }
+
         const [questionSetRes, questionsRes] = await Promise.all([
           fetch(`/api/question-sets/${questionSetId}`, { credentials: "include" }),
           fetch(`/api/questions/${questionSetId}`, { credentials: "include" })
@@ -93,6 +106,9 @@ export default function QuestionSetPractice() {
         }
 
         if (!questionSetRes.ok || !questionsRes.ok) {
+          if (questionSetRes.status === 401 || questionsRes.status === 401) {
+            throw new Error('Authentication required');
+          }
           throw new Error(`Failed to load practice data`);
         }
 
@@ -112,7 +128,7 @@ export default function QuestionSetPractice() {
         throw error;
       }
     },
-    enabled: !!questionSetId,
+    enabled: !!questionSetId && !!user, // Only fetch when we have a user
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
@@ -289,7 +305,11 @@ export default function QuestionSetPractice() {
             <div className="flex-1 flex justify-end items-center">
               <Select
                 value={questionSetId.toString()}
-                onValueChange={(value) => setLocation(`/question-set/${value}`)}
+                onValueChange={(value) => {
+                  // Clear any cached data before navigating
+                  queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
+                  setLocation(`/question-set/${value}`);
+                }}
               >
                 <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
