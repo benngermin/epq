@@ -13,6 +13,7 @@ import { db } from "./db";
 import { eq, and, desc, asc, sql, not, inArray } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import ConnectPgSimple from "connect-pg-simple";
 
 export interface IStorage {
   // User methods
@@ -97,19 +98,36 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
   constructor() {
-    // Use memorystore with TTL to persist sessions across server restarts in development
-    const MemoryStoreFactory = MemoryStore(session);
-    this.sessionStore = new MemoryStoreFactory({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 7 * 24 * 60 * 60 * 1000, // 7 days TTL to match cookie maxAge
-      max: 1000, // Limit to 1000 sessions to prevent memory issues
-      dispose: (key: string, val: any) => {
-        // Optional cleanup when session expires - only log in debug mode
-        if (process.env.DEBUG_SESSIONS) {
-          console.log(`Session ${key} expired and was disposed`);
+    // Use PostgreSQL store for production-ready session persistence
+    if (process.env.DATABASE_URL) {
+      const PgSession = ConnectPgSimple(session);
+      this.sessionStore = new PgSession({
+        conString: process.env.DATABASE_URL,
+        tableName: 'session', // Use existing session table
+        createTableIfMissing: false, // Table already exists
+        pruneSessionInterval: 60 * 60, // Prune expired sessions every hour
+        errorLog: (error: any) => {
+          // Only log non-duplicate key errors
+          if (!error.message?.includes('already exists') && !error.message?.includes('session_pkey')) {
+            console.error('Session store error:', error);
+          }
         }
-      }
-    });
+      });
+    } else {
+      // Fallback to memory store if no database is available
+      const MemoryStoreFactory = MemoryStore(session);
+      this.sessionStore = new MemoryStoreFactory({
+        checkPeriod: 86400000, // prune expired entries every 24h
+        ttl: 7 * 24 * 60 * 60 * 1000, // 7 days TTL to match cookie maxAge
+        max: 1000, // Limit to 1000 sessions to prevent memory issues
+        dispose: (key: string, val: any) => {
+          // Optional cleanup when session expires - only log in debug mode
+          if (process.env.DEBUG_SESSIONS) {
+            console.log(`Session ${key} expired and was disposed`);
+          }
+        }
+      });
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {

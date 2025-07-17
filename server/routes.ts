@@ -165,10 +165,26 @@ setInterval(() => {
 function cleanupStream(streamId: string) {
   const stream = activeStreams.get(streamId);
   if (stream) {
+    // Clear large data first
     stream.chunks = [];
+    stream.error = undefined;
+    // Then delete the stream
     activeStreams.delete(streamId);
   }
 }
+
+// Clean up old streams periodically to prevent memory buildup
+setInterval(() => {
+  const now = Date.now();
+  const oldStreamAge = 10 * 60 * 1000; // 10 minutes
+  
+  activeStreams.forEach((stream, streamId) => {
+    if (stream.done && (now - stream.lastActivity) > oldStreamAge) {
+      console.log(`Cleaning up old stream: ${streamId}`);
+      cleanupStream(streamId);
+    }
+  });
+}, 60000); // Run every minute
 
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(
@@ -1223,15 +1239,19 @@ export function registerRoutes(app: Express): Server {
     
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
-      
+      const userId = req.user!.id;
 
-      const streamId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      // Include user ID in stream ID for better tracking and cleanup
+      const streamId = `${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Clean up any existing streams for this user to prevent conflicts
-      const userId = req.user!.id;
       const streamEntries = Array.from(activeStreams.entries());
       for (const [existingStreamId, stream] of streamEntries) {
-        if (existingStreamId.includes(userId.toString())) {
+        // More robust check - compare user ID from stream metadata if available
+        if (existingStreamId.includes(`_${userId}_`) || existingStreamId.startsWith(`${userId}_`)) {
+          // Mark old stream as aborted before deletion
+          stream.aborted = true;
+          stream.done = true;
           activeStreams.delete(existingStreamId);
         }
       }
