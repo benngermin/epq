@@ -46,6 +46,22 @@ export default function QuestionSetPractice() {
   useEffect(() => {
     // Clear any cached queries that might reference the old optimized endpoint
     queryClient.removeQueries({ queryKey: ["/api/question-sets", questionSetId, "optimized"] });
+    // Also clear any queries that might contain the optimized path
+    queryClient.removeQueries({ 
+      predicate: (query) => {
+        const key = query.queryKey[0];
+        return typeof key === 'string' && key.includes('optimized');
+      }
+    });
+    // Clear browser storage that might contain stale data
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('optimized-cache');
+        sessionStorage.clear();
+      } catch (e) {
+        console.error('Failed to clear storage:', e);
+      }
+    }
   }, [questionSetId]);
 
   // Combine all data fetching into a single query for better performance

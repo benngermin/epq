@@ -160,6 +160,12 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
+- July 17, 2025: Fixed "Error Loading Questions" JSON parsing error on sign-in
+  - Identified issue with non-existent `/api/question-sets/7/optimized` endpoint returning HTML instead of JSON
+  - Added proper 404 JSON error handler for unmatched API routes in server/index.ts
+  - Added fetch interceptor to redirect any optimized endpoint requests to regular endpoints
+  - Enhanced cache clearing to remove stale queries and browser storage
+  - The error was caused by Vite middleware serving HTML for non-existent API routes
 - July 16, 2025: Added course ID mappings for client integration
   - Inserted all 16 courses with their external IDs into the database
   - System now supports automatic course routing based on client's course IDs

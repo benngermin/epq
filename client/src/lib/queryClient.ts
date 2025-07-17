@@ -41,6 +41,21 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Add request interceptor to debug optimized endpoint calls
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  const url = args[0];
+  if (typeof url === 'string' && url.includes('/optimized')) {
+    console.error('Detected request to optimized endpoint:', url);
+    console.trace('Stack trace for optimized endpoint request');
+    // Redirect optimized requests to regular endpoints
+    const redirectedUrl = url.replace('/optimized', '');
+    console.log('Redirecting to:', redirectedUrl);
+    return originalFetch(redirectedUrl, args[1]);
+  }
+  return originalFetch.apply(this, args);
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
