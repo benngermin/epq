@@ -42,21 +42,36 @@ export default function QuestionSetPractice() {
 
   const questionSetId = parseInt(params?.id || "0");
 
+  // Clear any stale cache on mount to prevent optimized endpoint errors
+  useEffect(() => {
+    // Clear any cached queries that might reference the old optimized endpoint
+    queryClient.removeQueries({ queryKey: ["/api/question-sets", questionSetId, "optimized"] });
+  }, [questionSetId]);
+
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
     queryKey: ["/api/practice-data", questionSetId],
     queryFn: async () => {
-      const [questionSetRes, questionsRes] = await Promise.all([
-        fetch(`/api/question-sets/${questionSetId}`, { credentials: "include" }),
-        fetch(`/api/questions/${questionSetId}`, { credentials: "include" })
-      ]);
+      try {
+        const [questionSetRes, questionsRes] = await Promise.all([
+          fetch(`/api/question-sets/${questionSetId}`, { credentials: "include" }),
+          fetch(`/api/questions/${questionSetId}`, { credentials: "include" })
+        ]);
 
-      if (!questionSetRes.ok || !questionsRes.ok) {
-        throw new Error(`Failed to load practice data`);
-      }
+        // Check if responses are JSON before parsing
+        const contentType1 = questionSetRes.headers.get("content-type");
+        const contentType2 = questionsRes.headers.get("content-type");
+        
+        if (!contentType1?.includes("application/json") || !contentType2?.includes("application/json")) {
+          throw new Error("Server returned non-JSON response. Please refresh the page.");
+        }
 
-      const questionSet = await questionSetRes.json();
-      const questions = await questionsRes.json();
+        if (!questionSetRes.ok || !questionsRes.ok) {
+          throw new Error(`Failed to load practice data`);
+        }
+
+        const questionSet = await questionSetRes.json();
+        const questions = await questionsRes.json();
 
       // Fetch course and question sets info
       const courseRes = await fetch(`/api/courses/${questionSet.courseId}`, { credentials: "include" });
@@ -66,6 +81,10 @@ export default function QuestionSetPractice() {
       const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
 
       return { questionSet, questions, course, courseQuestionSets };
+      } catch (error) {
+        console.error("Error loading practice data:", error);
+        throw error;
+      }
     },
     enabled: !!questionSetId,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
@@ -154,9 +173,19 @@ export default function QuestionSetPractice() {
   if (error) {
     const errorMessage = error?.message || "Failed to load questions. Please try again.";
     const isAuthError = errorMessage.includes('401') || errorMessage.includes('Authentication required');
+    const isJsonError = errorMessage.includes('JSON') || errorMessage.includes('DOCTYPE');
     
     if (isAuthError) {
       setLocation("/auth");
+      return null;
+    }
+    
+    // If it's a JSON parsing error, it likely means we're getting HTML instead of JSON
+    // This often happens with cached requests to non-existent endpoints
+    if (isJsonError) {
+      // Clear all caches and reload
+      queryClient.clear();
+      window.location.reload();
       return null;
     }
     
@@ -170,7 +199,10 @@ export default function QuestionSetPractice() {
               {errorMessage}
             </p>
             <div className="space-y-2">
-              <Button onClick={() => window.location.reload()} className="w-full">
+              <Button onClick={() => {
+                queryClient.clear();
+                window.location.reload();
+              }} className="w-full">
                 Try Again
               </Button>
             </div>

@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,6 +46,18 @@ function Router() {
 }
 
 function App() {
+  // Clear any stale cache on app initialization
+  useEffect(() => {
+    // Remove any cached queries that might reference the old optimized endpoint
+    queryClient.removeQueries({ queryKey: ["/api/question-sets"] });
+    // Clear browser cache for development
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
