@@ -40,13 +40,6 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 - Support for multiple question versions with different topic focus
 - Original question numbering and LOID (Learning Objective ID) tracking
 - JSON storage for answer choices with correct answer tracking
-- Support for multiple question types:
-  - Multiple Choice (original)
-  - Fill in the Blank (with case sensitivity and acceptable answers)
-  - True/False
-  - Pick from List (single or multiple selection)
-  - Matching (drag and drop pairs)
-  - Ordering (sequence arrangement)
 
 ### Practice Test Engine
 - Dynamic test generation from question pools
@@ -115,16 +108,6 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 3. Static assets served from build directory
 4. Production optimization with tree shaking and minification
 
-## Recent Changes
-
-### January 16, 2025
-- Expanded question type support beyond multiple choice
-- Added 5 new question types: Fill in the Blank, True/False, Pick from List, Matching, and Ordering
-- Updated database schema to support additional question type fields
-- Created individual React components for each question type
-- Enhanced answer validation logic to handle different question formats
-- Updated import functionality to support new question type metadata
-
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -160,16 +143,6 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 ## Recent Changes
 
 Recent Updates:
-- July 16, 2025: Removed ALL Practice Test functionality
-  - Deleted practice test tables from database schema (practiceTests, userTestRuns, userAnswers)
-  - Removed all practice test storage methods from server/storage.ts
-  - Cleaned up all practice test API routes from server/routes.ts
-  - Deleted test-player.tsx component and its route from App.tsx
-  - Removed QuestionNavigation component that was only used by test player
-  - Updated QuestionCard component to remove testRunId dependency
-  - Fixed all TypeScript errors related to the removal
-  - Platform now only supports Question Sets for casual practice
-  - Simplified overall architecture by removing test run complexity
 - July 16, 2025: Added course ID mappings for client integration
   - Inserted all 16 courses with their external IDs into the database
   - System now supports automatic course routing based on client's course IDs

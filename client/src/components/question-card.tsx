@@ -7,18 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
 import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
-import { 
-  FillInBlankQuestion, 
-  TrueFalseQuestion, 
-  PickFromListQuestion, 
-  MatchingQuestion, 
-  OrderingQuestion 
-} from "./question-types";
 
 interface QuestionCardProps {
   question: any;
   onSubmitAnswer: (answer: string) => void;
   isSubmitting: boolean;
+  testRunId: number;
   onFlipChange?: (isFlipped: boolean) => void;
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
@@ -29,7 +23,8 @@ interface QuestionCardProps {
 export function QuestionCard({ 
   question, 
   onSubmitAnswer, 
-  isSubmitting,
+  isSubmitting, 
+  testRunId,
   onFlipChange,
   onNextQuestion,
   hasNextQuestion,
@@ -64,146 +59,11 @@ export function QuestionCard({
 
     // Only flip the card if the answer is incorrect
     setTimeout(() => {
-      // For multiple choice questions with single letter answers
-      const questionType = question.latestVersion?.questionType || "multiple_choice";
-      let isAnswerCorrect = false;
-      
-      if (questionType === "multiple_choice") {
-        isAnswerCorrect = selectedAnswerState === question.latestVersion?.correctAnswer;
-      } else {
-        // For other question types, the component will handle the comparison
-        isAnswerCorrect = question.userAnswer?.isCorrect || false;
-      }
-      
+      const isAnswerCorrect = selectedAnswerState === question.latestVersion?.correctAnswer;
       if (!isAnswerCorrect) {
         setIsFlipped(true);
       }
     }, 1500);
-  };
-
-  const renderQuestionContent = () => {
-    const questionType = question.latestVersion?.questionType || "multiple_choice";
-    
-    switch (questionType) {
-      case "fill_in_blank":
-        return (
-          <FillInBlankQuestion
-            question={question}
-            onSubmitAnswer={onSubmitAnswer}
-            isSubmitting={isSubmitting}
-            hasAnswer={hasAnswer}
-            isCorrect={isCorrect}
-          />
-        );
-      
-      case "true_false":
-        return (
-          <TrueFalseQuestion
-            question={question}
-            onSubmitAnswer={onSubmitAnswer}
-            isSubmitting={isSubmitting}
-            hasAnswer={hasAnswer}
-            isCorrect={isCorrect}
-          />
-        );
-      
-      case "pick_from_list":
-        return (
-          <PickFromListQuestion
-            question={question}
-            onSubmitAnswer={onSubmitAnswer}
-            isSubmitting={isSubmitting}
-            hasAnswer={hasAnswer}
-            isCorrect={isCorrect}
-          />
-        );
-      
-      case "matching":
-        return (
-          <MatchingQuestion
-            question={question}
-            onSubmitAnswer={onSubmitAnswer}
-            isSubmitting={isSubmitting}
-            hasAnswer={hasAnswer}
-            isCorrect={isCorrect}
-          />
-        );
-      
-      case "ordering":
-        return (
-          <OrderingQuestion
-            question={question}
-            onSubmitAnswer={onSubmitAnswer}
-            isSubmitting={isSubmitting}
-            hasAnswer={hasAnswer}
-            isCorrect={isCorrect}
-          />
-        );
-      
-      case "multiple_choice":
-      default:
-        // Render existing multiple choice UI
-        return renderMultipleChoice();
-    }
-  };
-
-  const renderMultipleChoice = () => {
-    return (
-      <>
-        <div className="mb-2 sm:mb-3 md:mb-4">
-          <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-sm">
-            Question {(question.questionIndex || 0) + 1}
-          </Badge>
-        </div>
-
-        <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
-          <p className="text-base text-foreground leading-relaxed text-left">
-            {question.latestVersion?.questionText}
-          </p>
-        </div>
-
-        <RadioGroup
-          value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-          onValueChange={setSelectedAnswerState}
-          disabled={hasAnswer || isSubmitting}
-        >
-          <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
-            {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
-              const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
-              const isSelected = hasAnswer 
-                ? question.userAnswer.chosenAnswer === choiceLetter
-                : selectedAnswerState === choiceLetter;
-              const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
-
-              return (
-                <div key={choiceLetter}>
-                  <Label
-                    htmlFor={choiceLetter}
-                    className={cn(
-                      "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
-                      "hover:border-primary hover:bg-accent",
-                      isSelected && "border-primary bg-primary/10",
-                      hasAnswer && "cursor-default"
-                    )}
-                  >
-                    <RadioGroupItem
-                      value={choiceLetter}
-                      id={choiceLetter}
-                      className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-base text-foreground leading-relaxed">
-                        {choice.replace(/^[A-D]\.\s*/, '')}
-                      </span>
-                    </div>
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-        </RadioGroup>
-      </>
-    );
   };
 
   const handleReviewQuestion = () => {
@@ -228,7 +88,58 @@ export function QuestionCard({
             <Card className="max-h-[calc(100vh-180px)] bg-card border shadow-sm flex flex-col">
               <CardContent className="p-3 sm:p-4 md:p-4 lg:p-5 xl:p-6 flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-y-auto">
-                  {renderQuestionContent()}
+                  <div className="mb-2 sm:mb-3 md:mb-4">
+                    <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-sm">
+                      Question {(question.questionIndex || 0) + 1}
+                    </Badge>
+                  </div>
+
+                  <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                    <p className="text-base text-foreground leading-relaxed text-left">
+                      {question.latestVersion?.questionText}
+                    </p>
+                  </div>
+
+                  <RadioGroup
+                    value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                    onValueChange={setSelectedAnswerState}
+                    disabled={hasAnswer || isSubmitting}
+                  >
+                    <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-3.5">
+                      {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
+                        const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
+                        const isSelected = hasAnswer 
+                          ? question.userAnswer.chosenAnswer === choiceLetter
+                          : selectedAnswerState === choiceLetter;
+                        const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
+
+                        return (
+                          <div key={choiceLetter}>
+                            <Label
+                              htmlFor={choiceLetter}
+                              className={cn(
+                                "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                "hover:border-primary hover:bg-accent",
+                                isSelected && "border-primary bg-primary/10",
+                                hasAnswer && "cursor-default"
+                              )}
+                            >
+                              <RadioGroupItem
+                                value={choiceLetter}
+                                id={choiceLetter}
+                                className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-base text-foreground leading-relaxed">
+                                  {choice.replace(/^[A-D]\.\s*/, '')}
+                                </span>
+                              </div>
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </RadioGroup>
 
 
 
@@ -237,68 +148,51 @@ export function QuestionCard({
 
                 {/* Action buttons - always visible at bottom */}
                 <div className="mt-4 flex-shrink-0 border-t pt-4">
-                  {/* For multiple choice questions, show submit button and result feedback */}
-                  {(question.latestVersion?.questionType || "multiple_choice") === "multiple_choice" && (
-                    <>
-                      {hasAnswer && isCorrect && (
-                        <div className="space-y-3">
-                          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                            <div className="flex items-center">
-                              <CheckCircle className="h-4 w-4 text-success mr-2" />
-                              <span className="font-medium text-success text-sm">Correct!</span>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={handleShowChatbot}
-                            variant="outline"
-                            className="w-full py-3 border-muted-foreground/30 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Get Help
-                          </Button>
+                  {hasAnswer && isCorrect && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-4 w-4 text-success mr-2" />
+                          <span className="font-medium text-success text-sm">Correct!</span>
                         </div>
-                      )}
-
-                      {hasAnswer && !isCorrect && (
-                        <div className="space-y-3">
-                          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <div className="flex items-center">
-                              <XCircle className="h-4 w-4 text-error mr-2" />
-                              <span className="font-medium text-error text-sm">Incorrect</span>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={handleShowChatbot}
-                            variant="outline"
-                            className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Get Help
-                          </Button>
-                        </div>
-                      )}
-
-                      {!hasAnswer && (
-                        <Button
-                          onClick={handleSubmit}
-                          disabled={!selectedAnswerState || isSubmitting}
-                          className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          {isSubmitting ? "Submitting..." : "Submit Answer"}
-                        </Button>
-                      )}
-                    </>
+                      </div>
+                      <Button
+                        onClick={handleShowChatbot}
+                        variant="outline"
+                        className="w-full py-3 border-muted-foreground/30 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Get Help
+                      </Button>
+                    </div>
                   )}
-                  
-                  {/* For other question types, show Get Help button after submission */}
-                  {(question.latestVersion?.questionType || "multiple_choice") !== "multiple_choice" && hasAnswer && (
+
+                  {hasAnswer && !isCorrect && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="flex items-center">
+                          <XCircle className="h-4 w-4 text-error mr-2" />
+                          <span className="font-medium text-error text-sm">Incorrect</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleShowChatbot}
+                        variant="outline"
+                        className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Get Help
+                      </Button>
+                    </div>
+                  )}
+
+                  {!hasAnswer && (
                     <Button
-                      onClick={handleShowChatbot}
-                      variant="outline"
-                      className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      onClick={handleSubmit}
+                      disabled={!selectedAnswerState || isSubmitting}
+                      className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Get Help
+                      {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
                   )}
                 </div>

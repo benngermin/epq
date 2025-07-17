@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,16 +9,66 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useLocation } from "wouter";
 import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: courses, isLoading } = useQuery({
     queryKey: ["/api/courses"],
   });
 
+  const startTestMutation = useMutation({
+    mutationFn: async (testId: number) => {
+      const res = await apiRequest("POST", `/api/practice-tests/${testId}/start`);
+      return await res.json();
+    },
+    onSuccess: (testRun) => {
+      setLocation(`/test/${testRun.id}`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to start test",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
+  const restartTestMutation = useMutation({
+    mutationFn: async (testId: number) => {
+      const res = await apiRequest("POST", `/api/practice-tests/${testId}/restart`);
+      return await res.json();
+    },
+    onSuccess: (testRun) => {
+      setLocation(`/test/${testRun.id}`);
+      toast({
+        title: "Test restarted",
+        description: "Starting fresh practice test",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to restart test",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resumeTest = (testRun: any) => {
+    setLocation(`/test/${testRun.id}`);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Completed": return "bg-green-500";
+      case "In Progress": return "bg-yellow-500";
+      default: return "bg-gray-500";
+    }
+  };
 
   if (isLoading) {
     return (

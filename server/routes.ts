@@ -4,8 +4,8 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
-  insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
-  insertPromptVersionSchema, questionImportSchema, courseMaterials, type QuestionImport,
+  insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
+  insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
   promptVersions 
 } from "@shared/schema";
 import { db } from "./db";
@@ -323,7 +323,7 @@ async function streamOpenRouterToBuffer(
           } catch (e) {
             // Log parsing errors for debugging
             if (data && data !== '') {
-              console.warn(`Failed to parse streaming chunk: ${e instanceof Error ? e.message : 'Unknown error'}, data: ${data.substring(0, 100)}`);
+              console.warn(`Failed to parse streaming chunk: ${e.message}, data: ${data.substring(0, 100)}`);
             }
           }
         }
@@ -346,7 +346,7 @@ async function streamOpenRouterToBuffer(
             stream.chunks = [fullResponse];
           }
         } catch (e) {
-          console.warn(`Failed to parse final buffer: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          console.warn(`Failed to parse final buffer: ${e.message}`);
         }
       }
     }
@@ -451,6 +451,17 @@ export function registerRoutes(app: Express): Server {
       const courses = await storage.getAllCourses();
       const coursesWithProgress = await Promise.all(
         courses.map(async (course) => {
+          const practiceTests = await storage.getPracticeTestsByCourse(course.id);
+          const testsWithProgress = await Promise.all(
+            practiceTests.map(async (test) => {
+              const testProgress = await storage.getUserTestProgress(req.user!.id, test.id);
+              return {
+                ...test,
+                ...testProgress,
+              };
+            })
+          );
+
           // Get question sets for this course
           const questionSets = await storage.getQuestionSetsByCourse(course.id);
           const questionSetsWithCounts = await Promise.all(
@@ -463,12 +474,21 @@ export function registerRoutes(app: Express): Server {
             })
           );
 
-          // Since we no longer track user progress, set progress to 0
-          const progressPercentage = 0;
+          // Calculate progress based on the most recent test run instead of overall course progress
+          let progressPercentage = 0;
+          if (testsWithProgress.length > 0) {
+            const mostRecentTest = testsWithProgress[0]; // Assuming first test is the main one
+            if (mostRecentTest.testRun) {
+              const answers = await storage.getUserAnswersByTestRun(mostRecentTest.testRun.id);
+              const totalQuestionsInTest = mostRecentTest.testRun.questionOrder?.length || 85;
+              progressPercentage = Math.round((answers.length / totalQuestionsInTest) * 100);
+            }
+          }
 
           return {
             ...course,
             progress: progressPercentage,
+            practiceTests: testsWithProgress,
             questionSets: questionSetsWithCounts,
           };
         })
@@ -712,40 +732,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get all courses with their question sets
-  app.get("/api/courses-with-question-sets", requireAuth, async (req, res) => {
-    try {
-      const courses = await storage.getAllCourses();
-      
-      // Fetch question sets for each course
-      const coursesWithQuestionSets = await Promise.all(
-        courses.map(async (course) => {
-          const questionSets = await storage.getQuestionSetsByCourse(course.id);
-          
-          // Sort question sets by title (extracting numbers for proper numerical sorting)
-          questionSets.sort((a, b) => {
-            const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
-            const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
-            return aNum - bNum;
-          });
-          
-          return {
-            ...course,
-            questionSets
-          };
-        })
-      );
-      
-      // Filter out courses without question sets
-      const coursesWithContent = coursesWithQuestionSets.filter(course => course.questionSets.length > 0);
-      
-      res.json(coursesWithContent);
-    } catch (error) {
-      console.error("Error fetching courses with question sets:", error);
-      res.status(500).json({ message: "Failed to fetch courses with question sets" });
-    }
-  });
-
   // Question set practice routes
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
@@ -769,41 +755,6 @@ export function registerRoutes(app: Express): Server {
         res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
       } else {
         res.status(500).json({ message: "Failed to fetch question set" });
-      }
-    }
-  });
-
-  // Optimized endpoint for question set with questions
-  app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid question set ID" });
-      }
-      
-      // Fetch question set and questions in parallel
-      const [questionSet, questions] = await Promise.all([
-        withCircuitBreaker(() => storage.getQuestionSet(id)),
-        withCircuitBreaker(() => batchFetchQuestionsWithVersions(id))
-      ]);
-      
-      if (!questionSet) {
-        return res.status(404).json({ message: "Question set not found" });
-      }
-      
-      // Return combined data
-      res.json({
-        questionSet,
-        questions
-      });
-    } catch (error) {
-      console.error("Error fetching optimized question set:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (errorMessage.includes('Circuit breaker is OPEN')) {
-        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
-      } else {
-        res.status(500).json({ message: "Failed to fetch question set data" });
       }
     }
   });
@@ -854,11 +805,275 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Practice test routes
+  app.post("/api/courses/:courseId/practice-tests", requireAdmin, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const testData = insertPracticeTestSchema.parse({ ...req.body, courseId });
+      const test = await storage.createPracticeTest(testData);
+      res.status(201).json(test);
+    } catch (error) {
+      console.error("Error creating practice test:", error);
+      res.status(400).json({ message: "Invalid practice test data" });
+    }
+  });
 
+  // Test run routes
+  app.post("/api/practice-tests/:testId/start", requireAuth, async (req, res) => {
+    try {
+      const testId = parseInt(req.params.testId);
+      const practiceTest = await storage.getPracticeTest(testId);
+      
+      if (!practiceTest) {
+        return res.status(404).json({ message: "Practice test not found" });
+      }
 
+      // Get all questions for the course through question sets
+      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
+      let allQuestions = [];
+      for (const questionSet of questionSets) {
+        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+        allQuestions.push(...questions);
+      }
+      
+      if (allQuestions.length < 85) {
+        return res.status(400).json({ message: "Not enough questions available for this test" });
+      }
 
+      // Shuffle questions and select random versions
+      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
+      const questionOrder = [];
 
+      for (const question of shuffledQuestions) {
+        const versions = await storage.getQuestionVersionsByQuestion(question.id);
+        if (versions.length > 0) {
+          const randomVersion = versions[Math.floor(Math.random() * versions.length)];
+          questionOrder.push(randomVersion.id);
+        }
+      }
 
+      const testRun = await storage.createUserTestRun({
+        userId: req.user!.id,
+        practiceTestId: testId,
+        questionOrder,
+      });
+
+      res.status(201).json(testRun);
+    } catch (error) {
+      console.error("Error starting test:", error);
+      res.status(500).json({ message: "Failed to start test" });
+    }
+  });
+
+  // Restart practice test endpoint
+  app.post("/api/practice-tests/:testId/restart", requireAuth, async (req, res) => {
+    try {
+      const testId = parseInt(req.params.testId);
+      const practiceTest = await storage.getPracticeTest(testId);
+      
+      if (!practiceTest) {
+        return res.status(404).json({ message: "Practice test not found" });
+      }
+
+      // Get all questions for the course through question sets
+      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
+      let allQuestions = [];
+      for (const questionSet of questionSets) {
+        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+        allQuestions.push(...questions);
+      }
+      
+      if (allQuestions.length < 85) {
+        return res.status(400).json({ message: "Not enough questions available for this test" });
+      }
+
+      // Shuffle questions and select random versions (same logic as start)
+      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
+      const questionOrder = [];
+
+      for (const question of shuffledQuestions) {
+        const versions = await storage.getQuestionVersionsByQuestion(question.id);
+        if (versions.length > 0) {
+          const randomVersion = versions[Math.floor(Math.random() * versions.length)];
+          questionOrder.push(randomVersion.id);
+        }
+      }
+
+      // Create a new test run (this effectively restarts the test)
+      const testRun = await storage.createUserTestRun({
+        userId: req.user!.id,
+        practiceTestId: testId,
+        questionOrder,
+      });
+
+      res.status(201).json(testRun);
+    } catch (error) {
+      console.error("Error restarting test:", error);
+      res.status(500).json({ message: "Failed to restart test" });
+    }
+  });
+
+  app.get("/api/test-runs/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const testRun = await storage.getUserTestRun(id);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      // Check ownership or admin access
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const answers = await storage.getUserAnswersByTestRun(id);
+      const practiceTest = await storage.getPracticeTest(testRun.practiceTestId);
+      
+      res.json({
+        ...testRun,
+        answers,
+        practiceTest,
+      });
+    } catch (error) {
+      console.error("Error fetching test run:", error);
+      res.status(500).json({ message: "Failed to fetch test run" });
+    }
+  });
+
+  app.get("/api/test-runs/:id/question/:index", requireAuth, async (req, res) => {
+    try {
+      const testRunId = parseInt(req.params.id);
+      const questionIndex = parseInt(req.params.index);
+      
+      const testRun = await storage.getUserTestRun(testRunId);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (questionIndex < 0 || questionIndex >= testRun.questionOrder.length) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+
+      const questionVersionId = testRun.questionOrder[questionIndex];
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      const userAnswer = await storage.getUserAnswer(testRunId, questionVersionId);
+      
+      res.json({
+        ...questionVersion,
+        questionIndex,
+        totalQuestions: testRun.questionOrder.length,
+        userAnswer,
+      });
+    } catch (error) {
+      console.error("Error fetching question:", error);
+      res.status(500).json({ message: "Failed to fetch question" });
+    }
+  });
+
+  app.get("/api/test-runs/:id/all-questions", requireAuth, async (req, res) => {
+    try {
+      const testRunId = parseInt(req.params.id);
+      
+      const testRun = await storage.getUserTestRun(testRunId);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      if (testRun.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Fetch all question versions for this test run
+      const questionVersions = await Promise.all(
+        testRun.questionOrder.map(async (questionVersionId) => {
+          const questionVersion = await storage.getQuestionVersion(questionVersionId);
+          return questionVersion;
+        })
+      );
+
+      res.json(questionVersions.filter(q => q !== undefined));
+    } catch (error) {
+      console.error("Error fetching all questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  app.post("/api/test-runs/:id/answers", requireAuth, async (req, res) => {
+    try {
+      const testRunId = parseInt(req.params.id);
+      const answerData = insertUserAnswerSchema.parse({
+        ...req.body,
+        userTestRunId: testRunId,
+      });
+
+      const testRun = await storage.getUserTestRun(testRunId);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      if (testRun.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const questionVersion = await storage.getQuestionVersion(answerData.questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+
+      const isCorrect = answerData.chosenAnswer === questionVersion.correctAnswer;
+      
+      const answer = await storage.createUserAnswer({
+        ...answerData,
+        isCorrect,
+      });
+
+      res.status(201).json({
+        ...answer,
+        isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+      });
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      res.status(500).json({ message: "Failed to submit answer" });
+    }
+  });
+
+  app.post("/api/test-runs/:id/complete", requireAuth, async (req, res) => {
+    try {
+      const testRunId = parseInt(req.params.id);
+      const testRun = await storage.getUserTestRun(testRunId);
+      
+      if (!testRun) {
+        return res.status(404).json({ message: "Test run not found" });
+      }
+
+      if (testRun.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedTestRun = await storage.updateUserTestRun(testRunId, {
+        completedAt: new Date(),
+      });
+
+      res.json(updatedTestRun);
+    } catch (error) {
+      console.error("Error completing test:", error);
+      res.status(500).json({ message: "Failed to complete test" });
+    }
+  });
 
   // Question set answer submission endpoint
   app.post("/api/question-sets/:questionSetId/answer", requireAuth, async (req, res) => {
@@ -870,7 +1085,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid question set ID" });
       }
 
-      if (!questionVersionId || answer === undefined || answer === null) {
+      if (!questionVersionId || !answer) {
         return res.status(400).json({ message: "Question version ID and answer are required" });
       }
 
@@ -880,78 +1095,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question version not found" });
       }
 
-      const questionType = questionVersion.questionType || "multiple_choice";
-      let isCorrect = false;
-
-      // Validate answer based on question type
-      switch (questionType) {
-        case "fill_in_blank":
-          // Check main answer and acceptable answers
-          const userAnswer = answer.toString().trim();
-          const correctAnswer = questionVersion.correctAnswer.trim();
-          const acceptableAnswers = questionVersion.acceptableAnswers || [];
-          const caseSensitive = questionVersion.caseSensitive || false;
-          
-          if (caseSensitive) {
-            isCorrect = userAnswer === correctAnswer || acceptableAnswers.includes(userAnswer);
-          } else {
-            const lowerUserAnswer = userAnswer.toLowerCase();
-            const lowerCorrectAnswer = correctAnswer.toLowerCase();
-            const lowerAcceptableAnswers = acceptableAnswers.map(a => a.toLowerCase());
-            isCorrect = lowerUserAnswer === lowerCorrectAnswer || lowerAcceptableAnswers.includes(lowerUserAnswer);
-          }
-          break;
-          
-        case "true_false":
-          isCorrect = answer === questionVersion.correctAnswer;
-          break;
-          
-        case "pick_from_list":
-          if (questionVersion.allowMultiple) {
-            // For multiple selection, check if all selected items match
-            const selectedItems = answer.split(",").map((item: string) => item.trim()).sort();
-            const correctItems = questionVersion.correctAnswer.split(",").map((item: string) => item.trim()).sort();
-            isCorrect = JSON.stringify(selectedItems) === JSON.stringify(correctItems);
-          } else {
-            isCorrect = answer === questionVersion.correctAnswer;
-          }
-          break;
-          
-        case "matching":
-          try {
-            const userPairs = JSON.parse(answer);
-            const correctPairs = JSON.parse(questionVersion.correctAnswer);
-            
-            if (userPairs.length !== correctPairs.length) {
-              isCorrect = false;
-            } else {
-              // Check if all pairs match
-              isCorrect = userPairs.every((userPair: any) => 
-                correctPairs.some((correctPair: any) => 
-                  userPair.left === correctPair.left && userPair.right === correctPair.right
-                )
-              );
-            }
-          } catch {
-            isCorrect = false;
-          }
-          break;
-          
-        case "ordering":
-          try {
-            const userOrder = JSON.parse(answer);
-            const correctOrder = JSON.parse(questionVersion.correctAnswer);
-            isCorrect = JSON.stringify(userOrder) === JSON.stringify(correctOrder);
-          } catch {
-            isCorrect = false;
-          }
-          break;
-          
-        case "multiple_choice":
-        default:
-          isCorrect = answer === questionVersion.correctAnswer;
-          break;
-      }
+      const isCorrect = answer === questionVersion.correctAnswer;
 
       // For question set practice, we return the answer validation result
       const answerData = {
@@ -1449,6 +1593,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const courses = await storage.getAllCourses();
       const coursesWithStats = await Promise.all(
         courses.map(async (course) => {
+          const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const questionSets = await storage.getQuestionSetsByCourse(course.id);
           
           // Count total questions across all question sets
@@ -1460,6 +1605,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           
           return {
             ...course,
+            testCount: practiceTests.length,
             questionCount: totalQuestions,
             questionSetCount: questionSets.length,
           };
@@ -1689,7 +1835,26 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-
+  app.get("/api/admin/practice-tests", requireAdmin, async (req, res) => {
+    try {
+      const courses = await storage.getAllCourses();
+      let allPracticeTests = [];
+      
+      for (const course of courses) {
+        const practiceTests = await storage.getPracticeTestsByCourse(course.id);
+        const testsWithCourse = practiceTests.map(test => ({
+          ...test,
+          courseName: course.title
+        }));
+        allPracticeTests.push(...testsWithCourse);
+      }
+      
+      res.json(allPracticeTests);
+    } catch (error) {
+      console.error("Error fetching practice tests:", error);
+      res.status(500).json({ message: "Failed to fetch practice tests" });
+    }
+  });
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {

@@ -28,6 +28,14 @@ export const questionSets = pgTable("question_sets", {
   questionCount: integer("question_count").default(0).notNull(),
 });
 
+export const practiceTests = pgTable("practice_tests", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id),
+  title: text("title").notNull(),
+  questionCount: integer("question_count").default(85).notNull(),
+});
+
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
@@ -41,15 +49,26 @@ export const questionVersions = pgTable("question_versions", {
   versionNumber: integer("version_number").notNull(),
   topicFocus: text("topic_focus").notNull(),
   questionText: text("question_text").notNull(),
-  questionType: text("question_type").default("multiple_choice").notNull(),
-  answerChoices: json("answer_choices").$type<any[]>().notNull(), // Changed to any[] to support different formats
-  correctAnswer: text("correct_answer").notNull(), // Changed from varchar(1) to text to support longer answers
-  // Additional fields for different question types
-  acceptableAnswers: text("acceptable_answers").array(), // For fill_in_blank
-  caseSensitive: boolean("case_sensitive").default(false), // For fill_in_blank
-  allowMultiple: boolean("allow_multiple").default(false), // For pick_from_list
-  correctOrder: integer("correct_order").array(), // For ordering questions
-  matchingPairs: json("matching_pairs").$type<Array<{left: string, right: string}>>(), // For matching questions
+  answerChoices: json("answer_choices").$type<string[]>().notNull(),
+  correctAnswer: varchar("correct_answer", { length: 1 }).notNull(),
+});
+
+export const userTestRuns = pgTable("user_test_runs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  practiceTestId: integer("practice_test_id").references(() => practiceTests.id).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  questionOrder: json("question_order").$type<number[]>().notNull(),
+});
+
+export const userAnswers = pgTable("user_answers", {
+  id: serial("id").primaryKey(),
+  userTestRunId: integer("user_test_run_id").references(() => userTestRuns.id).notNull(),
+  questionVersionId: integer("question_version_id").references(() => questionVersions.id).notNull(),
+  chosenAnswer: varchar("chosen_answer", { length: 1 }).notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
 
 export const aiSettings = pgTable("ai_settings", {
@@ -90,9 +109,12 @@ export const chatbotLogs = pgTable("chatbot_logs", {
 });
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({}));
+export const usersRelations = relations(users, ({ many }) => ({
+  testRuns: many(userTestRuns),
+}));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
+  practiceTests: many(practiceTests),
   questionSets: many(questionSets),
 }));
 
@@ -102,6 +124,19 @@ export const questionSetsRelations = relations(questionSets, ({ one, many }) => 
     references: [courses.id],
   }),
   questions: many(questions),
+  practiceTests: many(practiceTests),
+}));
+
+export const practiceTestsRelations = relations(practiceTests, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [practiceTests.courseId],
+    references: [courses.id],
+  }),
+  questionSet: one(questionSets, {
+    fields: [practiceTests.questionSetId],
+    references: [questionSets.id],
+  }),
+  testRuns: many(userTestRuns),
 }));
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
@@ -112,10 +147,34 @@ export const questionsRelations = relations(questions, ({ one, many }) => ({
   versions: many(questionVersions),
 }));
 
-export const questionVersionsRelations = relations(questionVersions, ({ one }) => ({
+export const questionVersionsRelations = relations(questionVersions, ({ one, many }) => ({
   question: one(questions, {
     fields: [questionVersions.questionId],
     references: [questions.id],
+  }),
+  answers: many(userAnswers),
+}));
+
+export const userTestRunsRelations = relations(userTestRuns, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userTestRuns.userId],
+    references: [users.id],
+  }),
+  practiceTest: one(practiceTests, {
+    fields: [userTestRuns.practiceTestId],
+    references: [practiceTests.id],
+  }),
+  answers: many(userAnswers),
+}));
+
+export const userAnswersRelations = relations(userAnswers, ({ one }) => ({
+  testRun: one(userTestRuns, {
+    fields: [userAnswers.userTestRunId],
+    references: [userTestRuns.id],
+  }),
+  questionVersion: one(questionVersions, {
+    fields: [userAnswers.questionVersionId],
+    references: [questionVersions.id],
   }),
 }));
 
@@ -133,8 +192,13 @@ export const insertCourseSchema = createInsertSchema(courses).extend({
   externalId: z.string().optional(),
 });
 export const insertQuestionSetSchema = createInsertSchema(questionSets);
+export const insertPracticeTestSchema = createInsertSchema(practiceTests);
 export const insertQuestionSchema = createInsertSchema(questions);
 export const insertQuestionVersionSchema = createInsertSchema(questionVersions);
+export const insertUserTestRunSchema = createInsertSchema(userTestRuns);
+export const insertUserAnswerSchema = createInsertSchema(userAnswers).omit({
+  isCorrect: true,
+});
 export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
@@ -147,10 +211,16 @@ export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type QuestionSet = typeof questionSets.$inferSelect;
 export type InsertQuestionSet = z.infer<typeof insertQuestionSetSchema>;
+export type PracticeTest = typeof practiceTests.$inferSelect;
+export type InsertPracticeTest = z.infer<typeof insertPracticeTestSchema>;
 export type Question = typeof questions.$inferSelect;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type QuestionVersion = typeof questionVersions.$inferSelect;
 export type InsertQuestionVersion = z.infer<typeof insertQuestionVersionSchema>;
+export type UserTestRun = typeof userTestRuns.$inferSelect;
+export type InsertUserTestRun = z.infer<typeof insertUserTestRunSchema>;
+export type UserAnswer = typeof userAnswers.$inferSelect;
+export type InsertUserAnswer = z.infer<typeof insertUserAnswerSchema>;
 export type AiSettings = typeof aiSettings.$inferSelect;
 export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
 export type PromptVersion = typeof promptVersions.$inferSelect;
@@ -165,21 +235,12 @@ export const questionImportSchema = z.object({
   question_number: z.number(),
   type: z.string(),
   loid: z.string(),
-  question_type: z.enum(["multiple_choice", "fill_in_blank", "matching", "true_false", "pick_from_list", "ordering"]).optional(),
   versions: z.array(z.object({
     version_number: z.number(),
     topic_focus: z.string(),
     question_text: z.string(),
-    answer_choices: z.array(z.any()), // Changed to support different formats
+    answer_choices: z.array(z.string()),
     correct_answer: z.string(),
-    acceptable_answers: z.array(z.string()).optional(),
-    case_sensitive: z.boolean().optional(),
-    allow_multiple: z.boolean().optional(),
-    correct_order: z.array(z.number()).optional(),
-    matching_pairs: z.array(z.object({
-      left: z.string(),
-      right: z.string(),
-    })).optional(),
   })),
 });
 

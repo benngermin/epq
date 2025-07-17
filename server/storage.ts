@@ -1,9 +1,10 @@
 import {
-  users, courses, questionSets, questions, questionVersions, 
-  aiSettings, promptVersions, courseMaterials, chatbotLogs,
+  users, courses, questionSets, practiceTests, questions, questionVersions, 
+  userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
   type User, type InsertUser, type Course, type InsertCourse,
-  type QuestionSet, type InsertQuestionSet, 
+  type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
+  type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
   type CourseMaterial, type InsertCourseMaterial, type ChatbotLog, type InsertChatbotLog,
   type QuestionImport
@@ -35,6 +36,11 @@ export interface IStorage {
   updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined>;
   deleteQuestionSet(id: number): Promise<boolean>;
   
+  // Practice test methods
+  getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]>;
+  getPracticeTest(id: number): Promise<PracticeTest | undefined>;
+  createPracticeTest(test: InsertPracticeTest): Promise<PracticeTest>;
+  
   // Question methods
   getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]>;
   getQuestion(id: number): Promise<Question | undefined>;
@@ -45,6 +51,17 @@ export interface IStorage {
   getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]>;
   getQuestionVersion(id: number): Promise<QuestionVersion | undefined>;
   createQuestionVersion(version: InsertQuestionVersion): Promise<QuestionVersion>;
+  
+  // Test run methods
+  getUserTestRuns(userId: number): Promise<UserTestRun[]>;
+  getUserTestRun(id: number): Promise<UserTestRun | undefined>;
+  createUserTestRun(testRun: InsertUserTestRun): Promise<UserTestRun>;
+  updateUserTestRun(id: number, testRun: Partial<InsertUserTestRun>): Promise<UserTestRun | undefined>;
+  
+  // User answer methods
+  getUserAnswersByTestRun(testRunId: number): Promise<UserAnswer[]>;
+  createUserAnswer(answer: InsertUserAnswer): Promise<UserAnswer>;
+  getUserAnswer(testRunId: number, questionVersionId: number): Promise<UserAnswer | undefined>;
   
   // AI settings methods
   getAiSettings(): Promise<AiSettings | undefined>;
@@ -71,6 +88,7 @@ export interface IStorage {
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
+  getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
   
   sessionStore: any;
 }
@@ -164,6 +182,27 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQuestionSet(id: number): Promise<boolean> {
     try {
+      // First, check if there are any practice tests that reference this question set
+      const referencingTests = await db.select().from(practiceTests).where(eq(practiceTests.questionSetId, id));
+      
+      // If there are practice tests referencing this question set, update them to remove the reference
+      if (referencingTests.length > 0) {
+        await db.update(practiceTests)
+          .set({ questionSetId: null })
+          .where(eq(practiceTests.questionSetId, id));
+      }
+
+      // Delete user answers for all question versions in this set
+      await db.execute(sql`
+        DELETE FROM user_answers 
+        WHERE question_version_id IN (
+          SELECT qv.id 
+          FROM question_versions qv 
+          JOIN questions q ON qv.question_id = q.id 
+          WHERE q.question_set_id = ${id}
+        )
+      `);
+
       // Delete all question versions for questions in this set
       await db.execute(sql`
         DELETE FROM question_versions 
@@ -182,6 +221,20 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in deleteQuestionSet:', error);
       throw error;
     }
+  }
+
+  async getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]> {
+    return await db.select().from(practiceTests).where(eq(practiceTests.courseId, courseId));
+  }
+
+  async getPracticeTest(id: number): Promise<PracticeTest | undefined> {
+    const [test] = await db.select().from(practiceTests).where(eq(practiceTests.id, id));
+    return test || undefined;
+  }
+
+  async createPracticeTest(test: InsertPracticeTest): Promise<PracticeTest> {
+    const [newTest] = await db.insert(practiceTests).values(test).returning();
+    return newTest;
   }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
@@ -220,6 +273,51 @@ export class DatabaseStorage implements IStorage {
     };
     const [newVersion] = await db.insert(questionVersions).values(versionData).returning();
     return newVersion;
+  }
+
+  async getUserTestRuns(userId: number): Promise<UserTestRun[]> {
+    return await db.select().from(userTestRuns).where(eq(userTestRuns.userId, userId));
+  }
+
+  async getUserTestRun(id: number): Promise<UserTestRun | undefined> {
+    const [testRun] = await db.select().from(userTestRuns).where(eq(userTestRuns.id, id));
+    return testRun || undefined;
+  }
+
+  async createUserTestRun(testRun: InsertUserTestRun): Promise<UserTestRun> {
+    const testRunData: any = {
+      ...testRun,
+      questionOrder: Array.isArray(testRun.questionOrder) ? testRun.questionOrder : JSON.parse(JSON.stringify(testRun.questionOrder))
+    };
+    const [newTestRun] = await db.insert(userTestRuns).values(testRunData).returning();
+    return newTestRun;
+  }
+
+  async updateUserTestRun(id: number, testRun: Partial<InsertUserTestRun>): Promise<UserTestRun | undefined> {
+    const updateData: any = { ...testRun };
+    if (testRun.questionOrder) {
+      updateData.questionOrder = testRun.questionOrder as number[];
+    }
+    const [updated] = await db.update(userTestRuns).set(updateData).where(eq(userTestRuns.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getUserAnswersByTestRun(testRunId: number): Promise<UserAnswer[]> {
+    return await db.select().from(userAnswers).where(eq(userAnswers.userTestRunId, testRunId));
+  }
+
+  async createUserAnswer(answer: InsertUserAnswer & { isCorrect: boolean }): Promise<UserAnswer> {
+    const [newAnswer] = await db.insert(userAnswers).values(answer).returning();
+    return newAnswer;
+  }
+
+  async getUserAnswer(testRunId: number, questionVersionId: number): Promise<UserAnswer | undefined> {
+    const [answer] = await db.select().from(userAnswers)
+      .where(and(
+        eq(userAnswers.userTestRunId, testRunId),
+        eq(userAnswers.questionVersionId, questionVersionId)
+      ));
+    return answer || undefined;
   }
 
   async getAiSettings(): Promise<AiSettings | undefined> {
@@ -285,41 +383,72 @@ export class DatabaseStorage implements IStorage {
 
       // Create question versions
       for (const versionData of questionData.versions) {
-        const versionToCreate: any = {
+        await this.createQuestionVersion({
           questionId: question.id,
           versionNumber: versionData.version_number,
           topicFocus: versionData.topic_focus,
           questionText: versionData.question_text,
           answerChoices: [...versionData.answer_choices],
           correctAnswer: versionData.correct_answer,
-          questionType: questionData.question_type || "multiple_choice",
-        };
-
-        // Add optional fields based on question type
-        if (versionData.acceptable_answers) {
-          versionToCreate.acceptableAnswers = versionData.acceptable_answers;
-        }
-        if (versionData.case_sensitive !== undefined) {
-          versionToCreate.caseSensitive = versionData.case_sensitive;
-        }
-        if (versionData.allow_multiple !== undefined) {
-          versionToCreate.allowMultiple = versionData.allow_multiple;
-        }
-        if (versionData.correct_order) {
-          versionToCreate.correctOrder = versionData.correct_order;
-        }
-        if (versionData.matching_pairs) {
-          versionToCreate.matchingPairs = versionData.matching_pairs;
-        }
-
-        await this.createQuestionVersion(versionToCreate);
+        });
       }
     }
   }
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {
-    // Since we no longer track user answers in the database, return empty progress
-    return { correctAnswers: 0, totalAnswers: 0 };
+    try {
+      const result = await db.select({
+        totalAnswers: sql<number>`COUNT(*)::int`,
+        correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)::int`
+      })
+      .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+      .innerJoin(practiceTests, eq(userTestRuns.practiceTestId, practiceTests.id))
+      .where(and(
+        eq(userTestRuns.userId, userId),
+        eq(practiceTests.courseId, courseId)
+      ));
+
+      const row = result[0];
+      return {
+        correctAnswers: row?.correctAnswers || 0,
+        totalAnswers: row?.totalAnswers || 0,
+      };
+    } catch (error) {
+      console.error("Error getting user course progress:", error);
+      return { correctAnswers: 0, totalAnswers: 0 };
+    }
+  }
+
+  async getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }> {
+    const testRuns = await db.select().from(userTestRuns)
+      .where(and(eq(userTestRuns.userId, userId), eq(userTestRuns.practiceTestId, testId)))
+      .orderBy(desc(userTestRuns.startedAt));
+
+    if (testRuns.length === 0) {
+      return { status: "Not Started" };
+    }
+
+    const latestRun = testRuns[0];
+    
+    if (latestRun.completedAt) {
+      const answers = await this.getUserAnswersByTestRun(latestRun.id);
+      const correctCount = answers.filter(a => a.isCorrect).length;
+      const totalCount = answers.length;
+      
+      return {
+        status: "Completed",
+        score: `${correctCount}/${totalCount}`,
+        testRun: latestRun,
+      };
+    } else {
+      const answers = await this.getUserAnswersByTestRun(latestRun.id);
+      return {
+        status: "In Progress",
+        score: `${answers.length}/85 questions`,
+        testRun: latestRun,
+      };
+    }
   }
 
   async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void> {
