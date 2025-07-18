@@ -107,8 +107,11 @@ export class DatabaseStorage implements IStorage {
         createTableIfMissing: false, // Table already exists
         pruneSessionInterval: 60 * 60, // Prune expired sessions every hour
         errorLog: (error: any) => {
-          // Only log non-duplicate key errors
-          if (!error.message?.includes('already exists') && !error.message?.includes('session_pkey')) {
+          // Only log non-duplicate key errors and non-connection errors
+          if (!error.message?.includes('already exists') && 
+              !error.message?.includes('session_pkey') &&
+              !error.message?.includes('connect ETIMEDOUT') &&
+              !error.message?.includes('ECONNREFUSED')) {
             console.error('Session store error:', error);
           }
         }

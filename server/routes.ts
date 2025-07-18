@@ -176,14 +176,19 @@ function cleanupStream(streamId: string) {
 // Clean up old streams periodically to prevent memory buildup
 setInterval(() => {
   const now = Date.now();
-  const oldStreamAge = 10 * 60 * 1000; // 10 minutes
+  const oldStreamAge = 5 * 60 * 1000; // 5 minutes (reduced from 10)
   
   activeStreams.forEach((stream, streamId) => {
-    if (stream.done && (now - stream.lastActivity) > oldStreamAge) {
+    if ((stream.done || stream.aborted) && (now - stream.lastActivity) > oldStreamAge) {
       console.log(`Cleaning up old stream: ${streamId}`);
       cleanupStream(streamId);
     }
   });
+  
+  // Also log current stream count for monitoring
+  if (activeStreams.size > 10) {
+    console.warn(`High number of active streams: ${activeStreams.size}`);
+  }
 }, 60000); // Run every minute
 
 // Streaming OpenRouter integration for buffer approach

@@ -51,7 +51,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     
     
     // Generate unique ID for this streaming message
-    const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const messageId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9);
     streamingMessageIdRef.current = messageId;
     
     // Reset and initialize streaming state
@@ -126,6 +126,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           // Reset error count on successful response
           pollErrors = 0;
           chunkData = await chunkResponse.json();
+          
+          // Null safety check
+          if (!chunkData || typeof chunkData !== 'object') {
+            console.warn('Invalid chunk data received:', chunkData);
+            continue;
+          }
           
           if (chunkData.done && isStreamingRef.current) {
             console.log(`Stream ${streamId} marked as done. Final content length: ${streamingContentRef.current.length}`);
@@ -252,32 +258,42 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
   // Reset when question changes
   useEffect(() => {
-    // Abort any ongoing stream
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    // Create a cleanup function
+    const cleanup = () => {
+      // Abort any ongoing stream
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Abort server-side stream if active
+      if (currentStreamIdRef.current) {
+        const streamId = currentStreamIdRef.current;
+        fetch(`/api/chatbot/stream-abort/${streamId}`, {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(() => {
+          // Ignore abort errors
+        });
+      }
+      
+      // Force cleanup of streaming state
+      isStreamingRef.current = false;
+      currentStreamIdRef.current = "";
+      setIsStreaming(false);
+      setStreamingContent("");
+      streamingContentRef.current = "";
+      streamingMessageIdRef.current = "";
+    };
     
-    // Abort server-side stream if active
-    if (currentStreamIdRef.current) {
-      fetch(`/api/chatbot/stream-abort/${currentStreamIdRef.current}`, {
-        method: 'POST',
-        credentials: 'include',
-      }).catch(() => {
-        // Ignore abort errors
-      });
-    }
-    
-    // Force cleanup of streaming state
-    isStreamingRef.current = false;
-    currentStreamIdRef.current = "";
-    setIsStreaming(false);
-    setStreamingContent("");
-    streamingContentRef.current = "";
-    streamingMessageIdRef.current = "";
+    // Perform cleanup
+    cleanup();
     
     // Reset messages and initial request flag
     setHasRequestedInitial(false);
     setMessages([]);
+    
+    // Return cleanup function for component unmount
+    return cleanup;
   }, [currentQuestionKey]);
 
   const handleSendMessage = () => {
@@ -286,7 +302,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     const newUserMessage = { 
       role: "user" as const, 
       content: userInput, 
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+      id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9)
     };
     setMessages(prev => [newUserMessage, ...prev]);
     

@@ -89,7 +89,8 @@ export default function QuestionSetPractice() {
       }
       return res.json();
     }),
-    enabled: !!questionSetId,
+    enabled: !!questionSetId && !!questionSet, // Only fetch questions after questionSet is loaded
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
   const submitAnswerMutation = useMutation({

@@ -148,6 +148,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 17, 2025 5:10 PM: Fixed multiple bugs in the application
+  - Fixed memory leak in chat streaming where cleanup wasn't properly handled on component unmount
+  - Added race condition prevention for question loading by ensuring dependencies are loaded first
+  - Enhanced session store error logging to filter out connection timeout errors
+  - Improved stream cleanup to prevent memory accumulation (reduced cleanup time from 10 to 5 minutes)
+  - Fixed deprecated substr() calls, replaced with substring() for better compatibility
+  - Added null safety checks for API responses in chat streaming
+  - Added monitoring for high stream counts to detect potential memory issues
 - January 17, 2025: Expanded question types support
   - Added support for 5 new question types beyond multiple choice
   - Fill in the Blank: Text input with case sensitivity and acceptable answers
