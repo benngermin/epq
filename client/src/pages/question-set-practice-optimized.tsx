@@ -23,6 +23,9 @@ import { OptimizedImage } from "@/components/optimized-image";
 import { useState, useEffect } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
+import { debugLog, debugError } from "@/utils/debug";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { AssessmentErrorFallback } from "@/components/assessment-error-fallback";
 
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
@@ -122,9 +125,22 @@ export default function QuestionSetPractice() {
       const course = courseRes.ok ? await courseRes.json() : null;
       const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
 
+      debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
+      
+      // Check for any issues with questions around #36
+      const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
+      if (questionAround36) {
+        debugLog('Question 36 details:', {
+          id: questionAround36.id,
+          originalNumber: questionAround36.originalQuestionNumber,
+          hasLatestVersion: !!questionAround36.latestVersion,
+          latestVersionDetails: questionAround36.latestVersion
+        });
+      }
+      
       return { questionSet, questions, course, courseQuestionSets };
       } catch (error) {
-        console.error("Error loading practice data:", error);
+        debugError("Error loading practice data", error);
         throw error;
       }
     },
@@ -148,6 +164,29 @@ export default function QuestionSetPractice() {
 
   const currentQuestion = practiceData?.questions?.[currentQuestionIndex];
   const hasAnswered = currentQuestion?.id ? !!userAnswers[currentQuestion.id] : false;
+  
+  // Add error boundary check for question data
+  useEffect(() => {
+    if (practiceData?.questions && currentQuestionIndex >= 0) {
+      const q = practiceData.questions[currentQuestionIndex];
+      debugLog(`Current question index: ${currentQuestionIndex}`, {
+        hasQuestion: !!q,
+        questionId: q?.id,
+        originalNumber: q?.originalQuestionNumber,
+        hasLatestVersion: !!q?.latestVersion,
+        totalQuestions: practiceData.questions.length
+      });
+      
+      // Special check for question around index 35-36 (question #36-37)
+      if (currentQuestionIndex >= 34 && currentQuestionIndex <= 37) {
+        debugLog(`Near question 36 - Index ${currentQuestionIndex}`, {
+          question: q,
+          nextQuestionExists: !!practiceData.questions[currentQuestionIndex + 1],
+          prevQuestionExists: !!practiceData.questions[currentQuestionIndex - 1]
+        });
+      }
+    }
+  }, [currentQuestionIndex, practiceData]);
 
   const handleSubmitAnswer = (answer: string) => {
     if (!currentQuestion?.latestVersion?.id) {
@@ -167,6 +206,7 @@ export default function QuestionSetPractice() {
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < (practiceData?.questions?.length || 0) - 1) {
+      debugLog(`Navigating from question ${currentQuestionIndex + 1} to ${currentQuestionIndex + 2}`);
       setCurrentQuestionIndex(prev => prev + 1);
       setShowChat(false);
       setSelectedAnswer("");
@@ -276,7 +316,15 @@ export default function QuestionSetPractice() {
   const { questionSet, questions, course, courseQuestionSets } = practiceData;
 
   return (
-    <div className="h-screen bg-background overflow-hidden flex flex-col">
+    <ErrorBoundary 
+      fallback={(props) => (
+        <AssessmentErrorFallback 
+          {...props} 
+          questionIndex={currentQuestionIndex} 
+        />
+      )}
+    >
+      <div className="h-screen bg-background overflow-hidden flex flex-col">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-6">
@@ -476,7 +524,8 @@ export default function QuestionSetPractice() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 overflow-hidden">
             <div className="w-full max-w-4xl mx-auto">
-              <QuestionCard
+              {currentQuestion ? (
+                <QuestionCard
                   question={{
                     ...currentQuestion,
                     questionIndex: currentQuestionIndex,
@@ -490,10 +539,17 @@ export default function QuestionSetPractice() {
                   testRunId={0}
                   onFlipChange={setIsCardFlipped}
                   onNextQuestion={handleNextQuestion}
-                  hasNextQuestion={currentQuestionIndex < questions.length - 1}
+                  hasNextQuestion={currentQuestionIndex < practiceData.questions.length - 1}
                   selectedAnswer={selectedAnswer}
                   chatResetTimestamp={chatResetTimestamp}
                 />
+              ) : (
+                <Card className="max-w-2xl mx-auto">
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-muted-foreground">Question not found at index {currentQuestionIndex}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
@@ -513,12 +569,12 @@ export default function QuestionSetPractice() {
             Previous
           </Button>
           <div className="text-sm text-muted-foreground flex items-center">
-            Question {currentQuestionIndex + 1} of {questions.length}
+            Question {currentQuestionIndex + 1} of {practiceData.questions.length}
           </div>
           <Button
             variant="outline"
             onClick={handleNextQuestion}
-            disabled={currentQuestionIndex === questions.length - 1}
+            disabled={currentQuestionIndex === practiceData.questions.length - 1}
             className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
           >
             Next
@@ -572,5 +628,6 @@ export default function QuestionSetPractice() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   );
 }

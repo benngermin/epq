@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
 import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
+import { debugLog, debugError } from "@/utils/debug";
 
 // Import question type components
 import { FillInBlank } from "./question-types/fill-in-blank";
@@ -38,6 +39,19 @@ export function QuestionCard({
   selectedAnswer,
   chatResetTimestamp
 }: QuestionCardProps) {
+  // Log question details when component mounts or question changes
+  useEffect(() => {
+    if (question) {
+      debugLog(`Rendering question ${question.originalQuestionNumber || question.questionIndex + 1}`, {
+        id: question.id,
+        originalNumber: question.originalQuestionNumber,
+        questionIndex: question.questionIndex,
+        hasLatestVersion: !!question.latestVersion,
+        questionType: question.latestVersion?.questionType,
+        hasUserAnswer: !!question.userAnswer
+      });
+    }
+  }, [question?.id]);
   const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
