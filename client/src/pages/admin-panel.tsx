@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -247,6 +248,160 @@ function AISettingsSection() {
           </Form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Bubble Import Section Component
+function BubbleImportSection() {
+  const [courseNumber, setCourseNumber] = useState("");
+  const [questionSets, setQuestionSets] = useState<any[]>([]);
+  const [selectedSets, setSelectedSets] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const fetchQuestionSets = async () => {
+    setLoading(true);
+    try {
+      const params = courseNumber ? `?courseNumber=${courseNumber}` : '';
+      const response = await apiRequest("GET", `/api/admin/bubble/question-sets${params}`);
+      const data = await response.json();
+      
+      if (data.response && data.response.results) {
+        setQuestionSets(data.response.results);
+      } else if (Array.isArray(data)) {
+        setQuestionSets(data);
+      } else {
+        setQuestionSets([]);
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to fetch question sets",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const importSelectedSets = async () => {
+    if (selectedSets.length === 0) {
+      toast({
+        title: "No question sets selected",
+        description: "Please select at least one question set to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const selectedQuestionSets = questionSets.filter(qs => selectedSets.includes(qs._id));
+      const response = await apiRequest("POST", "/api/admin/bubble/import-question-sets", {
+        questionSets: selectedQuestionSets
+      });
+      const result = await response.json();
+      
+      toast({
+        title: "Import completed",
+        description: result.message,
+      });
+      
+      // Refresh the question sets list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      
+      // Reset selection
+      setSelectedSets([]);
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedSets(prev => 
+      prev.includes(id) 
+        ? prev.filter(s => s !== id)
+        : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    setSelectedSets(questionSets.map(qs => qs._id));
+  };
+
+  const deselectAll = () => {
+    setSelectedSets([]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Course number (optional)"
+          value={courseNumber}
+          onChange={(e) => setCourseNumber(e.target.value)}
+          className="flex-1"
+        />
+        <Button onClick={fetchQuestionSets} disabled={loading}>
+          {loading ? "Fetching..." : "Fetch Question Sets"}
+        </Button>
+      </div>
+
+      {questionSets.length > 0 && (
+        <>
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              Found {questionSets.length} question sets
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={selectAll}>
+                Select All
+              </Button>
+              <Button variant="outline" size="sm" onClick={deselectAll}>
+                Deselect All
+              </Button>
+            </div>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto border rounded-lg p-4 space-y-2">
+            {questionSets.map((qs) => (
+              <div key={qs._id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                <input
+                  type="checkbox"
+                  checked={selectedSets.includes(qs._id)}
+                  onChange={() => toggleSelection(qs._id)}
+                  className="h-4 w-4"
+                />
+                <div className="flex-1">
+                  <p className="font-medium">{qs.title || `Question Set ${qs._id}`}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Course: {qs.learning_object?.course?.course_number || 'Unknown'} | 
+                    Questions: {qs.questions?.length || 0}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Button 
+            onClick={importSelectedSets} 
+            disabled={importing || selectedSets.length === 0}
+            className="w-full"
+          >
+            {importing ? "Importing..." : `Import ${selectedSets.length} Selected Question Sets`}
+          </Button>
+        </>
+      )}
     </div>
   );
 }
@@ -699,13 +854,31 @@ export default function AdminPanel() {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         Question Sets Upload
-                        <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create Question Set
-                            </Button>
-                          </DialogTrigger>
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline">
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import from Bubble
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
+                                <DialogDescription>
+                                  Fetch and import question sets from ti-content-repository.bubbleapps.io
+                                </DialogDescription>
+                              </DialogHeader>
+                              <BubbleImportSection />
+                            </DialogContent>
+                          </Dialog>
+                          <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Question Set
+                              </Button>
+                            </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Create New Question Set</DialogTitle>

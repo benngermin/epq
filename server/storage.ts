@@ -79,6 +79,7 @@ export interface IStorage {
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void>;
+  updateQuestionSetCount(questionSetId: number): Promise<void>;
   
   // Course material methods
   getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined>;
@@ -476,6 +477,11 @@ export class DatabaseStorage implements IStorage {
         testRun: latestRun,
       };
     }
+  }
+
+  async updateQuestionSetCount(questionSetId: number): Promise<void> {
+    const questions = await this.getQuestionsByQuestionSet(questionSetId);
+    await this.updateQuestionSet(questionSetId, { questionCount: questions.length });
   }
 
   async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void> {

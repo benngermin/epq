@@ -1822,6 +1822,132 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Bubble API integration routes
+  app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
+    try {
+      const courseNumber = req.query.courseNumber as string | undefined;
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      let url = baseUrl;
+      
+      // Add constraints if course number is provided
+      if (courseNumber) {
+        const constraints = [{
+          key: "learning_object.course.course_number",
+          constraint_type: "equals",
+          value: courseNumber
+        }];
+        url += `?constraints=${encodeURIComponent(JSON.stringify(constraints))}`;
+      }
+
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching from Bubble API:", error);
+      res.status(500).json({ message: "Failed to fetch question sets from Bubble repository" });
+    }
+  });
+
+  app.post("/api/admin/bubble/import-question-sets", requireAdmin, async (req, res) => {
+    try {
+      const { questionSets } = req.body;
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      const importResults = {
+        imported: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      // Process each question set
+      for (const bubbleQuestionSet of questionSets) {
+        try {
+          // Extract course information from the Bubble data
+          const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
+          const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
+          
+          // Find or create course
+          let course = await storage.getCourseByExternalId(courseNumber);
+          if (!course) {
+            course = await storage.createCourse({
+              title: courseTitle,
+              description: `Imported from Bubble repository`,
+              externalId: courseNumber
+            });
+          }
+
+          // Create question set
+          const questionSet = await storage.createQuestionSet({
+            courseId: course.id,
+            title: bubbleQuestionSet.title || `Question Set ${bubbleQuestionSet._id}`,
+            description: bubbleQuestionSet.description || null,
+          });
+
+          // Import questions if they exist in the Bubble data
+          if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
+            const questionImports = bubbleQuestionSet.questions.map((q: any) => ({
+              question_number: q.question_number || q.number || 1,
+              type: q.type || "multiple_choice",
+              loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
+              versions: [{
+                version_number: 1,
+                topic_focus: q.topic_focus || bubbleQuestionSet.title || "General",
+                question_text: q.question_text || q.text || "",
+                question_type: q.question_type || q.type || "multiple_choice",
+                answer_choices: q.answer_choices || q.choices || [],
+                correct_answer: q.correct_answer || q.answer || "",
+                acceptable_answers: q.acceptable_answers,
+                case_sensitive: q.case_sensitive || false,
+                allow_multiple: q.allow_multiple || false,
+                matching_pairs: q.matching_pairs,
+                correct_order: q.correct_order
+              }]
+            }));
+
+            await storage.importQuestions(questionSet.id, questionImports);
+            
+            // Update question count
+            await storage.updateQuestionSetCount(questionSet.id);
+          }
+
+          importResults.imported++;
+        } catch (error) {
+          console.error(`Error importing question set ${bubbleQuestionSet._id}:`, error);
+          importResults.failed++;
+          importResults.errors.push(`Failed to import ${bubbleQuestionSet.title || bubbleQuestionSet._id}: ${error.message}`);
+        }
+      }
+
+      res.json({
+        message: `Import completed. Imported: ${importResults.imported}, Failed: ${importResults.failed}`,
+        results: importResults
+      });
+    } catch (error) {
+      console.error("Error importing question sets:", error);
+      res.status(500).json({ message: "Failed to import question sets" });
+    }
+  });
+
   // Admin route for importing course materials
   app.post("/api/admin/import-course-materials", requireAdmin, async (req, res) => {
     try {
