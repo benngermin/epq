@@ -19,17 +19,25 @@ const scryptAsync = promisify(scrypt);
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return `${salt}:${buf.toString("hex")}`;
 }
 
 async function comparePasswords(supplied: string, stored: string | null) {
   if (!stored) {
     return false;
   }
-  const [hashed, salt] = stored.split(".");
+  // Handle both formats (: and .) for backward compatibility
+  const separator = stored.includes(':') ? ':' : '.';
+  const parts = stored.split(separator);
+  if (parts.length !== 2) {
+    return false;
+  }
+  
+  const [salt, hashed] = separator === ':' ? parts : [parts[1], parts[0]];
   if (!hashed || !salt) {
     return false;
   }
+  
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   
