@@ -147,8 +147,17 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        // User no longer exists (e.g., deleted)
+        return done(null, false);
+      }
+      done(null, user);
+    } catch (error) {
+      console.error('Error deserializing user:', error);
+      done(error, null);
+    }
   });
 
   // Local authentication endpoints - available in development only
@@ -194,26 +203,7 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.post("/api/demo-login", async (req, res, next) => {
-    if (process.env.NODE_ENV === 'development') {
-      // Create or get demo user
-      let demoUser = await storage.getUserByEmail("demo@example.com");
-      if (!demoUser) {
-        const hashedPassword = await hashPassword("demo123");
-        demoUser = await storage.createUser({
-          name: "Demo User",
-          email: "demo@example.com",
-          password: hashedPassword,
-        });
-      }
-      req.login(demoUser, (err) => {
-        if (err) return next(err);
-        res.json(demoUser);
-      });
-    } else {
-      res.status(403).json({ message: "Demo login is disabled. Please use Single Sign-On." });
-    }
-  });
+  // Demo login endpoint removed - no longer supported
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
