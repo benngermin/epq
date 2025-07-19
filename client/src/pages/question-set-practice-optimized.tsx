@@ -118,27 +118,27 @@ export default function QuestionSetPractice() {
         const questionSet = await questionSetRes.json();
         const questions = await questionsRes.json();
 
-      // Fetch course and question sets info
-      const courseRes = await fetch(`/api/courses/${questionSet.courseId}`, { credentials: "include" });
-      const questionSetsRes = await fetch(`/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
+        // Fetch course and question sets info
+        const courseRes = await fetch(`/api/courses/${questionSet.courseId}`, { credentials: "include" });
+        const questionSetsRes = await fetch(`/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
 
-      const course = courseRes.ok ? await courseRes.json() : null;
-      const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
+        const course = courseRes.ok ? await courseRes.json() : null;
+        const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
 
-      debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
-      
-      // Check for any issues with questions around #36
-      const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
-      if (questionAround36) {
-        debugLog('Question 36 details:', {
-          id: questionAround36.id,
-          originalNumber: questionAround36.originalQuestionNumber,
-          hasLatestVersion: !!questionAround36.latestVersion,
-          latestVersionDetails: questionAround36.latestVersion
-        });
-      }
-      
-      return { questionSet, questions, course, courseQuestionSets };
+        debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
+        
+        // Check for any issues with questions around #36
+        const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
+        if (questionAround36) {
+          debugLog('Question 36 details:', {
+            id: questionAround36.id,
+            originalNumber: questionAround36.originalQuestionNumber,
+            hasLatestVersion: !!questionAround36.latestVersion,
+            latestVersionDetails: questionAround36.latestVersion
+          });
+        }
+        
+        return { questionSet, questions, course, courseQuestionSets };
       } catch (error) {
         debugError("Error loading practice data", error);
         throw error;
