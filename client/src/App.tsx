@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./hooks/use-auth";
 import { QuestionProvider } from "./contexts/question-context";
 import { ProtectedRoute } from "./lib/protected-route";
+import { AdminProtectedRoute } from "./lib/admin-protected-route";
 
 // Lazy load pages for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -36,7 +37,7 @@ function Router() {
         <ProtectedRoute path="/dashboard" component={Dashboard} />
         <ProtectedRoute path="/test/:runId" component={TestPlayer} />
         <ProtectedRoute path="/question-set/:id" component={QuestionSetPractice} />
-        <ProtectedRoute path="/admin" component={AdminPanel} />
+        <AdminProtectedRoute path="/admin" component={AdminPanel} />
         <ProtectedRoute path="/debug" component={Debug} />
         <Route path="/auth" component={AuthPage} />
         <Route component={NotFound} />
