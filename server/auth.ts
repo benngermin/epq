@@ -124,30 +124,24 @@ export function setupAuth(app: Express) {
     throw new Error('Cognito SSO configuration is required but missing');
   }
 
-  // Local authentication strategy
+  // Local authentication strategy - now available for admin users only
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      // In development, allow local auth as a bypass
-      if (process.env.NODE_ENV === 'development') {
-        try {
-          const user = await storage.getUserByEmail(email);
-          if (!user) {
-            return done(null, false);
-          }
-          
-          const isValid = await comparePasswords(password, user.password);
-          if (!isValid) {
-            return done(null, false);
-          }
-          
-          return done(null, user);
-        } catch (err) {
-          return done(err);
+      try {
+        const user = await storage.getUserByEmail(email);
+        if (!user || !user.password) {
+          return done(null, false);
         }
+        
+        const isValid = await comparePasswords(password, user.password);
+        if (!isValid) {
+          return done(null, false);
+        }
+        
+        return done(null, user);
+      } catch (err) {
+        return done(err);
       }
-      
-      // In production, SSO only
-      return done(null, false);
     }),
   );
 
@@ -181,21 +175,23 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    if (process.env.NODE_ENV === 'development') {
-      passport.authenticate("local", (err: any, user: any, info: any) => {
+  app.post("/api/login", async (req, res, next) => {
+    passport.authenticate("local", async (err: any, user: any, info: any) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Check if user is admin - only admins can use non-SSO login
+      if (!user.isAdmin) {
+        return res.status(403).json({ message: "Non-SSO login is restricted to admin users only. Please use Single Sign-On." });
+      }
+      
+      req.login(user, (err) => {
         if (err) return next(err);
-        if (!user) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-        req.login(user, (err) => {
-          if (err) return next(err);
-          res.json(user);
-        });
-      })(req, res, next);
-    } else {
-      res.status(403).json({ message: "Local login is disabled. Please use Single Sign-On." });
-    }
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/demo-login", async (req, res, next) => {
@@ -253,10 +249,9 @@ export function setupAuth(app: Express) {
 
   // Authentication configuration endpoint
   app.get("/api/auth/config", (req, res) => {
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const hasLocalAuth = isDevelopment; // Enabled in development only
+    const hasLocalAuth = true; // Available but restricted to admins
     const hasCognitoSSO = true; // Always available
-    const ssoRequired = !isDevelopment; // SSO required in production only
+    const ssoRequired = false; // SSO not strictly required since admins can use local auth
     
     res.json({
       hasLocalAuth,
@@ -264,6 +259,7 @@ export function setupAuth(app: Express) {
       ssoRequired,
       cognitoLoginUrl: '/auth/cognito',
       cognitoDomain: cognitoDomain || null,
+      localAuthAdminOnly: true, // New flag to indicate local auth is admin-only
     });
   });
 

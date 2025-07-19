@@ -1,15 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Shield, AlertCircle } from "lucide-react";
+import { Shield, AlertCircle, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 export default function AuthPage() {
-  const { user, authConfig, demoLoginMutation } = useAuth();
+  const { user, authConfig, loginMutation } = useAuth();
   const [, setLocation] = useLocation();
   const searchParams = useSearch();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   
   // Parse error from URL params
   const urlParams = new URLSearchParams(searchParams);
@@ -57,10 +63,18 @@ export default function AuthPage() {
 
 
 
-  const onDemoLogin = () => {
-    demoLoginMutation.mutate(undefined, {
-      onSuccess: () => setLocation("/"),
-    });
+  const onLocalLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate(
+      { email, password },
+      {
+        onSuccess: () => setLocation("/"),
+        onError: (error: any) => {
+          // Show error message
+          console.error("Login failed:", error);
+        }
+      }
+    );
   };
 
   // Show loading state while redirecting to SSO (production only)
@@ -96,15 +110,6 @@ export default function AuthPage() {
         )}
 
         <div className="mb-6 space-y-3">
-          <Button 
-            onClick={onDemoLogin}
-            variant="default"
-            className="w-full"
-            disabled={demoLoginMutation.isPending}
-          >
-            {demoLoginMutation.isPending ? "Signing in..." : "Quick Demo Access"}
-          </Button>
-          
           {authConfig?.hasCognitoSSO && (
             <Button 
               onClick={() => {
@@ -128,14 +133,85 @@ export default function AuthPage() {
                 
                 window.location.href = ssoUrl;
               }}
-              variant="outline"
+              variant="default"
               className="w-full"
             >
               <Shield className="w-4 h-4 mr-2" />
               Sign in with Single Sign-On
             </Button>
           )}
+
+          {authConfig?.hasLocalAuth && !showAdminLogin && (
+            <Button 
+              onClick={() => setShowAdminLogin(true)}
+              variant="outline"
+              className="w-full"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Admin Login
+            </Button>
+          )}
         </div>
+
+        {showAdminLogin && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Login</CardTitle>
+              <CardDescription>
+                Non-SSO login is restricted to admin users only
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onLocalLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                {loginMutation.isError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {loginMutation.error?.message || "Invalid email or password"}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                </Button>
+                <Button 
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowAdminLogin(false)}
+                >
+                  Back
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
 
       </div>

@@ -30,10 +30,13 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 ## Key Components
 
 ### Authentication System
+- Dual authentication support: AWS Cognito SSO (primary) and local authentication (admin-only)
 - Session-based authentication using Passport.js
 - Password hashing with Node.js crypto (scrypt)
 - Role-based access control (admin/user roles)
-- Secure session configuration with proper cookie settings
+- Secure session configuration with PostgreSQL session store
+- **Important**: Non-SSO login is restricted to admin users only
+- Admin users: benn@modia.ai, perzi@theinstitutes.org, shean@theinstitutes.org
 
 ### Question Management
 - Hierarchical structure: Courses → Question Sets → Questions → Question Versions
@@ -64,7 +67,13 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 - Course and question set management
 - User management and role assignment
 - AI configuration and prompt management
-- Question import functionality
+- Question import functionality with two methods:
+  - JSON file import for individual question sets
+  - **Bubble API Integration**: Bulk import from ti-content-repository.bubbleapps.io
+    - Supports filtering by course number
+    - Batch selection and import of multiple question sets
+    - Automatic course creation if not exists
+    - Uses Bearer token authentication (BUBBLE_API_KEY environment variable)
 
 ## Data Flow
 
