@@ -934,6 +934,7 @@ export default function AdminPanel() {
                             </Form>
                           </DialogContent>
                         </Dialog>
+                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
