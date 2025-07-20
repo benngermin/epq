@@ -132,10 +132,10 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
       // Find or create course
       let course = await storage.getCourseByExternalId(courseNumber);
       if (!course) {
-        console.log(`  📚 Creating new course: ${courseNumber} - ${courseTitle}`);
+        console.log(`  📚 Creating new course: ${courseNumber}`);
         course = await storage.createCourse({
-          title: courseTitle,
-          description: `${courseNumber} - Imported from Bubble repository`,
+          title: courseNumber, // Use only course number as title
+          description: `${courseTitle} - Imported from Bubble repository`,
           externalId: courseNumber
         });
       } else {
