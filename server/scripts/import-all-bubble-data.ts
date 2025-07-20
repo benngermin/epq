@@ -18,6 +18,45 @@ if (!BUBBLE_API_KEY) {
 
 const storage = new DatabaseStorage();
 
+// Cache for course mappings
+const courseCache = new Map<string, any>();
+
+async function fetchCoursesFromBubble() {
+  console.log('📚 Fetching courses from Bubble repository...');
+  
+  try {
+    const url = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
+    const headers = {
+      "Authorization": `Bearer ${BUBBLE_API_KEY}`,
+      "Content-Type": "application/json"
+    };
+
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch courses: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const courses = data.response?.results || [];
+    
+    console.log(`✅ Found ${courses.length} courses`);
+    
+    // Build course cache
+    courses.forEach((course: any) => {
+      courseCache.set(course._id, {
+        courseNumber: course["course number"] || course.course_number,
+        courseTitle: course["course title"] || course.course_title || course.title
+      });
+    });
+    
+    return courses;
+  } catch (error) {
+    console.error('❌ Error fetching courses:', error);
+    throw error;
+  }
+}
+
 async function fetchAllQuestionSetsFromBubble() {
   console.log('🔍 Fetching all question sets from Bubble repository...');
   
@@ -75,24 +114,28 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
     try {
       console.log(`\n📋 Processing: ${bubbleQuestionSet.title || bubbleQuestionSet._id}`);
       
-      // Extract course information
-      const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
-      const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
+      // Extract course information - based on the screenshot, course is a direct field
+      const courseBubbleId = bubbleQuestionSet.course;
       
-      if (!courseNumber) {
-        console.log(`⚠️  Skipping question set without course number: ${bubbleQuestionSet.title}`);
-        importResults.errors.push(`No course number for: ${bubbleQuestionSet.title}`);
+      if (!courseBubbleId) {
+        console.log(`⚠️  Skipping question set without course: ${bubbleQuestionSet.title}`);
+        importResults.errors.push(`No course for: ${bubbleQuestionSet.title}`);
         importResults.failed++;
         continue;
       }
 
+      // Get course info from cache
+      const courseInfo = courseCache.get(courseBubbleId);
+      const courseNumber = courseInfo?.courseNumber || courseBubbleId;
+      const courseTitle = courseInfo?.courseTitle || courseNumber;
+
       // Find or create course
       let course = await storage.getCourseByExternalId(courseNumber);
       if (!course) {
-        console.log(`  📚 Creating new course: ${courseTitle} (${courseNumber})`);
+        console.log(`  📚 Creating new course: ${courseNumber} - ${courseTitle}`);
         course = await storage.createCourse({
           title: courseTitle,
-          description: `Imported from Bubble repository`,
+          description: `${courseNumber} - Imported from Bubble repository`,
           externalId: courseNumber
         });
       } else {
@@ -123,14 +166,40 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
       });
       console.log(`  ✓ Created question set: ${questionSet.title}`);
 
-      // Import questions if they exist
-      if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
-        console.log(`  📝 Importing ${bubbleQuestionSet.questions.length} questions...`);
+      // Import questions if they exist in content field
+      let questionsData = null;
+      
+      // Try to parse questions from content field
+      if (bubbleQuestionSet.content) {
+        try {
+          // The content field might be a JSON string containing questions
+          if (typeof bubbleQuestionSet.content === 'string') {
+            const parsedContent = JSON.parse(bubbleQuestionSet.content);
+            if (parsedContent.questions) {
+              questionsData = parsedContent.questions;
+            } else if (Array.isArray(parsedContent)) {
+              questionsData = parsedContent;
+            }
+          } else if (bubbleQuestionSet.content.questions) {
+            questionsData = bubbleQuestionSet.content.questions;
+          }
+        } catch (e) {
+          console.log(`  ⚠️  Could not parse content field for questions`);
+        }
+      }
+      
+      // Fallback to questions field if it exists
+      if (!questionsData && bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
+        questionsData = bubbleQuestionSet.questions;
+      }
+      
+      if (questionsData && Array.isArray(questionsData) && questionsData.length > 0) {
+        console.log(`  📝 Importing ${questionsData.length} questions...`);
         
-        const questionImports = bubbleQuestionSet.questions.map((q: any, index: number) => ({
+        const questionImports = questionsData.map((q: any, index: number) => ({
           question_number: q.question_number || q.number || (index + 1),
           type: q.type || "multiple_choice",
-          loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
+          loid: q.loid || "unknown",
           versions: [{
             version_number: 1,
             topic_focus: q.topic_focus || bubbleQuestionSet.title || "General",
@@ -150,7 +219,7 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
         
         // Update question count
         await storage.updateQuestionSetCount(questionSet.id);
-        console.log(`  ✓ Imported ${bubbleQuestionSet.questions.length} questions`);
+        console.log(`  ✓ Imported ${questionsData.length} questions`);
       } else {
         console.log(`  ℹ️  No questions found in this question set`);
       }
@@ -174,7 +243,10 @@ async function main() {
   console.log('============================================\n');
   
   try {
-    // Step 1: Fetch all question sets from Bubble
+    // Step 1: Fetch all courses from Bubble
+    await fetchCoursesFromBubble();
+    
+    // Step 2: Fetch all question sets from Bubble
     const bubbleQuestionSets = await fetchAllQuestionSetsFromBubble();
     
     if (bubbleQuestionSets.length === 0) {
