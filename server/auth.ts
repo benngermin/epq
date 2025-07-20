@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
 
 declare global {
@@ -183,6 +183,9 @@ export function setupAuth(app: Express) {
       }
 
       const userInsert = insertUserSchema.parse(req.body);
+      if (!userInsert.password) {
+        return res.status(400).json({ message: "Password is required for local registration" });
+      }
       const hashedPassword = await hashPassword(userInsert.password);
       const user = await storage.createUser({
         ...userInsert,

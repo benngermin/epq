@@ -596,7 +596,11 @@ export default function QuestionSetPractice() {
               <Checkbox
                 id="agree-terms"
                 checked={agreedToTerms}
-                onCheckedChange={setAgreedToTerms}
+                onCheckedChange={(checked) => {
+                  if (typeof checked === 'boolean') {
+                    setAgreedToTerms(checked);
+                  }
+                }}
               />
               <label 
                 htmlFor="agree-terms" 

@@ -23,6 +23,7 @@ import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { ChatbotLogsSection } from "@/components/chatbot-logs-section";
+import type { AiSettings, PromptVersion } from "@shared/schema";
 
 
 
@@ -50,12 +51,12 @@ function AISettingsSection() {
   const queryClient = useQueryClient();
   
   // Query for AI settings
-  const { data: aiSettings, isLoading: aiSettingsLoading } = useQuery({
+  const { data: aiSettings, isLoading: aiSettingsLoading } = useQuery<AiSettings>({
     queryKey: ["/api/admin/ai-settings"],
   });
 
   // Query for active prompt
-  const { data: activePrompt, isLoading: promptLoading } = useQuery({
+  const { data: activePrompt, isLoading: promptLoading } = useQuery<PromptVersion>({
     queryKey: ["/api/admin/active-prompt"],
   });
 
@@ -266,7 +267,13 @@ function BubbleImportSection() {
     try {
       const params = courseNumber ? `?courseNumber=${courseNumber}` : '';
       const response = await apiRequest("GET", `/api/admin/bubble/question-sets${params}`);
-      const data = await response.json();
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error("Invalid response format from server");
+      }
       
       if (data.response && data.response.results) {
         setQuestionSets(data.response.results);
@@ -278,7 +285,7 @@ function BubbleImportSection() {
     } catch (error) {
       toast({
         title: "Failed to fetch question sets",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     } finally {
@@ -302,7 +309,13 @@ function BubbleImportSection() {
       const response = await apiRequest("POST", "/api/admin/bubble/import-question-sets", {
         questionSets: selectedQuestionSets
       });
-      const result = await response.json();
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        throw new Error("Invalid response format from server");
+      }
       
       toast({
         title: "Import completed",
@@ -318,7 +331,7 @@ function BubbleImportSection() {
     } catch (error) {
       toast({
         title: "Import failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     } finally {

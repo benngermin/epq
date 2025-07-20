@@ -11,6 +11,7 @@ import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } 
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import type { Course, QuestionSet } from "@shared/schema";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -18,18 +19,18 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
 
-  const { data: courses, isLoading } = useQuery({
+  const { data: courses = [], isLoading } = useQuery<(Course & { questionSets: QuestionSet[] })[]>({
     queryKey: ["/api/courses"],
   });
 
   // Get courses that have at least one question set
-  const coursesWithQuestionSets = courses?.filter((course: any) => 
+  const coursesWithQuestionSets = courses.filter((course) => 
     course.questionSets && course.questionSets.length > 0
-  ) || [];
+  );
 
   // Get question sets for selected course
   const selectedCourseData = selectedCourse 
-    ? coursesWithQuestionSets.find((c: any) => c.id === selectedCourse)
+    ? coursesWithQuestionSets.find((c) => c.id === selectedCourse)
     : null;
 
   const startTestMutation = useMutation({
