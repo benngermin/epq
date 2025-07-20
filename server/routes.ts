@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions 
+  promptVersions, questionSets, courses
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";

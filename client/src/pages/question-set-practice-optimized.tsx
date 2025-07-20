@@ -52,36 +52,9 @@ export default function QuestionSetPractice() {
 
   const questionSetId = parseInt(params?.id || "0");
 
-  // Clear any stale cache on mount to prevent optimized endpoint errors
+  // Initialize chat on mount
   useEffect(() => {
-    // Remove ALL queries to ensure no stale optimized endpoints exist
-    queryClient.getQueryCache().getAll().forEach(query => {
-      const key = query.queryKey;
-      if (Array.isArray(key) && key.some(k => typeof k === 'string' && k.includes('optimized'))) {
-        queryClient.removeQueries({ queryKey: key, exact: true });
-      }
-    });
-    
-    // Clear all potential cache sources
-    queryClient.removeQueries({ queryKey: ["/api/question-sets", questionSetId, "optimized"] });
-    queryClient.removeQueries({ queryKey: [`/api/question-sets/${questionSetId}/optimized`] });
-    
-    // Clear only optimized-related storage
-    if (typeof window !== 'undefined') {
-      try {
-        // Clear specific localStorage items
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.includes('optimized')) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-      } catch (e) {
-        console.error('Failed to clear storage:', e);
-      }
-    }
+    setChatResetTimestamp(Date.now());
   }, [questionSetId]);
 
   // Combine all data fetching into a single query for better performance

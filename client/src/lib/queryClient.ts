@@ -41,38 +41,12 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
-// Immediately override fetch before any other code can use it
-if (typeof window !== 'undefined') {
-  const originalFetch = window.fetch;
-  window.fetch = function(...args) {
-    const url = args[0];
-    if (typeof url === 'string' && url.includes('/optimized')) {
-      console.error('Blocking request to optimized endpoint:', url);
-      console.trace('Stack trace for optimized endpoint request');
-      // Return a rejected promise instead of making the request
-      return Promise.reject(new Error('Optimized endpoint does not exist. Please refresh the page.'));
-    }
-    return originalFetch.apply(this, args);
-  };
-}
+
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: async ({ queryKey }) => {
-        // Intercept and redirect optimized endpoint queries
-        if (Array.isArray(queryKey) && queryKey[0] && typeof queryKey[0] === 'string') {
-          const url = queryKey[0];
-          if (url.includes('/optimized')) {
-            console.error('Intercepted optimized query:', url);
-            // Redirect to non-optimized endpoint
-            const redirectedUrl = url.replace('/optimized', '');
-            const newQueryKey = [redirectedUrl, ...queryKey.slice(1)];
-            return getQueryFn({ on401: "throw" })({ queryKey: newQueryKey });
-          }
-        }
-        return getQueryFn({ on401: "throw" })({ queryKey });
-      },
+      queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 30 * 60 * 1000, // Increased to 30 minutes for better caching
@@ -81,7 +55,7 @@ export const queryClient = new QueryClient({
         // Don't retry on 401/403/404 errors
         if (error && typeof error === 'object' && 'message' in error) {
           const message = String(error.message);
-          if (message.includes('401') || message.includes('403') || message.includes('404') || message.includes('optimized')) {
+          if (message.includes('401') || message.includes('403') || message.includes('404')) {
             return false;
           }
         }
