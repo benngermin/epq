@@ -322,8 +322,16 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Right - Question Set Dropdown */}
-            <div className="flex-1 flex justify-end items-center">
+            {/* Right - Dashboard Button and Question Set Dropdown */}
+            <div className="flex-1 flex justify-end items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation("/dashboard")}
+                className="hidden sm:flex items-center gap-2"
+              >
+                <GraduationCap className="h-4 w-4" />
+                Dashboard
+              </Button>
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => {
@@ -349,8 +357,8 @@ export default function QuestionSetPractice() {
       </nav>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Mobile Control Button */}
-        <div className="lg:hidden absolute top-24 left-4 z-10">
+        {/* Mobile Control Buttons */}
+        <div className="lg:hidden absolute top-24 left-4 right-4 z-10 flex justify-between">
           <Button
             variant="outline"
             size="sm"
@@ -359,6 +367,15 @@ export default function QuestionSetPractice() {
           >
             <PanelLeft className="h-4 w-4" />
             Progress ({Object.keys(userAnswers).length}/{questions.length})
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setLocation("/dashboard")}
+            className="flex items-center gap-2 sm:hidden"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Dashboard
           </Button>
         </div>
 
