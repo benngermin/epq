@@ -23,6 +23,14 @@ export default function Dashboard() {
     queryKey: ["/api/courses"],
   });
 
+  // Debug logging
+  console.log("Total courses fetched:", courses.length);
+  console.log("Courses with question sets:", courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => ({
+    id: c.id,
+    title: c.title,
+    questionSetCount: c.questionSets.length
+  })));
+
   // Get courses that have at least one question set
   const coursesWithQuestionSets = courses.filter((course) => 
     course.questionSets && course.questionSets.length > 0
