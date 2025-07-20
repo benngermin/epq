@@ -177,14 +177,16 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
-- July 20, 2025: Removed System Debug page from admin interface and updated course titles
-  - Removed Debug tab and its content from admin panel for cleaner UI
+- July 20, 2025: Fixed multiple issues with courses and question sets
+  - Removed System Debug page from admin interface for cleaner UI
   - Changed tabs grid from 5 columns to 4 columns
-  - Removed Debug component imports and lazy loading code
-  - Admin panel now only shows: Content Management, Import & Upload, Chatbot, and Logs tabs
-  - Updated all course titles to use only course numbers (e.g., "CPCU 500" instead of "CPCU 500 - Becoming a Leader...")
+  - Updated all course titles to use only course numbers (e.g., "CPCU 500" instead of Bubble IDs)
+  - Consolidated duplicate courses by moving question sets to original courses
+  - Fixed missing `/api/admin/questions/:id` endpoint for viewing questions in admin panel
+  - Added `/api/admin/all-question-sets` endpoint for fetching all question sets
+  - Updated all question set titles to include course prefix (e.g., "CPCU 500: Question Set 1")
   - Fixed import script to create courses with course numbers as titles
-  - All courses now display consistently with just their course numbers
+  - All 16 courses now display consistently with proper course numbers and no duplicates
 - July 17, 2025: Fixed "Error Loading Questions" JSON parsing error on sign-in
   - Identified issue with non-existent `/api/question-sets/7/optimized` endpoint returning HTML instead of JSON
   - Added proper 404 JSON error handler for unmatched API routes in server/index.ts

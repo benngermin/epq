@@ -1656,6 +1656,26 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Admin routes
+  app.get("/api/admin/all-question-sets", requireAdmin, async (req, res) => {
+    try {
+      const allQuestionSets = await db
+        .select({
+          id: questionSets.id,
+          title: questionSets.title,
+          courseId: questionSets.courseId,
+          courseTitle: courses.title
+        })
+        .from(questionSets)
+        .leftJoin(courses, eq(questionSets.courseId, courses.id))
+        .orderBy(questionSets.courseId, questionSets.title);
+      
+      res.json(allQuestionSets);
+    } catch (error) {
+      console.error("Error fetching all question sets:", error);
+      res.status(500).json({ message: "Failed to fetch all question sets" });
+    }
+  });
+
   app.get("/api/admin/courses", requireAdmin, async (req, res) => {
     try {
       const courses = await storage.getAllCourses();
@@ -1687,6 +1707,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Support both URL parameter and query parameter for backward compatibility
   app.get("/api/admin/questions", requireAdmin, async (req, res) => {
     try {
       const questionSetId = req.query.questionSetId;
@@ -1696,6 +1717,41 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       const questions = await storage.getQuestionsByQuestionSet(parseInt(questionSetId as string));
+      
+      // Get the latest version for each question to display
+      const questionsWithVersions = await Promise.all(
+        questions.map(async (question) => {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          const latestVersion = versions[versions.length - 1]; // Get latest version
+          
+          return {
+            id: question.id,
+            originalQuestionNumber: question.originalQuestionNumber,
+            loid: question.loid,
+            questionText: latestVersion?.questionText || '',
+            answerChoices: latestVersion?.answerChoices || [],
+            correctAnswer: latestVersion?.correctAnswer || '',
+            topicFocus: latestVersion?.topicFocus || '',
+          };
+        })
+      );
+      
+      res.json(questionsWithVersions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  app.get("/api/admin/questions/:questionSetId", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questions = await storage.getQuestionsByQuestionSet(questionSetId);
       
       // Get the latest version for each question to display
       const questionsWithVersions = await Promise.all(
