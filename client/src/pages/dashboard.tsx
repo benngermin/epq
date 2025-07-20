@@ -5,20 +5,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
 import { GraduationCap, LogOut, BookOpen, Shield, Settings, ChevronDown, User } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
 
   const { data: courses, isLoading } = useQuery({
     queryKey: ["/api/courses"],
   });
+
+  // Get courses that have at least one question set
+  const coursesWithQuestionSets = courses?.filter((course: any) => 
+    course.questionSets && course.questionSets.length > 0
+  ) || [];
+
+  // Get question sets for selected course
+  const selectedCourseData = selectedCourse 
+    ? coursesWithQuestionSets.find((c: any) => c.id === selectedCourse)
+    : null;
 
   const startTestMutation = useMutation({
     mutationFn: async (testId: number) => {
@@ -135,7 +147,77 @@ export default function Dashboard() {
       </nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Courses</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">My Courses</h1>
+          
+          {/* Course and Question Set Selection */}
+          {coursesWithQuestionSets.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-4 p-4 bg-accent rounded-lg border">
+              {/* Course Dropdown */}
+              <div className="flex-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      {selectedCourse && selectedCourseData 
+                        ? selectedCourseData.title 
+                        : "Select a Course"}
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-full">
+                    <DropdownMenuLabel>Available Courses</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {coursesWithQuestionSets.map((course: any) => (
+                      <DropdownMenuItem 
+                        key={course.id}
+                        onClick={() => setSelectedCourse(course.id)}
+                        className="cursor-pointer"
+                      >
+                        {course.title}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Question Set Dropdown */}
+              {selectedCourseData && (
+                <div className="flex-1">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        Select Question Set
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-full">
+                      <DropdownMenuLabel>Question Sets</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {selectedCourseData.questionSets
+                        .sort((a: any, b: any) => {
+                          const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+                          const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+                          return aNum - bNum;
+                        })
+                        .map((questionSet: any) => (
+                          <DropdownMenuItem 
+                            key={questionSet.id}
+                            onClick={() => setLocation(`/question-set/${questionSet.id}`)}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex flex-col">
+                              <span>{questionSet.title}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {questionSet.questionCount} questions
+                              </span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {!courses || !Array.isArray(courses) || courses.length === 0 ? (

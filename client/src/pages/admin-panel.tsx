@@ -344,6 +344,9 @@ function BubbleImportSection() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Click "Update Question Sets" to fetch the latest question sets from Bubble. Any new question sets added in Bubble since your last update will be imported automatically.
+      </p>
       <div className="flex gap-2">
         <Input
           placeholder="Course number (optional)"
@@ -352,7 +355,7 @@ function BubbleImportSection() {
           className="flex-1"
         />
         <Button onClick={fetchQuestionSets} disabled={loading}>
-          {loading ? "Fetching..." : "Fetch Question Sets"}
+          {loading ? "Updating..." : "Update Question Sets"}
         </Button>
       </div>
 
