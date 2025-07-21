@@ -503,7 +503,12 @@ export function registerRoutes(app: Express): Server {
       }
       
       // Convert map back to array of unique courses
-      const uniqueCourses = Array.from(courseMap.values());
+      const uniqueCourses = Array.from(courseMap.values()).filter(course => {
+        // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
+        const hasStandardName = course.title.match(/^(CPCU|AIC)\s+\d+/) || 
+                               (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
+        return hasStandardName;
+      });
       
       const coursesWithProgress = await Promise.all(
         uniqueCourses.map(async (course) => {
