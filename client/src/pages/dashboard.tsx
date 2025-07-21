@@ -23,14 +23,7 @@ export default function Dashboard() {
     queryKey: ["/api/courses"],
   });
 
-  // Debug logging
-  console.log("Dashboard - Total courses fetched:", courses.length);
-  console.log("Dashboard - Raw courses data:", courses);
-  console.log("Dashboard - Courses with question sets:", courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => ({
-    id: c.id,
-    title: c.title,
-    questionSetCount: c.questionSets.length
-  })));
+
 
   // Get courses that have at least one question set
   const coursesWithQuestionSets = courses.filter((course) => 
@@ -168,7 +161,7 @@ export default function Dashboard() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full justify-between">
                       {selectedCourse && selectedCourseData 
-                        ? selectedCourseData.title 
+                        ? selectedCourseData.title.split(':')[0].trim() 
                         : "Select a Course"}
                       <ChevronDown className="h-4 w-4 ml-2" />
                     </Button>
@@ -182,7 +175,7 @@ export default function Dashboard() {
                         onClick={() => setSelectedCourse(course.id)}
                         className="cursor-pointer"
                       >
-                        {course.title}
+                        {course.title.split(':')[0].trim()}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -215,7 +208,7 @@ export default function Dashboard() {
                             className="cursor-pointer"
                           >
                             <div className="flex flex-col">
-                              <span>{questionSet.title}</span>
+                              <span>{questionSet.title.includes(':') ? questionSet.title.split(':')[1].trim() : questionSet.title}</span>
                               <span className="text-xs text-muted-foreground">
                                 {questionSet.questionCount} questions
                               </span>
@@ -226,10 +219,6 @@ export default function Dashboard() {
                   </DropdownMenu>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
-              <p className="text-yellow-800">No courses with question sets found. Debugging info is in console.</p>
             </div>
           )}
         </div>

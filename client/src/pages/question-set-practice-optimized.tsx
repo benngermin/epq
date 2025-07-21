@@ -50,7 +50,6 @@ export default function QuestionSetPractice() {
   const [showBeginDialog, setShowBeginDialog] = useState(true);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
 
   const questionSetId = parseInt(params?.id || "0");
 
@@ -59,32 +58,7 @@ export default function QuestionSetPractice() {
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
 
-  // Fetch courses with question sets
-  const { data: coursesWithQuestionSets, isLoading: coursesLoading, error: coursesError } = useQuery<Course[]>({
-    queryKey: ["/api/courses/with-question-sets"],
-    queryFn: async () => {
-      console.log('Fetching courses with question sets...');
-      const response = await fetch("/api/courses/with-question-sets", { credentials: "include" });
-      if (!response.ok) {
-        console.error('Failed to fetch courses:', response.status);
-        throw new Error("Failed to fetch courses");
-      }
-      const data = await response.json();
-      console.log('Courses with question sets:', data);
-      return data;
-    },
-    enabled: !!user,
-  });
-  
-  // Log the courses data
-  useEffect(() => {
-    console.log('Courses data state:', { 
-      coursesWithQuestionSets, 
-      coursesLoading, 
-      coursesError,
-      selectedCourseId 
-    });
-  }, [coursesWithQuestionSets, coursesLoading, coursesError, selectedCourseId]);
+
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
@@ -150,12 +124,7 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // Set selected course when data loads
-  useEffect(() => {
-    if (practiceData?.course?.id && !selectedCourseId) {
-      setSelectedCourseId(practiceData.course.id.toString());
-    }
-  }, [practiceData?.course, selectedCourseId]);
+
 
 
 
@@ -371,36 +340,7 @@ export default function QuestionSetPractice() {
                 Dashboard
               </Button>
               
-              {/* Course Dropdown */}
-              <div className="bg-yellow-200 p-1 rounded"> {/* Debug wrapper */}
-                <Select
-                  value={selectedCourseId}
-                  onValueChange={(value) => {
-                    setSelectedCourseId(value);
-                    // When course changes, navigate to the first question set of that course
-                    fetch(`/api/courses/${value}/question-sets`, { credentials: "include" })
-                      .then(res => res.json())
-                      .then(questionSets => {
-                        if (questionSets && questionSets.length > 0) {
-                          // Navigate to the first question set
-                          queryClient.removeQueries({ queryKey: ["/api/practice-data", questionSets[0].id] });
-                          setLocation(`/question-set/${questionSets[0].id}`);
-                        }
-                      });
-                  }}
-                >
-                  <SelectTrigger className="w-[240px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder={coursesLoading ? "Loading courses..." : "Select a course"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {coursesWithQuestionSets?.map((course: Course) => (
-                      <SelectItem key={course.id} value={course.id.toString()}>
-                        {course.title}
-                      </SelectItem>
-                    )) || []}
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               {/* Question Set Dropdown */}
               <Select

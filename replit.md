@@ -177,13 +177,13 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
-- July 21, 2025: Enhanced course and question set selection
-  - Added new API endpoint `/api/courses/with-question-sets` to fetch only courses that have question sets with questions
-  - Updated question practice interface to have two dropdowns: one for courses and one for question sets
-  - Course dropdown now shows only courses that have available question sets (questionCount > 0)
-  - When user selects a different course, the interface automatically loads the first question set of that course
-  - Added `getCoursesWithQuestionSets` method to storage interface for efficient filtering
-  - Course selection is now synchronized with the current question set for better UX
+- July 21, 2025: Simplified course and question set selection interface
+  - Removed redundant course dropdown from practice page (was showing duplicate dropdowns)
+  - Enhanced dashboard dropdowns to show only course numbers (e.g., "CPCU 500" instead of full titles)
+  - Question set dropdown now shows simplified names without course prefix (e.g., "Question Set 1" instead of "CPCU 500: Question Set 1")
+  - Fixed dropdown placement so course selection is on dashboard page only
+  - Maintained two-dropdown system: select course first, then question set appears
+  - Clean, consistent UI without debugging elements or duplicate controls
 - July 20, 2025: Fixed multiple issues with courses and question sets
   - Removed System Debug page from admin interface for cleaner UI
   - Changed tabs grid from 5 columns to 4 columns
