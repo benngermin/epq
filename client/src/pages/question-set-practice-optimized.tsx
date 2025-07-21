@@ -320,7 +320,22 @@ export default function QuestionSetPractice() {
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course?.title || "Loading..."}
               >
-                {course?.title?.match(/^(CPCU|AIC)\s+\d+/)?.[0] || course?.title?.split(':')[0].trim() || "Loading..."}
+                {(() => {
+                  if (!course?.title) return "Loading...";
+                  
+                  // Check if title already starts with course number
+                  const directMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+                  if (directMatch) return directMatch;
+                  
+                  // Check external ID for course number
+                  if (course.externalId) {
+                    const externalIdMatch = course.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
+                    if (externalIdMatch) return externalIdMatch;
+                  }
+                  
+                  // Fallback to first part of title
+                  return course.title.split(':')[0].trim();
+                })()}
               </h1>
             </div>
             
@@ -364,8 +379,21 @@ export default function QuestionSetPractice() {
                   </SelectTrigger>
                   <SelectContent>
                     {courses?.map((c: any) => {
-                      // Extract course number (e.g., "CPCU 500", "AIC 300") from title
-                      const courseNumber = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0] || c.title.split(':')[0].trim();
+                      // Extract course number from various title formats
+                      let courseNumber = c.title;
+                      
+                      // First check if title already starts with course number
+                      const directMatch = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+                      if (directMatch) {
+                        courseNumber = directMatch;
+                      } else if (c.externalId) {
+                        // Check if externalId contains course number (e.g., "CPCU 500")
+                        const externalIdMatch = c.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
+                        if (externalIdMatch) {
+                          courseNumber = externalIdMatch;
+                        }
+                      }
+                      
                       return (
                         <SelectItem key={c.id} value={c.id.toString()}>
                           {courseNumber}
