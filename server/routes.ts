@@ -522,6 +522,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/courses/with-question-sets", requireAuth, async (req, res) => {
+    try {
+      const courses = await storage.getCoursesWithQuestionSets();
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching courses with question sets:", error);
+      res.status(500).json({ message: "Failed to fetch courses with question sets" });
+    }
+  });
+
   app.get("/api/courses/:id", requireAuth, async (req, res) => {
     try {
       const courseId = parseInt(req.params.id);

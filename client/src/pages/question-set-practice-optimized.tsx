@@ -26,6 +26,7 @@ import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 import { debugLog, debugError } from "@/utils/debug";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AssessmentErrorFallback } from "@/components/assessment-error-fallback";
+import type { Course } from "@shared/schema";
 
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
@@ -49,6 +50,7 @@ export default function QuestionSetPractice() {
   const [showBeginDialog, setShowBeginDialog] = useState(true);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
 
   const questionSetId = parseInt(params?.id || "0");
 
@@ -56,6 +58,12 @@ export default function QuestionSetPractice() {
   useEffect(() => {
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
+
+  // Fetch courses with question sets
+  const { data: coursesWithQuestionSets } = useQuery<Course[]>({
+    queryKey: ["/api/courses/with-question-sets"],
+    enabled: !!user,
+  });
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
@@ -288,6 +296,13 @@ export default function QuestionSetPractice() {
 
   const { questionSet, questions, course, courseQuestionSets } = practiceData;
 
+  // Set selected course when data loads
+  useEffect(() => {
+    if (course?.id && !selectedCourseId) {
+      setSelectedCourseId(course.id.toString());
+    }
+  }, [course, selectedCourseId]);
+
   return (
     <ErrorBoundary 
       fallback={(props) => (
@@ -332,25 +347,61 @@ export default function QuestionSetPractice() {
                 <GraduationCap className="h-4 w-4" />
                 Dashboard
               </Button>
-              <Select
-                value={questionSetId.toString()}
-                onValueChange={(value) => {
-                  // Clear any cached data before navigating
-                  queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
-                  setLocation(`/question-set/${value}`);
-                }}
-              >
-                <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
-                  <SelectValue placeholder="Select a question set" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courseQuestionSets?.map((qs: any) => (
-                    <SelectItem key={qs.id} value={qs.id.toString()}>
-                      {qs.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-3">
+                {/* Course Dropdown */}
+                <Select
+                  value={selectedCourseId}
+                  onValueChange={(value) => {
+                    setSelectedCourseId(value);
+                    // When course changes, navigate to the first question set of that course
+                    const newCourse = coursesWithQuestionSets?.find((c: any) => c.id.toString() === value);
+                    if (newCourse) {
+                      // Fetch question sets for the new course
+                      fetch(`/api/courses/${value}/question-sets`, { credentials: "include" })
+                        .then(res => res.json())
+                        .then(questionSets => {
+                          if (questionSets && questionSets.length > 0) {
+                            // Navigate to the first question set
+                            queryClient.removeQueries({ queryKey: ["/api/practice-data", questionSets[0].id] });
+                            setLocation(`/question-set/${questionSets[0].id}`);
+                          }
+                        });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coursesWithQuestionSets?.map((course: any) => (
+                      <SelectItem key={course.id} value={course.id.toString()}>
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Question Set Dropdown */}
+                <Select
+                  value={questionSetId.toString()}
+                  onValueChange={(value) => {
+                    // Clear any cached data before navigating
+                    queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
+                    setLocation(`/question-set/${value}`);
+                  }}
+                >
+                  <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                    <SelectValue placeholder="Select a question set" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courseQuestionSets?.map((qs: any) => (
+                      <SelectItem key={qs.id} value={qs.id.toString()}>
+                        {qs.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>

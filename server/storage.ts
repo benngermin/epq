@@ -24,6 +24,7 @@ export interface IStorage {
   
   // Course methods
   getAllCourses(): Promise<Course[]>;
+  getCoursesWithQuestionSets(): Promise<Course[]>;
   getCourse(id: number): Promise<Course | undefined>;
   getCourseByExternalId(externalId: string): Promise<Course | undefined>;
   createCourse(course: InsertCourse): Promise<Course>;
@@ -156,6 +157,23 @@ export class DatabaseStorage implements IStorage {
 
   async getAllCourses(): Promise<Course[]> {
     return await db.select().from(courses).orderBy(asc(courses.title));
+  }
+
+  async getCoursesWithQuestionSets(): Promise<Course[]> {
+    // Get courses that have question sets with at least one question
+    const coursesWithQuestionSets = await db
+      .selectDistinct({ 
+        id: courses.id,
+        title: courses.title,
+        description: courses.description,
+        externalId: courses.externalId
+      })
+      .from(courses)
+      .innerJoin(questionSets, eq(questionSets.courseId, courses.id))
+      .where(sql`${questionSets.questionCount} > 0`)
+      .orderBy(asc(courses.title));
+    
+    return coursesWithQuestionSets;
   }
 
   async getCourse(id: number): Promise<Course | undefined> {
