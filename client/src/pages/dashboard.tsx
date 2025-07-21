@@ -56,18 +56,38 @@ export default function Dashboard() {
           targetCourse = foundCourse;
           console.log(`Found course by external ID: ${foundCourse.title}`);
         } else {
-          // If not found, log warning and use first course
-          console.warn(`Course with id '${courseIdParam}' not found. Using first course.`);
-          targetCourse = courses[0];
+          // If not found, log warning and find first course with question sets
+          console.warn(`Course with id '${courseIdParam}' not found. Finding first course with question sets.`);
+          targetCourse = courses.find(course => 
+            course.questionSets && course.questionSets.length > 0
+          ) || courses[0];
         }
       } else {
-        // No course_id parameter, use first course
-        targetCourse = courses[0];
-        console.log('No course_id parameter, using first course');
+        // No course_id parameter, find first course with question sets
+        const courseWithQuestionSets = courses.find(course => 
+          course.questionSets && course.questionSets.length > 0
+        );
+        
+        if (courseWithQuestionSets) {
+          targetCourse = courseWithQuestionSets;
+          console.log(`No course_id parameter, using first course with question sets: ${courseWithQuestionSets.title}`);
+        } else {
+          // Fallback to first course if none have question sets
+          targetCourse = courses[0];
+          console.log('No courses have question sets, using first course');
+        }
       }
       
       // Set current course globally for other components
       (window as any).currentCourse = targetCourse;
+      
+      // Log all courses and their question sets for debugging
+      console.log('All courses with question sets:', courses.map(c => ({
+        id: c.id,
+        title: c.title,
+        externalId: c.externalId,
+        questionSetCount: c.questionSets?.length || 0
+      })));
       
       // Find first question set
       if (targetCourse.questionSets && targetCourse.questionSets.length > 0) {
@@ -89,10 +109,18 @@ export default function Dashboard() {
           courseId: targetCourse.id,
           courseTitle: targetCourse.title,
           hasQuestionSets: !!targetCourse.questionSets,
-          questionSetsArray: targetCourse.questionSets
+          questionSetsArray: targetCourse.questionSets,
+          allCoursesWithQuestionSets: courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => c.title)
         });
-        // Show error state
-        alert('No question sets available for this course. Please contact your administrator.');
+        
+        // Check if any course has question sets
+        const anyCoursesWithQuestionSets = courses.some(c => c.questionSets && c.questionSets.length > 0);
+        
+        if (!anyCoursesWithQuestionSets) {
+          alert('No courses have question sets configured yet. Please contact your administrator to set up practice content.');
+        } else {
+          alert(`The course "${targetCourse.title}" doesn't have any question sets. Please contact your administrator or select a different course.`);
+        }
       }
     }
   }, [coursesLoading, userLoading, courses, setLocation]);
