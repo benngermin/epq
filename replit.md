@@ -185,8 +185,8 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
-- July 21, 2025: Simplified course and question set selection interface
-  - Removed redundant course dropdown from practice page (was showing duplicate dropdowns)
+- July 21, 2025: Fixed duplicate courses and enhanced dropdown functionality
+  - Deduplicated courses in the /api/courses endpoint to prevent showing the same course multiple times
   - Enhanced course dropdowns throughout the app to show only course numbers (e.g., "CPCU 500" instead of full titles)
   - Question set dropdown now shows simplified names without course prefix (e.g., "Question Set 1" instead of "CPCU 500: Question Set 1")
   - Fixed dropdown placement so course selection is on dashboard page only
@@ -194,6 +194,8 @@ Recent Updates:
   - Clean, consistent UI without debugging elements or duplicate controls
   - Updated practice page header to display course numbers only for consistency
   - Course dropdown (admin only) now extracts and displays just the course number from any title format
+  - Fixed question set dropdown to update when course selection changes (admin only)
+  - Identified duplicate courses in database: IDs 1-16 have course numbers, IDs 24-30 have full names with course numbers in external_id field
 - July 20, 2025: Fixed multiple issues with courses and question sets
   - Removed System Debug page from admin interface for cleaner UI
   - Changed tabs grid from 5 columns to 4 columns

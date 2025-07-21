@@ -417,11 +417,19 @@ export default function QuestionSetPractice() {
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
-                  {courseQuestionSets?.map((qs: any) => (
-                    <SelectItem key={qs.id} value={qs.id.toString()}>
-                      {qs.title}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    // For admins, show question sets from the selected course in the course dropdown
+                    // For non-admins, show question sets from the current course
+                    const questionSetsToShow = user?.isAdmin && courses 
+                      ? courses.find(c => c.id === course?.id)?.questionSets || courseQuestionSets
+                      : courseQuestionSets;
+                      
+                    return questionSetsToShow?.map((qs: any) => (
+                      <SelectItem key={qs.id} value={qs.id.toString()}>
+                        {qs.title.replace(/^(CPCU|AIC)\s+\d+:\s*/, '')}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>

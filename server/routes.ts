@@ -469,9 +469,44 @@ export function registerRoutes(app: Express): Server {
   // Course routes
   app.get("/api/courses", requireAuth, async (req, res) => {
     try {
-      const courses = await storage.getAllCourses();
+      const allCourses = await storage.getAllCourses();
+      
+      // Group courses by their course number (extracted from title or external_id)
+      const courseMap = new Map();
+      
+      for (const course of allCourses) {
+        // Extract course number
+        let courseNumber = null;
+        
+        // First check if title starts with course number
+        const titleMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+        if (titleMatch) {
+          courseNumber = titleMatch;
+        } else if (course.externalId) {
+          // Check external ID for course number
+          const externalIdMatch = course.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
+          if (externalIdMatch) {
+            courseNumber = externalIdMatch;
+          }
+        }
+        
+        if (courseNumber) {
+          // If we already have this course number, use the one with question sets
+          const existing = courseMap.get(courseNumber);
+          if (!existing || (await storage.getQuestionSetsByCourse(course.id)).length > 0) {
+            courseMap.set(courseNumber, course);
+          }
+        } else {
+          // Course without standard number, include it with its ID as key
+          courseMap.set(`course_${course.id}`, course);
+        }
+      }
+      
+      // Convert map back to array of unique courses
+      const uniqueCourses = Array.from(courseMap.values());
+      
       const coursesWithProgress = await Promise.all(
-        courses.map(async (course) => {
+        uniqueCourses.map(async (course) => {
           const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const testsWithProgress = await Promise.all(
             practiceTests.map(async (test) => {
@@ -514,6 +549,19 @@ export function registerRoutes(app: Express): Server {
           };
         })
       );
+      
+      // Sort courses to show those with question sets first, then by title
+      coursesWithProgress.sort((a, b) => {
+        // First priority: courses with question sets
+        const aHasQuestionSets = a.questionSets && a.questionSets.length > 0;
+        const bHasQuestionSets = b.questionSets && b.questionSets.length > 0;
+        
+        if (aHasQuestionSets && !bHasQuestionSets) return -1;
+        if (!aHasQuestionSets && bHasQuestionSets) return 1;
+        
+        // Second priority: alphabetical by title
+        return a.title.localeCompare(b.title);
+      });
       
       res.json(coursesWithProgress);
     } catch (error) {
