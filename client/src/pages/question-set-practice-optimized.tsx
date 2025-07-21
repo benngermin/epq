@@ -58,7 +58,11 @@ export default function QuestionSetPractice() {
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
 
-
+  // Fetch all courses for admin dropdown
+  const { data: courses } = useQuery<(Course & { questionSets: any[] })[]>({
+    queryKey: ["/api/courses"],
+    enabled: !!user?.isAdmin, // Only fetch if user is admin
+  });
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
@@ -329,18 +333,44 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Right - Dashboard Button and Dropdowns */}
+            {/* Right - Dropdowns */}
             <div className="flex-1 flex justify-end items-center gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setLocation("/dashboard")}
-                className="hidden sm:flex items-center gap-2"
-              >
-                <GraduationCap className="h-4 w-4" />
-                Dashboard
-              </Button>
-              
-
+              {/* Course Dropdown - Admin Only */}
+              {user?.isAdmin && (
+                <Select
+                  value={course?.id?.toString() || ""}
+                  onValueChange={(value) => {
+                    // Find the selected course
+                    const selectedCourse = courses?.find(c => c.id.toString() === value);
+                    if (selectedCourse && selectedCourse.questionSets && selectedCourse.questionSets.length > 0) {
+                      // Update window.currentCourse
+                      (window as any).currentCourse = selectedCourse;
+                      
+                      // Navigate to the first question set of the new course
+                      const firstQuestionSet = selectedCourse.questionSets
+                        .sort((a, b) => {
+                          const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+                          const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+                          return aNum - bNum;
+                        })[0];
+                      
+                      queryClient.removeQueries({ queryKey: ["/api/practice-data"] });
+                      setLocation(`/question-set/${firstQuestionSet.id}`);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses?.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.title.split(':')[0].trim()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* Question Set Dropdown */}
               <Select
@@ -368,8 +398,8 @@ export default function QuestionSetPractice() {
       </nav>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Mobile Control Buttons */}
-        <div className="lg:hidden absolute top-24 left-4 right-4 z-10 flex justify-between">
+        {/* Mobile Control Button */}
+        <div className="lg:hidden absolute top-24 left-4 z-10">
           <Button
             variant="outline"
             size="sm"
@@ -378,15 +408,6 @@ export default function QuestionSetPractice() {
           >
             <PanelLeft className="h-4 w-4" />
             Progress ({Object.keys(userAnswers).length}/{questions.length})
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setLocation("/dashboard")}
-            className="flex items-center gap-2 sm:hidden"
-          >
-            <GraduationCap className="h-4 w-4" />
-            Dashboard
           </Button>
         </div>
 

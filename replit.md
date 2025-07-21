@@ -157,6 +157,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 21, 2025 7:21 PM: Implemented direct-to-assessment flow with URL parameter based course resolution
+  - Replaced course card dashboard with automatic redirection to first question set
+  - Added URL parameter parsing for `course_id` (matches course externalId) and `assignment_name` (stored for future use)
+  - No course_id parameter defaults to first course in database
+  - Admin users see both course and question set dropdowns in practice page
+  - Regular learners only see question set dropdown (cannot switch courses)
+  - Removed all dashboard navigation buttons as there's no structural homepage anymore
+  - Window.currentCourse stores the resolved course for global access
 - January 17, 2025 5:10 PM: Fixed multiple bugs in the application
   - Fixed memory leak in chat streaming where cleanup wasn't properly handled on component unmount
   - Added race condition prevention for question loading by ensuring dependencies are loaded first
