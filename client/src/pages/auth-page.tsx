@@ -17,6 +17,12 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   
+  // Version indicator to verify new code is loaded
+  useEffect(() => {
+    console.log("Auth Page Version: 2.0 - Updated July 21, 2025");
+    console.log("Features: SSO + Admin Login buttons");
+  }, []);
+  
   // Parse error from URL params
   const urlParams = new URLSearchParams(searchParams);
   const error = urlParams.get('error');
@@ -95,7 +101,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
-          <h1 className="text-3xl font-bold text-foreground">Exam Practice Questions</h1>
+          <h1 className="text-3xl font-bold text-foreground">CPC Practice - CPCU 500 Exam Preparation</h1>
         </div>
 
         {error && (
