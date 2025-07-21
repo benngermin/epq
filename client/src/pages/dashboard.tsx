@@ -224,7 +224,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
 
         {!courses || !Array.isArray(courses) || courses.length === 0 ? (
