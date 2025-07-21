@@ -60,13 +60,18 @@ export default function QuestionSetPractice() {
   }, [questionSetId]);
 
   // Fetch courses with question sets
-  const { data: coursesWithQuestionSets } = useQuery<Course[]>({
+  const { data: coursesWithQuestionSets, isLoading: coursesLoading } = useQuery<Course[]>({
     queryKey: ["/api/courses/with-question-sets"],
-    enabled: !!user,
-    select: (data) => {
+    queryFn: async () => {
+      const response = await fetch("/api/courses/with-question-sets", { credentials: "include" });
+      if (!response.ok) {
+        throw new Error("Failed to fetch courses");
+      }
+      const data = await response.json();
       console.log('Courses with question sets:', data);
       return data;
-    }
+    },
+    enabled: !!user,
   });
 
   // Combine all data fetching into a single query for better performance
