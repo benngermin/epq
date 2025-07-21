@@ -426,7 +426,7 @@ export default function QuestionSetPractice() {
                       
                     return questionSetsToShow?.map((qs: any) => (
                       <SelectItem key={qs.id} value={qs.id.toString()}>
-                        {qs.title.replace(/^(CPCU|AIC)\s+\d+:\s*/, '')}
+                        {qs.title}
                       </SelectItem>
                     ));
                   })()}
