@@ -18,6 +18,10 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  
+  // Version indicator to verify new dashboard loads
+  console.log("Dashboard Version: 2.0 - Course/QuestionSet Selector");
+  console.log("Features: Dual dropdown selection system");
 
   const { data: courses = [], isLoading } = useQuery<(Course & { questionSets: QuestionSet[] })[]>({
     queryKey: ["/api/courses"],
@@ -104,7 +108,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0 flex-1">
               <img src={institutesLogo} alt="The Institutes" className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="font-semibold text-foreground text-sm sm:text-base truncate">Exam Practice Questions</span>
+              <span className="font-semibold text-foreground text-sm sm:text-base truncate">CPC Practice - CPCU 500</span>
             </div>
             <div className="flex items-center">
               <DropdownMenu>
