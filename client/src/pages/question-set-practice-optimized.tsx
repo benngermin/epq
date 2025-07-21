@@ -129,6 +129,13 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
+  // Set selected course when data loads
+  useEffect(() => {
+    if (practiceData?.course?.id && !selectedCourseId) {
+      setSelectedCourseId(practiceData.course.id.toString());
+    }
+  }, [practiceData?.course, selectedCourseId]);
+
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
       const res = await apiRequest("POST", `/api/question-sets/${questionSetId}/answer`, {
@@ -295,13 +302,6 @@ export default function QuestionSetPractice() {
   }
 
   const { questionSet, questions, course, courseQuestionSets } = practiceData;
-
-  // Set selected course when data loads
-  useEffect(() => {
-    if (course?.id && !selectedCourseId) {
-      setSelectedCourseId(course.id.toString());
-    }
-  }, [course, selectedCourseId]);
 
   return (
     <ErrorBoundary 
