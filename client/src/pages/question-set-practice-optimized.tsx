@@ -320,7 +320,7 @@ export default function QuestionSetPractice() {
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course?.title || "Loading..."}
               >
-                {course?.title || "Loading..."}
+                {course?.title?.match(/^(CPCU|AIC)\s+\d+/)?.[0] || course?.title?.split(':')[0].trim() || "Loading..."}
               </h1>
             </div>
             
@@ -363,11 +363,15 @@ export default function QuestionSetPractice() {
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {courses?.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.title.split(':')[0].trim()}
-                      </SelectItem>
-                    ))}
+                    {courses?.map((c: any) => {
+                      // Extract course number (e.g., "CPCU 500", "AIC 300") from title
+                      const courseNumber = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0] || c.title.split(':')[0].trim();
+                      return (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {courseNumber}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}
