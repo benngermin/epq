@@ -24,8 +24,9 @@ export default function Dashboard() {
   });
 
   // Debug logging
-  console.log("Total courses fetched:", courses.length);
-  console.log("Courses with question sets:", courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => ({
+  console.log("Dashboard - Total courses fetched:", courses.length);
+  console.log("Dashboard - Raw courses data:", courses);
+  console.log("Dashboard - Courses with question sets:", courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => ({
     id: c.id,
     title: c.title,
     questionSetCount: c.questionSets.length
@@ -159,7 +160,7 @@ export default function Dashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">My Courses</h1>
           
           {/* Course and Question Set Selection */}
-          {coursesWithQuestionSets.length > 0 && (
+          {coursesWithQuestionSets.length > 0 ? (
             <div className="flex flex-col sm:flex-row gap-4 p-4 bg-accent rounded-lg border">
               {/* Course Dropdown */}
               <div className="flex-1">
@@ -225,6 +226,10 @@ export default function Dashboard() {
                   </DropdownMenu>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
+              <p className="text-yellow-800">No courses with question sets found. Debugging info is in console.</p>
             </div>
           )}
         </div>
