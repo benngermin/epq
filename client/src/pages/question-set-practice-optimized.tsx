@@ -63,6 +63,10 @@ export default function QuestionSetPractice() {
   const { data: coursesWithQuestionSets } = useQuery<Course[]>({
     queryKey: ["/api/courses/with-question-sets"],
     enabled: !!user,
+    select: (data) => {
+      console.log('Courses with question sets:', data);
+      return data;
+    }
   });
 
   // Combine all data fetching into a single query for better performance
@@ -136,13 +140,7 @@ export default function QuestionSetPractice() {
     }
   }, [practiceData?.course, selectedCourseId]);
 
-  // Log the courses data for debugging
-  useEffect(() => {
-    if (coursesWithQuestionSets) {
-      debugLog('Courses with question sets:', coursesWithQuestionSets);
-      debugLog('Selected course ID:', selectedCourseId);
-    }
-  }, [coursesWithQuestionSets, selectedCourseId]);
+
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
@@ -357,39 +355,33 @@ export default function QuestionSetPractice() {
               </Button>
               
               {/* Course Dropdown */}
-              {coursesWithQuestionSets && coursesWithQuestionSets.length > 0 && (
-                <Select
-                  value={selectedCourseId}
-                  onValueChange={(value) => {
-                    setSelectedCourseId(value);
-                    // When course changes, navigate to the first question set of that course
-                    const newCourse = coursesWithQuestionSets?.find((c: any) => c.id.toString() === value);
-                    if (newCourse) {
-                      // Fetch question sets for the new course
-                      fetch(`/api/courses/${value}/question-sets`, { credentials: "include" })
-                        .then(res => res.json())
-                        .then(questionSets => {
-                          if (questionSets && questionSets.length > 0) {
-                            // Navigate to the first question set
-                            queryClient.removeQueries({ queryKey: ["/api/practice-data", questionSets[0].id] });
-                            setLocation(`/question-set/${questionSets[0].id}`);
-                          }
-                        });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-[240px] h-11 text-[16px] font-medium text-foreground border-2 border-primary/20 hover:border-primary/40 focus:border-primary transition-colors bg-background">
-                    <SelectValue placeholder="Select a course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {coursesWithQuestionSets?.map((course: any) => (
-                      <SelectItem key={course.id} value={course.id.toString()}>
-                        {course.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={selectedCourseId}
+                onValueChange={(value) => {
+                  setSelectedCourseId(value);
+                  // When course changes, navigate to the first question set of that course
+                  fetch(`/api/courses/${value}/question-sets`, { credentials: "include" })
+                    .then(res => res.json())
+                    .then(questionSets => {
+                      if (questionSets && questionSets.length > 0) {
+                        // Navigate to the first question set
+                        queryClient.removeQueries({ queryKey: ["/api/practice-data", questionSets[0].id] });
+                        setLocation(`/question-set/${questionSets[0].id}`);
+                      }
+                    });
+                }}
+              >
+                <SelectTrigger className="w-[240px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                  <SelectValue placeholder="Select a course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {coursesWithQuestionSets?.map((course: Course) => (
+                    <SelectItem key={course.id} value={course.id.toString()}>
+                      {course.title}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
 
               {/* Question Set Dropdown */}
               <Select
