@@ -136,6 +136,14 @@ export default function QuestionSetPractice() {
     }
   }, [practiceData?.course, selectedCourseId]);
 
+  // Log the courses data for debugging
+  useEffect(() => {
+    if (coursesWithQuestionSets) {
+      debugLog('Courses with question sets:', coursesWithQuestionSets);
+      debugLog('Selected course ID:', selectedCourseId);
+    }
+  }, [coursesWithQuestionSets, selectedCourseId]);
+
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
       const res = await apiRequest("POST", `/api/question-sets/${questionSetId}/answer`, {
@@ -337,7 +345,7 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Right - Dashboard Button and Question Set Dropdown */}
+            {/* Right - Dashboard Button and Dropdowns */}
             <div className="flex-1 flex justify-end items-center gap-4">
               <Button 
                 variant="outline" 
@@ -347,8 +355,9 @@ export default function QuestionSetPractice() {
                 <GraduationCap className="h-4 w-4" />
                 Dashboard
               </Button>
-              <div className="flex gap-3">
-                {/* Course Dropdown */}
+              
+              {/* Course Dropdown */}
+              {coursesWithQuestionSets && coursesWithQuestionSets.length > 0 && (
                 <Select
                   value={selectedCourseId}
                   onValueChange={(value) => {
@@ -369,7 +378,7 @@ export default function QuestionSetPractice() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-[200px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                  <SelectTrigger className="w-[240px] h-11 text-[16px] font-medium text-foreground border-2 border-primary/20 hover:border-primary/40 focus:border-primary transition-colors bg-background">
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
@@ -380,28 +389,28 @@ export default function QuestionSetPractice() {
                     ))}
                   </SelectContent>
                 </Select>
+              )}
 
-                {/* Question Set Dropdown */}
-                <Select
-                  value={questionSetId.toString()}
-                  onValueChange={(value) => {
-                    // Clear any cached data before navigating
-                    queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
-                    setLocation(`/question-set/${value}`);
-                  }}
-                >
-                  <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="Select a question set" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courseQuestionSets?.map((qs: any) => (
-                      <SelectItem key={qs.id} value={qs.id.toString()}>
-                        {qs.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Question Set Dropdown */}
+              <Select
+                value={questionSetId.toString()}
+                onValueChange={(value) => {
+                  // Clear any cached data before navigating
+                  queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
+                  setLocation(`/question-set/${value}`);
+                }}
+              >
+                <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                  <SelectValue placeholder="Select a question set" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courseQuestionSets?.map((qs: any) => (
+                    <SelectItem key={qs.id} value={qs.id.toString()}>
+                      {qs.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
