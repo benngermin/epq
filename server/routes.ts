@@ -6,12 +6,12 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses
+  promptVersions, questionSets, courses, questions, questionVersions
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
-import { eq, sql, desc, asc } from "drizzle-orm";
+import { eq, sql, desc, asc, inArray } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 
@@ -2064,6 +2064,131 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error importing question sets:", error);
       res.status(500).json({ message: "Failed to import question sets" });
+    }
+  });
+
+  // New endpoint to update all question sets from Bubble
+  app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      // Fetch all question sets from Bubble
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      const response = await fetch(baseUrl, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const bubbleQuestionSets = data.response?.results || [];
+
+      const updateResults = {
+        created: 0,
+        updated: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      // Process each question set
+      for (const bubbleQuestionSet of bubbleQuestionSets) {
+        try {
+          const bubbleId = bubbleQuestionSet._id;
+          const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
+          const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
+          
+          // Find or create course
+          let course = await storage.getCourseByExternalId(courseNumber);
+          if (!course) {
+            course = await storage.createCourse({
+              title: courseTitle,
+              description: `Imported from Bubble repository`,
+              externalId: courseNumber
+            });
+          }
+
+          // Check if question set already exists by external ID
+          let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
+          
+          if (questionSet) {
+            // Update existing question set
+            await storage.updateQuestionSet(questionSet.id, {
+              courseId: course.id,
+              title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+              description: bubbleQuestionSet.description || null,
+            });
+            
+            // Delete existing questions to replace with updated ones
+            await db.delete(questionVersions)
+              .where(inArray(questionVersions.questionId, 
+                db.select({ id: questions.id })
+                  .from(questions)
+                  .where(eq(questions.questionSetId, questionSet.id))
+              ));
+            await db.delete(questions).where(eq(questions.questionSetId, questionSet.id));
+            
+            updateResults.updated++;
+          } else {
+            // Create new question set
+            questionSet = await storage.createQuestionSet({
+              courseId: course.id,
+              title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+              description: bubbleQuestionSet.description || null,
+              externalId: bubbleId
+            });
+            updateResults.created++;
+          }
+
+          // Import questions if they exist
+          if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
+            const questionImports = bubbleQuestionSet.questions.map((q: any, index: number) => ({
+              question_number: q.question_number || q.number || (index + 1),
+              type: q.type || "multiple_choice",
+              loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
+              versions: [{
+                version_number: 1,
+                topic_focus: q.topic_focus || bubbleQuestionSet.title || "General",
+                question_text: q.question_text || q.text || "",
+                question_type: q.question_type || q.type || "multiple_choice",
+                answer_choices: q.answer_choices || q.choices || [],
+                correct_answer: q.correct_answer || q.answer || "",
+                acceptable_answers: q.acceptable_answers,
+                case_sensitive: q.case_sensitive || false,
+                allow_multiple: q.allow_multiple || false,
+                matching_pairs: q.matching_pairs,
+                correct_order: q.correct_order
+              }]
+            }));
+
+            await storage.importQuestions(questionSet.id, questionImports);
+            await storage.updateQuestionSetCount(questionSet.id);
+          }
+          
+        } catch (error) {
+          updateResults.failed++;
+          const errorMsg = `Failed to update ${bubbleQuestionSet.title}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          updateResults.errors.push(errorMsg);
+          console.error(errorMsg);
+        }
+      }
+
+      res.json({
+        message: "Update completed",
+        results: updateResults,
+        totalProcessed: bubbleQuestionSets.length
+      });
+    } catch (error) {
+      console.error("Error updating from Bubble:", error);
+      res.status(500).json({ message: "Failed to update question sets from Bubble repository" });
     }
   });
 

@@ -259,6 +259,7 @@ function BubbleImportSection() {
   const [selectedSets, setSelectedSets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -355,10 +356,64 @@ function BubbleImportSection() {
     setSelectedSets([]);
   };
 
+  const updateAllQuestionSets = async () => {
+    setUpdating(true);
+    try {
+      const response = await apiRequest("POST", "/api/admin/bubble/update-all-question-sets");
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        throw new Error("Invalid response format from server");
+      }
+      
+      toast({
+        title: "Update completed",
+        description: result.message,
+      });
+      
+      // Refresh the question sets list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          Click "Update Question Set Data" to sync all question sets with the latest data from the Bubble repository. This will check for new question sets and update existing ones without creating duplicates.
+        </p>
+        <Button 
+          onClick={updateAllQuestionSets} 
+          disabled={updating}
+          className="w-full"
+          variant="default"
+        >
+          {updating ? "Updating All Question Sets..." : "Update Question Set Data"}
+        </Button>
+      </div>
+      
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or import specific question sets</span>
+        </div>
+      </div>
+      
       <p className="text-sm text-muted-foreground">
-        Click "Update Question Sets" to fetch the latest question sets from Bubble. Any new question sets added in Bubble since your last update will be imported automatically.
+        Search and select specific question sets to import from the Bubble repository.
       </p>
       <div className="flex gap-2">
         <Input
@@ -367,8 +422,8 @@ function BubbleImportSection() {
           onChange={(e) => setCourseNumber(e.target.value)}
           className="flex-1"
         />
-        <Button onClick={fetchQuestionSets} disabled={loading}>
-          {loading ? "Updating..." : "Update Question Sets"}
+        <Button onClick={fetchQuestionSets} disabled={loading} variant="outline">
+          {loading ? "Searching..." : "Search Question Sets"}
         </Button>
       </div>
 

@@ -26,6 +26,7 @@ export const questionSets = pgTable("question_sets", {
   title: text("title").notNull(),
   description: text("description"),
   questionCount: integer("question_count").default(0).notNull(),
+  externalId: text("external_id").unique(), // Bubble question set ID
 });
 
 export const practiceTests = pgTable("practice_tests", {

@@ -34,6 +34,7 @@ export interface IStorage {
   // Question set methods
   getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]>;
   getQuestionSet(id: number): Promise<QuestionSet | undefined>;
+  getQuestionSetByExternalId(externalId: string): Promise<QuestionSet | undefined>;
   createQuestionSet(questionSet: InsertQuestionSet): Promise<QuestionSet>;
   updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined>;
   deleteQuestionSet(id: number): Promise<boolean>;
@@ -207,6 +208,11 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionSet(id: number): Promise<QuestionSet | undefined> {
     const [questionSet] = await db.select().from(questionSets).where(eq(questionSets.id, id));
+    return questionSet || undefined;
+  }
+
+  async getQuestionSetByExternalId(externalId: string): Promise<QuestionSet | undefined> {
+    const [questionSet] = await db.select().from(questionSets).where(eq(questionSets.externalId, externalId));
     return questionSet || undefined;
   }
 
