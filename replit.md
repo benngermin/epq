@@ -157,11 +157,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
-- July 22, 2025: Added Bubble.io API integration for learning objects
+- July 22, 2025: Added Bubble.io API integration for learning objects with separated import buttons
   - Created new API endpoints to fetch and import all learning objects from Bubble.io repository
   - Added `/api/admin/bubble/learning-objects` endpoint to fetch all learning objects with pagination support
   - Added `/api/admin/bubble/import-all-learning-objects` endpoint to import all learning objects into course materials table
-  - Enhanced admin panel with "Import from Bubble" button in Course Materials Upload section
+  - Enhanced admin panel with separate import buttons for clarity:
+    - "Import CSV" button for uploading CSV files with course materials
+    - "Import Learning Objects" button specifically for Bubble.io import
+    - "Import Question Sets" button for importing question sets from Bubble.io
   - Learning objects are mapped to course materials with LOID field for chatbot context
   - Supports automatic transformation of Bubble data to match our schema (assignment, course, loid, content)
   - LOID field already exists in database schema and is used to link questions to relevant course materials

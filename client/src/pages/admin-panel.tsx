@@ -970,7 +970,7 @@ export default function AdminPanel() {
                             disabled={importLearningObjectsMutation.isPending}
                           >
                             <Download className="w-4 h-4 mr-2" />
-                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import from Bubble"}
+                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
                           </Button>
                         </div>
                       </CardTitle>
@@ -981,8 +981,8 @@ export default function AdminPanel() {
                         Each material is linked to questions via LOID (Learning Objective ID).
                       </p>
                       <div className="text-sm space-y-2">
-                        <p>• Upload a CSV file with columns: assignment, course, loid, value</p>
-                        <p>• Or import all learning objects directly from Bubble.io repository</p>
+                        <p>• <strong>Import CSV:</strong> Upload a CSV file with columns: assignment, course, loid, value</p>
+                        <p>• <strong>Import Learning Objects:</strong> Fetch all learning objects from Bubble.io repository</p>
                       </div>
                       {importLearningObjectsMutation.isSuccess && (
                         <Alert className="mt-4">
@@ -1013,7 +1013,7 @@ export default function AdminPanel() {
                             <DialogTrigger asChild>
                               <Button variant="outline">
                                 <Upload className="h-4 w-4 mr-2" />
-                                Import from Bubble
+                                Import Question Sets
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
