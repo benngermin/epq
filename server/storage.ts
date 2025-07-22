@@ -512,10 +512,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {
-    const result = await db.select()
+    // First try exact match
+    let result = await db.select()
       .from(courseMaterials)
       .where(eq(courseMaterials.loid, loid))
       .limit(1);
+    
+    // If no exact match found, try matching with version suffix pattern (case-insensitive)
+    if (!result[0] && loid) {
+      result = await db.select()
+        .from(courseMaterials)
+        .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`)
+        .limit(1);
+    }
     
     return result[0];
   }

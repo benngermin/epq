@@ -157,6 +157,12 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 22, 2025: Fixed course material matching for chatbot responses
+  - Identified issue where LOIDs in course_materials table have version suffixes (e.g., '04950.v4') while questions table has plain LOIDs (e.g., '04950')
+  - Updated getCourseMaterialByLoid in storage.ts to use case-insensitive pattern matching with LIKE query
+  - Now successfully matches questions to their corresponding course materials using base LOID
+  - Added comprehensive logging to track course material fetching in all three chatbot endpoints
+  - This fix ensures the AI chatbot provides context-aware responses based on actual course content instead of generic fallback text
 - July 22, 2025: Added Bubble.io API integration for learning objects with unified import interface
   - Created new API endpoints to fetch and import all learning objects from Bubble.io repository
   - Added `/api/admin/bubble/learning-objects` endpoint to fetch all learning objects with pagination support

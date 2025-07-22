@@ -1137,8 +1137,14 @@ export function registerRoutes(app: Express): Server {
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
+      console.log(`📚 [Simple Response] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
+      
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        console.log(`📚 [Simple Response] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
+        if (courseMaterial) {
+          console.log(`📚 [Simple Response] Course material content length: ${courseMaterial.content.length} characters`);
+        }
       }
 
       // Get AI settings
@@ -1320,8 +1326,14 @@ export function registerRoutes(app: Express): Server {
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
+      console.log(`📚 [Streaming] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
+      
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        console.log(`📚 [Streaming] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
+        if (courseMaterial) {
+          console.log(`📚 [Streaming] Course material content length: ${courseMaterial.content.length} characters`);
+        }
       }
 
       const aiSettings = await storage.getAiSettings();
@@ -1332,6 +1344,9 @@ export function registerRoutes(app: Express): Server {
       
       if (courseMaterial) {
         sourceMaterial = courseMaterial.content;
+        console.log(`📚 [Streaming] Using course material for source`);
+      } else {
+        console.log(`📚 [Streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
       }
       
       let prompt;
@@ -1437,8 +1452,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
+      console.log(`📚 [Non-streaming] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
+      
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        console.log(`📚 [Non-streaming] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
+        if (courseMaterial) {
+          console.log(`📚 [Non-streaming] Course material content length: ${courseMaterial.content.length} characters`);
+        }
       }
 
       const aiSettings = await storage.getAiSettings();
@@ -1449,6 +1470,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       if (courseMaterial) {
         sourceMaterial = courseMaterial.content;
+        console.log(`📚 [Non-streaming] Using course material for source`);
+      } else {
+        console.log(`📚 [Non-streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
       }
       
       let prompt;
