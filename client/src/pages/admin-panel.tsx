@@ -897,7 +897,7 @@ export default function AdminPanel() {
                           Create Course
                         </Button>
                       </DialogTrigger>
-                    <DialogContent>
+                      <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Create New Course</DialogTitle>
                         <DialogDescription>Add a new course to organize your question sets</DialogDescription>
@@ -1006,6 +1006,7 @@ export default function AdminPanel() {
                   <CourseMaterialsSection />
                 </div>
               </div>
+            </div>
             </TabsContent>
 
             {/* AI & Settings Tab */}
