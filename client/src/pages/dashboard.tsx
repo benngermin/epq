@@ -30,8 +30,8 @@ export default function Dashboard() {
       
       // Parse URL parameters
       const urlParams = new URLSearchParams(window.location.search);
-      const courseIdParam = urlParams.get('course_id')?.toLowerCase();
-      const assignmentName = urlParams.get('assignment_name')?.toLowerCase();
+      const courseIdParam = urlParams.get('course_id');
+      const assignmentName = urlParams.get('assignment_name');
       
       // Store assignment name for future use
       if (assignmentName) {
@@ -47,34 +47,30 @@ export default function Dashboard() {
       let targetCourse: any;
       
       if (courseIdParam) {
-        // Try to find matching course by external ID
+        // Try to find matching course by external ID (case-insensitive)
         const foundCourse = courses.find(course => 
-          course.externalId?.toLowerCase() === courseIdParam
+          course.externalId?.toLowerCase() === courseIdParam.toLowerCase()
         );
         
         if (foundCourse) {
           targetCourse = foundCourse;
           console.log(`Found course by external ID: ${foundCourse.title}`);
         } else {
-          // If not found, log warning and find first course with question sets
-          console.warn(`Course with id '${courseIdParam}' not found. Finding first course with question sets.`);
-          targetCourse = courses.find(course => 
-            course.questionSets && course.questionSets.length > 0
-          ) || courses[0];
+          // If not found, default to CPCU 500
+          console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
+          targetCourse = courses.find(course => course.title === 'CPCU 500') || courses[0];
         }
       } else {
-        // No course_id parameter, find first course with question sets
-        const courseWithQuestionSets = courses.find(course => 
-          course.questionSets && course.questionSets.length > 0
-        );
+        // No course_id parameter, default to CPCU 500
+        const cpcu500 = courses.find(course => course.title === 'CPCU 500');
         
-        if (courseWithQuestionSets) {
-          targetCourse = courseWithQuestionSets;
-          console.log(`No course_id parameter, using first course with question sets: ${courseWithQuestionSets.title}`);
+        if (cpcu500) {
+          targetCourse = cpcu500;
+          console.log('No course_id parameter, defaulting to CPCU 500');
         } else {
-          // Fallback to first course if none have question sets
+          // Fallback to first course if CPCU 500 not found
           targetCourse = courses[0];
-          console.log('No courses have question sets, using first course');
+          console.log('CPCU 500 not found, using first course');
         }
       }
       

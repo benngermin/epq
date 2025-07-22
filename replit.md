@@ -157,6 +157,13 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 22, 2025: Implemented course loading and access control requirements
+  - Fixed TypeScript error in question-card.tsx for acceptableAnswers mapping
+  - Updated dashboard to default to CPCU 500 when no course_id parameter is provided
+  - Verified admin protection is working - non-admin users are redirected from /admin to dashboard
+  - Confirmed course dropdown is only visible to admin users on practice page
+  - Authentication and API endpoints are working correctly for loading practice data
+  - When course_id parameter is provided, system correctly loads the specified course or defaults to CPCU 500 if not found
 - January 21, 2025 7:21 PM: Implemented direct-to-assessment flow with URL parameter based course resolution
   - Replaced course card dashboard with automatic redirection to first question set
   - Added URL parameter parsing for `course_id` (matches course externalId) and `assignment_name` (stored for future use)

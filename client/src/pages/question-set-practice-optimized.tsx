@@ -86,6 +86,7 @@ export default function QuestionSetPractice() {
         // First check if we're authenticated
         const authRes = await fetch('/api/user', { credentials: "include" });
         if (!authRes.ok) {
+          console.error('Authentication check failed:', authRes.status);
           throw new Error('Authentication required');
         }
 

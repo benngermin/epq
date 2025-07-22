@@ -99,7 +99,7 @@ export function QuestionCard({
           
           // Check acceptable answers
           if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-            const acceptableAnswers = question.latestVersion.acceptableAnswers.map(a => 
+            const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
               caseSensitive ? a : a.toLowerCase()
             );
             isAnswerCorrect = acceptableAnswers.includes(userAnswer);
