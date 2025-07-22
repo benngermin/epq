@@ -47,8 +47,8 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showBeginDialog, setShowBeginDialog] = useState(true);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showBeginDialog, setShowBeginDialog] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   const questionSetId = parseInt(params?.id || "0");
@@ -61,8 +61,9 @@ export default function QuestionSetPractice() {
     setSelectedAnswer("");
     setIsCardFlipped(false);
     setSidebarOpen(false);
-    setShowBeginDialog(true);
-    setAgreedToTerms(false);
+    // Don't show the dialog again when switching between question sets
+    // setShowBeginDialog(true);
+    // setAgreedToTerms(false);
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
 
