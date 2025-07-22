@@ -2191,13 +2191,40 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       console.log(`✅ Total learning objects fetched: ${allLearningObjects.length}`);
       
+      // Fetch course mapping from Bubble
+      console.log("📡 Fetching course mappings from Bubble...");
+      const courseMap = new Map();
+      const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
+      const courseResponse = await fetch(courseUrl, { headers });
+      
+      if (courseResponse.ok) {
+        const courseData = await courseResponse.json();
+        const bubbleCourses = courseData.response?.results || [];
+        
+        // Map Bubble course IDs to course numbers
+        for (const course of bubbleCourses) {
+          if (course._id && course["course number"]) {
+            courseMap.set(course._id, course["course number"]);
+          }
+        }
+        console.log(`✅ Loaded ${courseMap.size} course mappings`);
+      }
+      
       // Transform the learning objects to match our course materials schema
-      const transformedMaterials = allLearningObjects.map(lo => ({
-        assignment: lo.title || lo.assignment || "Untitled",
-        course: lo.course?.course_number || lo.course?.title || "Unknown Course",
-        loid: lo._id || lo.loid || "",
-        content: lo.content || lo.description || lo.body || ""
-      }));
+      const transformedMaterials = allLearningObjects.map(lo => {
+        // Get course number from mapping or default
+        let courseNumber = "Unknown Course";
+        if (lo.course && courseMap.has(lo.course)) {
+          courseNumber = courseMap.get(lo.course);
+        }
+        
+        return {
+          assignment: lo.title || lo.assignment || "Untitled",
+          course: courseNumber,
+          loid: lo.loid || "", // Use the actual loid field, not _id
+          content: lo.content || lo.description || lo.body || ""
+        };
+      });
 
       res.json({
         count: allLearningObjects.length,
@@ -2255,13 +2282,40 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       console.log(`✅ Fetched ${allLearningObjects.length} learning objects from Bubble`);
       
+      // Fetch course mapping from Bubble
+      console.log("📡 Fetching course mappings from Bubble...");
+      const courseMap = new Map();
+      const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
+      const courseResponse = await fetch(courseUrl, { headers });
+      
+      if (courseResponse.ok) {
+        const courseData = await courseResponse.json();
+        const bubbleCourses = courseData.response?.results || [];
+        
+        // Map Bubble course IDs to course numbers
+        for (const course of bubbleCourses) {
+          if (course._id && course["course number"]) {
+            courseMap.set(course._id, course["course number"]);
+          }
+        }
+        console.log(`✅ Loaded ${courseMap.size} course mappings`);
+      }
+      
       // Transform and import the materials
-      const materials = allLearningObjects.map(lo => ({
-        assignment: lo.title || lo.assignment || "Untitled",
-        course: lo.course?.course_number || lo.course?.title || "Unknown Course",
-        loid: lo._id || lo.loid || "",
-        content: lo.content || lo.description || lo.body || ""
-      }));
+      const materials = allLearningObjects.map(lo => {
+        // Get course number from mapping or default
+        let courseNumber = "Unknown Course";
+        if (lo.course && courseMap.has(lo.course)) {
+          courseNumber = courseMap.get(lo.course);
+        }
+        
+        return {
+          assignment: lo.title || lo.assignment || "Untitled",
+          course: courseNumber,
+          loid: lo.loid || "", // Use the actual loid field, not _id
+          content: lo.content || lo.description || lo.body || ""
+        };
+      });
 
       // Import to database
       await storage.importCourseMaterials(materials);
