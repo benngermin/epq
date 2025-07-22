@@ -861,13 +861,33 @@ export default function AdminPanel() {
                   {coursesLoading ? (
                     <div className="text-center py-8">Loading courses...</div>
                   ) : courses && Array.isArray(courses) && courses.length > 0 ? (
-                    (courses as any[]).map((course: any) => (
+                    (courses as any[])
+                      .sort((a: any, b: any) => {
+                        // First, sort by whether the course has question sets (populated courses first)
+                        const aHasQuestionSets = a.questionSetCount > 0 ? 1 : 0;
+                        const bHasQuestionSets = b.questionSetCount > 0 ? 1 : 0;
+                        
+                        if (aHasQuestionSets !== bHasQuestionSets) {
+                          return bHasQuestionSets - aHasQuestionSets;
+                        }
+                        
+                        // Then sort alphabetically by title
+                        return a.title.localeCompare(b.title);
+                      })
+                      .map((course: any) => (
                       <Card key={course.id}>
                         <CardHeader>
                           <div className="flex justify-between items-start">
                             <div>
                               <CardTitle>{course.title}</CardTitle>
-                              <CardDescription>{course.description}</CardDescription>
+                              <CardDescription>
+                                {course.description}
+                                {course.questionSetCount > 0 && (
+                                  <span className="ml-2 text-green-600 text-sm">
+                                    ({course.questionSetCount} question set{course.questionSetCount !== 1 ? 's' : ''})
+                                  </span>
+                                )}
+                              </CardDescription>
                             </div>
                           </div>
                         </CardHeader>
