@@ -822,12 +822,13 @@ export default function AdminPanel() {
             {/* Content Management Tab */}
             <TabsContent value="content">
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">Content Management</h1>
-                    <p className="text-muted-foreground mt-2">Manage courses, question sets, and course materials</p>
-                  </div>
-                  <div className="flex gap-2">
+                <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Content Management</h1>
+                      <p className="text-gray-600 mt-1">Manage courses, question sets, and course materials</p>
+                    </div>
+                    <div className="flex gap-3">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button size="lg">
@@ -939,9 +940,10 @@ export default function AdminPanel() {
                       </Form>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
 
-                <div className="grid gap-6">
+                <div className="space-y-6">
                   {coursesLoading ? (
                     <div className="text-center py-8">Loading courses...</div>
                   ) : courses && Array.isArray(courses) && courses.length > 0 ? (
@@ -959,15 +961,15 @@ export default function AdminPanel() {
                         return a.title.localeCompare(b.title);
                       })
                       .map((course: any) => (
-                      <Card key={course.id}>
-                        <CardHeader>
+                      <Card key={course.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <CardHeader className="pb-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <CardTitle>{course.title}</CardTitle>
-                              <CardDescription>
+                              <CardTitle className="text-xl">{course.title}</CardTitle>
+                              <CardDescription className="mt-1">
                                 {course.description}
                                 {course.questionSetCount > 0 && (
-                                  <span className="ml-2 text-green-600 text-sm">
+                                  <span className="ml-2 text-green-600 text-sm font-medium">
                                     ({course.questionSetCount} question set{course.questionSetCount !== 1 ? 's' : ''})
                                   </span>
                                 )}
@@ -975,7 +977,7 @@ export default function AdminPanel() {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-0">
                           <QuestionSetsSection courseId={course.id} />
                         </CardContent>
                       </Card>
@@ -989,15 +991,16 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Course Materials Management Section */}
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
+                <div className="mt-8 bg-white rounded-lg p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
                     <div>
-                      <h2 className="text-xl font-semibold text-foreground">Course Materials</h2>
-                      <p className="text-muted-foreground text-sm">View and manage uploaded course materials</p>
+                      <h2 className="text-xl font-semibold text-gray-900">Course Materials</h2>
+                      <p className="text-gray-600 text-sm mt-1">View and manage uploaded course materials</p>
                     </div>
                     <Button 
                       onClick={() => setCourseMaterialsDialogOpen(true)}
                       variant="outline"
+                      className="shadow-sm"
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Import CSV
@@ -1222,47 +1225,58 @@ function CourseMaterialsSection() {
 
   return (
     <>
-      <Card>
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="text-center py-4">Loading course materials...</div>
+      <div className="space-y-4">
+        {isLoading ? (
+            <div className="text-center py-4 text-gray-500">Loading course materials...</div>
           ) : materials && Array.isArray(materials) && materials.length > 0 ? (
             <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Total: {materials.length} course materials across {new Set(materials.map((m: any) => m.loid)).size} unique LOIDs
+              <div className="flex items-center justify-between bg-blue-50 rounded-lg p-3">
+                <span className="text-sm font-medium text-blue-900">
+                  Total: {materials.length} course materials
+                </span>
+                <span className="text-sm text-blue-700">
+                  {new Set(materials.map((m: any) => m.loid)).size} unique LOIDs
+                </span>
               </div>
-              <div className="max-h-60 overflow-y-auto space-y-2">
+              <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
                 {materials.map((material: any) => (
-                  <div key={material.id} className="border rounded p-3">
+                  <div key={material.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{material.assignment}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Course: {material.course} • LOID: {material.loid}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {material.content.substring(0, 100)}...
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 truncate">{material.assignment}</h4>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded">
+                            Course: {material.course}
+                          </span>
+                          <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded">
+                            LOID: {material.loid}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                          {material.content.substring(0, 150)}...
                         </p>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 ml-4 flex-shrink-0">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => setViewingMaterial(material)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Eye className="h-3 w-3" />
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => setEditingMaterial(material)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -1287,15 +1301,14 @@ function CourseMaterialsSection() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No course materials found.</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Upload course materials in the Import & Upload tab to provide context for the AI chatbot.
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-600">No course materials found.</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Click "Import CSV" above to upload course materials.
               </p>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* View Material Dialog */}
       <Dialog open={!!viewingMaterial} onOpenChange={() => setViewingMaterial(null)}>
@@ -1350,12 +1363,14 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
   });
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Question Sets</h3>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-base font-semibold text-gray-700">Question Sets</h3>
+      </div>
       {questionSetsLoading ? (
-        <div className="text-center py-4">Loading question sets...</div>
+        <div className="text-center py-4 text-sm text-gray-500">Loading question sets...</div>
       ) : questionSets && Array.isArray(questionSets) && questionSets.length > 0 ? (
-        <div className="space-y-2">
+        <div className="grid gap-3">
           {questionSets
             .sort((a: any, b: any) => {
               const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
@@ -1363,33 +1378,31 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
               return aNum - bNum;
             })
             .map((questionSet: any) => (
-            <div key={questionSet.id} className="flex justify-between items-center p-3 border rounded">
-              <div>
-                <h4 className="font-medium">{questionSet.title}</h4>
-                <p className="text-sm text-muted-foreground">{questionSet.questionCount || 0} questions</p>
+            <div key={questionSet.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900">{questionSet.title}</h4>
+                <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
               </div>
-              <div className="flex gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Questions
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Questions in {questionSet.title}</DialogTitle>
-                    </DialogHeader>
-                    <QuestionsList questionSetId={questionSet.id} />
-                  </DialogContent>
-                </Dialog>
-              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" size="sm" className="ml-4">
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Questions
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Questions in {questionSet.title}</DialogTitle>
+                  </DialogHeader>
+                  <QuestionsList questionSetId={questionSet.id} />
+                </DialogContent>
+              </Dialog>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-4">
-          <p className="text-muted-foreground">No question sets found for this course.</p>
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 text-sm">No question sets found for this course.</p>
         </div>
       )}
     </div>
