@@ -18,6 +18,7 @@ export const courses = pgTable("courses", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   externalId: text("external_id").unique(), // Client's course ID
+  bubbleUniqueId: text("bubble_unique_id").unique(), // Bubble's unique course ID
 });
 
 export const questionSets = pgTable("question_sets", {

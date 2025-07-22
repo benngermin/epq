@@ -27,6 +27,7 @@ export interface IStorage {
   getCoursesWithQuestionSets(): Promise<Course[]>;
   getCourse(id: number): Promise<Course | undefined>;
   getCourseByExternalId(externalId: string): Promise<Course | undefined>;
+  getCourseByBubbleId(bubbleUniqueId: string): Promise<Course | undefined>;
   createCourse(course: InsertCourse): Promise<Course>;
   updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course | undefined>;
   deleteCourse(id: number): Promise<boolean>;
@@ -184,6 +185,11 @@ export class DatabaseStorage implements IStorage {
 
   async getCourseByExternalId(externalId: string): Promise<Course | undefined> {
     const [course] = await db.select().from(courses).where(eq(courses.externalId, externalId));
+    return course || undefined;
+  }
+
+  async getCourseByBubbleId(bubbleUniqueId: string): Promise<Course | undefined> {
+    const [course] = await db.select().from(courses).where(eq(courses.bubbleUniqueId, bubbleUniqueId));
     return course || undefined;
   }
 

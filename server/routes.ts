@@ -2114,25 +2114,49 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const bubbleQuestionSet = bubbleQuestionSets[i];
         try {
           const bubbleId = bubbleQuestionSet._id;
+          const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
           const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
           const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
           
           console.log(`\n[${i + 1}/${bubbleQuestionSets.length}] Processing question set: ${bubbleQuestionSet.title || bubbleId}`);
           console.log(`  - Bubble ID: ${bubbleId}`);
-          console.log(`  - Course: ${courseNumber} - ${courseTitle}`);
-          console.log(`  - Questions count: ${bubbleQuestionSet.questions?.length || 0}`);
+          console.log(`  - Course Bubble ID: ${courseBubbleId}`);
+          console.log(`  - Has content field: ${!!bubbleQuestionSet.content}`);
           
-          // Find or create course
-          let course = await storage.getCourseByExternalId(courseNumber);
+          // Skip if no course association
+          if (!courseBubbleId) {
+            console.log(`  ⚠️ Skipping - no course association`);
+            updateResults.failed++;
+            updateResults.errors.push(`No course for question set: ${bubbleQuestionSet.title || bubbleId}`);
+            continue;
+          }
+          
+          // Find course by Bubble ID
+          let course = await storage.getCourseByBubbleId(courseBubbleId);
           if (!course) {
-            console.log(`  📌 Creating new course: ${courseTitle}`);
-            course = await storage.createCourse({
-              title: courseTitle,
-              description: `Imported from Bubble repository`,
-              externalId: courseNumber
-            });
-          } else {
-            console.log(`  ✓ Found existing course: ${course.title} (ID: ${course.id})`);
+            console.log(`  ❌ Course with Bubble ID ${courseBubbleId} not found in database`);
+            updateResults.failed++;
+            updateResults.errors.push(`Course not found for question set: ${bubbleQuestionSet.title || bubbleId}`);
+            continue;
+          }
+          
+          console.log(`  ✓ Found existing course: ${course.title} (ID: ${course.id})`);
+          
+          // Parse content field to get questions
+          let parsedQuestions: any[] = [];
+          if (bubbleQuestionSet.content) {
+            try {
+              console.log(`  📄 Parsing content field...`);
+              const contentJson = JSON.parse(bubbleQuestionSet.content);
+              if (contentJson.questions && Array.isArray(contentJson.questions)) {
+                parsedQuestions = contentJson.questions;
+                console.log(`  ✓ Found ${parsedQuestions.length} questions in content`);
+              } else {
+                console.log(`  ⚠️ No questions array found in parsed content`);
+              }
+            } catch (parseError) {
+              console.log(`  ❌ Failed to parse content field:`, parseError);
+            }
           }
 
           // Check if question set already exists by external ID
@@ -2170,31 +2194,31 @@ Remember, your goal is to support student comprehension through meaningful feedb
             updateResults.created++;
           }
 
-          // Import questions if they exist
-          if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
-            console.log(`  📝 Importing ${bubbleQuestionSet.questions.length} questions...`);
-            const questionImports = bubbleQuestionSet.questions.map((q: any, index: number) => ({
-              question_number: q.question_number || q.number || (index + 1),
+          // Import questions from parsed content
+          if (parsedQuestions.length > 0) {
+            console.log(`  📝 Importing ${parsedQuestions.length} questions...`);
+            const questionImports = parsedQuestions.map((q: any, index: number) => ({
+              question_number: q.question_number || q.originalQuestionNumber || (index + 1),
               type: q.type || "multiple_choice",
-              loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
+              loid: q.loid || q.LOID || "unknown",
               versions: [{
                 version_number: 1,
-                topic_focus: q.topic_focus || bubbleQuestionSet.title || "General",
-                question_text: q.question_text || q.text || "",
-                question_type: q.question_type || q.type || "multiple_choice",
-                answer_choices: q.answer_choices || q.choices || [],
-                correct_answer: q.correct_answer || q.answer || "",
-                acceptable_answers: q.acceptable_answers,
-                case_sensitive: q.case_sensitive || false,
-                allow_multiple: q.allow_multiple || false,
-                matching_pairs: q.matching_pairs,
-                correct_order: q.correct_order
+                topic_focus: q.topic_focus || q.topicFocus || bubbleQuestionSet.title || "General",
+                question_text: q.question_text || q.questionText || "",
+                question_type: q.question_type || q.questionType || q.type || "multiple_choice",
+                answer_choices: q.answer_choices || q.answerChoices || [],
+                correct_answer: q.correct_answer || q.correctAnswer || "",
+                acceptable_answers: q.acceptable_answers || q.acceptableAnswers,
+                case_sensitive: q.case_sensitive || q.caseSensitive || false,
+                allow_multiple: q.allow_multiple || q.allowMultiple || false,
+                matching_pairs: q.matching_pairs || q.matchingPairs,
+                correct_order: q.correct_order || q.correctOrder
               }]
             }));
 
             await storage.importQuestions(questionSet.id, questionImports);
             await storage.updateQuestionSetCount(questionSet.id);
-            console.log(`  ✅ Successfully imported ${bubbleQuestionSet.questions.length} questions`);
+            console.log(`  ✅ Successfully imported ${parsedQuestions.length} questions`);
           } else {
             console.log(`  ⚠️ No questions found in this question set`);
           }
