@@ -2073,10 +2073,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
     const startTime = Date.now();
     
     try {
+      // Debug environment variables
+      console.log("🔍 Checking for BUBBLE_API_KEY...");
+      console.log("Environment variables containing 'BUBBLE':", 
+        Object.keys(process.env).filter(key => key.includes('BUBBLE'))
+      );
+      
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
       if (!bubbleApiKey) {
         console.error("❌ Bubble API key not configured in environment variables");
+        console.error("NODE_ENV:", process.env.NODE_ENV);
+        console.error("Total env vars:", Object.keys(process.env).length);
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
