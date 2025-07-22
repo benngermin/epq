@@ -812,9 +812,8 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="content">Content Management</TabsTrigger>
-            <TabsTrigger value="uploads">Import & Upload</TabsTrigger>
             <TabsTrigger value="settings">Chatbot</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
@@ -828,13 +827,76 @@ export default function AdminPanel() {
                     <h1 className="text-2xl font-bold text-foreground">Content Management</h1>
                     <p className="text-muted-foreground mt-2">Manage courses, question sets, and course materials</p>
                   </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Course
-                      </Button>
-                    </DialogTrigger>
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="lg">
+                          <Download className="w-5 h-5 mr-2" />
+                          Import Content
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Import Content from Bubble.io</DialogTitle>
+                          <DialogDescription>
+                            Choose what type of content you want to import from the Bubble.io repository
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <Button
+                            onClick={() => {
+                              importLearningObjectsMutation.mutate();
+                            }}
+                            disabled={importLearningObjectsMutation.isPending}
+                            className="w-full justify-start"
+                            size="lg"
+                          >
+                            <Download className="w-5 h-5 mr-2" />
+                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
+                          </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="w-full justify-start" size="lg">
+                                <Upload className="w-5 h-5 mr-2" />
+                                Import Question Sets
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
+                                <DialogDescription>
+                                  Fetch and import question sets from ti-content-repository.bubbleapps.io
+                                </DialogDescription>
+                              </DialogHeader>
+                              <BubbleImportSection />
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                        {importLearningObjectsMutation.isSuccess && (
+                          <Alert>
+                            <CheckCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              {importLearningObjectsMutation.data?.message}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {importLearningObjectsMutation.isError && (
+                          <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              Failed to import learning objects. Please try again.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Course
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Create New Course</DialogTitle>
@@ -933,262 +995,15 @@ export default function AdminPanel() {
                       <h2 className="text-xl font-semibold text-foreground">Course Materials</h2>
                       <p className="text-muted-foreground text-sm">View and manage uploaded course materials</p>
                     </div>
+                    <Button 
+                      onClick={() => setCourseMaterialsDialogOpen(true)}
+                      variant="outline"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import CSV
+                    </Button>
                   </div>
                   <CourseMaterialsSection />
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Import & Upload Tab */}
-            <TabsContent value="uploads">
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">Import & Upload</h1>
-                    <p className="text-muted-foreground mt-2">Upload course materials and question sets</p>
-                  </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button size="lg">
-                        <Download className="w-5 h-5 mr-2" />
-                        Import Content
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Import Content from Bubble.io</DialogTitle>
-                        <DialogDescription>
-                          Choose what type of content you want to import from the Bubble.io repository
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <Button
-                          onClick={() => {
-                            importLearningObjectsMutation.mutate();
-                          }}
-                          disabled={importLearningObjectsMutation.isPending}
-                          className="w-full justify-start"
-                          size="lg"
-                        >
-                          <Download className="w-5 h-5 mr-2" />
-                          {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
-                        </Button>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start" size="lg">
-                              <Upload className="w-5 h-5 mr-2" />
-                              Import Question Sets
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
-                              <DialogDescription>
-                                Fetch and import question sets from ti-content-repository.bubbleapps.io
-                              </DialogDescription>
-                            </DialogHeader>
-                            <BubbleImportSection />
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                      {importLearningObjectsMutation.isSuccess && (
-                        <Alert>
-                          <CheckCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            {importLearningObjectsMutation.data?.message}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      {importLearningObjectsMutation.isError && (
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            Failed to import learning objects. Please try again.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                <div className="grid gap-6">
-                  {/* Course Materials Upload Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        Course Materials Upload
-                        <Button 
-                          onClick={() => setCourseMaterialsDialogOpen(true)}
-                          className="text-sm"
-                          variant="outline"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Import CSV
-                        </Button>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Course materials provide context for the AI chatbot when students get questions wrong. 
-                        Each material is linked to questions via LOID (Learning Objective ID).
-                      </p>
-                      <div className="text-sm">
-                        <p>Upload a CSV file with columns: assignment, course, loid, value</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Question Sets Upload Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        Question Sets Upload
-                        <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create Question Set
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Create New Question Set</DialogTitle>
-                              <DialogDescription>
-                                Create a question set and assign it to a course
-                              </DialogDescription>
-                            </DialogHeader>
-                            <Form {...standaloneQuestionSetForm}>
-                              <form onSubmit={standaloneQuestionSetForm.handleSubmit(onCreateStandaloneQuestionSet)} className="space-y-4">
-                                <FormField
-                                  control={standaloneQuestionSetForm.control}
-                                  name="title"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Question Set Title</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Enter question set title" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={standaloneQuestionSetForm.control}
-                                  name="courseId"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Course</FormLabel>
-                                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                                        <FormControl>
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select a course" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {Array.isArray(courses) && courses.map((course: any) => (
-                                            <SelectItem key={course.id} value={course.id.toString()}>
-                                              {course.title}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <DialogFooter>
-                                  <Button type="submit" disabled={createQuestionSetMutation.isPending}>
-                                    {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
-                                  </Button>
-                                </DialogFooter>
-                              </form>
-                            </Form>
-                          </DialogContent>
-                        </Dialog>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Create new question sets or upload questions to existing ones using JSON format.
-                      </p>
-                      
-                      {questionSetsLoading ? (
-                        <div className="text-center py-4">Loading question sets...</div>
-                      ) : allQuestionSets && Array.isArray(allQuestionSets) && allQuestionSets.length > 0 ? (
-                        <div className="space-y-4">
-                          {(allQuestionSets as any[]).map((questionSet: any) => (
-                            <div key={questionSet.id} className="border rounded-lg p-4">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <h4 className="font-medium">{questionSet.title}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    Course ID: {questionSet.courseId} • {questionSet.questionCount || 0} questions
-                                  </p>
-                                </div>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                      <Upload className="h-4 w-4 mr-1" />
-                                      Import Questions
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>Import Questions</DialogTitle>
-                                      <DialogDescription>
-                                        Upload questions to {questionSet.title}
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4">
-                                      <div className="space-y-2">
-                                        <Label htmlFor="json-data">Question Data (JSON format)</Label>
-                                        <Textarea
-                                          placeholder="Paste your questions JSON here..."
-                                          value={selectedQuestionSetForImport === questionSet.id ? bulkImportData.jsonData : ''}
-                                          onChange={(e) => {
-                                            setSelectedQuestionSetForImport(questionSet.id);
-                                            setBulkImportData(prev => ({ ...prev, jsonData: e.target.value }));
-                                          }}
-                                          className="font-mono text-sm"
-                                          rows={6}
-                                        />
-                                      </div>
-                                      <Button 
-                                        onClick={() => {
-                                          try {
-                                            const questions = JSON.parse(bulkImportData.jsonData);
-                                            importQuestionsMutation.mutate({
-                                              questionSetId: questionSet.id,
-                                              questions: questions,
-                                            });
-                                          } catch (error) {
-                                            toast({
-                                              title: "Invalid JSON",
-                                              description: "Please check your JSON format",
-                                              variant: "destructive",
-                                            });
-                                          }
-                                        }}
-                                        disabled={!bulkImportData.jsonData || importQuestionsMutation.isPending}
-                                        className="w-full"
-                                      >
-                                        {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
-                                      </Button>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <p className="text-muted-foreground">No question sets found.</p>
-                          <p className="text-sm text-muted-foreground mt-1">Create your first question set using the button above.</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
                 </div>
               </div>
             </TabsContent>
