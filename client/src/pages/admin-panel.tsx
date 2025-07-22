@@ -357,26 +357,40 @@ function BubbleImportSection() {
   };
 
   const updateAllQuestionSets = async () => {
+    console.log("🚀 Update Question Set Data button clicked");
     setUpdating(true);
     try {
+      console.log("📡 Sending request to /api/admin/bubble/update-all-question-sets");
       const response = await apiRequest("POST", "/api/admin/bubble/update-all-question-sets");
+      
+      console.log("📥 Response received:", response.status, response.statusText);
       
       let result;
       try {
         result = await response.json();
+        console.log("✅ Response JSON parsed successfully:", result);
       } catch (jsonError) {
+        console.error("❌ Failed to parse response JSON:", jsonError);
         throw new Error("Invalid response format from server");
       }
       
+      // Show detailed toast with results
+      const detailMessage = result.results ? 
+        `Created: ${result.results.created}, Updated: ${result.results.updated}, Failed: ${result.results.failed}` : 
+        result.message;
+      
       toast({
         title: "Update completed",
-        description: result.message,
+        description: detailMessage,
       });
       
+      console.log("🔄 Invalidating caches...");
       // Refresh the question sets list
       queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      console.log("✅ Cache invalidation complete");
     } catch (error) {
+      console.error("❌ Update failed:", error);
       toast({
         title: "Update failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -384,6 +398,7 @@ function BubbleImportSection() {
       });
     } finally {
       setUpdating(false);
+      console.log("🏁 Update process finished");
     }
   };
 

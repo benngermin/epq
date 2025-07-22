@@ -2069,12 +2069,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   // New endpoint to update all question sets from Bubble
   app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
+    console.log("🔄 Starting update-all-question-sets process...");
+    const startTime = Date.now();
+    
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
       if (!bubbleApiKey) {
+        console.error("❌ Bubble API key not configured in environment variables");
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
+
+      console.log("✅ Bubble API key found");
 
       // Fetch all question sets from Bubble
       const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
@@ -2083,14 +2089,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
         "Content-Type": "application/json"
       };
 
+      console.log("📡 Fetching question sets from Bubble API...");
       const response = await fetch(baseUrl, { headers });
       
       if (!response.ok) {
+        console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
         throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const bubbleQuestionSets = data.response?.results || [];
+      console.log(`✅ Fetched ${bubbleQuestionSets.length} question sets from Bubble`);
 
       const updateResults = {
         created: 0,
@@ -2100,26 +2109,37 @@ Remember, your goal is to support student comprehension through meaningful feedb
       };
 
       // Process each question set
-      for (const bubbleQuestionSet of bubbleQuestionSets) {
+      console.log("📋 Processing question sets...");
+      for (let i = 0; i < bubbleQuestionSets.length; i++) {
+        const bubbleQuestionSet = bubbleQuestionSets[i];
         try {
           const bubbleId = bubbleQuestionSet._id;
           const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
           const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
           
+          console.log(`\n[${i + 1}/${bubbleQuestionSets.length}] Processing question set: ${bubbleQuestionSet.title || bubbleId}`);
+          console.log(`  - Bubble ID: ${bubbleId}`);
+          console.log(`  - Course: ${courseNumber} - ${courseTitle}`);
+          console.log(`  - Questions count: ${bubbleQuestionSet.questions?.length || 0}`);
+          
           // Find or create course
           let course = await storage.getCourseByExternalId(courseNumber);
           if (!course) {
+            console.log(`  📌 Creating new course: ${courseTitle}`);
             course = await storage.createCourse({
               title: courseTitle,
               description: `Imported from Bubble repository`,
               externalId: courseNumber
             });
+          } else {
+            console.log(`  ✓ Found existing course: ${course.title} (ID: ${course.id})`);
           }
 
           // Check if question set already exists by external ID
           let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
           
           if (questionSet) {
+            console.log(`  🔄 Updating existing question set (ID: ${questionSet.id})`);
             // Update existing question set
             await storage.updateQuestionSet(questionSet.id, {
               courseId: course.id,
@@ -2128,6 +2148,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             });
             
             // Delete existing questions to replace with updated ones
+            console.log(`  🗑️ Removing old questions for question set ${questionSet.id}`);
             await db.delete(questionVersions)
               .where(inArray(questionVersions.questionId, 
                 db.select({ id: questions.id })
@@ -2138,6 +2159,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             updateResults.updated++;
           } else {
+            console.log(`  ➕ Creating new question set`);
             // Create new question set
             questionSet = await storage.createQuestionSet({
               courseId: course.id,
@@ -2150,6 +2172,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Import questions if they exist
           if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
+            console.log(`  📝 Importing ${bubbleQuestionSet.questions.length} questions...`);
             const questionImports = bubbleQuestionSet.questions.map((q: any, index: number) => ({
               question_number: q.question_number || q.number || (index + 1),
               type: q.type || "multiple_choice",
@@ -2171,23 +2194,47 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
             await storage.importQuestions(questionSet.id, questionImports);
             await storage.updateQuestionSetCount(questionSet.id);
+            console.log(`  ✅ Successfully imported ${bubbleQuestionSet.questions.length} questions`);
+          } else {
+            console.log(`  ⚠️ No questions found in this question set`);
           }
           
         } catch (error) {
           updateResults.failed++;
           const errorMsg = `Failed to update ${bubbleQuestionSet.title}: ${error instanceof Error ? error.message : 'Unknown error'}`;
           updateResults.errors.push(errorMsg);
-          console.error(errorMsg);
+          console.error(`  ❌ ${errorMsg}`);
+          console.error(`  Error details:`, error);
         }
       }
 
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      console.log("\n📊 Update Summary:");
+      console.log(`  - Total processed: ${bubbleQuestionSets.length}`);
+      console.log(`  - Created: ${updateResults.created}`);
+      console.log(`  - Updated: ${updateResults.updated}`);
+      console.log(`  - Failed: ${updateResults.failed}`);
+      console.log(`  - Duration: ${duration} seconds`);
+      
+      if (updateResults.errors.length > 0) {
+        console.log("\n❌ Errors encountered:");
+        updateResults.errors.forEach((error, index) => {
+          console.log(`  ${index + 1}. ${error}`);
+        });
+      }
+
+      const message = `Update completed in ${duration}s. Created: ${updateResults.created}, Updated: ${updateResults.updated}, Failed: ${updateResults.failed}`;
+      console.log(`\n✅ ${message}`);
+      
       res.json({
-        message: "Update completed",
+        message,
         results: updateResults,
         totalProcessed: bubbleQuestionSets.length
       });
     } catch (error) {
-      console.error("Error updating from Bubble:", error);
+      console.error("❌ Critical error in update-all-question-sets:", error);
       res.status(500).json({ message: "Failed to update question sets from Bubble repository" });
     }
   });
