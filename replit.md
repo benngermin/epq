@@ -185,6 +185,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
+- July 22, 2025: Enhanced Content Management page organization and display
+  - Implemented automatic sorting to show courses with populated question sets first
+  - Added secondary alphabetical sorting by course title for better organization
+  - Added green indicator showing number of question sets for populated courses
+  - Ensured all courses display their descriptions consistently in the card subtext
+  - Successfully cleaned up database: removed 40 old question sets without external IDs
+  - Database now contains exactly 21 question sets from Bubble API with proper external ID tracking
+  - All CPCU courses (500-552) have populated question sets and appear at top of list
 - July 22, 2025: Fixed app reloading issue when switching courses/question sets
   - Identified root cause: Full route navigation causes component unmount/remount
   - Navigation using setLocation() triggers complete component destruction

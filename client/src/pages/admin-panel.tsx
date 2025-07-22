@@ -878,7 +878,7 @@ export default function AdminPanel() {
                       <Card key={course.id}>
                         <CardHeader>
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <CardTitle>{course.title}</CardTitle>
                               <CardDescription>
                                 {course.description}
