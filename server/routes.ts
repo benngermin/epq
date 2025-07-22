@@ -2073,7 +2073,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     const startTime = Date.now();
     
     try {
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      const bubbleApiKey = process.env.BUBBLE_API_KEY_CONTENT_REPO;
       
       if (!bubbleApiKey) {
         console.error("❌ Bubble API key not configured in environment variables");
