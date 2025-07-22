@@ -43,7 +43,7 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
   const questionsWithVersions = allQuestions.map(question => {
     const versions = versionMap.get(question.id) || [];
     const latestVersion = versions
-      .sort((a, b) => b.versionNumber - a.versionNumber)[0];
+      .sort((a: any, b: any) => b.versionNumber - a.versionNumber)[0];
     
     return {
       ...question,

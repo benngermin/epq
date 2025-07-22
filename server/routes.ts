@@ -344,7 +344,7 @@ async function streamOpenRouterToBuffer(
           } catch (e) {
             // Log parsing errors for debugging
             if (data && data !== '') {
-              console.warn(`Failed to parse streaming chunk: ${e.message}, data: ${data.substring(0, 100)}`);
+              console.warn(`Failed to parse streaming chunk: ${(e as Error).message}, data: ${data.substring(0, 100)}`);
             }
           }
         }
@@ -367,7 +367,7 @@ async function streamOpenRouterToBuffer(
             stream.chunks = [fullResponse];
           }
         } catch (e) {
-          console.warn(`Failed to parse final buffer: ${e.message}`);
+          console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
         }
       }
     }
@@ -2053,7 +2053,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         } catch (error) {
           console.error(`Error importing question set ${bubbleQuestionSet._id}:`, error);
           importResults.failed++;
-          importResults.errors.push(`Failed to import ${bubbleQuestionSet.title || bubbleQuestionSet._id}: ${error.message}`);
+          importResults.errors.push(`Failed to import ${bubbleQuestionSet.title || bubbleQuestionSet._id}: ${(error as Error).message}`);
         }
       }
 

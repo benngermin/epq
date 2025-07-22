@@ -168,7 +168,8 @@ export class DatabaseStorage implements IStorage {
         id: courses.id,
         title: courses.title,
         description: courses.description,
-        externalId: courses.externalId
+        externalId: courses.externalId,
+        bubbleUniqueId: courses.bubbleUniqueId
       })
       .from(courses)
       .innerJoin(questionSets, eq(questionSets.courseId, courses.id))
@@ -441,7 +442,7 @@ export class DatabaseStorage implements IStorage {
           topicFocus: versionData.topic_focus,
           questionText: versionData.question_text,
           questionType: versionData.question_type || questionData.type || "multiple_choice",
-          answerChoices: [...versionData.answer_choices],
+          answerChoices: versionData.answer_choices as any,
           correctAnswer: versionData.correct_answer,
           acceptableAnswers: versionData.acceptable_answers,
           caseSensitive: versionData.case_sensitive,
