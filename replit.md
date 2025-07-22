@@ -157,6 +157,15 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 22, 2025: Removed legacy practice test functionality
+  - Deleted practice_tests and user_test_runs tables from database schema
+  - Removed all practice test-related API routes and server methods
+  - Updated getUserCourseProgress to work with question sets instead of practice tests
+  - Modified getUserTestProgress to use question_set_id instead of practice_test_id
+  - Deleted test-player.tsx component and removed its route from App.tsx
+  - Updated database indexes to reference question_set_id instead of practice_test_id
+  - Migrated user_test_runs table: added question_set_id column, removed practice_test_id column
+  - System now exclusively uses question sets for all practice functionality
 - July 22, 2025: Implemented course loading and access control requirements
   - Fixed TypeScript error in question-card.tsx for acceptableAnswers mapping
   - Updated dashboard to default to CPCU 500 when no course_id parameter is provided

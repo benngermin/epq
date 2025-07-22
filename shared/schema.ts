@@ -30,13 +30,7 @@ export const questionSets = pgTable("question_sets", {
   externalId: text("external_id").unique(), // Bubble question set ID
 });
 
-export const practiceTests = pgTable("practice_tests", {
-  id: serial("id").primaryKey(),
-  courseId: integer("course_id").references(() => courses.id).notNull(),
-  questionSetId: integer("question_set_id").references(() => questionSets.id),
-  title: text("title").notNull(),
-  questionCount: integer("question_count").default(85).notNull(),
-});
+
 
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
@@ -64,7 +58,7 @@ export const questionVersions = pgTable("question_versions", {
 export const userTestRuns = pgTable("user_test_runs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  practiceTestId: integer("practice_test_id").references(() => practiceTests.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   questionOrder: json("question_order").$type<number[]>().notNull(),
@@ -122,7 +116,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
-  practiceTests: many(practiceTests),
   questionSets: many(questionSets),
 }));
 
@@ -132,20 +125,10 @@ export const questionSetsRelations = relations(questionSets, ({ one, many }) => 
     references: [courses.id],
   }),
   questions: many(questions),
-  practiceTests: many(practiceTests),
-}));
-
-export const practiceTestsRelations = relations(practiceTests, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [practiceTests.courseId],
-    references: [courses.id],
-  }),
-  questionSet: one(questionSets, {
-    fields: [practiceTests.questionSetId],
-    references: [questionSets.id],
-  }),
   testRuns: many(userTestRuns),
 }));
+
+
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
   questionSet: one(questionSets, {
@@ -168,9 +151,9 @@ export const userTestRunsRelations = relations(userTestRuns, ({ one, many }) => 
     fields: [userTestRuns.userId],
     references: [users.id],
   }),
-  practiceTest: one(practiceTests, {
-    fields: [userTestRuns.practiceTestId],
-    references: [practiceTests.id],
+  questionSet: one(questionSets, {
+    fields: [userTestRuns.questionSetId],
+    references: [questionSets.id],
   }),
   answers: many(userAnswers),
 }));
@@ -200,7 +183,7 @@ export const insertCourseSchema = createInsertSchema(courses).extend({
   externalId: z.string().optional(),
 });
 export const insertQuestionSetSchema = createInsertSchema(questionSets);
-export const insertPracticeTestSchema = createInsertSchema(practiceTests);
+
 export const insertQuestionSchema = createInsertSchema(questions);
 export const insertQuestionVersionSchema = createInsertSchema(questionVersions);
 export const insertUserTestRunSchema = createInsertSchema(userTestRuns);
@@ -219,8 +202,7 @@ export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type QuestionSet = typeof questionSets.$inferSelect;
 export type InsertQuestionSet = z.infer<typeof insertQuestionSetSchema>;
-export type PracticeTest = typeof practiceTests.$inferSelect;
-export type InsertPracticeTest = z.infer<typeof insertPracticeTestSchema>;
+
 export type Question = typeof questions.$inferSelect;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type QuestionVersion = typeof questionVersions.$inferSelect;

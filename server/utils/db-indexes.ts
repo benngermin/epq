@@ -25,15 +25,12 @@ export async function createDatabaseIndexes() {
     // Indexes for user test runs and answers
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_user_test_runs_user_id ON user_test_runs(user_id);
-      CREATE INDEX IF NOT EXISTS idx_user_test_runs_practice_test_id ON user_test_runs(practice_test_id);
+      CREATE INDEX IF NOT EXISTS idx_user_test_runs_question_set_id ON user_test_runs(question_set_id);
       CREATE INDEX IF NOT EXISTS idx_user_answers_test_run_id ON user_answers(user_test_run_id);
       CREATE INDEX IF NOT EXISTS idx_user_answers_question_version_id ON user_answers(user_test_run_id, question_version_id);
     `);
     
-    // Indexes for practice tests
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_practice_tests_course_id ON practice_tests(course_id);
-    `);
+
     
     // Indexes for question sets
     await db.execute(sql`

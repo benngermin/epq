@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
-  insertCourseSchema, insertQuestionSetSchema, insertPracticeTestSchema, insertAiSettingsSchema,
+  insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
   promptVersions, questionSets, courses, questions, questionVersions
 } from "@shared/schema";
@@ -512,17 +512,6 @@ export function registerRoutes(app: Express): Server {
       
       const coursesWithProgress = await Promise.all(
         uniqueCourses.map(async (course) => {
-          const practiceTests = await storage.getPracticeTestsByCourse(course.id);
-          const testsWithProgress = await Promise.all(
-            practiceTests.map(async (test) => {
-              const testProgress = await storage.getUserTestProgress(req.user!.id, test.id);
-              return {
-                ...test,
-                ...testProgress,
-              };
-            })
-          );
-
           // Get question sets for this course
           const questionSets = await storage.getQuestionSetsByCourse(course.id);
           const questionSetsWithCounts = await Promise.all(
@@ -535,21 +524,15 @@ export function registerRoutes(app: Express): Server {
             })
           );
 
-          // Calculate progress based on the most recent test run instead of overall course progress
-          let progressPercentage = 0;
-          if (testsWithProgress.length > 0) {
-            const mostRecentTest = testsWithProgress[0]; // Assuming first test is the main one
-            if (mostRecentTest.testRun) {
-              const answers = await storage.getUserAnswersByTestRun(mostRecentTest.testRun.id);
-              const totalQuestionsInTest = mostRecentTest.testRun.questionOrder?.length || 85;
-              progressPercentage = Math.round((answers.length / totalQuestionsInTest) * 100);
-            }
-          }
+          // Calculate progress based on course completion
+          const courseProgress = await storage.getUserCourseProgress(req.user!.id, course.id);
+          const progressPercentage = courseProgress.totalAnswers > 0 
+            ? Math.round((courseProgress.correctAnswers / courseProgress.totalAnswers) * 100)
+            : 0;
 
           return {
             ...course,
             progress: progressPercentage,
-            practiceTests: testsWithProgress,
             questionSets: questionSetsWithCounts,
           };
         })
@@ -932,113 +915,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Practice test routes
-  app.post("/api/courses/:courseId/practice-tests", requireAdmin, async (req, res) => {
-    try {
-      const courseId = parseInt(req.params.courseId);
-      const testData = insertPracticeTestSchema.parse({ ...req.body, courseId });
-      const test = await storage.createPracticeTest(testData);
-      res.status(201).json(test);
-    } catch (error) {
-      console.error("Error creating practice test:", error);
-      res.status(400).json({ message: "Invalid practice test data" });
-    }
-  });
-
   // Test run routes
-  app.post("/api/practice-tests/:testId/start", requireAuth, async (req, res) => {
-    try {
-      const testId = parseInt(req.params.testId);
-      const practiceTest = await storage.getPracticeTest(testId);
-      
-      if (!practiceTest) {
-        return res.status(404).json({ message: "Practice test not found" });
-      }
-
-      // Get all questions for the course through question sets
-      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
-      let allQuestions = [];
-      for (const questionSet of questionSets) {
-        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
-        allQuestions.push(...questions);
-      }
-      
-      if (allQuestions.length < 85) {
-        return res.status(400).json({ message: "Not enough questions available for this test" });
-      }
-
-      // Shuffle questions and select random versions
-      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
-      const questionOrder = [];
-
-      for (const question of shuffledQuestions) {
-        const versions = await storage.getQuestionVersionsByQuestion(question.id);
-        if (versions.length > 0) {
-          const randomVersion = versions[Math.floor(Math.random() * versions.length)];
-          questionOrder.push(randomVersion.id);
-        }
-      }
-
-      const testRun = await storage.createUserTestRun({
-        userId: req.user!.id,
-        practiceTestId: testId,
-        questionOrder,
-      });
-
-      res.status(201).json(testRun);
-    } catch (error) {
-      console.error("Error starting test:", error);
-      res.status(500).json({ message: "Failed to start test" });
-    }
-  });
-
-  // Restart practice test endpoint
-  app.post("/api/practice-tests/:testId/restart", requireAuth, async (req, res) => {
-    try {
-      const testId = parseInt(req.params.testId);
-      const practiceTest = await storage.getPracticeTest(testId);
-      
-      if (!practiceTest) {
-        return res.status(404).json({ message: "Practice test not found" });
-      }
-
-      // Get all questions for the course through question sets
-      const questionSets = await storage.getQuestionSetsByCourse(practiceTest.courseId);
-      let allQuestions = [];
-      for (const questionSet of questionSets) {
-        const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
-        allQuestions.push(...questions);
-      }
-      
-      if (allQuestions.length < 85) {
-        return res.status(400).json({ message: "Not enough questions available for this test" });
-      }
-
-      // Shuffle questions and select random versions (same logic as start)
-      const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, 85);
-      const questionOrder = [];
-
-      for (const question of shuffledQuestions) {
-        const versions = await storage.getQuestionVersionsByQuestion(question.id);
-        if (versions.length > 0) {
-          const randomVersion = versions[Math.floor(Math.random() * versions.length)];
-          questionOrder.push(randomVersion.id);
-        }
-      }
-
-      // Create a new test run (this effectively restarts the test)
-      const testRun = await storage.createUserTestRun({
-        userId: req.user!.id,
-        practiceTestId: testId,
-        questionOrder,
-      });
-
-      res.status(201).json(testRun);
-    } catch (error) {
-      console.error("Error restarting test:", error);
-      res.status(500).json({ message: "Failed to restart test" });
-    }
-  });
 
   app.get("/api/test-runs/:id", requireAuth, async (req, res) => {
     try {
@@ -1055,12 +932,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       const answers = await storage.getUserAnswersByTestRun(id);
-      const practiceTest = await storage.getPracticeTest(testRun.practiceTestId);
+      const questionSet = await storage.getQuestionSet(testRun.questionSetId);
       
       res.json({
         ...testRun,
         answers,
-        practiceTest,
+        questionSet,
       });
     } catch (error) {
       console.error("Error fetching test run:", error);
@@ -1744,7 +1621,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const courses = await storage.getAllCourses();
       const coursesWithStats = await Promise.all(
         courses.map(async (course) => {
-          const practiceTests = await storage.getPracticeTestsByCourse(course.id);
           const questionSets = await storage.getQuestionSetsByCourse(course.id);
           
           // Count total questions across all question sets
@@ -1756,7 +1632,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
           
           return {
             ...course,
-            testCount: practiceTests.length,
             questionCount: totalQuestions,
             questionSetCount: questionSets.length,
           };
@@ -2352,26 +2227,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/practice-tests", requireAdmin, async (req, res) => {
-    try {
-      const courses = await storage.getAllCourses();
-      let allPracticeTests = [];
-      
-      for (const course of courses) {
-        const practiceTests = await storage.getPracticeTestsByCourse(course.id);
-        const testsWithCourse = practiceTests.map(test => ({
-          ...test,
-          courseName: course.title
-        }));
-        allPracticeTests.push(...testsWithCourse);
-      }
-      
-      res.json(allPracticeTests);
-    } catch (error) {
-      console.error("Error fetching practice tests:", error);
-      res.status(500).json({ message: "Failed to fetch practice tests" });
-    }
-  });
+
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {

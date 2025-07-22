@@ -1,8 +1,8 @@
 import {
-  users, courses, questionSets, practiceTests, questions, questionVersions, 
+  users, courses, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
   type User, type InsertUser, type Course, type InsertCourse,
-  type QuestionSet, type InsertQuestionSet, type PracticeTest, type InsertPracticeTest, 
+  type QuestionSet, type InsertQuestionSet, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
@@ -40,10 +40,7 @@ export interface IStorage {
   updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined>;
   deleteQuestionSet(id: number): Promise<boolean>;
   
-  // Practice test methods
-  getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]>;
-  getPracticeTest(id: number): Promise<PracticeTest | undefined>;
-  createPracticeTest(test: InsertPracticeTest): Promise<PracticeTest>;
+
   
   // Question methods
   getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]>;
@@ -235,14 +232,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQuestionSet(id: number): Promise<boolean> {
     try {
-      // First, check if there are any practice tests that reference this question set
-      const referencingTests = await db.select().from(practiceTests).where(eq(practiceTests.questionSetId, id));
+      // First, check if there are any test runs that reference this question set
+      const referencingTestRuns = await db.select().from(userTestRuns).where(eq(userTestRuns.questionSetId, id));
       
-      // If there are practice tests referencing this question set, update them to remove the reference
-      if (referencingTests.length > 0) {
-        await db.update(practiceTests)
-          .set({ questionSetId: null })
-          .where(eq(practiceTests.questionSetId, id));
+      // If there are test runs referencing this question set, we should not delete it
+      if (referencingTestRuns.length > 0) {
+        throw new Error('Cannot delete question set with existing test runs');
       }
 
       // Delete user answers for all question versions in this set
@@ -276,19 +271,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getPracticeTestsByCourse(courseId: number): Promise<PracticeTest[]> {
-    return await db.select().from(practiceTests).where(eq(practiceTests.courseId, courseId));
-  }
 
-  async getPracticeTest(id: number): Promise<PracticeTest | undefined> {
-    const [test] = await db.select().from(practiceTests).where(eq(practiceTests.id, id));
-    return test || undefined;
-  }
-
-  async createPracticeTest(test: InsertPracticeTest): Promise<PracticeTest> {
-    const [newTest] = await db.insert(practiceTests).values(test).returning();
-    return newTest;
-  }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
     return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
@@ -462,10 +445,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(userAnswers)
       .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
-      .innerJoin(practiceTests, eq(userTestRuns.practiceTestId, practiceTests.id))
+      .innerJoin(questionSets, eq(userTestRuns.questionSetId, questionSets.id))
       .where(and(
         eq(userTestRuns.userId, userId),
-        eq(practiceTests.courseId, courseId)
+        eq(questionSets.courseId, courseId)
       ));
 
       const row = result[0];
@@ -479,9 +462,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }> {
+  async getUserTestProgress(userId: number, questionSetId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }> {
     const testRuns = await db.select().from(userTestRuns)
-      .where(and(eq(userTestRuns.userId, userId), eq(userTestRuns.practiceTestId, testId)))
+      .where(and(eq(userTestRuns.userId, userId), eq(userTestRuns.questionSetId, questionSetId)))
       .orderBy(desc(userTestRuns.startedAt));
 
     if (testRuns.length === 0) {
@@ -502,9 +485,10 @@ export class DatabaseStorage implements IStorage {
       };
     } else {
       const answers = await this.getUserAnswersByTestRun(latestRun.id);
+      const totalQuestions = latestRun.questionOrder?.length || 85;
       return {
         status: "In Progress",
-        score: `${answers.length}/85 questions`,
+        score: `${answers.length}/${totalQuestions} questions`,
         testRun: latestRun,
       };
     }
