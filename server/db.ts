@@ -18,6 +18,9 @@ const pool = new Pool({
   max: 10, // Maximum number of connections in the pool
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 10000, // Timeout connection attempts after 10 seconds
+  // Add error handling for connection issues
+  application_name: 'cpc-practice',
+  query_timeout: 30000, // 30 second query timeout
 });
 
 // Log pool events in development

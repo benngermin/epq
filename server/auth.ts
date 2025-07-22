@@ -52,8 +52,8 @@ async function comparePasswords(supplied: string, stored: string | null) {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: true, // Force resave to ensure state is persisted
-    saveUninitialized: true, // Save uninitialized sessions for OAuth flow
+    resave: false, // Prevent unnecessary session writes
+    saveUninitialized: false, // Don't save empty sessions
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",

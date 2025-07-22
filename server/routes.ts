@@ -177,10 +177,19 @@ function cleanupStream(streamId: string) {
 setInterval(() => {
   const now = Date.now();
   const oldStreamAge = 5 * 60 * 1000; // 5 minutes (reduced from 10)
+  const staleStreamAge = 10 * 60 * 1000; // 10 minutes for stale streams
   
   activeStreams.forEach((stream, streamId) => {
+    // Clean up completed/aborted streams after 5 minutes
     if ((stream.done || stream.aborted) && (now - stream.lastActivity) > oldStreamAge) {
       console.log(`Cleaning up old stream: ${streamId}`);
+      cleanupStream(streamId);
+    }
+    // Force clean up any stream older than 10 minutes regardless of state
+    else if ((now - stream.lastActivity) > staleStreamAge) {
+      console.warn(`Force cleaning stale stream: ${streamId}`);
+      stream.done = true;
+      stream.error = "Stream expired";
       cleanupStream(streamId);
     }
   });
@@ -1197,13 +1206,16 @@ export function registerRoutes(app: Express): Server {
       
       // Clean up any existing streams for this user to prevent conflicts
       const streamEntries = Array.from(activeStreams.entries());
+      const userIdPattern = new RegExp(`^${userId}_`);
       for (const [existingStreamId, stream] of streamEntries) {
-        // More robust check - compare user ID from stream metadata if available
-        if (existingStreamId.includes(`_${userId}_`) || existingStreamId.startsWith(`${userId}_`)) {
+        // Use regex for more accurate user ID matching
+        if (userIdPattern.test(existingStreamId)) {
           // Mark old stream as aborted before deletion
           stream.aborted = true;
           stream.done = true;
-          activeStreams.delete(existingStreamId);
+          stream.error = "New stream started";
+          // Schedule cleanup instead of immediate deletion to allow final fetch
+          setTimeout(() => cleanupStream(existingStreamId), 1000);
         }
       }
       
@@ -1309,9 +1321,10 @@ export function registerRoutes(app: Express): Server {
 
   // Background stream processing
   async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number) {
+    const stream = activeStreams.get(streamId);
+    if (!stream || stream.aborted) return;
+    
     try {
-      const stream = activeStreams.get(streamId);
-      if (!stream || stream.aborted) return;
 
       // Process stream with proper chosenAnswer handling
 

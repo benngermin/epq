@@ -72,6 +72,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       let pollDelay = 150; // Start with 150ms delay
       const maxDelay = 1000;
       const minDelay = 100;
+      let retries = 0; // Add retry counter
       
       while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
         try {
@@ -81,11 +82,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
+              // Stream not found - likely cleaned up
+              console.log('Stream not found, stopping polling');
               break;
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // For other errors, retry with backoff
+            retries++;
+            if (retries > 10) {
+              throw new Error('Failed to fetch stream after multiple retries');
+            }
+            await new Promise(resolve => setTimeout(resolve, Math.min(500 * retries, 3000)));
             continue;
           }
+          
+          // Reset retries on successful response
+          retries = 0;
 
           const chunkData = await chunkResponse.json();
           

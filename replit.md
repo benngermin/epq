@@ -124,6 +124,29 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 3. Static assets served from build directory
 4. Production optimization with tree shaking and minification
 
+## Recent Changes (January 2025)
+
+### Bug Fixes Implemented
+1. **Streaming Chat Memory Management**: Fixed potential memory leak in active streams Map by adding:
+   - Force cleanup for stale streams after 10 minutes
+   - Better user-specific stream cleanup with regex matching
+   - Delayed cleanup to allow final fetch operations
+
+2. **Session Management Optimization**: Changed session settings to prevent unnecessary database writes:
+   - Set `resave: false` to prevent redundant saves
+   - Set `saveUninitialized: false` to avoid saving empty sessions
+
+3. **Client Streaming Error Handling**: Added retry logic with exponential backoff:
+   - Maximum 10 retries with increasing delays
+   - Proper handling of 404 errors (stream not found)
+   - Reset retry counter on successful responses
+
+4. **Database Connection Pool**: Enhanced configuration:
+   - Added application name for better monitoring
+   - Added query timeout of 30 seconds
+
+5. **Stream Processing Error Handling**: Improved error handling in background stream processing to ensure proper cleanup on failures
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
