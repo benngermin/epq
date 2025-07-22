@@ -2146,6 +2146,141 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Admin route to fetch all learning objects from Bubble.io
+  app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      console.log("📡 Fetching all learning objects from Bubble API...");
+      
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/learning_object";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      let allLearningObjects: any[] = [];
+      let cursor = 0;
+      const limit = 100; // Bubble API typically has a limit per request
+      let hasMore = true;
+
+      while (hasMore) {
+        const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
+        const response = await fetch(url, { headers });
+        
+        if (!response.ok) {
+          console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
+          throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const results = data.response?.results || [];
+        
+        if (results.length > 0) {
+          allLearningObjects = allLearningObjects.concat(results);
+          cursor += results.length;
+          console.log(`✅ Fetched ${results.length} learning objects (total: ${allLearningObjects.length})`);
+        }
+        
+        hasMore = results.length === limit && data.response?.remaining > 0;
+      }
+
+      console.log(`✅ Total learning objects fetched: ${allLearningObjects.length}`);
+      
+      // Transform the learning objects to match our course materials schema
+      const transformedMaterials = allLearningObjects.map(lo => ({
+        assignment: lo.title || lo.assignment || "Untitled",
+        course: lo.course?.course_number || lo.course?.title || "Unknown Course",
+        loid: lo._id || lo.loid || "",
+        content: lo.content || lo.description || lo.body || ""
+      }));
+
+      res.json({
+        count: allLearningObjects.length,
+        learningObjects: transformedMaterials,
+        raw: allLearningObjects // Include raw data for debugging
+      });
+    } catch (error) {
+      console.error("Error fetching learning objects from Bubble:", error);
+      res.status(500).json({ message: "Failed to fetch learning objects from Bubble repository" });
+    }
+  });
+
+  // Admin route to import all learning objects from Bubble.io
+  app.post("/api/admin/bubble/import-all-learning-objects", requireAdmin, async (req, res) => {
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      console.log("🔄 Starting import of all learning objects from Bubble...");
+      const startTime = Date.now();
+      
+      // First fetch all learning objects
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/learning_object";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      let allLearningObjects: any[] = [];
+      let cursor = 0;
+      const limit = 100;
+      let hasMore = true;
+
+      while (hasMore) {
+        const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
+        const response = await fetch(url, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const results = data.response?.results || [];
+        
+        if (results.length > 0) {
+          allLearningObjects = allLearningObjects.concat(results);
+          cursor += results.length;
+        }
+        
+        hasMore = results.length === limit && data.response?.remaining > 0;
+      }
+
+      console.log(`✅ Fetched ${allLearningObjects.length} learning objects from Bubble`);
+      
+      // Transform and import the materials
+      const materials = allLearningObjects.map(lo => ({
+        assignment: lo.title || lo.assignment || "Untitled",
+        course: lo.course?.course_number || lo.course?.title || "Unknown Course",
+        loid: lo._id || lo.loid || "",
+        content: lo.content || lo.description || lo.body || ""
+      }));
+
+      // Import to database
+      await storage.importCourseMaterials(materials);
+      
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      const message = `Successfully imported ${materials.length} learning objects in ${duration}s`;
+      
+      console.log(`✅ ${message}`);
+      res.json({ 
+        message,
+        count: materials.length,
+        duration
+      });
+    } catch (error) {
+      console.error("Error importing learning objects from Bubble:", error);
+      res.status(500).json({ message: "Failed to import learning objects from Bubble repository" });
+    }
+  });
+
   // Admin route for importing course materials
   app.post("/api/admin/import-course-materials", requireAdmin, async (req, res) => {
     try {

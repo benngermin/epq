@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -575,6 +576,27 @@ export default function AdminPanel() {
     },
   });
 
+  const importLearningObjectsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/bubble/import-all-learning-objects");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Learning objects imported successfully", 
+        description: data.message || 'Import completed'
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/course-materials"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to import learning objects",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const importCourseMaterialsMutation = useMutation({
     mutationFn: async (csvContent: string) => {
       // Use a proper CSV parsing approach that handles quoted multi-line content
@@ -933,13 +955,24 @@ export default function AdminPanel() {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         Course Materials Upload
-                        <Button 
-                          onClick={() => setCourseMaterialsDialogOpen(true)}
-                          className="text-sm"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Import CSV
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => setCourseMaterialsDialogOpen(true)}
+                            className="text-sm"
+                            variant="outline"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Import CSV
+                          </Button>
+                          <Button
+                            onClick={() => importLearningObjectsMutation.mutate()}
+                            className="text-sm"
+                            disabled={importLearningObjectsMutation.isPending}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import from Bubble"}
+                          </Button>
+                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -947,9 +980,26 @@ export default function AdminPanel() {
                         Course materials provide context for the AI chatbot when students get questions wrong. 
                         Each material is linked to questions via LOID (Learning Objective ID).
                       </p>
-                      <div className="text-sm">
-                        <p>Upload a CSV file with columns: assignment, course, loid, value</p>
+                      <div className="text-sm space-y-2">
+                        <p>• Upload a CSV file with columns: assignment, course, loid, value</p>
+                        <p>• Or import all learning objects directly from Bubble.io repository</p>
                       </div>
+                      {importLearningObjectsMutation.isSuccess && (
+                        <Alert className="mt-4">
+                          <CheckCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            {importLearningObjectsMutation.data?.message}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      {importLearningObjectsMutation.isError && (
+                        <Alert variant="destructive" className="mt-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Failed to import learning objects. Please try again.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </CardContent>
                   </Card>
 

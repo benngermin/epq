@@ -157,6 +157,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 22, 2025: Added Bubble.io API integration for learning objects
+  - Created new API endpoints to fetch and import all learning objects from Bubble.io repository
+  - Added `/api/admin/bubble/learning-objects` endpoint to fetch all learning objects with pagination support
+  - Added `/api/admin/bubble/import-all-learning-objects` endpoint to import all learning objects into course materials table
+  - Enhanced admin panel with "Import from Bubble" button in Course Materials Upload section
+  - Learning objects are mapped to course materials with LOID field for chatbot context
+  - Supports automatic transformation of Bubble data to match our schema (assignment, course, loid, content)
+  - LOID field already exists in database schema and is used to link questions to relevant course materials
 - July 22, 2025: Removed legacy practice test functionality
   - Deleted practice_tests and user_test_runs tables from database schema
   - Removed all practice test-related API routes and server methods
