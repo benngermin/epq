@@ -947,6 +947,68 @@ export default function AdminPanel() {
                     <h1 className="text-2xl font-bold text-foreground">Import & Upload</h1>
                     <p className="text-muted-foreground mt-2">Upload course materials and question sets</p>
                   </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="lg">
+                        <Download className="w-5 h-5 mr-2" />
+                        Import Content
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Import Content from Bubble.io</DialogTitle>
+                        <DialogDescription>
+                          Choose what type of content you want to import from the Bubble.io repository
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <Button
+                          onClick={() => {
+                            importLearningObjectsMutation.mutate();
+                          }}
+                          disabled={importLearningObjectsMutation.isPending}
+                          className="w-full justify-start"
+                          size="lg"
+                        >
+                          <Download className="w-5 h-5 mr-2" />
+                          {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
+                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start" size="lg">
+                              <Upload className="w-5 h-5 mr-2" />
+                              Import Question Sets
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
+                              <DialogDescription>
+                                Fetch and import question sets from ti-content-repository.bubbleapps.io
+                              </DialogDescription>
+                            </DialogHeader>
+                            <BubbleImportSection />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      {importLearningObjectsMutation.isSuccess && (
+                        <Alert>
+                          <CheckCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            {importLearningObjectsMutation.data?.message}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      {importLearningObjectsMutation.isError && (
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Failed to import learning objects. Please try again.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="grid gap-6">
@@ -955,24 +1017,14 @@ export default function AdminPanel() {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         Course Materials Upload
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => setCourseMaterialsDialogOpen(true)}
-                            className="text-sm"
-                            variant="outline"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Import CSV
-                          </Button>
-                          <Button
-                            onClick={() => importLearningObjectsMutation.mutate()}
-                            className="text-sm"
-                            disabled={importLearningObjectsMutation.isPending}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
-                          </Button>
-                        </div>
+                        <Button 
+                          onClick={() => setCourseMaterialsDialogOpen(true)}
+                          className="text-sm"
+                          variant="outline"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Import CSV
+                        </Button>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -980,26 +1032,9 @@ export default function AdminPanel() {
                         Course materials provide context for the AI chatbot when students get questions wrong. 
                         Each material is linked to questions via LOID (Learning Objective ID).
                       </p>
-                      <div className="text-sm space-y-2">
-                        <p>• <strong>Import CSV:</strong> Upload a CSV file with columns: assignment, course, loid, value</p>
-                        <p>• <strong>Import Learning Objects:</strong> Fetch all learning objects from Bubble.io repository</p>
+                      <div className="text-sm">
+                        <p>Upload a CSV file with columns: assignment, course, loid, value</p>
                       </div>
-                      {importLearningObjectsMutation.isSuccess && (
-                        <Alert className="mt-4">
-                          <CheckCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            {importLearningObjectsMutation.data?.message}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      {importLearningObjectsMutation.isError && (
-                        <Alert variant="destructive" className="mt-4">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            Failed to import learning objects. Please try again.
-                          </AlertDescription>
-                        </Alert>
-                      )}
                     </CardContent>
                   </Card>
 
@@ -1008,31 +1043,13 @@ export default function AdminPanel() {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         Question Sets Upload
-                        <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline">
-                                <Upload className="h-4 w-4 mr-2" />
-                                Import Question Sets
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
-                                <DialogDescription>
-                                  Fetch and import question sets from ti-content-repository.bubbleapps.io
-                                </DialogDescription>
-                              </DialogHeader>
-                              <BubbleImportSection />
-                            </DialogContent>
-                          </Dialog>
-                          <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Question Set
-                              </Button>
-                            </DialogTrigger>
+                        <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Question Set
+                            </Button>
+                          </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Create New Question Set</DialogTitle>
@@ -1088,7 +1105,6 @@ export default function AdminPanel() {
                             </Form>
                           </DialogContent>
                         </Dialog>
-                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
