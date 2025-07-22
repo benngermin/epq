@@ -580,9 +580,6 @@ export default function QuestionSetPractice() {
                           <p className="text-sm font-medium truncate">
                             Question {index + 1}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {question.latestVersion?.topicFocus || "General topic"}
-                          </p>
                         </div>
                         {isCurrent && (
                           <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
