@@ -1945,7 +1945,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {
       const courseNumber = req.query.courseNumber as string | undefined;
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      const bubbleApiKey = process.env.BUBBLE_API_KEY_CONTENT_REPO;
       
       if (!bubbleApiKey) {
         return res.status(500).json({ message: "Bubble API key not configured" });
@@ -1986,7 +1986,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.post("/api/admin/bubble/import-question-sets", requireAdmin, async (req, res) => {
     try {
       const { questionSets } = req.body;
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      const bubbleApiKey = process.env.BUBBLE_API_KEY_CONTENT_REPO;
       
       if (!bubbleApiKey) {
         return res.status(500).json({ message: "Bubble API key not configured" });
@@ -2073,17 +2073,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
     const startTime = Date.now();
     
     try {
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
-      console.log("🔍 Checking BUBBLE_API_KEY:", bubbleApiKey ? `Found (length: ${bubbleApiKey.length})` : "Not found");
-      console.log("🔍 Environment check:", {
-        hasBubbleKey: !!process.env.BUBBLE_API_KEY,
-        nodeEnv: process.env.NODE_ENV,
-        bubbleKeys: Object.keys(process.env).filter(key => key.includes('BUBBLE'))
-      });
+      const bubbleApiKey = process.env.BUBBLE_API_KEY_CONTENT_REPO;
       
       if (!bubbleApiKey) {
         console.error("❌ Bubble API key not configured in environment variables");
-        console.error("Available env vars:", Object.keys(process.env).sort());
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
