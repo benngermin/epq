@@ -391,28 +391,30 @@ export default function QuestionSetPractice() {
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {courses?.map((c: any) => {
-                      // Extract course number from various title formats
-                      let courseNumber = c.title;
-                      
-                      // First check if title already starts with course number
-                      const directMatch = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
-                      if (directMatch) {
-                        courseNumber = directMatch;
-                      } else if (c.externalId) {
-                        // Check if externalId contains course number (e.g., "CPCU 500")
-                        const externalIdMatch = c.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
-                        if (externalIdMatch) {
-                          courseNumber = externalIdMatch;
+                    {courses
+                      ?.filter((c: any) => c.questionSets && c.questionSets.length > 0)
+                      ?.map((c: any) => {
+                        // Extract course number from various title formats
+                        let courseNumber = c.title;
+                        
+                        // First check if title already starts with course number
+                        const directMatch = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+                        if (directMatch) {
+                          courseNumber = directMatch;
+                        } else if (c.externalId) {
+                          // Check if externalId contains course number (e.g., "CPCU 500")
+                          const externalIdMatch = c.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
+                          if (externalIdMatch) {
+                            courseNumber = externalIdMatch;
+                          }
                         }
-                      }
-                      
-                      return (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {courseNumber}
-                        </SelectItem>
-                      );
-                    })}
+                        
+                        return (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {courseNumber}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               )}
