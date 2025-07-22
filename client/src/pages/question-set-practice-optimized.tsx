@@ -52,6 +52,19 @@ export default function QuestionSetPractice() {
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   const questionSetId = parseInt(params?.id || "0");
+  
+  // Reset state when question set changes
+  useEffect(() => {
+    setCurrentQuestionIndex(0);
+    setUserAnswers({});
+    setShowChat(false);
+    setSelectedAnswer("");
+    setIsCardFlipped(false);
+    setSidebarOpen(false);
+    setShowBeginDialog(true);
+    setAgreedToTerms(false);
+    setChatResetTimestamp(Date.now());
+  }, [questionSetId]);
 
   // Initialize chat on mount
   useEffect(() => {
@@ -369,7 +382,6 @@ export default function QuestionSetPractice() {
                           return aNum - bNum;
                         })[0];
                       
-                      queryClient.removeQueries({ queryKey: ["/api/practice-data"] });
                       setLocation(`/question-set/${firstQuestionSet.id}`);
                     }
                   }}
@@ -408,8 +420,6 @@ export default function QuestionSetPractice() {
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => {
-                  // Clear any cached data before navigating
-                  queryClient.removeQueries({ queryKey: ["/api/practice-data", parseInt(value)] });
                   setLocation(`/question-set/${value}`);
                 }}
               >

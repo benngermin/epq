@@ -185,6 +185,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
+- July 22, 2025: Fixed app reloading issue when switching courses/question sets
+  - Identified root cause: Full route navigation causes component unmount/remount
+  - Navigation using setLocation() triggers complete component destruction
+  - Added state reset effect when questionSetId changes to maintain smoother transitions
+  - Removed cache clearing operations that were slowing down navigation
+  - All component state (chat, answers, progress) now properly resets on question set change
+  - Data caching remains intact during navigation for faster loading
+  - Note: Full component remount is inherent to current routing architecture with wouter
 - July 21, 2025: Fixed duplicate courses and enhanced dropdown functionality
   - Deduplicated courses in the /api/courses endpoint to prevent showing the same course multiple times
   - Enhanced course dropdowns throughout the app to show only course numbers (e.g., "CPCU 500" instead of full titles)
