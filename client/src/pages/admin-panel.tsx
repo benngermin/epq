@@ -1444,7 +1444,7 @@ function QuestionsList({ questionSetId }: { questionSetId: number }) {
           <div className="flex justify-between items-start mb-2">
             <h4 className="font-medium text-sm">Question {question.originalQuestionNumber || index + 1}</h4>
             <span className="text-xs bg-secondary px-2 py-1 rounded">
-              {question.topicFocus || 'General'}
+              {question.questionType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Multiple Choice'}
             </span>
           </div>
           

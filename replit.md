@@ -141,6 +141,7 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
    - Added proper answer validation logic for each question type
    - Updated import parser to handle new question types with proper defaults
    - Successfully populated Question Type Test (ID: 79) with sample questions demonstrating all question types
+   - Updated admin panel to display question type instead of topic focus in question lists
 
 ### Bug Fixes Implemented
 1. **Streaming Chat Memory Management**: Fixed potential memory leak in active streams Map by adding:

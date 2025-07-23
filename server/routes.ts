@@ -1707,6 +1707,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             answerChoices: latestVersion?.answerChoices || [],
             correctAnswer: latestVersion?.correctAnswer || '',
             topicFocus: latestVersion?.topicFocus || '',
+            questionType: latestVersion?.questionType || 'multiple_choice',
           };
         })
       );
@@ -1742,6 +1743,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             answerChoices: latestVersion?.answerChoices || [],
             correctAnswer: latestVersion?.correctAnswer || '',
             topicFocus: latestVersion?.topicFocus || '',
+            questionType: latestVersion?.questionType || 'multiple_choice',
           };
         })
       );
