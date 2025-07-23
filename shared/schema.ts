@@ -233,13 +233,13 @@ export const questionImportSchema = z.object({
     answer_choices: z.union([
       z.array(z.string()), // For multiple choice, true/false, pick_from_list, ordering
       z.array(z.object({ left: z.string(), right: z.string() })), // For matching
-    ]),
+    ]).default([]),
     correct_answer: z.string(),
-    acceptable_answers: z.array(z.string()).optional(), // For fill_in_blank
-    case_sensitive: z.boolean().optional(), // For fill_in_blank
-    allow_multiple: z.boolean().optional(), // For pick_from_list
+    acceptable_answers: z.array(z.string()).optional(), // For fill_in_blank, numerical_entry, short_answer
+    case_sensitive: z.boolean().optional().default(false), // For fill_in_blank, short_answer
+    allow_multiple: z.boolean().optional().default(false), // For pick_from_list, multiple_response
     matching_pairs: z.array(z.object({ left: z.string(), right: z.string() })).optional(), // For matching
-    correct_order: z.array(z.number()).optional(), // For ordering
+    correct_order: z.array(z.number()).optional(), // For ordering, drag_and_drop
   })),
 });
 

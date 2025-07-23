@@ -91,6 +91,8 @@ export function QuestionCard({
       
       switch (questionType) {
         case "fill_in_blank":
+        case "numerical_entry":
+        case "short_answer":
           const caseSensitive = question.latestVersion.caseSensitive;
           const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
           const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
@@ -108,9 +110,13 @@ export function QuestionCard({
           
         case "matching":
         case "ordering":
+        case "drag_and_drop":
+        case "multiple_response":
           isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
           break;
           
+        case "select_from_list":
+        case "pick_from_list":
         default:
           isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
       }
@@ -221,6 +227,7 @@ export function QuestionCard({
                         );
                         
                       case "ordering":
+                      case "drag_and_drop": // drag_and_drop uses the same component as ordering
                         return (
                           <>
                             <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
@@ -235,6 +242,58 @@ export function QuestionCard({
                               disabled={hasAnswer || isSubmitting}
                               correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
                               correctOrder={question.latestVersion?.correctOrder}
+                            />
+                          </>
+                        );
+                        
+                      case "numerical_entry":
+                      case "short_answer": // Both use fill-in-blank style input
+                        return (
+                          <FillInBlank
+                            questionText={question.latestVersion?.questionText || ""}
+                            value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                            onChange={setSelectedAnswerState}
+                            disabled={hasAnswer || isSubmitting}
+                            isCorrect={isCorrect}
+                            correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            acceptableAnswers={hasAnswer ? question.latestVersion?.acceptableAnswers : undefined}
+                          />
+                        );
+                        
+                      case "multiple_response": // Uses PickFromList with allowMultiple=true
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <PickFromList
+                              answerChoices={question.latestVersion?.answerChoices || []}
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              allowMultiple={true}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                            />
+                          </>
+                        );
+                        
+                      case "select_from_list": // Uses PickFromList with allowMultiple=false
+                        return (
+                          <>
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <PickFromList
+                              answerChoices={question.latestVersion?.answerChoices || []}
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              allowMultiple={false}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
                             />
                           </>
                         );

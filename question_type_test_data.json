@@ -1,0 +1,195 @@
+[
+  {
+    "question_number": 1,
+    "type": "drag_and_drop",
+    "loid": "05259",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Insurance Policy Components",
+        "question_text": "Arrange the following insurance policy components in order from most general to most specific:",
+        "question_type": "drag_and_drop",
+        "answer_choices": [
+          "Policy",
+          "Coverage Part",
+          "Coverage Form",
+          "Endorsement"
+        ],
+        "correct_answer": "[\"Policy\",\"Coverage Part\",\"Coverage Form\",\"Endorsement\"]",
+        "correct_order": [0, 1, 2, 3]
+      }
+    ]
+  },
+  {
+    "question_number": 2,
+    "type": "drag_and_drop",
+    "loid": "10538",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Risk Management Process",
+        "question_text": "Place the following steps of the risk management process in the correct order:",
+        "question_type": "drag_and_drop",
+        "answer_choices": [
+          "Implement selected techniques",
+          "Identify loss exposures",
+          "Analyze loss exposures",
+          "Select appropriate techniques",
+          "Monitor results"
+        ],
+        "correct_answer": "[\"Identify loss exposures\",\"Analyze loss exposures\",\"Select appropriate techniques\",\"Implement selected techniques\",\"Monitor results\"]",
+        "correct_order": [1, 2, 3, 0, 4]
+      }
+    ]
+  },
+  {
+    "question_number": 3,
+    "type": "numerical_entry",
+    "loid": "11590",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Deductible Calculations",
+        "question_text": "If a commercial property has a $500,000 replacement cost and a 2% deductible, what is the deductible amount in dollars?",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "10000",
+        "acceptable_answers": ["10000", "10,000", "$10,000", "$10000"]
+      }
+    ]
+  },
+  {
+    "question_number": 4,
+    "type": "numerical_entry",
+    "loid": "11078",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Coinsurance Penalty",
+        "question_text": "A building valued at $1,000,000 has an 80% coinsurance requirement. If the insured carries $600,000 in coverage and suffers a $100,000 loss, what amount will the insurance company pay?",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "75000",
+        "acceptable_answers": ["75000", "75,000", "$75,000", "$75000"]
+      }
+    ]
+  },
+  {
+    "question_number": 5,
+    "type": "short_answer",
+    "loid": "10455",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Insurance Terms",
+        "question_text": "What is the term for the amount an insured must pay out-of-pocket before insurance coverage begins?",
+        "question_type": "short_answer",
+        "answer_choices": [],
+        "correct_answer": "deductible",
+        "acceptable_answers": ["deductible", "Deductible", "DEDUCTIBLE", "a deductible", "the deductible"],
+        "case_sensitive": false
+      }
+    ]
+  },
+  {
+    "question_number": 6,
+    "type": "short_answer",
+    "loid": "11588",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Coverage Types",
+        "question_text": "What type of insurance coverage protects against lawsuits and legal claims?",
+        "question_type": "short_answer",
+        "answer_choices": [],
+        "correct_answer": "liability",
+        "acceptable_answers": ["liability", "Liability", "LIABILITY", "liability insurance", "liability coverage"],
+        "case_sensitive": false
+      }
+    ]
+  },
+  {
+    "question_number": 7,
+    "type": "multiple_response",
+    "loid": "11587",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Property Coverage Perils",
+        "question_text": "Which of the following are typically covered perils under a commercial property basic form? (Select all that apply)",
+        "question_type": "multiple_response",
+        "answer_choices": [
+          "Fire",
+          "Lightning",
+          "Flood",
+          "Vandalism",
+          "Earthquake"
+        ],
+        "correct_answer": "[\"Fire\",\"Lightning\",\"Vandalism\"]",
+        "allow_multiple": true
+      }
+    ]
+  },
+  {
+    "question_number": 8,
+    "type": "multiple_response",
+    "loid": "11590",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Business Income Coverage",
+        "question_text": "Which of the following expenses are typically covered under Business Income coverage? (Select all that apply)",
+        "question_type": "multiple_response",
+        "answer_choices": [
+          "Continuing normal operating expenses",
+          "Payroll expenses",
+          "Net income that would have been earned",
+          "Cost to replace damaged equipment",
+          "Extra expenses to minimize the loss"
+        ],
+        "correct_answer": "[\"Continuing normal operating expenses\",\"Payroll expenses\",\"Net income that would have been earned\",\"Extra expenses to minimize the loss\"]",
+        "allow_multiple": true
+      }
+    ]
+  },
+  {
+    "question_number": 9,
+    "type": "select_from_list",
+    "loid": "10455",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Insurance Policy Types",
+        "question_text": "From the dropdown list, select the type of policy that provides coverage on a claims-made basis:",
+        "question_type": "select_from_list",
+        "answer_choices": [
+          "Commercial General Liability",
+          "Professional Liability",
+          "Commercial Auto",
+          "Commercial Property"
+        ],
+        "correct_answer": "Professional Liability"
+      }
+    ]
+  },
+  {
+    "question_number": 10,
+    "type": "select_from_list",
+    "loid": "02548",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Coverage Triggers",
+        "question_text": "Select the coverage trigger that requires both the injury and the claim to occur during the policy period:",
+        "question_type": "select_from_list",
+        "answer_choices": [
+          "Occurrence",
+          "Claims-made",
+          "Claims-made and reported",
+          "Discovery"
+        ],
+        "correct_answer": "Claims-made and reported"
+      }
+    ]
+  }
+]

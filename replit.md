@@ -130,6 +130,18 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 
 ## Recent Changes (January 2025)
 
+### Question Type Implementation (January 23, 2025)
+1. **Fixed Question Type Test Implementation**: 
+   - Updated question-card component to handle all new question types:
+     - drag_and_drop: Uses Ordering component for arranging items
+     - numerical_entry: Uses FillInBlank component for numeric input
+     - short_answer: Uses FillInBlank component for text input
+     - multiple_response: Uses PickFromList with multi-select enabled
+     - select_from_list: Uses PickFromList with single selection
+   - Added proper answer validation logic for each question type
+   - Updated import parser to handle new question types with proper defaults
+   - Successfully populated Question Type Test (ID: 79) with sample questions demonstrating all question types
+
 ### Bug Fixes Implemented
 1. **Streaming Chat Memory Management**: Fixed potential memory leak in active streams Map by adding:
    - Force cleanup for stale streams after 10 minutes
