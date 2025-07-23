@@ -275,6 +275,11 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
+- July 23, 2025: Question UI Enhancements
+  - Moved question number to the right side of the question header
+  - Added question type badges on the left side with unique colors based on The Institutes brand palette
+  - Each question type has a distinct color: Multiple Choice (light blue), Fill in Blank (medium blue), True/False (cyan), Matching (orange), Ordering (coral), etc.
+  - Colors use The Institutes' official color palette for consistent branding
 - July 23, 2025: Fixed course-specific question set fetching from Bubble API
   - Bubble API was returning 404 errors when using constraint parameters for filtering
   - Changed approach to fetch all question sets first, then filter server-side by course number

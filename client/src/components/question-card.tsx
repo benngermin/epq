@@ -16,19 +16,19 @@ import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
 
-// Question type configurations
-const questionTypeConfig = {
-  multiple_choice: { label: "Multiple Choice", color: "bg-blue-500 text-white border-blue-500" },
-  fill_in_blank: { label: "Fill in Blank", color: "bg-purple-500 text-white border-purple-500" },
-  true_false: { label: "True/False", color: "bg-green-500 text-white border-green-500" },
-  matching: { label: "Matching", color: "bg-orange-500 text-white border-orange-500" },
-  ordering: { label: "Ordering", color: "bg-pink-500 text-white border-pink-500" },
-  drag_and_drop: { label: "Drag & Drop", color: "bg-indigo-500 text-white border-indigo-500" },
-  numerical_entry: { label: "Numerical", color: "bg-yellow-600 text-white border-yellow-600" },
-  short_answer: { label: "Short Answer", color: "bg-red-500 text-white border-red-500" },
-  pick_from_list: { label: "Pick from List", color: "bg-teal-500 text-white border-teal-500" },
-  multiple_response: { label: "Multiple Response", color: "bg-cyan-500 text-white border-cyan-500" },
-  select_from_list: { label: "Select from List", color: "bg-amber-600 text-white border-amber-600" },
+// Question type configurations using The Institutes color palette
+const questionTypeConfig: Record<string, { label: string; color: string }> = {
+  multiple_choice: { label: "Multiple Choice", color: "bg-[#7bcde8] text-gray-800 border-[#7bcde8]" },
+  fill_in_blank: { label: "Fill in Blank", color: "bg-[#7da5d7] text-white border-[#7da5d7]" },
+  true_false: { label: "True/False", color: "bg-[#1ba7c5] text-white border-[#1ba7c5]" },
+  matching: { label: "Matching", color: "bg-[#faa634] text-gray-800 border-[#faa634]" },
+  ordering: { label: "Ordering", color: "bg-[#ed7738] text-white border-[#ed7738]" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-[#98298f] text-white border-[#98298f]" },
+  numerical_entry: { label: "Numerical", color: "bg-[#ffc629] text-gray-800 border-[#ffc629]" },
+  short_answer: { label: "Short Answer", color: "bg-[#f04040] text-white border-[#f04040]" },
+  pick_from_list: { label: "Pick from List", color: "bg-[#642160] text-white border-[#642160]" },
+  multiple_response: { label: "Multiple Response", color: "bg-[#2c6fb7] text-white border-[#2c6fb7]" },
+  select_from_list: { label: "Select from List", color: "bg-[#b85627] text-white border-[#b85627]" },
 };
 
 interface QuestionCardProps {
