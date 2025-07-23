@@ -16,6 +16,21 @@ import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
 
+// Question type configurations
+const questionTypeConfig = {
+  multiple_choice: { label: "Multiple Choice", color: "bg-blue-500 text-white border-blue-500" },
+  fill_in_blank: { label: "Fill in Blank", color: "bg-purple-500 text-white border-purple-500" },
+  true_false: { label: "True/False", color: "bg-green-500 text-white border-green-500" },
+  matching: { label: "Matching", color: "bg-orange-500 text-white border-orange-500" },
+  ordering: { label: "Ordering", color: "bg-pink-500 text-white border-pink-500" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-indigo-500 text-white border-indigo-500" },
+  numerical_entry: { label: "Numerical", color: "bg-yellow-600 text-white border-yellow-600" },
+  short_answer: { label: "Short Answer", color: "bg-red-500 text-white border-red-500" },
+  pick_from_list: { label: "Pick from List", color: "bg-teal-500 text-white border-teal-500" },
+  multiple_response: { label: "Multiple Response", color: "bg-cyan-500 text-white border-cyan-500" },
+  select_from_list: { label: "Select from List", color: "bg-amber-600 text-white border-amber-600" },
+};
+
 interface QuestionCardProps {
   question: any;
   onSubmitAnswer: (answer: string) => void;
@@ -149,10 +164,19 @@ export function QuestionCard({
             <Card className="max-h-[calc(100vh-180px)] bg-card border shadow-sm flex flex-col">
               <CardContent className="p-3 sm:p-4 md:p-4 lg:p-5 xl:p-6 flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-y-auto">
-                  <div className="mb-2 sm:mb-3 md:mb-4">
-                    <Badge variant="secondary" className="w-fit bg-accent text-accent-foreground border text-sm">
-                      Question {(question.questionIndex || 0) + 1}
+                  <div className="mb-2 sm:mb-3 md:mb-4 flex justify-between items-center">
+                    <Badge 
+                      variant="secondary" 
+                      className={cn(
+                        "w-fit text-sm font-medium px-3 py-1",
+                        questionTypeConfig[questionType]?.color || "bg-accent text-accent-foreground border"
+                      )}
+                    >
+                      {questionTypeConfig[questionType]?.label || "Question"}
                     </Badge>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Question {(question.questionIndex || 0) + 1}
+                    </span>
                   </div>
 
                   {/* Render question based on type */}
