@@ -256,9 +256,13 @@ export function setupAuth(app: Express) {
 
   // Authentication configuration endpoint
   app.get("/api/auth/config", (req, res) => {
-    const hasLocalAuth = true; // Available but restricted to admins
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // In production: SSO is required, no local auth
+    // In development: Both SSO and local auth are available
+    const hasLocalAuth = !isProduction; // Only show local auth in development
     const hasCognitoSSO = true; // Always available
-    const ssoRequired = false; // SSO not strictly required since admins can use local auth
+    const ssoRequired = isProduction; // Auto-redirect to SSO in production
     
     res.json({
       hasLocalAuth,
@@ -267,6 +271,7 @@ export function setupAuth(app: Express) {
       cognitoLoginUrl: '/auth/cognito',
       cognitoDomain: cognitoDomain || null,
       localAuthAdminOnly: true, // New flag to indicate local auth is admin-only
+      environment: isProduction ? 'production' : 'development', // Add for debugging
     });
   });
 

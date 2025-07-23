@@ -37,6 +37,10 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 - Secure session configuration with PostgreSQL session store
 - **Important**: Non-SSO login is restricted to admin users only
 - Admin users: benn@modia.ai, perzi@theinstitutes.org, shean@theinstitutes.org
+- **Environment-based Authentication Flow**:
+  - **Production**: Auto-redirects to SSO login, no local auth option visible
+  - **Development**: Shows both SSO and Admin Login options
+  - Users never see the auth page buttons in production - they're automatically sent to Cognito SSO
 
 ### Question Management
 - Hierarchical structure: Courses → Question Sets → Questions → Question Versions
@@ -180,6 +184,13 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 23, 2025: Environment-based authentication flow implementation
+  - Modified `/api/auth/config` endpoint to detect NODE_ENV and set authentication options accordingly
+  - Production environment: `ssoRequired: true`, `hasLocalAuth: false` - users are automatically redirected to SSO
+  - Development environment: `ssoRequired: false`, `hasLocalAuth: true` - both SSO and Admin Login options visible
+  - In production, users never see auth page buttons - they're immediately redirected to Cognito SSO
+  - Admin privileges are determined by user's email address after SSO authentication
+  - This creates a seamless experience where production users don't need to make authentication choices
 - January 22, 2025: Enhanced course material matching with leading zero handling
   - Fixed issue where questions with LOIDs containing leading zeros (e.g., '05259') couldn't find course materials with LOIDs without leading zeros (e.g., '5259')
   - Updated getCourseMaterialByLoid to try multiple matching strategies:
