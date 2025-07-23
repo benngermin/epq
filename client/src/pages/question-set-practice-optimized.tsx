@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft } from "lucide-react";
+import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft, LogOut } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { OptimizedImage } from "@/components/optimized-image";
 
@@ -367,9 +367,10 @@ export default function QuestionSetPractice() {
             <div className="flex-1 flex justify-end items-center gap-4">
               {/* Course Dropdown - Admin Only */}
               {user?.isAdmin && (
-                <Select
-                  value={course?.id?.toString() || ""}
-                  onValueChange={(value) => {
+                <>
+                  <Select
+                    value={course?.id?.toString() || ""}
+                    onValueChange={(value) => {
                     // Find the selected course
                     const selectedCourse = courses?.find(c => c.id.toString() === value);
                     if (selectedCourse && selectedCourse.questionSets && selectedCourse.questionSets.length > 0) {
@@ -418,6 +419,18 @@ export default function QuestionSetPractice() {
                       })}
                   </SelectContent>
                 </Select>
+                
+                {/* Logout Button - Admin Only */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => logoutMutation.mutate()}
+                  className="h-11 w-11 hover:bg-destructive/10 hover:text-destructive"
+                  title="Logout"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+                </>
               )}
 
               {/* Question Set Dropdown */}
