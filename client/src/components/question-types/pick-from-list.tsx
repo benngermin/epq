@@ -66,21 +66,23 @@ export function PickFromList({
 
   // Single selection with dropdown
   return (
-    <Select
-      value={value as string}
-      onValueChange={onChange}
-      disabled={disabled}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select an option" />
-      </SelectTrigger>
-      <SelectContent>
-        {answerChoices.map((choice, index) => (
-          <SelectItem key={index} value={choice}>
-            {choice}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="p-0.5">
+      <Select
+        value={value as string}
+        onValueChange={onChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select an option" />
+        </SelectTrigger>
+        <SelectContent>
+          {answerChoices.map((choice, index) => (
+            <SelectItem key={index} value={choice}>
+              {choice}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

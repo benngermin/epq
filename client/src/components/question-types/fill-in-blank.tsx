@@ -31,15 +31,17 @@ export function FillInBlank({
           <p className="text-base text-foreground leading-relaxed">{questionText}</p>
           <div className="flex items-center gap-2">
             <Label htmlFor="answer-input">Your answer:</Label>
-            <Input
-              id="answer-input"
-              type="text"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              disabled={disabled}
-              className="w-48"
-              placeholder="Type your answer"
-            />
+            <div className="p-0.5">
+              <Input
+                id="answer-input"
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                disabled={disabled}
+                className="w-48"
+                placeholder="Type your answer"
+              />
+            </div>
           </div>
         </div>
       );
