@@ -279,6 +279,12 @@ function BubbleImportSection() {
       
       if (data.response && data.response.results) {
         setQuestionSets(data.response.results);
+        if (courseNumber && data.response.results.length === 0) {
+          toast({
+            title: "No question sets found",
+            description: `No question sets found for course ${courseNumber}`,
+          });
+        }
       } else if (Array.isArray(data)) {
         setQuestionSets(data);
       } else {
@@ -443,11 +449,12 @@ function BubbleImportSection() {
         </Button>
       </div>
 
-      {questionSets.length > 0 && (
+      {questionSets.length > 0 ? (
         <>
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
               Found {questionSets.length} question sets
+              {courseNumber && ` for course ${courseNumber}`}
             </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={selectAll}>
@@ -487,7 +494,7 @@ function BubbleImportSection() {
             {importing ? "Importing..." : `Import ${selectedSets.length} Selected Question Sets`}
           </Button>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

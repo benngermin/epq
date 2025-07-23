@@ -1871,24 +1871,36 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       let url = baseUrl;
       
-      // Add constraints if course number is provided
-      if (courseNumber) {
-        const constraints = [{
-          key: "learning_object.course.course_number",
-          constraint_type: "equals",
-          value: courseNumber
-        }];
-        url += `?constraints=${encodeURIComponent(JSON.stringify(constraints))}`;
-      }
-
+      // Fetch all question sets first
       const response = await fetch(url, { headers });
       
       if (!response.ok) {
+        const responseText = await response.text();
+        console.error("Bubble API response:", response.status, responseText);
         throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      res.json(data);
+      let questionSets = data.response?.results || [];
+      
+      // Filter by course number if provided
+      if (courseNumber) {
+        console.log("Filtering by course number:", courseNumber);
+        questionSets = questionSets.filter((qs: any) => {
+          const qsCourseNumber = qs.learning_object?.course?.course_number;
+          return qsCourseNumber === courseNumber;
+        });
+        console.log(`Found ${questionSets.length} question sets for course ${courseNumber}`);
+      }
+      
+      // Return the same structure as the Bubble API
+      res.json({
+        response: {
+          results: questionSets,
+          count: questionSets.length,
+          remaining: 0
+        }
+      });
     } catch (error) {
       console.error("Error fetching from Bubble API:", error);
       res.status(500).json({ message: "Failed to fetch question sets from Bubble repository" });
