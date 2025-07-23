@@ -368,7 +368,8 @@ function BubbleImportSection() {
     setUpdating(true);
     try {
       console.log("📡 Sending request to /api/admin/bubble/update-all-question-sets");
-      const response = await apiRequest("POST", "/api/admin/bubble/update-all-question-sets");
+      const body = courseNumber ? { courseNumber } : {};
+      const response = await apiRequest("POST", "/api/admin/bubble/update-all-question-sets", body);
       
       console.log("📥 Response received:", response.status, response.statusText);
       
@@ -387,7 +388,7 @@ function BubbleImportSection() {
         result.message;
       
       toast({
-        title: "Update completed",
+        title: courseNumber ? `Update completed for ${courseNumber}` : "Update completed",
         description: detailMessage,
       });
       
@@ -421,7 +422,9 @@ function BubbleImportSection() {
           className="w-full"
           variant="default"
         >
-          {updating ? "Updating All Question Sets..." : "Update Question Set Data"}
+          {updating 
+            ? (courseNumber ? `Updating ${courseNumber} Question Sets...` : "Updating All Question Sets...") 
+            : (courseNumber ? `Update ${courseNumber} Question Set Data` : "Update All Question Set Data")}
         </Button>
       </div>
       

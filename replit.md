@@ -264,10 +264,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 Recent Updates:
 - July 23, 2025: Fixed course-specific question set fetching from Bubble API
   - Bubble API was returning 404 errors when using constraint parameters for filtering
-  - Changed approach to fetch all question sets first, then filter client-side by course number
+  - Changed approach to fetch all question sets first, then filter server-side by course number
   - Updated server endpoint to maintain consistent response structure with Bubble API
   - Added better user feedback when no question sets are found for a specific course
-  - The search now properly displays results when filtering by course number (e.g., "CPCU 500")
+  - Enhanced update functionality to support course-specific updates
+    - Update All Question Set Data button now respects the course number filter
+    - When a course number is entered, only question sets for that course are updated
+    - Button text changes to reflect whether updating all courses or a specific course
+  - Added debugging to identify the actual structure of question sets from Bubble API
 - July 22, 2025: Enhanced Content Management page organization and display
   - Implemented automatic sorting to show courses with populated question sets first
   - Added secondary alphabetical sorting by course title for better organization

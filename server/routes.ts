@@ -1886,8 +1886,27 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Filter by course number if provided
       if (courseNumber) {
         console.log("Filtering by course number:", courseNumber);
+        
+        // Debug: log the first question set structure
+        if (questionSets.length > 0) {
+          console.log("Sample question set structure:", JSON.stringify({
+            _id: questionSets[0]._id,
+            title: questionSets[0].title,
+            learning_object: questionSets[0].learning_object,
+            course: questionSets[0].course,
+            course_custom_course: questionSets[0].course_custom_course
+          }, null, 2));
+        }
+        
         questionSets = questionSets.filter((qs: any) => {
-          const qsCourseNumber = qs.learning_object?.course?.course_number;
+          // Try multiple ways to find the course number
+          const qsCourseNumber = qs.learning_object?.course?.course_number || 
+                                 qs.course_number ||
+                                 qs.course?.course_number;
+          
+          // Also check if the course is directly linked via Bubble ID
+          const courseBubbleId = qs.course || qs.course_custom_course;
+          
           return qsCourseNumber === courseNumber;
         });
         console.log(`Found ${questionSets.length} question sets for course ${courseNumber}`);
@@ -1995,6 +2014,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
     console.log("🔄 Starting update-all-question-sets process...");
     const startTime = Date.now();
+    const { courseNumber } = req.body; // Optional course number filter
     
     try {
       // Debug environment variables
@@ -2047,12 +2067,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
         try {
           const bubbleId = bubbleQuestionSet._id;
           const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
-          const courseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
-          const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${courseNumber}`;
+          const qsCourseNumber = bubbleQuestionSet.learning_object?.course?.course_number;
+          const courseTitle = bubbleQuestionSet.learning_object?.course?.title || `Course ${qsCourseNumber}`;
+          
+          // Skip if filtering by course and this doesn't match
+          if (courseNumber && qsCourseNumber !== courseNumber) {
+            continue;
+          }
           
           console.log(`\n[${i + 1}/${bubbleQuestionSets.length}] Processing question set: ${bubbleQuestionSet.title || bubbleId}`);
           console.log(`  - Bubble ID: ${bubbleId}`);
           console.log(`  - Course Bubble ID: ${courseBubbleId}`);
+          console.log(`  - Course Number: ${qsCourseNumber}`);
           console.log(`  - Has content field: ${!!bubbleQuestionSet.content}`);
           
           // Skip if no course association
