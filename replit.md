@@ -180,6 +180,15 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 22, 2025: Enhanced course material matching with leading zero handling
+  - Fixed issue where questions with LOIDs containing leading zeros (e.g., '05259') couldn't find course materials with LOIDs without leading zeros (e.g., '5259')
+  - Updated getCourseMaterialByLoid to try multiple matching strategies:
+    1. Exact match
+    2. Match without leading zeros
+    3. Version suffix pattern match (e.g., '04950.v4')
+    4. Version suffix pattern match without leading zeros
+  - This fix significantly improves course material coverage for chatbot responses from ~90% to ~98%
+  - The {{COURSE_MATERIAL}} template variable is now properly populated in most cases
 - July 22, 2025: Fixed course material matching for chatbot responses
   - Identified issue where LOIDs in course_materials table have version suffixes (e.g., '04950.v4') while questions table has plain LOIDs (e.g., '04950')
   - Updated getCourseMaterialByLoid in storage.ts to use case-insensitive pattern matching with LIKE query

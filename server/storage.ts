@@ -518,11 +518,29 @@ export class DatabaseStorage implements IStorage {
       .where(eq(courseMaterials.loid, loid))
       .limit(1);
     
-    // If no exact match found, try matching with version suffix pattern (case-insensitive)
+    // If no exact match, try without leading zeros
+    if (!result[0] && loid) {
+      const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+      result = await db.select()
+        .from(courseMaterials)
+        .where(eq(courseMaterials.loid, loidWithoutLeadingZeros))
+        .limit(1);
+    }
+    
+    // If still no match, try matching with version suffix pattern (case-insensitive)
     if (!result[0] && loid) {
       result = await db.select()
         .from(courseMaterials)
         .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`)
+        .limit(1);
+    }
+    
+    // If still no match, try version suffix pattern without leading zeros
+    if (!result[0] && loid) {
+      const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+      result = await db.select()
+        .from(courseMaterials)
+        .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`)
         .limit(1);
     }
     
