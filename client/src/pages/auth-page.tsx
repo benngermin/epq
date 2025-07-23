@@ -101,7 +101,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={institutesLogo} alt="The Institutes" className="mx-auto h-12 w-12 mb-4" />
-          <h1 className="text-3xl font-bold text-foreground">CPC Practice - CPCU 500 Exam Preparation</h1>
+          <h1 className="text-3xl font-bold text-foreground">Exam Practice Questions</h1>
         </div>
 
         {error && (
