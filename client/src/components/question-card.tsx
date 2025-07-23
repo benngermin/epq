@@ -16,19 +16,19 @@ import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
 
-// Question type configurations using The Institutes color palette
+// Question type configurations using The Institutes color palette with pastel shades
 const questionTypeConfig: Record<string, { label: string; color: string }> = {
-  multiple_choice: { label: "Multiple Choice", color: "bg-[#7bcde8] text-gray-800 border-[#7bcde8]" },
-  fill_in_blank: { label: "Fill in Blank", color: "bg-[#7da5d7] text-white border-[#7da5d7]" },
-  true_false: { label: "True/False", color: "bg-[#1ba7c5] text-white border-[#1ba7c5]" },
-  matching: { label: "Matching", color: "bg-[#faa634] text-gray-800 border-[#faa634]" },
-  ordering: { label: "Ordering", color: "bg-[#ed7738] text-white border-[#ed7738]" },
-  drag_and_drop: { label: "Drag & Drop", color: "bg-[#98298f] text-white border-[#98298f]" },
-  numerical_entry: { label: "Numerical", color: "bg-[#ffc629] text-gray-800 border-[#ffc629]" },
-  short_answer: { label: "Short Answer", color: "bg-[#f04040] text-white border-[#f04040]" },
-  pick_from_list: { label: "Pick from List", color: "bg-[#642160] text-white border-[#642160]" },
-  multiple_response: { label: "Multiple Response", color: "bg-[#2c6fb7] text-white border-[#2c6fb7]" },
-  select_from_list: { label: "Select from List", color: "bg-[#b85627] text-white border-[#b85627]" },
+  multiple_choice: { label: "Multiple Choice", color: "bg-[#7bcde8]/30 text-[#1a5c7a] border-[#7bcde8]/50" },
+  fill_in_blank: { label: "Fill in Blank", color: "bg-[#7da5d7]/30 text-[#2c4e6f] border-[#7da5d7]/50" },
+  true_false: { label: "True/False", color: "bg-[#1ba7c5]/30 text-[#0a4554] border-[#1ba7c5]/50" },
+  matching: { label: "Matching", color: "bg-[#faa634]/30 text-[#8d5a00] border-[#faa634]/50" },
+  ordering: { label: "Ordering", color: "bg-[#ed7738]/30 text-[#8d3a0e] border-[#ed7738]/50" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-[#98298f]/30 text-[#5a1755] border-[#98298f]/50" },
+  numerical_entry: { label: "Numerical", color: "bg-[#ffc629]/30 text-[#8d6600] border-[#ffc629]/50" },
+  short_answer: { label: "Short Answer", color: "bg-[#f04040]/30 text-[#8d1818] border-[#f04040]/50" },
+  pick_from_list: { label: "Pick from List", color: "bg-[#642160]/30 text-[#3d1439] border-[#642160]/50" },
+  multiple_response: { label: "Multiple Response", color: "bg-[#2c6fb7]/30 text-[#1a426e] border-[#2c6fb7]/50" },
+  select_from_list: { label: "Select from List", color: "bg-[#b85627]/30 text-[#6e3216] border-[#b85627]/50" },
 };
 
 interface QuestionCardProps {
