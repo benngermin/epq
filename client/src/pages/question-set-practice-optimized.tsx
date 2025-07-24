@@ -350,12 +350,12 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-6">
-          <div className="flex items-center h-24 lg:h-20">
+          <div className="flex items-center justify-between h-24 lg:h-20">
             {/* Left - Course Name */}
-            <div className="w-48 lg:w-64 xl:w-72 flex-shrink-0">
+            <div className="flex-1 min-w-0 max-w-[calc(50%-100px)] lg:max-w-[calc(50%-120px)] xl:max-w-[calc(50%-140px)]">
               <h1 
                 className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2]" 
-                style={{ fontFamily: '"Open Sans", sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
                 {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
@@ -363,7 +363,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Center - Logo */}
-            <div className="hidden lg:flex flex-1 justify-center px-8">
+            <div className="hidden lg:flex px-4 mx-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -372,7 +372,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Right - Dropdowns */}
-            <div className="flex-1 flex justify-end items-center gap-2 lg:gap-4">
+            <div className="flex-1 min-w-0 flex justify-end items-center gap-2 lg:gap-4">
               {/* Logout Button - Admin Only */}
               {user?.isAdmin && (
                 <Button
