@@ -280,18 +280,18 @@ export default function QuestionSetPractice() {
         <div className="w-full px-6">
           <div className="flex items-center h-20">
             {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 pr-4">
+            <div className="flex-1 min-w-0 lg:max-w-[30%]">
               <h1 
                 className="text-lg lg:text-[28px] font-semibold truncate" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
-                title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
+                title={course?.title || "Loading..."}
               >
-                {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
+                {course?.title || "Loading..."}
               </h1>
             </div>
             
             {/* Center - Logo */}
-            <div className="hidden lg:flex flex-shrink-0 px-4">
+            <div className="hidden lg:flex flex-1 justify-center px-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -300,12 +300,12 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Right - Question Set Dropdown */}
-            <div className="flex-shrink-0 flex justify-end items-center">
+            <div className="flex-1 flex justify-end items-center">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <SelectTrigger className="w-[150px] lg:w-[200px] xl:w-[250px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>

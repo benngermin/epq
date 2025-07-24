@@ -130,13 +130,6 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 
 ## Recent Changes (January 2025)
 
-### Fixed Course Title Truncation (July 24, 2025)
-- Kept title on single line with `truncate` class as requested
-- Increased max width from 30% to 45% on large screens and 50% on extra-large screens
-- Changed center logo from `flex-1` to `flex-shrink-0` to prevent it from taking unnecessary space
-- Changed right dropdown section from `flex-1` to `flex-shrink-0` to give more room to title
-- Applied fix to both question-set-practice.tsx and question-set-practice-optimized.tsx pages
-
 ### Course Schema Updates (July 24, 2025)
 1. **Updated Course Data Type Schema**:
    - Changed `title` field to `courseNumber` (stores course identifiers like "AIC 300", "CPCU 500")
