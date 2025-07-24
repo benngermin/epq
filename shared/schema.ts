@@ -15,8 +15,8 @@ export const users = pgTable("users", {
 
 export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
+  courseNumber: text("course_number").notNull(),
+  courseTitle: text("course_title").notNull(),
   externalId: text("external_id").unique(), // Client's course ID
   bubbleUniqueId: text("bubble_unique_id").unique(), // Bubble's unique course ID
 });

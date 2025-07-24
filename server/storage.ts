@@ -155,7 +155,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCourses(): Promise<Course[]> {
-    return await db.select().from(courses).orderBy(asc(courses.title));
+    return await db.select().from(courses).orderBy(asc(courses.courseNumber));
   }
 
   async getCoursesWithQuestionSets(): Promise<Course[]> {
@@ -163,15 +163,15 @@ export class DatabaseStorage implements IStorage {
     const coursesWithQuestionSets = await db
       .selectDistinct({ 
         id: courses.id,
-        title: courses.title,
-        description: courses.description,
+        courseNumber: courses.courseNumber,
+        courseTitle: courses.courseTitle,
         externalId: courses.externalId,
         bubbleUniqueId: courses.bubbleUniqueId
       })
       .from(courses)
       .innerJoin(questionSets, eq(questionSets.courseId, courses.id))
       .where(sql`${questionSets.questionCount} > 0`)
-      .orderBy(asc(courses.title));
+      .orderBy(asc(courses.courseNumber));
     
     return coursesWithQuestionSets;
   }

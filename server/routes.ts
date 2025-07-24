@@ -487,8 +487,8 @@ export function registerRoutes(app: Express): Server {
         // Extract course number
         let courseNumber = null;
         
-        // First check if title starts with course number
-        const titleMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+        // First check if courseNumber starts with course number
+        const titleMatch = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/)?.[0];
         if (titleMatch) {
           courseNumber = titleMatch;
         } else if (course.externalId) {
@@ -514,7 +514,7 @@ export function registerRoutes(app: Express): Server {
       // Convert map back to array of unique courses
       const uniqueCourses = Array.from(courseMap.values()).filter(course => {
         // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
-        const hasStandardName = course.title.match(/^(CPCU|AIC)\s+\d+/) || 
+        const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
                                (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
         return hasStandardName;
       });
@@ -547,7 +547,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
       
-      // Sort courses to show those with question sets first, then by title
+      // Sort courses to show those with question sets first, then by course number
       coursesWithProgress.sort((a, b) => {
         // First priority: courses with question sets
         const aHasQuestionSets = a.questionSets && a.questionSets.length > 0;
@@ -556,8 +556,8 @@ export function registerRoutes(app: Express): Server {
         if (aHasQuestionSets && !bHasQuestionSets) return -1;
         if (!aHasQuestionSets && bHasQuestionSets) return 1;
         
-        // Second priority: alphabetical by title
-        return a.title.localeCompare(b.title);
+        // Second priority: alphabetical by course number
+        return a.courseNumber.localeCompare(b.courseNumber);
       });
       
       res.json(coursesWithProgress);
@@ -641,9 +641,9 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/admin/courses/bulk", requireAdmin, async (req, res) => {
     try {
       const coursesData = z.array(z.object({
-        title: z.string(),
-        externalId: z.string(),
-        description: z.string().optional()
+        courseNumber: z.string(),
+        courseTitle: z.string(),
+        externalId: z.string()
       })).parse(req.body);
       
       const results = [];
@@ -655,14 +655,14 @@ export function registerRoutes(app: Express): Server {
             results.push({ ...existing, status: 'exists' });
           } else {
             const newCourse = await storage.createCourse({
-              title: courseData.title,
-              description: courseData.description || `${courseData.title} course materials`,
+              courseNumber: courseData.courseNumber,
+              courseTitle: courseData.courseTitle,
               externalId: courseData.externalId
             });
             results.push({ ...newCourse, status: 'created' });
           }
         } catch (error) {
-          results.push({ title: courseData.title, externalId: courseData.externalId, status: 'error', error: String(error) });
+          results.push({ courseNumber: courseData.courseNumber, courseTitle: courseData.courseTitle, externalId: courseData.externalId, status: 'error', error: String(error) });
         }
       }
       
@@ -1640,7 +1640,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           id: questionSets.id,
           title: questionSets.title,
           courseId: questionSets.courseId,
-          courseTitle: courses.title
+          courseTitle: courses.courseTitle
         })
         .from(questionSets)
         .leftJoin(courses, eq(questionSets.courseId, courses.id))
@@ -1954,8 +1954,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
           let course = await storage.getCourseByExternalId(courseNumber);
           if (!course) {
             course = await storage.createCourse({
-              title: courseTitle,
-              description: `Imported from Bubble repository`,
+              courseNumber: courseNumber,
+              courseTitle: courseTitle,
               externalId: courseNumber
             });
           }
@@ -2100,7 +2100,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             continue;
           }
           
-          console.log(`  ✓ Found existing course: ${course.title} (ID: ${course.id})`);
+          console.log(`  ✓ Found existing course: ${course.courseNumber} - ${course.courseTitle} (ID: ${course.id})`);
           
           // Parse content field to get questions
           let parsedQuestions: any[] = [];
