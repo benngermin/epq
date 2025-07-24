@@ -221,6 +221,14 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- July 24, 2025: Fixed responsive navigation header overlap issue
+  - Resolved logo overlapping with logout icon on smaller screens
+  - Changed from absolute positioning to flexbox layout for responsive behavior
+  - Logo now only displays on large screens (hidden on mobile/tablet)
+  - Course title font size responsive (smaller on mobile)
+  - All dropdowns now have responsive width and height
+  - Admin course dropdown hidden on smaller screens to prevent cramping
+  - This ensures clean layout across all device sizes without UI elements overlapping
 - January 24, 2025: Fixed critical route matching bug in question set practice component
   - Resolved "Cannot read properties of undefined (reading 'match')" error in QuestionSetPractice component
   - Added proper error handling when route doesn't match or params are undefined

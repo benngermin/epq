@@ -278,11 +278,11 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-6">
-          <div className="flex items-center h-20 relative">
+          <div className="flex items-center h-20">
             {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 max-w-[40%]">
+            <div className="flex-1 min-w-0 lg:max-w-[30%]">
               <h1 
-                className="text-[28px] font-semibold truncate" 
+                className="text-lg lg:text-[28px] font-semibold truncate" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course?.title || "Loading..."}
               >
@@ -290,8 +290,8 @@ export default function QuestionSetPractice() {
               </h1>
             </div>
             
-            {/* Center - Logo (Absolutely positioned) */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            {/* Center - Logo */}
+            <div className="hidden lg:flex flex-1 justify-center px-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -305,7 +305,7 @@ export default function QuestionSetPractice() {
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <SelectTrigger className="w-[320px] h-11 text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
