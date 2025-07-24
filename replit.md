@@ -131,10 +131,10 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 ## Recent Changes (January 2025)
 
 ### Fixed Course Title Truncation (July 24, 2025)
-- Changed `truncate` class to `break-words` to allow title text to wrap
-- Increased max width from 30% to 40% for the title container
-- Updated header to use `min-h-[80px]` instead of fixed `h-20` to accommodate wrapped text
-- Added `lineHeight: '1.2'` to improve text spacing when wrapped
+- Kept title on single line with `truncate` class as requested
+- Increased max width from 30% to 45% on large screens and 50% on extra-large screens
+- Changed center logo from `flex-1` to `flex-shrink-0` to prevent it from taking unnecessary space
+- Changed right dropdown section from `flex-1` to `flex-shrink-0` to give more room to title
 - Applied fix to both question-set-practice.tsx and question-set-practice-optimized.tsx pages
 
 ### Course Schema Updates (July 24, 2025)
