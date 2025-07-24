@@ -16,19 +16,20 @@ import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
 
-// Question type configurations using The Institutes color palette with pastel shades
+// Question type configurations using a cohesive blue-based color palette
+// Multiple choice uses the primary app blue, others use complementary blues
 const questionTypeConfig: Record<string, { label: string; color: string }> = {
-  multiple_choice: { label: "Multiple Choice", color: "bg-[#7bcde8]/30 text-[#1a5c7a] border-[#7bcde8]/50" },
-  fill_in_blank: { label: "Fill in Blank", color: "bg-[#7da5d7]/30 text-[#2c4e6f] border-[#7da5d7]/50" },
-  true_false: { label: "True/False", color: "bg-[#1ba7c5]/30 text-[#0a4554] border-[#1ba7c5]/50" },
-  matching: { label: "Matching", color: "bg-[#faa634]/30 text-[#8d5a00] border-[#faa634]/50" },
-  ordering: { label: "Ordering", color: "bg-[#ed7738]/30 text-[#8d3a0e] border-[#ed7738]/50" },
-  drag_and_drop: { label: "Drag & Drop", color: "bg-[#98298f]/30 text-[#5a1755] border-[#98298f]/50" },
-  numerical_entry: { label: "Numerical", color: "bg-[#ffc629]/30 text-[#8d6600] border-[#ffc629]/50" },
-  short_answer: { label: "Short Answer", color: "bg-[#f04040]/30 text-[#8d1818] border-[#f04040]/50" },
-  pick_from_list: { label: "Pick from List", color: "bg-[#642160]/30 text-[#3d1439] border-[#642160]/50" },
-  multiple_response: { label: "Multiple Response", color: "bg-[#2c6fb7]/30 text-[#1a426e] border-[#2c6fb7]/50" },
-  select_from_list: { label: "Select from List", color: "bg-[#b85627]/30 text-[#6e3216] border-[#b85627]/50" },
+  multiple_choice: { label: "Multiple Choice", color: "bg-primary/20 text-primary border-primary/30" },
+  fill_in_blank: { label: "Fill in Blank", color: "bg-[hsl(200,80%,50%)]/20 text-[hsl(200,80%,35%)] border-[hsl(200,80%,50%)]/30" },
+  true_false: { label: "True/False", color: "bg-[hsl(225,75%,55%)]/20 text-[hsl(225,75%,40%)] border-[hsl(225,75%,55%)]/30" },
+  matching: { label: "Matching", color: "bg-[hsl(190,70%,45%)]/20 text-[hsl(190,70%,30%)] border-[hsl(190,70%,45%)]/30" },
+  ordering: { label: "Ordering", color: "bg-[hsl(235,65%,60%)]/20 text-[hsl(235,65%,45%)] border-[hsl(235,65%,60%)]/30" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-[hsl(205,85%,45%)]/20 text-[hsl(205,85%,30%)] border-[hsl(205,85%,45%)]/30" },
+  numerical_entry: { label: "Numerical", color: "bg-[hsl(180,75%,50%)]/20 text-[hsl(180,75%,35%)] border-[hsl(180,75%,50%)]/30" },
+  short_answer: { label: "Short Answer", color: "bg-[hsl(210,90%,60%)]/20 text-[hsl(210,90%,45%)] border-[hsl(210,90%,60%)]/30" },
+  pick_from_list: { label: "Pick from List", color: "bg-[hsl(195,80%,45%)]/20 text-[hsl(195,80%,30%)] border-[hsl(195,80%,45%)]/30" },
+  multiple_response: { label: "Multiple Response", color: "bg-[hsl(220,70%,50%)]/20 text-[hsl(220,70%,35%)] border-[hsl(220,70%,50%)]/30" },
+  select_from_list: { label: "Select from List", color: "bg-[hsl(185,75%,55%)]/20 text-[hsl(185,75%,40%)] border-[hsl(185,75%,55%)]/30" },
 };
 
 interface QuestionCardProps {
