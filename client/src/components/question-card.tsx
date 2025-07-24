@@ -28,7 +28,7 @@ const questionTypeConfig: Record<string, { label: string; color: string }> = {
   numerical_entry: { label: "Numerical", color: "bg-indigo-500/20 text-indigo-700 border-indigo-500/30" },
   short_answer: { label: "Short Answer", color: "bg-red-500/20 text-red-700 border-red-500/30" },
   pick_from_list: { label: "Pick from List", color: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30" },
-  multiple_response: { label: "Multiple Response", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
+  multiple_response: { label: "Multiple Response", color: "bg-lime-500/20 text-lime-700 border-lime-500/30" },
   select_from_list: { label: "Select from List", color: "bg-violet-500/20 text-violet-700 border-violet-500/30" },
 };
 
