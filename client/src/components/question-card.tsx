@@ -16,20 +16,20 @@ import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
 
-// Question type configurations using a cohesive blue-based color palette
-// Multiple choice uses the primary app blue, others use complementary blues
+// Question type configurations with diverse color palette
+// Multiple choice uses primary app blue, others use distinct colors
 const questionTypeConfig: Record<string, { label: string; color: string }> = {
   multiple_choice: { label: "Multiple Choice", color: "bg-primary/20 text-primary border-primary/30" },
-  fill_in_blank: { label: "Fill in Blank", color: "bg-[hsl(200,80%,50%)]/20 text-[hsl(200,80%,35%)] border-[hsl(200,80%,50%)]/30" },
-  true_false: { label: "True/False", color: "bg-[hsl(225,75%,55%)]/20 text-[hsl(225,75%,40%)] border-[hsl(225,75%,55%)]/30" },
-  matching: { label: "Matching", color: "bg-[hsl(190,70%,45%)]/20 text-[hsl(190,70%,30%)] border-[hsl(190,70%,45%)]/30" },
-  ordering: { label: "Ordering", color: "bg-[hsl(235,65%,60%)]/20 text-[hsl(235,65%,45%)] border-[hsl(235,65%,60%)]/30" },
-  drag_and_drop: { label: "Drag & Drop", color: "bg-[hsl(205,85%,45%)]/20 text-[hsl(205,85%,30%)] border-[hsl(205,85%,45%)]/30" },
-  numerical_entry: { label: "Numerical", color: "bg-[hsl(180,75%,50%)]/20 text-[hsl(180,75%,35%)] border-[hsl(180,75%,50%)]/30" },
-  short_answer: { label: "Short Answer", color: "bg-[hsl(210,90%,60%)]/20 text-[hsl(210,90%,45%)] border-[hsl(210,90%,60%)]/30" },
-  pick_from_list: { label: "Pick from List", color: "bg-[hsl(195,80%,45%)]/20 text-[hsl(195,80%,30%)] border-[hsl(195,80%,45%)]/30" },
-  multiple_response: { label: "Multiple Response", color: "bg-[hsl(220,70%,50%)]/20 text-[hsl(220,70%,35%)] border-[hsl(220,70%,50%)]/30" },
-  select_from_list: { label: "Select from List", color: "bg-[hsl(185,75%,55%)]/20 text-[hsl(185,75%,40%)] border-[hsl(185,75%,55%)]/30" },
+  fill_in_blank: { label: "Fill in Blank", color: "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" },
+  true_false: { label: "True/False", color: "bg-purple-500/20 text-purple-700 border-purple-500/30" },
+  matching: { label: "Matching", color: "bg-orange-500/20 text-orange-700 border-orange-500/30" },
+  ordering: { label: "Ordering", color: "bg-pink-500/20 text-pink-700 border-pink-500/30" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-teal-500/20 text-teal-700 border-teal-500/30" },
+  numerical_entry: { label: "Numerical", color: "bg-indigo-500/20 text-indigo-700 border-indigo-500/30" },
+  short_answer: { label: "Short Answer", color: "bg-red-500/20 text-red-700 border-red-500/30" },
+  pick_from_list: { label: "Pick from List", color: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30" },
+  multiple_response: { label: "Multiple Response", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
+  select_from_list: { label: "Select from List", color: "bg-violet-500/20 text-violet-700 border-violet-500/30" },
 };
 
 interface QuestionCardProps {
