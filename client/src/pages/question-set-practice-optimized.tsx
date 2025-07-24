@@ -352,7 +352,7 @@ export default function QuestionSetPractice() {
         <div className="w-full px-6">
           <div className="flex items-center h-24 lg:h-20">
             {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 max-w-[45%] lg:max-w-[35%] xl:max-w-[40%] pr-4">
+            <div className="w-80 lg:w-96 xl:w-[420px] pr-4 flex-shrink-0">
               <h1 
                 className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2] course-title" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
