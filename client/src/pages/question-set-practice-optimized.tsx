@@ -353,12 +353,18 @@ export default function QuestionSetPractice() {
                     }
                   }
                   
-                  // If we have a course number, combine it with the title
+                  // If we have a course number, combine it with the title (without the number)
                   if (courseNumber) {
-                    // Extract the main title part (after the colon if present)
-                    const titlePart = course.title.includes(':') 
-                      ? course.title.split(':').slice(1).join(':').trim()
-                      : course.title.replace(/^(CPCU|AIC)\s+\d+:\s*/, '').trim();
+                    // Extract the main title part, removing any course number prefix
+                    let titlePart = course.title;
+                    
+                    // Remove course number from the beginning if present
+                    titlePart = titlePart.replace(/^(CPCU|AIC)\s+\d+:\s*/, '');
+                    
+                    // If there's still a colon, take everything after it
+                    if (titlePart.includes(':')) {
+                      titlePart = titlePart.split(':').slice(1).join(':').trim();
+                    }
                     
                     return `${courseNumber}: ${titlePart}`;
                   }
