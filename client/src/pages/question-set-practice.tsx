@@ -278,15 +278,15 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-6">
-          <div className="flex items-center h-20">
+          <div className="flex items-center min-h-[80px] py-4">
             {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 lg:max-w-[30%]">
+            <div className="flex-1 min-w-0 lg:max-w-[40%]">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold truncate" 
-                style={{ fontFamily: '"Open Sans", sans-serif' }}
-                title={course?.title || "Loading..."}
+                className="text-lg lg:text-[28px] font-semibold break-words" 
+                style={{ fontFamily: '"Open Sans", sans-serif', lineHeight: '1.2' }}
+                title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                {course?.title || "Loading..."}
+                {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               </h1>
             </div>
             
