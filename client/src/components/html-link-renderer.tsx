@@ -13,6 +13,16 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
     return textarea.value;
   };
 
+  // Debug logging
+  if (content.includes('feedback_incorrect') || content.includes('feedback_correct')) {
+    console.log('HtmlLinkRenderer received content:', {
+      length: content.length,
+      first100: content.substring(0, 100),
+      last100: content.substring(content.length - 100),
+      hasFeedbackTag: content.includes('feedback_incorrect') || content.includes('feedback_correct')
+    });
+  }
+
   // Function to parse HTML content and convert it to JSX elements
   const parseContent = (text: string): (string | JSX.Element)[] => {
     const parts: (string | JSX.Element)[] = [];
@@ -20,7 +30,8 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
     let keyCounter = 0;
     
     // Combined regex to match various HTML tags including custom feedback tags
-    const htmlTagRegex = /<(a|b|i|strong|em|u|br|p|span|code|pre|h[1-6]|ul|ol|li|blockquote|hr|sub|sup|mark|del|ins|feedback_incorrect|feedback_correct)\b([^>]*)>(.*?)<\/\1>|<(br|hr)\s*\/?>|<\/(p|div|li)>/gi;
+    // Using [\s\S] to match any character including newlines for multi-line content
+    const htmlTagRegex = /<(a|b|i|strong|em|u|br|p|span|code|pre|h[1-6]|ul|ol|li|blockquote|hr|sub|sup|mark|del|ins|feedback_incorrect|feedback_correct)\b([^>]*)>([\s\S]*?)<\/\1>|<(br|hr)\s*\/?>|<\/(p|div|li)>/gi;
     
     // Process all HTML tags
     const processHtml = (htmlText: string): (string | JSX.Element)[] => {
@@ -208,17 +219,27 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
             htmlParts.push(...processHtml(innerContent));
           }
         } else if (tagName?.toLowerCase() === 'feedback_incorrect') {
-          // Feedback for incorrect answers
+          // Feedback for incorrect answers - process content as array to preserve structure
+          console.log('Processing feedback_incorrect tag:', {
+            innerContentLength: innerContent.length,
+            innerContentPreview: innerContent.substring(0, 200) + '...'
+          });
+          const processedContent = processHtml(innerContent);
           htmlParts.push(
-            <div key={`feedback-incorrect-${keyCounter}`} className="space-y-3">
-              {processHtml(innerContent)}
+            <div key={`feedback-incorrect-${keyCounter}`} className="space-y-2">
+              {processedContent}
             </div>
           );
         } else if (tagName?.toLowerCase() === 'feedback_correct') {
-          // Feedback for correct answers
+          // Feedback for correct answers - process content as array to preserve structure
+          console.log('Processing feedback_correct tag:', {
+            innerContentLength: innerContent.length,
+            innerContentPreview: innerContent.substring(0, 200) + '...'
+          });
+          const processedContent = processHtml(innerContent);
           htmlParts.push(
-            <div key={`feedback-correct-${keyCounter}`} className="space-y-3">
-              {processHtml(innerContent)}
+            <div key={`feedback-correct-${keyCounter}`} className="space-y-2">
+              {processedContent}
             </div>
           );
         } else {
