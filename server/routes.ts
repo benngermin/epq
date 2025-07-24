@@ -1625,7 +1625,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         })
         .returning();
 
-      res.json(newPrompt[0]);
+      res.json(newPrompt[0] || {});
     } catch (error) {
       console.error("Error updating active prompt:", error);
       res.status(500).json({ message: "Failed to update active prompt" });

@@ -377,8 +377,8 @@ export default function QuestionSetPractice() {
                       // Navigate to the first question set of the new course
                       const firstQuestionSet = selectedCourse.questionSets
                         .sort((a, b) => {
-                          const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
-                          const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+                          const aNum = parseInt(a?.title?.match(/\d+/)?.[0] || '0');
+                          const bNum = parseInt(b?.title?.match(/\d+/)?.[0] || '0');
                           return aNum - bNum;
                         })[0];
                       
