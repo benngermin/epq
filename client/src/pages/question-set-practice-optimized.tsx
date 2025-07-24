@@ -352,10 +352,10 @@ export default function QuestionSetPractice() {
         <div className="w-full px-6">
           <div className="flex items-center h-24 lg:h-20">
             {/* Left - Course Name */}
-            <div className="w-64 lg:w-80 xl:w-96 pr-8 flex-shrink-0">
+            <div className="w-48 lg:w-64 xl:w-72 flex-shrink-0">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2] course-title" 
-                style={{ fontFamily: '"Open Sans", sans-serif' }}
+                className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2]" 
+                style={{ fontFamily: '"Open Sans", sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
                 {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
@@ -363,7 +363,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Center - Logo */}
-            <div className="hidden lg:flex flex-1 justify-center px-4">
+            <div className="hidden lg:flex flex-1 justify-center px-8">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
