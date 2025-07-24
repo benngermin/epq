@@ -51,7 +51,27 @@ export default function QuestionSetPractice() {
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
-  const questionSetId = parseInt(params?.id || "0");
+  // Handle the case where route doesn't match
+  if (!match || !params?.id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Invalid Question Set</h3>
+            <p className="text-muted-foreground mb-4">
+              The question set you're trying to access doesn't exist or the URL is invalid.
+            </p>
+            <Button onClick={() => setLocation("/dashboard")} className="w-full">
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const questionSetId = parseInt(params.id);
   
   // Reset state when question set changes
   useEffect(() => {

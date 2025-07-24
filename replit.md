@@ -221,6 +221,11 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 24, 2025: Fixed critical route matching bug in question set practice component
+  - Resolved "Cannot read properties of undefined (reading 'match')" error in QuestionSetPractice component
+  - Added proper error handling when route doesn't match or params are undefined
+  - Component now displays user-friendly error message and redirects to dashboard for invalid routes
+  - This prevents the app from crashing when accessing invalid question set URLs
 - July 23, 2025: Environment-based authentication flow implementation
   - Modified `/api/auth/config` endpoint to detect NODE_ENV and set authentication options accordingly
   - Production environment: `ssoRequired: true`, `hasLocalAuth: false` - users are automatically redirected to SSO
