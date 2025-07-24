@@ -350,11 +350,11 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-6">
-          <div className="flex items-center h-20">
+          <div className="flex items-center h-24 lg:h-20">
             {/* Left - Course Name */}
             <div className="flex-1 min-w-0 lg:max-w-[30%]">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold truncate" 
+                className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2] course-title" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
@@ -462,7 +462,7 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile Control Button */}
-        <div className="lg:hidden absolute top-24 left-4 z-10">
+        <div className="lg:hidden absolute top-28 left-4 z-10">
           <Button
             variant="outline"
             size="sm"
