@@ -37,7 +37,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
     
-
+    // Cancel any ongoing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
     
     /* Guard against accidental empty submissions */
     const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
@@ -54,6 +60,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }),
         credentials: 'include',
+        signal: abortControllerRef.current.signal,
       });
 
       
@@ -78,6 +85,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         try {
           const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
+            signal: abortControllerRef.current?.signal,
           });
 
           if (!chunkResponse.ok) {
@@ -180,9 +188,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           }
 
         } catch (pollError) {
-          // Break the loop if stream is not found (404 error)
+          // Break the loop if stream is not found (404 error) or aborted
           const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
-          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('aborted')) {
+            break;
+          }
+          // Don't retry if aborted
+          if (abortControllerRef.current?.signal?.aborted) {
             break;
           }
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -247,17 +259,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     return () => {
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
       // Abort any active stream on server
       if (currentStreamIdRef.current) {
-        fetch(`/api/chatbot/stream-abort/${currentStreamIdRef.current}`, {
+        const streamId = currentStreamIdRef.current;
+        currentStreamIdRef.current = "";
+        fetch(`/api/chatbot/stream-abort/${streamId}`, {
           method: 'POST',
           credentials: 'include',
         }).catch(() => {
-          // Ignore abort errors
+          // Ignore abort errors on cleanup
         });
       }
     };

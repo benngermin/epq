@@ -112,7 +112,8 @@ export class DatabaseStorage implements IStorage {
           if (!error.message?.includes('already exists') && 
               !error.message?.includes('session_pkey') &&
               !error.message?.includes('connect ETIMEDOUT') &&
-              !error.message?.includes('ECONNREFUSED')) {
+              !error.message?.includes('ECONNREFUSED') &&
+              !error.message?.includes('terminating connection due to administrator command')) {
             console.error('Session store error:', error);
           }
         }

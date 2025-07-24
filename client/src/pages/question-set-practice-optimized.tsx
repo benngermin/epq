@@ -224,9 +224,12 @@ export default function QuestionSetPractice() {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < (practiceData?.questions?.length || 0) - 1) {
+    if (!practiceData?.questions || practiceData.questions.length === 0) return;
+    
+    const maxIndex = practiceData.questions.length - 1;
+    if (currentQuestionIndex < maxIndex) {
       debugLog(`Navigating from question ${currentQuestionIndex + 1} to ${currentQuestionIndex + 2}`);
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex(prev => Math.min(prev + 1, maxIndex));
       setShowChat(false);
       setSelectedAnswer("");
     }
@@ -234,7 +237,7 @@ export default function QuestionSetPractice() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
       setShowChat(false);
       setSelectedAnswer("");
     }

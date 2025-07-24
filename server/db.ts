@@ -25,16 +25,27 @@ const pool = new Pool({
 
 // Log pool events in development
 if (process.env.NODE_ENV === 'development') {
-  pool.on('error', (err) => {
+  const poolErrorHandler = (err: Error) => {
     console.error('Unexpected database pool error', err);
-  });
+  };
   
-  pool.on('connect', () => {
+  const poolConnectHandler = () => {
     console.log('New database connection established');
-  });
+  };
   
-  pool.on('remove', () => {
+  const poolRemoveHandler = () => {
     console.log('Database connection removed from pool');
+  };
+
+  pool.on('error', poolErrorHandler);
+  pool.on('connect', poolConnectHandler);
+  pool.on('remove', poolRemoveHandler);
+  
+  // Cleanup function to remove listeners
+  process.on('exit', () => {
+    pool.off('error', poolErrorHandler);
+    pool.off('connect', poolConnectHandler);
+    pool.off('remove', poolRemoveHandler);
   });
 }
 
