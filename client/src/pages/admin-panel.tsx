@@ -29,8 +29,8 @@ import type { AiSettings, PromptVersion } from "@shared/schema";
 
 
 const courseSchema = z.object({
-  title: z.string().min(1, "Course title is required"),
-  description: z.string().optional(),
+  courseNumber: z.string().min(1, "Course number is required"),
+  courseTitle: z.string().min(1, "Course title is required"),
 });
 
 const questionSetSchema = z.object({
@@ -524,12 +524,12 @@ export default function AdminPanel() {
   // Forms
   const courseForm = useForm<z.infer<typeof courseSchema>>({
     resolver: zodResolver(courseSchema),
-    defaultValues: { title: "", description: "" },
+    defaultValues: { courseNumber: "", courseTitle: "" },
   });
 
   const editCourseForm = useForm<z.infer<typeof courseSchema>>({
     resolver: zodResolver(courseSchema),
-    defaultValues: { title: "", description: "" },
+    defaultValues: { courseNumber: "", courseTitle: "" },
   });
 
   const standaloneQuestionSetForm = useForm<z.infer<typeof questionSetSchema>>({
@@ -917,12 +917,12 @@ export default function AdminPanel() {
                         <form onSubmit={courseForm.handleSubmit(onCreateCourse)} className="space-y-4">
                           <FormField
                             control={courseForm.control}
-                            name="title"
+                            name="courseNumber"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Course Title</FormLabel>
+                                <FormLabel>Course Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter course title" {...field} />
+                                  <Input placeholder="e.g., CPCU 500" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -930,12 +930,12 @@ export default function AdminPanel() {
                           />
                           <FormField
                             control={courseForm.control}
-                            name="description"
+                            name="courseTitle"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Description (Optional)</FormLabel>
+                                <FormLabel>Course Title</FormLabel>
                                 <FormControl>
-                                  <Textarea placeholder="Enter course description" {...field} />
+                                  <Input placeholder="e.g., Becoming a Leader in Risk Management and Insurance" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -967,17 +967,17 @@ export default function AdminPanel() {
                           return bHasQuestionSets - aHasQuestionSets;
                         }
                         
-                        // Then sort alphabetically by title
-                        return a.title.localeCompare(b.title);
+                        // Then sort alphabetically by course number
+                        return a.courseNumber.localeCompare(b.courseNumber);
                       })
                       .map((course: any) => (
                       <Card key={course.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <CardTitle className="text-xl">{course.title}</CardTitle>
+                              <CardTitle className="text-xl">{course.courseNumber}: {course.courseTitle}</CardTitle>
                               <CardDescription className="mt-1">
-                                {course.description}
+                                {course.courseTitle}
                                 {course.questionSetCount > 0 && (
                                   <span className="ml-2 text-green-600 text-sm font-medium">
                                     ({course.questionSetCount} question set{course.questionSetCount !== 1 ? 's' : ''})

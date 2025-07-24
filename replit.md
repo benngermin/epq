@@ -130,7 +130,7 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 
 ## Recent Changes (January 2025)
 
-### Course Schema Updates (January 24, 2025)
+### Course Schema Updates (July 24, 2025)
 1. **Updated Course Data Type Schema**:
    - Changed `title` field to `courseNumber` (stores course identifiers like "AIC 300", "CPCU 500")
    - Added `courseTitle` field (stores descriptive titles like "Claims in an Evolving World")
@@ -148,9 +148,11 @@ CPC Practice is a comprehensive online test preparation platform designed for CP
 3. **Code Updates**:
    - Updated storage interface and all database queries
    - Fixed server routes to use new field names
-   - Updated admin panel bulk import functionality
-   - Fixed Bubble API integration endpoints
-   - All LSP errors resolved and application working correctly
+   - Updated admin panel forms to use new courseNumber and courseTitle fields
+   - Fixed dashboard.tsx to use courseNumber for course lookup
+   - Updated question-set-practice-optimized.tsx to display both courseNumber and courseTitle
+   - Fixed all TypeScript errors and application working correctly
+   - API now returns courses with proper structure: `{courseNumber: "AIC 300", courseTitle: "Claims in an Evolving World"}`
 
 ### Question Type Implementation (January 23, 2025)
 1. **Fixed Question Type Test Implementation**: 

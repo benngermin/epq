@@ -333,45 +333,9 @@ export default function QuestionSetPractice() {
               <h1 
                 className="text-[28px] font-semibold truncate" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
-                title={course?.title || "Loading..."}
+                title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                {(() => {
-                  if (!course?.title) return "Loading...";
-                  
-                  // Get course number from external ID or title
-                  let courseNumber = "";
-                  
-                  // First check if title already starts with course number
-                  const directMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
-                  if (directMatch) {
-                    courseNumber = directMatch;
-                  } else if (course.externalId) {
-                    // Check external ID for course number
-                    const externalIdMatch = course.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
-                    if (externalIdMatch) {
-                      courseNumber = externalIdMatch;
-                    }
-                  }
-                  
-                  // If we have a course number, combine it with the title (without the number)
-                  if (courseNumber) {
-                    // Extract the main title part, removing any course number prefix
-                    let titlePart = course.title;
-                    
-                    // Remove course number from the beginning if present
-                    titlePart = titlePart.replace(/^(CPCU|AIC)\s+\d+:\s*/, '');
-                    
-                    // If there's still a colon, take everything after it
-                    if (titlePart.includes(':')) {
-                      titlePart = titlePart.split(':').slice(1).join(':').trim();
-                    }
-                    
-                    return `${courseNumber}: ${titlePart}`;
-                  }
-                  
-                  // Fallback to original title
-                  return course.title;
-                })()}
+                {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               </h1>
             </div>
             
@@ -429,20 +393,8 @@ export default function QuestionSetPractice() {
                     {courses
                       ?.filter((c: any) => c.questionSets && c.questionSets.length > 0)
                       ?.map((c: any) => {
-                        // Extract course number from various title formats
-                        let courseNumber = c.title;
-                        
-                        // First check if title already starts with course number
-                        const directMatch = c.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
-                        if (directMatch) {
-                          courseNumber = directMatch;
-                        } else if (c.externalId) {
-                          // Check if externalId contains course number (e.g., "CPCU 500")
-                          const externalIdMatch = c.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
-                          if (externalIdMatch) {
-                            courseNumber = externalIdMatch;
-                          }
-                        }
+                        // Use the courseNumber field directly
+                        let courseNumber = c.courseNumber;
                         
                         return (
                           <SelectItem key={c.id} value={c.id.toString()}>

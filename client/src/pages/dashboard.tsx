@@ -54,15 +54,15 @@ export default function Dashboard() {
         
         if (foundCourse) {
           targetCourse = foundCourse;
-          console.log(`Found course by external ID: ${foundCourse.title}`);
+          console.log(`Found course by external ID: ${foundCourse.courseNumber}`);
         } else {
           // If not found, default to CPCU 500
           console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
-          targetCourse = courses.find(course => course.title === 'CPCU 500') || courses[0];
+          targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
         }
       } else {
         // No course_id parameter, default to CPCU 500
-        const cpcu500 = courses.find(course => course.title === 'CPCU 500');
+        const cpcu500 = courses.find(course => course.courseNumber === 'CPCU 500');
         
         if (cpcu500) {
           targetCourse = cpcu500;
