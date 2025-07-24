@@ -13,14 +13,18 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function resetPassword() {
-  const password = "testadmin123";
+  const password = process.env.RESET_PASSWORD;
+  if (!password) {
+    console.error("Error: RESET_PASSWORD environment variable is required");
+    process.exit(1);
+  }
   const hashedPassword = await hashPassword(password);
   
   await db.update(users)
     .set({ password: hashedPassword })
     .where(eq(users.email, "benn@modia.ai"));
     
-  console.log("Password reset for benn@modia.ai to 'testadmin123'");
+  console.log("Password reset for benn@modia.ai completed successfully");
   process.exit(0);
 }
 
