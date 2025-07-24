@@ -338,18 +338,33 @@ export default function QuestionSetPractice() {
                 {(() => {
                   if (!course?.title) return "Loading...";
                   
-                  // Check if title already starts with course number
-                  const directMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
-                  if (directMatch) return directMatch;
+                  // Get course number from external ID or title
+                  let courseNumber = "";
                   
-                  // Check external ID for course number
-                  if (course.externalId) {
+                  // First check if title already starts with course number
+                  const directMatch = course.title.match(/^(CPCU|AIC)\s+\d+/)?.[0];
+                  if (directMatch) {
+                    courseNumber = directMatch;
+                  } else if (course.externalId) {
+                    // Check external ID for course number
                     const externalIdMatch = course.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
-                    if (externalIdMatch) return externalIdMatch;
+                    if (externalIdMatch) {
+                      courseNumber = externalIdMatch;
+                    }
                   }
                   
-                  // Fallback to first part of title
-                  return course.title.split(':')[0].trim();
+                  // If we have a course number, combine it with the title
+                  if (courseNumber) {
+                    // Extract the main title part (after the colon if present)
+                    const titlePart = course.title.includes(':') 
+                      ? course.title.split(':').slice(1).join(':').trim()
+                      : course.title.replace(/^(CPCU|AIC)\s+\d+:\s*/, '').trim();
+                    
+                    return `${courseNumber}: ${titlePart}`;
+                  }
+                  
+                  // Fallback to original title
+                  return course.title;
                 })()}
               </h1>
             </div>
