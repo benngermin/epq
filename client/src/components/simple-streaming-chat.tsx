@@ -37,9 +37,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
     
-    // Cancel any ongoing requests
+    // Cancel any ongoing requests with a reason
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      abortControllerRef.current.abort(new DOMException('Starting new request', 'AbortError'));
     }
     
     // Create new abort controller for this request
@@ -202,6 +202,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       
     } catch (error: any) {
+      // Don't show error toast for aborted requests
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        console.log('Request aborted:', error.message);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to get response from AI assistant",
@@ -239,7 +245,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         role: "assistant"
       }]);
       setHasInitialResponse(false);
-      abortControllerRef.current?.abort?.();
+      
+      // Abort any ongoing request with a reason
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort(new DOMException('Question changed', 'AbortError'));
+      }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
       loadAiResponse();                       // kick off first answer
@@ -262,7 +272,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortControllerRef.current.abort(new DOMException('Component unmounting', 'AbortError'));
         abortControllerRef.current = null;
       }
       // Abort any active stream on server

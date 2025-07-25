@@ -260,9 +260,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
   useEffect(() => {
     // Create a cleanup function
     const cleanup = () => {
-      // Abort any ongoing stream
+      // Abort any ongoing stream with a reason
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortControllerRef.current.abort(new DOMException('Question changed', 'AbortError'));
       }
       
       // Abort server-side stream if active
