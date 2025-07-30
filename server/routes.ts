@@ -480,7 +480,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const allCourses = await storage.getAllCourses();
       
-      // Don't deduplicate courses - return all courses including AI and non-AI versions
+      // Return all courses without deduplication since we now use mapping table
       const uniqueCourses = allCourses.filter(course => {
         // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
         const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
