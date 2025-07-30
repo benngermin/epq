@@ -1,0 +1,21 @@
+Now I'm getting this error, as shown in the attached screenshot: "The course undefined doesn’t have any question sets. Please contact your administrator or select a different course."
+
+To clarify the background: We have courses in our system, and we've recently discovered that our client created duplicate Moodle versions of each one. They did this to have two versions per course—one with AI features and one without—which is why we added the 'is_ai' field.
+
+This duplication caused issues when users launched from the new courses, since we didn't have those course_ids (external_ids) in our database. As a result, the default CPCU 500 course was always displayed, regardless of which course they actually launched from.
+
+To fix that, you suggested (and implemented) a mapping table—course_external_mappings—where we store all courses, both AI and non-AI, along with each course's number and external_id. The core requirement is simple: Users should be able to launch any course via a URL containing the course_id param, which our app extracts to determine the launched course. From our perspective, it doesn't matter if they launch from the AI or non-AI version, because the question sets, question set versions, and questions inside each version are identical across both.
+
+Despite the DB updates you made (creating the 16 non-AI courses and updating the mappings for all 32 external_ids), the non-AI URLs are still failing. For example:
+
+- https://your-dev-url/?course_id=6170 (AIC 304 non-AI) loads but triggers the alert, with the console showing GET /api/course/6170 returning 200 OK, yet the JSON payload has course_number as null (leading to "undefined" and no question sets).
+
+AI URLs like ?course_id=6128 work correctly, pulling the right course and questions.
+
+What should happen: Non-AI URLs like 6170 must resolve to "AIC 304 - Successfully Evaluating Property Claims" (is_ai=false), fetch its matching question sets, and render without alerts or fallbacks to CPCU 500—since the mappings now cover everything.
+
+I suspect the issue is in server/routes.ts, specifically around fetchCourseByExternalId: the JOIN to course_external_mappings might not be detecting the new non-AI rows, or there's residual fallback logic kicking in when is_ai is false.
+
+This needs to be fixed urgently—please trace the lookup path, adjust the query or logic as needed, and add logging in the route to confirm what's being queried/returned for non-AI IDs. Verify that GET /api/course/:externalId returns the correct course_number and is_ai for all 32 IDs, with no fallbacks unless the ID truly doesn't exist. Update any seed scripts to ensure fresh environments include both AI and non-AI rows from the start.
+
+Restart the app after changes, and let me know once it's ready for re-testing. This shouldn't be complex given the mappings are already in place.

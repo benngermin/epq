@@ -549,12 +549,16 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/courses/by-external-id/:externalId", requireAuth, async (req, res) => {
     try {
       const { externalId } = req.params;
+      console.log(`📚 Looking up course by external ID: ${externalId}`);
+      
       const course = await storage.getCourseByExternalId(externalId);
       
       if (!course) {
+        console.log(`❌ Course not found for external ID: ${externalId}`);
         return res.status(404).json({ message: "Course not found" });
       }
       
+      console.log(`✅ Found course: ${course.courseNumber} (ID: ${course.id}, is_ai: ${course.isAi})`);
       res.json(course);
     } catch (error) {
       console.error("Error fetching course by external ID:", error);

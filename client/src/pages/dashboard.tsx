@@ -60,9 +60,33 @@ export default function Dashboard() {
             
             if (response.ok) {
               const courseData = await response.json();
+              console.log(`API returned course:`, courseData);
+              
               // Find the full course object with question sets from the courses array
               targetCourse = courses.find(c => c.id === courseData.id);
-              console.log(`Found course by external ID: ${targetCourse?.courseNumber}`);
+              
+              if (!targetCourse) {
+                console.log(`Course ${courseData.courseNumber} (ID: ${courseData.id}) not in courses array, fetching question sets...`);
+                // Course exists but isn't in the courses array, fetch its question sets
+                const qsResponse = await fetch(`/api/courses/${courseData.id}/question-sets`, {
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                });
+                
+                if (qsResponse.ok) {
+                  const questionSets = await qsResponse.json();
+                  targetCourse = {
+                    ...courseData,
+                    questionSets: questionSets
+                  };
+                  console.log(`Fetched ${questionSets.length} question sets for course ${courseData.courseNumber}`);
+                } else {
+                  console.error(`Failed to fetch question sets for course ${courseData.courseNumber}`);
+                  targetCourse = courseData; // Use course data without question sets
+                }
+              } else {
+                console.log(`Found course in array: ${targetCourse.courseNumber}`);
+              }
             } else {
               // If not found, default to CPCU 500
               console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
@@ -92,7 +116,8 @@ export default function Dashboard() {
       // Log all courses and their question sets for debugging
       console.log('All courses with question sets:', courses.map(c => ({
         id: c.id,
-        title: c.title,
+        courseNumber: c.courseNumber,
+        courseTitle: c.courseTitle,
         externalId: c.externalId,
         questionSetCount: c.questionSets?.length || 0
       })));
@@ -114,20 +139,24 @@ export default function Dashboard() {
         setLocation(`/question-set/${firstQuestionSet.id}`);
       } else {
         console.error('No question sets available for the selected course', {
-          courseId: targetCourse.id,
-          courseTitle: targetCourse.title,
-          hasQuestionSets: !!targetCourse.questionSets,
-          questionSetsArray: targetCourse.questionSets,
-          allCoursesWithQuestionSets: courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => c.title)
+          courseId: targetCourse?.id,
+          courseNumber: targetCourse?.courseNumber,
+          courseTitle: targetCourse?.courseTitle,
+          hasQuestionSets: !!targetCourse?.questionSets,
+          questionSetsArray: targetCourse?.questionSets,
+          allCoursesWithQuestionSets: courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => c.courseNumber)
         });
         
         // Check if any course has question sets
         const anyCoursesWithQuestionSets = courses.some(c => c.questionSets && c.questionSets.length > 0);
         
-        if (!anyCoursesWithQuestionSets) {
+        if (!targetCourse) {
+          alert('The selected course could not be found. Please contact your administrator.');
+        } else if (!anyCoursesWithQuestionSets) {
           alert('No courses have question sets configured yet. Please contact your administrator to set up practice content.');
         } else {
-          alert(`The course "${targetCourse.title}" doesn't have any question sets. Please contact your administrator or select a different course.`);
+          const courseName = targetCourse.courseNumber || 'Unknown Course';
+          alert(`The course "${courseName}" doesn't have any question sets. Please contact your administrator or select a different course.`);
         }
       }
     };
