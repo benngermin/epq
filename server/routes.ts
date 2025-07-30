@@ -437,10 +437,8 @@ async function streamOpenRouterToBuffer(
   }
 
   
-  // Cleanup stream after 5 minutes to prevent memory leaks
-  setTimeout(() => {
-    cleanupStream(streamId);
-  }, 5 * 60 * 1000);
+  // Don't set individual cleanup timeout - let the global cleanup handle it
+  // This prevents double cleanup and timing conflicts
 }
 
 export function registerRoutes(app: Express): Server {
@@ -549,6 +547,12 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/courses/by-external-id/:externalId", requireAuth, async (req, res) => {
     try {
       const { externalId } = req.params;
+      
+      // Validate external ID format - should be alphanumeric and not too long
+      if (!externalId || externalId.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(externalId)) {
+        return res.status(400).json({ message: "Invalid external ID format" });
+      }
+      
       console.log(`📚 Looking up course by external ID: ${externalId}`);
       
       const course = await storage.getCourseByExternalId(externalId);
@@ -569,6 +573,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/courses/:id", requireAuth, async (req, res) => {
     try {
       const courseId = parseInt(req.params.id);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
       const course = await storage.getCourse(courseId);
       
       if (!course) {
@@ -781,6 +790,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/courses/:courseId/question-sets", requireAuth, async (req, res) => {
     try {
       const courseId = parseInt(req.params.courseId);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
       const questionSets = await storage.getQuestionSetsByCourse(courseId);
       
       // Sort question sets by title (extracting numbers for proper numerical sorting)
@@ -890,28 +904,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/question-sets/:id/answer", requireAuth, async (req, res) => {
-    try {
-      const questionSetId = parseInt(req.params.id);
-      const { questionVersionId, answer } = req.body;
-      
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        return res.status(404).json({ message: "Question version not found" });
-      }
-      
-      const isCorrect = answer === questionVersion.correctAnswer;
-      
-      res.json({
-        isCorrect,
-        correctAnswer: questionVersion.correctAnswer,
-        chosenAnswer: answer
-      });
-    } catch (error) {
-      console.error("Error submitting answer:", error);
-      res.status(500).json({ message: "Failed to submit answer" });
-    }
-  });
+  // Removed duplicate endpoint - using the one with circuit breaker at line 1079
 
   // Test run routes
 

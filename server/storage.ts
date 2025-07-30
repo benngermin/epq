@@ -167,7 +167,8 @@ export class DatabaseStorage implements IStorage {
         courseNumber: courses.courseNumber,
         courseTitle: courses.courseTitle,
         externalId: courses.externalId,
-        bubbleUniqueId: courses.bubbleUniqueId
+        bubbleUniqueId: courses.bubbleUniqueId,
+        isAi: courses.isAi
       })
       .from(courses)
       .innerJoin(questionSets, eq(questionSets.courseId, courses.id))

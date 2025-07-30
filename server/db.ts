@@ -12,15 +12,17 @@ if (!process.env.DATABASE_URL) {
 // Configure WebSocket for Neon serverless driver
 neonConfig.webSocketConstructor = ws;
 
-// Create a connection pool with proper limits
+// Create a connection pool with optimized limits to reduce churn
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Maximum number of connections in the pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  max: 20, // Increased max connections to handle concurrent requests better
+  min: 5, // Maintain minimum connections to reduce connection setup overhead
+  idleTimeoutMillis: 300000, // Keep idle connections for 5 minutes (was 30 seconds)
   connectionTimeoutMillis: 10000, // Timeout connection attempts after 10 seconds
   // Add error handling for connection issues
   application_name: 'cpc-practice',
   query_timeout: 30000, // 30 second query timeout
+  allowExitOnIdle: true, // Allow the process to exit when pool is idle
 });
 
 // Log pool events in development

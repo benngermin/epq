@@ -29,16 +29,17 @@ import { AssessmentErrorFallback } from "@/components/assessment-error-fallback"
 import type { Course } from "@shared/schema";
 
 export default function QuestionSetPractice() {
-  const { user, logoutMutation } = useAuth();
+  const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
   
   // Redirect to auth if not logged in
   useEffect(() => {
-    if (user === null) { // null means definitely not authenticated, undefined means still loading
+    // Only redirect when we're sure the user is not authenticated (not during loading)
+    if (user === null && !authLoading) { // null means definitely not authenticated, undefined means still loading
       setLocation("/auth");
     }
-  }, [user, setLocation]);
+  }, [user, authLoading, setLocation]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
