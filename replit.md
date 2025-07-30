@@ -221,6 +221,12 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
 3. Redirect the user to that question set after SSO authentication
 
 ## Recent Changes
+- January 30, 2025: Fixed dashboard course loading for mapped external IDs
+  - Dashboard was doing client-side filtering which couldn't access the course_external_mappings table
+  - Created new API endpoint `/api/courses/by-external-id/:externalId` that uses storage.getCourseByExternalId
+  - Updated dashboard to make API call instead of client-side filtering when course_id parameter is provided
+  - Fixed route ordering by placing specific route before generic `/api/courses/:id` route
+  - All mapped external IDs (including 6170, 6171, 6900) now load correct courses instead of defaulting to CPCU 500
 - July 30, 2025: Implemented external ID mapping table for multiple Moodle course versions
   - Added `course_external_mappings` table to handle multiple external IDs per course
   - Updated `getCourseByExternalId` to check both courses table and mapping table

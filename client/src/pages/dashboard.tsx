@@ -21,59 +21,70 @@ export default function Dashboard() {
   useEffect(() => {
     // Process once we have courses data
     if (!coursesLoading && !userLoading && courses && courses.length > 0) {
-      console.log('Dashboard: Processing course selection', {
-        coursesCount: courses.length,
-        firstCourse: courses[0],
-        hasQuestionSets: courses[0]?.questionSets !== undefined,
-        questionSetsCount: courses[0]?.questionSets?.length
-      });
-      
-      // Parse URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      // Check for both course_id and courseId parameters (support both formats)
-      const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId');
-      const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
-      
-      // Store assignment name for future use
-      if (assignmentName) {
-        (window as any).currentAssignmentName = assignmentName;
-      }
-      
-      // Log parameter parsing
-      console.log('URL Parameters:', {
-        course_id: courseIdParam,
-        assignment_name: assignmentName
-      });
-      
-      let targetCourse: any;
-      
-      if (courseIdParam) {
-        // Try to find matching course by external ID (case-insensitive)
-        const foundCourse = courses.find(course => 
-          course.externalId?.toLowerCase() === courseIdParam.toLowerCase()
-        );
+      const processCourseSelection = async () => {
+        console.log('Dashboard: Processing course selection', {
+          coursesCount: courses.length,
+          firstCourse: courses[0],
+          hasQuestionSets: courses[0]?.questionSets !== undefined,
+          questionSetsCount: courses[0]?.questionSets?.length
+        });
         
-        if (foundCourse) {
-          targetCourse = foundCourse;
-          console.log(`Found course by external ID: ${foundCourse.courseNumber}`);
-        } else {
-          // If not found, default to CPCU 500
-          console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
-          targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
-        }
-      } else {
-        // No course_id parameter, default to CPCU 500
-        const cpcu500 = courses.find(course => course.courseNumber === 'CPCU 500');
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        // Check for both course_id and courseId parameters (support both formats)
+        const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId');
+        const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
         
-        if (cpcu500) {
-          targetCourse = cpcu500;
-          console.log('No course_id parameter, defaulting to CPCU 500');
-        } else {
-          // Fallback to first course if CPCU 500 not found
-          targetCourse = courses[0];
-          console.log('CPCU 500 not found, using first course');
+        // Store assignment name for future use
+        if (assignmentName) {
+          (window as any).currentAssignmentName = assignmentName;
         }
-      }
+        
+        // Log parameter parsing
+        console.log('URL Parameters:', {
+          course_id: courseIdParam,
+          assignment_name: assignmentName
+        });
+        
+        let targetCourse: any;
+        
+        if (courseIdParam) {
+          // Fetch course by external ID using the API endpoint
+          try {
+            const response = await fetch(`/api/courses/by-external-id/${courseIdParam}`, {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            });
+            
+            if (response.ok) {
+              const courseData = await response.json();
+              // Find the full course object with question sets from the courses array
+              targetCourse = courses.find(c => c.id === courseData.id);
+              console.log(`Found course by external ID: ${targetCourse?.courseNumber}`);
+            } else {
+              // If not found, default to CPCU 500
+              console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
+              targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
+            }
+          } catch (error) {
+            console.error('Error fetching course by external ID:', error);
+            targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
+          }
+        } else {
+          // No course_id parameter, default to CPCU 500
+          const cpcu500 = courses.find(course => course.courseNumber === 'CPCU 500');
+          
+          if (cpcu500) {
+            targetCourse = cpcu500;
+            console.log('No course_id parameter, defaulting to CPCU 500');
+          } else {
+            // Fallback to first course if CPCU 500 not found
+            targetCourse = courses[0];
+            console.log('CPCU 500 not found, using first course');
+          }
+        }
       
       // Set current course globally for other components
       (window as any).currentCourse = targetCourse;
@@ -119,6 +130,9 @@ export default function Dashboard() {
           alert(`The course "${targetCourse.title}" doesn't have any question sets. Please contact your administrator or select a different course.`);
         }
       }
+    };
+    
+    processCourseSelection();
     }
   }, [coursesLoading, userLoading, courses, setLocation]);
 

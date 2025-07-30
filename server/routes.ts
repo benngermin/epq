@@ -546,6 +546,22 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/courses/by-external-id/:externalId", requireAuth, async (req, res) => {
+    try {
+      const { externalId } = req.params;
+      const course = await storage.getCourseByExternalId(externalId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course by external ID:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
   app.get("/api/courses/:id", requireAuth, async (req, res) => {
     try {
       const courseId = parseInt(req.params.id);
