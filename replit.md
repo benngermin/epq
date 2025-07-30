@@ -1,8 +1,8 @@
-# CPC Practice - Online Test Preparation Platform
+# Exam Practice Questions (EPQ)
 
 ## Overview
 
-CPC Practice is a comprehensive online test preparation platform designed for CPCU (Chartered Property Casualty Underwriter) certification courses. The application provides practice tests, question sets, and AI-powered learning assistance to help students prepare for their CPCU examinations.
+EPQ is a comprehensive online test preparation platform designed for The Institutes' certification courses. The application provides question sets, and AI-powered learning assistance to help students prepare for their examinations.
 
 ## System Architecture
 
