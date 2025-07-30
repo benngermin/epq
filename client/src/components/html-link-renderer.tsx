@@ -6,11 +6,12 @@ interface HtmlLinkRendererProps {
 }
 
 export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererProps) {
-  // Function to decode HTML entities
+  // Function to decode HTML entities safely without innerHTML
   const decodeHtmlEntities = (text: string): string => {
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = text;
-    return textarea.value;
+    // Use the browser's built-in DOMParser for safe HTML entity decoding
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${text}</div>`, 'text/html');
+    return doc.body.textContent || text;
   };
 
   // Debug logging
