@@ -162,8 +162,15 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
 
     // Import questions from content field
     let importedQuestions = 0;
+    let questionsData: any[] = [];
+    
     if (bubbleQuestionSet.content && bubbleQuestionSet.content.questions) {
-      const questionsData = bubbleQuestionSet.content.questions;
+      questionsData = bubbleQuestionSet.content.questions;
+    } else if (!bubbleQuestionSet.content || !bubbleQuestionSet.content.questions) {
+      questionsData = bubbleQuestionSet.questions || [];
+    }
+    
+    if (questionsData.length > 0) {
       console.log(`  📝 Importing ${questionsData.length} questions...`);
       
       for (const q of questionsData) {
@@ -206,7 +213,7 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
 
       console.log(`  ✓ Successfully imported ${importedQuestions} questions`);
     } else {
-      console.log(`  ⚠️  No questions found in content field`);
+      console.log(`  ⚠️  No questions found in content field or root level`);
     }
 
     return { success: true, questionSetId, questionsImported: importedQuestions };
