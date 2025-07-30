@@ -40,7 +40,7 @@ const COURSE_MAPPING: Record<string, string> = {
 
 async function fetchAllQuestionSetsFromBubble() {
   console.log('🔍 Fetching all question sets from Bubble repository...');
-  
+
   try {
     const response = await fetch('https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set?limit=100', {
       headers: {
@@ -55,7 +55,7 @@ async function fetchAllQuestionSetsFromBubble() {
 
     const data = await response.json();
     console.log(`✅ Found ${data.response?.results?.length || 0} question sets`);
-    
+
     return data.response?.results || [];
   } catch (error) {
     console.error('❌ Error fetching question sets:', error);
@@ -66,7 +66,7 @@ async function fetchAllQuestionSetsFromBubble() {
 async function findOrCreateCourse(courseName: string): Promise<number | null> {
   // Check if we have a mapping for this course
   const externalId = COURSE_MAPPING[courseName];
-  
+
   if (!externalId) {
     console.log(`  ⚠️  No mapping found for course: ${courseName}`);
     return null;
@@ -91,24 +91,24 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
   try {
     // Extract course name from content
     const courseName = bubbleQuestionSet.content?.set_name;
-    
+
     if (!courseName) {
       console.log(`  ⚠️  Skipping question set without course name in content`);
       return { success: false, error: 'No course name in content' };
     }
 
     console.log(`\n📋 Processing [${index + 1}/21]: ${bubbleQuestionSet.title} (${courseName})`);
-    
+
     // Find the course
     const courseId = await findOrCreateCourse(courseName);
-    
+
     if (!courseId) {
       return { success: false, error: 'Course not found' };
     }
 
     // Generate proper title with course prefix
     const questionSetTitle = `${courseName}: ${bubbleQuestionSet.title}`;
-    
+
     // Check if question set already exists with this title
     const existingQS = await db
       .select()
@@ -118,19 +118,19 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
         eq(questionSets.title, questionSetTitle)
       ))
       .limit(1);
-    
+
     let questionSetId: number;
-    
+
     if (existingQS.length > 0) {
       console.log(`  ℹ️  Question set already exists, will update questions`);
       questionSetId = existingQS[0].id;
-      
+
       // Delete existing questions to reimport
       const existingQuestions = await db
         .select()
         .from(questions)
         .where(eq(questions.questionSetId, questionSetId));
-      
+
       if (existingQuestions.length > 0) {
         console.log(`  🗑️  Removing ${existingQuestions.length} existing questions`);
         // Delete question versions first
@@ -155,7 +155,7 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
           questionCount: 0
         })
         .returning();
-      
+
       questionSetId = newQuestionSet[0].id;
       console.log(`  ✓ Created question set: ${questionSetTitle}`);
     }
@@ -163,13 +163,13 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
     // Import questions from content field
     let importedQuestions = 0;
     let questionsData: any[] = [];
-    
+
     if (bubbleQuestionSet.content && bubbleQuestionSet.content.questions) {
       questionsData = bubbleQuestionSet.content.questions;
     } else if (!bubbleQuestionSet.content || !bubbleQuestionSet.content.questions) {
       questionsData = bubbleQuestionSet.questions || [];
     }
-    
+
     // If no questions found yet, try parsing content field as JSON string
     if (questionsData.length === 0 && bubbleQuestionSet.content && typeof bubbleQuestionSet.content === 'string') {
       try {
@@ -181,7 +181,7 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
         }
       } catch (parseError) {
         console.log(`  ⚠️  JSON parsing failed: ${parseError.message}`);
-        
+
         // Try to clean and fix common JSON issues
         try {
           console.log(`  🛠️  Attempting to clean JSON and retry...`);
@@ -191,7 +191,7 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
             // Fix common JSON issues
             .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
             .replace(/([}\]]),(\s*[}\]])/g, '$1$2'); // Remove commas before closing brackets
-          
+
           const parsedCleanedContent = JSON.parse(cleanedContent);
           if (parsedCleanedContent.questions && Array.isArray(parsedCleanedContent.questions)) {
             questionsData = parsedCleanedContent.questions;
@@ -202,10 +202,52 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
         }
       }
     }
-    
+
+    // Debug: Log the structure of what we found
+    if (questionsData.length === 0) {
+      console.log(`  🔍 DEBUG: Bubble question set structure for ${courseName}:`);
+      console.log(`    - Title: ${bubbleQuestionSet.title}`);
+      console.log(`    - Content type: ${typeof bubbleQuestionSet.content}`);
+      console.log(`    - Has content: ${!!bubbleQuestionSet.content}`);
+      console.log(`    - Has questions field: ${!!bubbleQuestionSet.questions}`);
+      console.log(`    - Content keys: ${bubbleQuestionSet.content && typeof bubbleQuestionSet.content === 'object' ? Object.keys(bubbleQuestionSet.content).join(', ') : 'N/A'}`);
+      console.log(`    - Root keys: ${Object.keys(bubbleQuestionSet).join(', ')}`);
+
+      // Try to examine content more deeply
+      if (bubbleQuestionSet.content) {
+        if (typeof bubbleQuestionSet.content === 'string') {
+          console.log(`    - Content string sample: "${bubbleQuestionSet.content.substring(0, 500)}..."`);
+
+          // Try to detect if it might be malformed JSON
+          if (bubbleQuestionSet.content.includes('{') || bubbleQuestionSet.content.includes('[')) {
+            console.log(`    - Content appears to contain JSON structures`);
+
+            // Look for common patterns
+            if (bubbleQuestionSet.content.includes('question_text')) {
+              console.log(`    - Content contains 'question_text' field`);
+            }
+            if (bubbleQuestionSet.content.includes('questions')) {
+              console.log(`    - Content contains 'questions' field`);
+            }
+          }
+        } else if (typeof bubbleQuestionSet.content === 'object') {
+          console.log(`    - Content object structure:`);
+          Object.keys(bubbleQuestionSet.content).forEach(key => {
+            const value = bubbleQuestionSet.content[key];
+            console.log(`      - ${key}: ${typeof value} ${Array.isArray(value) ? `(array of ${value.length})` : ''}`);
+          });
+        }
+      }
+
+      // Check if questions exist at root level
+      if (bubbleQuestionSet.questions) {
+        console.log(`    - Root questions: ${typeof bubbleQuestionSet.questions} ${Array.isArray(bubbleQuestionSet.questions) ? `(array of ${bubbleQuestionSet.questions.length})` : ''}`);
+      }
+    }
+
     if (questionsData.length > 0) {
       console.log(`  📝 Importing ${questionsData.length} questions...`);
-      
+
       for (const q of questionsData) {
         try {
           // Create question
@@ -258,21 +300,21 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
 
 async function cleanupDuplicateCourses() {
   console.log('\n🧹 Cleaning up duplicate courses...');
-  
+
   // Delete courses with Bubble IDs as external IDs
   const bubbleCourses = await db
     .select()
     .from(courses)
     .where(eq(courses.title, 'Course 17508790'))
     .where(eq(courses.title, 'Course 17525740'));
-  
+
   for (const course of bubbleCourses) {
     // Check if it has question sets
     const questionSets = await db
       .select()
       .from(questionSets)
       .where(eq(questionSets.courseId, course.id));
-    
+
     if (questionSets.length === 0) {
       console.log(`  🗑️  Deleting empty course: ${course.title} (${course.externalId})`);
       await db
@@ -284,18 +326,18 @@ async function cleanupDuplicateCourses() {
 
 async function main() {
   console.log('🚀 Starting proper import of all 21 question sets from Bubble...\n');
-  
+
   try {
     // Fetch all question sets
     const bubbleQuestionSets = await fetchAllQuestionSetsFromBubble();
-    
+
     if (bubbleQuestionSets.length === 0) {
       console.log('⚠️  No question sets found to import');
       return;
     }
 
     console.log(`\n📊 Found ${bubbleQuestionSets.length} question sets to import`);
-    
+
     // Group by course for summary
     const courseGroups = new Map<string, number>();
     bubbleQuestionSets.forEach((qs: any) => {
@@ -334,15 +376,15 @@ async function main() {
     console.log(`   ✓ Successfully processed: ${results.successful} question sets`);
     console.log(`   ✓ Total questions imported: ${results.totalQuestions}`);
     console.log(`   ❌ Failed: ${results.failed}`);
-    
+
     // Show final stats
     const finalStats = await db
       .select()
       .from(questionSets);
-    
+
     console.log(`\n📊 Final database stats:`);
     console.log(`   Total question sets: ${finalStats.length}`);
-    
+
   } catch (error) {
     console.error('\n❌ Import process failed:', error);
     process.exit(1);
