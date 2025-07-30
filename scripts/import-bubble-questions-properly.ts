@@ -170,6 +170,39 @@ async function importQuestionSet(bubbleQuestionSet: any, index: number) {
       questionsData = bubbleQuestionSet.questions || [];
     }
     
+    // If no questions found yet, try parsing content field as JSON string
+    if (questionsData.length === 0 && bubbleQuestionSet.content && typeof bubbleQuestionSet.content === 'string') {
+      try {
+        console.log(`  🔍 Attempting to parse content field as JSON string...`);
+        const parsedContent = JSON.parse(bubbleQuestionSet.content);
+        if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
+          questionsData = parsedContent.questions;
+          console.log(`  ✅ Successfully parsed ${questionsData.length} questions from content string`);
+        }
+      } catch (parseError) {
+        console.log(`  ⚠️  JSON parsing failed: ${parseError.message}`);
+        
+        // Try to clean and fix common JSON issues
+        try {
+          console.log(`  🛠️  Attempting to clean JSON and retry...`);
+          let cleanedContent = bubbleQuestionSet.content
+            // Remove or escape bad control characters
+            .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+            // Fix common JSON issues
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+            .replace(/([}\]]),(\s*[}\]])/g, '$1$2'); // Remove commas before closing brackets
+          
+          const parsedCleanedContent = JSON.parse(cleanedContent);
+          if (parsedCleanedContent.questions && Array.isArray(parsedCleanedContent.questions)) {
+            questionsData = parsedCleanedContent.questions;
+            console.log(`  ✅ Successfully parsed ${questionsData.length} questions after cleaning`);
+          }
+        } catch (cleanError) {
+          console.log(`  ❌ Even cleaned JSON parsing failed: ${cleanError.message}`);
+        }
+      }
+    }
+    
     if (questionsData.length > 0) {
       console.log(`  📝 Importing ${questionsData.length} questions...`);
       
