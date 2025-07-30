@@ -31,8 +31,8 @@ export default function Dashboard() {
         
         // Parse URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        // Check for both course_id and courseId parameters (support both formats)
-        const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId');
+        // Check for both course_id and courseId parameters (support both formats, case-insensitive)
+        const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('course_ID');
         const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
         
         // Store assignment name for future use

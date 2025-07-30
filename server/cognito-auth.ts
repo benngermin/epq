@@ -35,7 +35,7 @@ export class CognitoAuth {
     // Clean the domain - remove protocol if included
     const cleanDomain = this.cognitoDomain.replace(/^https?:\/\//, '');
     this.cognitoDomain = cleanDomain;
-    
+
     // Initialize the OAuth2 strategy for Cognito
     this.strategy = new OAuth2Strategy({
       authorizationURL: `https://${cleanDomain}/oauth2/authorize`,
@@ -52,16 +52,16 @@ export class CognitoAuth {
             'Authorization': `Bearer ${accessToken}`
           }
         });
-        
+
         if (!userInfoResponse.ok) {
           throw new Error('Failed to fetch user info from Cognito');
         }
-        
+
         const userInfo = await userInfoResponse.json();
-        
+
         // Check if user exists by Cognito sub
         let user = await storage.getUserByCognitoSub(userInfo.sub);
-        
+
         if (!user) {
           // Create new user if doesn't exist
           const name = userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'User';
@@ -89,16 +89,16 @@ export class CognitoAuth {
 
   setupRoutes(app: Express) {
     console.log('Setting up Cognito routes...');
-    
+
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
       console.log('Session ID before:', req.sessionID);
       console.log('Query params:', req.query);
-      
+
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
-      
+
       // Capture URL parameters to preserve them through the OAuth flow
       if (req.query.courseId) {
         req.session.courseId = req.query.courseId as string;
@@ -108,19 +108,19 @@ export class CognitoAuth {
         req.session.assignmentName = req.query.assignmentName as string;
         console.log('Captured assignmentName:', req.session.assignmentName);
       }
-      
+
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
           console.error('Failed to save session:', err);
           return res.status(500).json({ error: 'Session error' });
         }
-        
+
         console.log('Session saved successfully');
         console.log('Session ID:', req.sessionID);
         console.log('State:', state);
         console.log('Session data:', req.session);
-        
+
         passport.authenticate('cognito', {
           state,
           scope: 'openid email profile',
@@ -136,21 +136,21 @@ export class CognitoAuth {
         console.log('Session ID:', req.sessionID);
         console.log('Session state:', req.session.state);
         console.log('Query state:', req.query.state);
-        
+
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
-        
+
         // Verify state parameter (skip in development if session is missing)
         if (!isDevelopment && req.query.state !== req.session.state) {
           console.log('State mismatch - expected:', req.session.state, 'got:', req.query.state);
-          
+
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
         }
-        
+
         // Clear the state from session
         delete req.session.state;
-        
+
         console.log('State verified or skipped, authenticating with Cognito...');
         passport.authenticate('cognito', {
           failureRedirect: '/auth?error=cognito_failed',
@@ -159,31 +159,31 @@ export class CognitoAuth {
       async (req: Request, res: Response) => {
         // Successful authentication
         console.log('Authentication successful, user:', req.user);
-        
+
         // Check if we have stored courseId from the initial request
         const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
-        
+
         console.log('Retrieved courseId from session:', externalCourseId);
         console.log('Retrieved assignmentName from session:', assignmentName);
-        
+
         // Clear the stored parameters from session
         delete req.session.courseId;
         delete req.session.assignmentName;
-        
+
         // Determine redirect URL based on external course ID
         let redirectUrl = '/';
-        
+
         if (externalCourseId) {
           try {
             // Import storage to look up course
             const { storage } = await import('./storage.js');
             const course = await storage.getCourseByExternalId(externalCourseId);
-            
+
             if (course) {
               // Get the first question set for this course
               const questionSets = await storage.getQuestionSetsByCourse(course.id);
-              
+
               if (questionSets.length > 0) {
                 // Redirect to the first question set of the course
                 redirectUrl = `/question-set/${questionSets[0].id}`;
@@ -198,13 +198,13 @@ export class CognitoAuth {
             console.error('Error looking up course:', error);
           }
         }
-        
+
         // Save session before redirecting
         req.session.save((err) => {
           if (err) {
             console.error('Failed to save session after login:', err);
           }
-          
+
           res.redirect(redirectUrl);
         });
       }
@@ -217,7 +217,7 @@ export class CognitoAuth {
           console.error('Logout error:', err);
           return res.status(500).json({ error: 'Logout failed' });
         }
-        
+
         // Redirect to Cognito logout URL
         const logoutUrl = `https://${this.cognitoDomain}/logout?client_id=${this.clientId}&logout_uri=${encodeURIComponent(this.redirectUri)}`;
         res.json({ logoutUrl });
