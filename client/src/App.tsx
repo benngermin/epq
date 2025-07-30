@@ -17,6 +17,7 @@ const Dashboard = lazy(() => import("@/pages/dashboard"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
 const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice-optimized"));
 const Debug = lazy(() => import("@/pages/Debug"));
+const TestExternalId = lazy(() => import("@/pages/test-external-id"));
 
 // Loading component
 const PageLoader = () => (
@@ -35,6 +36,7 @@ function Router() {
         <ProtectedRoute path="/question-set/:id" component={() => <QuestionSetPractice />} />
         <AdminProtectedRoute path="/admin" component={() => <AdminPanel />} />
         <ProtectedRoute path="/debug" component={() => <Debug />} />
+        <AdminProtectedRoute path="/test-external-id" component={() => <TestExternalId />} />
         <Route path="/auth" component={() => <AuthPage />} />
         <Route component={() => <NotFound />} />
       </Switch>
