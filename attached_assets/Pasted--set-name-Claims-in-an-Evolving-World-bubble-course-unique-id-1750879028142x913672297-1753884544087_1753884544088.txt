@@ -1,0 +1,1159 @@
+{
+  "set_name": "Claims in an Evolving World",
+  "bubble_course_unique_id": "1750879028142x913672297609765500",
+  "version": 2,
+  "questions": [
+    {
+      "question_number": 1,
+      "loid": "02128",
+      "question_text": "Which of the following best describes the practice of stairstepping in claims reserving?",
+      "answer_choices": [
+        "A. Setting reserves based on average claim values from historical data",
+        "B. Using a roundtable discussion to establish initial reserve amounts",
+        "C. Repeatedly raising reserve amounts due to inadequate initial planning",
+        "D. Adjusting reserves downward as claim information becomes clearer"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 2,
+      "loid": "02128",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, needs to set an initial reserve for a straightforward auto physical damage claim. Which reserving method would likely provide the quickest and most consistent result?",
+      "answer_choices": [
+        "A. Individual case method",
+        "B. Roundtable method",
+        "C. Average value method",
+        "D. Formula method"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 3,
+      "loid": "02128",
+      "question_text": "Sofia works as a claims adjuster for Millstone Insurance. When handling a complex liability claim involving multiple injuries, she enters all claim details into the company's computer system, which then applies predetermined rules to calculate the appropriate reserve amount. Which reserving method is she using?",
+      "answer_choices": [
+        "A. The expert system method",
+        "B. The formula method",
+        "C. The roundtable method",
+        "D. The individual case method"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 4,
+      "loid": "02128",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, needs to set an initial reserve for a minor auto physical damage claim. Which method would likely provide the quickest reserve establishment?",
+      "answer_choices": [
+        "A. Average value method",
+        "B. Roundtable method",
+        "C. Individual case method",
+        "D. Expert system method"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 5,
+      "loid": "02203",
+      "question_text": "Westfork Mutual uses predictive modeling software to identify potentially fraudulent claims. This technology is primarily managed by their",
+      "answer_choices": [
+        "A. Marketing department.",
+        "B. Human resources department.",
+        "C. Special Investigation Unit.",
+        "D. Accounting department."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 6,
+      "loid": "02203",
+      "question_text": "Sofia, a claims representative at Westfork Mutual, needs to analyze patterns in historical claims data to identify potentially fraudulent submissions. What tool should she use?",
+      "answer_choices": [
+        "A. Predictive models",
+        "B. Telematics",
+        "C. Blockchain",
+        "D. Internet of Things"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 7,
+      "loid": "02203",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, suspects that a claimant has committed rate evasion. Which of the following scenarios best describes this type of fraud?",
+      "answer_choices": [
+        "A. Filing multiple claims for the same incident with different insurers",
+        "B. Providing false information on an application to obtain lower premiums",
+        "C. Inflating the amount of damage after an accident occurs",
+        "D. Staging an accident to collect insurance benefits"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 8,
+      "loid": "02203",
+      "question_text": "Westfork Mutual has implemented a system where GPS-enabled vests track employee movements in their warehouse. This data helps verify workers compensation claims by comparing actual movements to reported incidents. This technology represents",
+      "answer_choices": [
+        "A. Predictive modeling.",
+        "B. Blockchain verification.",
+        "C. Internet of Things.",
+        "D. Big data warehousing."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 9,
+      "loid": "02203",
+      "question_text": "During a routine auto claim investigation, Samuel notices that the insured listed his vehicle as garaged in a rural area on his application, but the accident occurred during his daily commute in the city. This discrepancy suggests the insured may have committed",
+      "answer_choices": [
+        "A. Claim padding by misrepresenting the accident location.",
+        "B. Rate evasion by providing false information to obtain lower premiums.",
+        "C. A simple oversight that has no impact on coverage.",
+        "D. Legitimate cost-saving measures allowed by the policy."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 10,
+      "loid": "02203",
+      "question_text": "Sofia is a claims representative at Millstone Insurance who suspects rate evasion on an auto claim. The insured stated the vehicle was for recreational use only, but the accident occurred during rush hour 50 miles from home. What type of fraud detection method would have been MOST effective in preventing this situation?",
+      "answer_choices": [
+        "A. Special investigation unit referral",
+        "B. Public awareness campaigns",
+        "C. Telematics devices tracking driving habits",
+        "D. Cross-indexed claims databases"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 11,
+      "loid": "02204",
+      "question_text": "Dr. Olivia treats Emily for a legitimate back injury from a car accident. However, she recommends 20 physical therapy sessions when 10 would be medically sufficient. What type of fraudulent activity does this represent?",
+      "answer_choices": [
+        "A. False claim",
+        "B. Soft fraud",
+        "C. Intentional loss",
+        "D. Misrepresentation"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 12,
+      "loid": "02204",
+      "question_text": "Which one of the following best illustrates soft fraud in an insurance claim?",
+      "answer_choices": [
+        "A. Chloe files a claim for jewelry that was never actually stolen.",
+        "B. Benjamin arranges for someone to rear-end his car in a staged collision.",
+        "C. Westfork Mutual deliberately underreports payroll to reduce premiums.",
+        "D. Maria claims her five-year-old television was only one year old when it was damaged."
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 13,
+      "loid": "02204",
+      "question_text": "After a legitimate fender-bender, Lucas claims he suffered severe whiplash requiring extensive physical therapy, when he actually only experienced minor soreness. What type of fraud best describes Lucas's actions?",
+      "answer_choices": [
+        "A. Hard fraud",
+        "B. Intentional loss",
+        "C. Soft fraud",
+        "D. False claim"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 14,
+      "loid": "02386",
+      "question_text": "Westfork Mutual receives a liability claim that exceeds the insured's policy limits. The claimant's attorney offers to settle for the policy limit amount. To avoid a bad-faith claim for excess liability, what should the claims representative do?",
+      "answer_choices": [
+        "A. Reject the settlement offer and proceed to trial to minimize costs.",
+        "B. Ignore the settlement offer until the claimant reduces the demand.",
+        "C. Carefully evaluate and document the decision regarding the settlement offer.",
+        "D. Automatically accept any settlement offer within policy limits."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 15,
+      "loid": "02386",
+      "question_text": "When Millstone Insurance repeatedly fails to acknowledge claims communications within the required timeframe, who has the authority to investigate and penalize these violations under the Unfair Claims Settlement Practices Act?",
+      "answer_choices": [
+        "A. Federal insurance regulators",
+        "B. State insurance departments",
+        "C. The National Association of Insurance Commissioners",
+        "D. Independent arbitration panels appointed by industry groups"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 16,
+      "loid": "02386",
+      "question_text": "Emily, a claims representative at Millstone Insurance, accidentally misplaced a claim denial letter and failed to mail it for a month. Would this single instance typically violate the NAIC Unfair Claims Settlement Practices Act?",
+      "answer_choices": [
+        "A. Yes, because any delay in communication violates the Act.",
+        "B. Yes, because denial letters must be sent within 15 days.",
+        "C. No, because the Act requires violations to be flagrant or frequent.",
+        "D. No, because the Act only applies to third-party claims."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 17,
+      "loid": "02386",
+      "question_text": "Claims representative Sarah is handling multiple property damage claims. In one case, she fails to acknowledge the insured's communications for several weeks. In another case, she takes over a month to provide required claim forms after being requested. In a third case, she delays completing her investigation for months without justification. Under the NAIC Unfair Claims Settlement Practices Act, which one of the following best describes when Sarah's actions would constitute violations?",
+      "answer_choices": [
+        "A. Only if each individual action was done with malicious intent",
+        "B. If the actions were committed flagrantly and in conscious disregard of the Act or with such frequency as to indicate a general business practice",
+        "C. Only if the insured files a formal complaint with the insurance department",
+        "D. If any single instance of poor claims handling occurs, regardless of intent or frequency"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 18,
+      "loid": "02424",
+      "question_text": "Benjamin handled a complex liability claim for Goshen Mutual. After consulting with the company's legal counsel about coverage issues, he denied the claim based on their recommendation. The insured filed a bad-faith lawsuit six months later. Benjamin wants to use the lawyer's advice as a defense. Which one of the following must Benjamin prove for this defense to be successful?",
+      "answer_choices": [
+        "A. The insurer disclosed all facts to the lawyer and relied on the advice in good faith",
+        "B. The lawyer was employed directly by the insurance company",
+        "C. The insured was notified of the legal consultation before the denial",
+        "D. The claim amount exceeded the policy limits"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 19,
+      "loid": "02424",
+      "question_text": "After discovering that insured Benjamin had coached claimant Sofia on how to describe her injury claim to ensure coverage, Millstone Insurance moved to dismiss the bad-faith lawsuit. This defense is based on",
+      "answer_choices": [
+        "A. Contributory negligence.",
+        "B. Lack of standing.",
+        "C. Insured's collusion with the claimant.",
+        "D. Comparative negligence."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 20,
+      "loid": "02424",
+      "question_text": "Westfork Mutual relied on the advice of an independent attorney when denying a complex liability claim submitted by their insured, Benjamin. The attorney reviewed all claim documentation and advised that coverage did not apply. If Benjamin sues for bad faith, what must Westfork Mutual prove to successfully use the advice of counsel defense?",
+      "answer_choices": [
+        "A. The attorney was employed by the insurance company.",
+        "B. The insured was aware of the attorney's involvement.",
+        "C. The insurer disclosed all facts to the lawyer and relied on the advice in good faith.",
+        "D. The attorney specialized in bad-faith litigation."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 21,
+      "loid": "02424",
+      "question_text": "Claims representative Sofia documented that she relied on outside counsel's opinion when denying coverage for a claim filed by Glaston Insurance Agency's insured. To successfully use this advice of counsel defense, Sofia must prove that",
+      "answer_choices": [
+        "A. The attorney was employed directly by the insurance company.",
+        "B. She disclosed all relevant facts to the lawyer and acted on the advice in good faith.",
+        "C. The insured agreed with the attorney's assessment before the denial.",
+        "D. The attorney specializes exclusively in bad-faith litigation."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 22,
+      "loid": "02424",
+      "question_text": "Claims representative Emily is investigating a liability claim against Westfork Mutual's insured. Which one of the following behaviors by the insured would be the strongest indicator of possible collusion with the claimant?",
+      "answer_choices": [
+        "A. The insured coaches the claimant on how to describe the incident to ensure coverage applies.",
+        "B. The insured requests copies of all correspondence related to the claim.",
+        "C. The insured hires an independent attorney to represent their interests.",
+        "D. The insured provides conflicting statements about the circumstances of the loss."
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 23,
+      "loid": "02424",
+      "question_text": "After discovering that insured Katarina had coached claimant Miguel on how to describe the incident to ensure coverage, Millstone Insurance moved to dismiss the bad-faith lawsuit. The insurer is asserting which defense?",
+      "answer_choices": [
+        "A. Contributory negligence",
+        "B. Statute of limitations",
+        "C. Collusion between insured and claimant",
+        "D. Advice of counsel"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 24,
+      "loid": "02425",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, is investigating a liability claim. Which one of the following actions would violate good-faith claims handling principles?",
+      "answer_choices": [
+        "A. Documenting all conversations with the claimant and insured in the claim file",
+        "B. Using an independent medical provider with no ties to the insurance company",
+        "C. Making settlement decisions based on her opinion about the claimant's credibility rather than facts",
+        "D. Responding to attorney demands within specified time limits or requesting extensions"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 25,
+      "loid": "02425",
+      "question_text": "Westfork Mutual's claims department is implementing new procedures to avoid bad-faith claims. Which practice would MOST effectively demonstrate good-faith claims handling when communicating with insureds?",
+      "answer_choices": [
+        "A. Limiting communication to written correspondence only",
+        "B. Explaining the claims process in clear, non-technical language",
+        "C. Directing all inquiries through the insurer's legal department",
+        "D. Responding to inquiries within 30 business days"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 26,
+      "loid": "02425",
+      "question_text": "Sofia works as a claims representative for Millstone Insurance. When evaluating claims to ensure good-faith handling, Sofia understands that she",
+      "answer_choices": [
+        "A. Should base decisions on opinions when facts are unclear.",
+        "B. Can delay evaluation if it helps reduce the settlement amount.",
+        "C. Must show slightly more consideration for profitable insureds.",
+        "D. Should demonstrate equal consideration for the insured's and insurer's interests."
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 27,
+      "loid": "02425",
+      "question_text": "During settlement negotiations for a bodily injury claim, Samuel notices the claimant's attorney has made an unusually high demand. Which one of the following represents the best good-faith response Samuel should make?",
+      "answer_choices": [
+        "A. Immediately reject the demand as unreasonable without explanation.",
+        "B. Match the attorney's demand to avoid potential litigation.",
+        "C. Counter with a settlement consistent with the evidence and document the rationale.",
+        "D. Refuse to negotiate further until the attorney reduces the demand."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 28,
+      "loid": "02425",
+      "question_text": "During a liability claim investigation, claims representative Sofia needs to select a medical provider to examine the injured claimant. To ensure an unbiased investigation, which characteristic should Sofia prioritize when selecting the provider?",
+      "answer_choices": [
+        "A. The provider should have the lowest fees in the area.",
+        "B. The provider should have a history of always supporting insurer positions.",
+        "C. The provider should have no conflict of interest and maintain impartiality.",
+        "D. The provider should be located closest to the insurer's office."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 29,
+      "loid": "02426",
+      "question_text": "Westfork Mutual emphasizes that claims representatives must go beyond legal compliance to establish good faith. Which action best demonstrates this principle when handling a complex liability claim?",
+      "answer_choices": [
+        "A. Settling claims quickly to reduce administrative costs",
+        "B. Following only the minimum regulatory requirements",
+        "C. Providing clear explanations and timely updates to all parties",
+        "D. Denying coverage whenever policy language is ambiguous"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 30,
+      "loid": "02426",
+      "question_text": "When claims representatives at Westfork Mutual demonstrate ethical behavior by keeping promises made to insureds and handling claims fairly, what is the primary advantage to the insurance company?",
+      "answer_choices": [
+        "A. It enhances the company's reputation and credibility.",
+        "B. It decreases premium rates.",
+        "C. It simplifies claim procedures.",
+        "D. It reduces staffing requirements."
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 31,
+      "loid": "02426",
+      "question_text": "Westfork Mutual's claims handling guidelines exceed the minimum standards required by consumer regulations. This practice primarily demonstrates the insurer's commitment to:",
+      "answer_choices": [
+        "A. Avoiding regulatory penalties.",
+        "B. Reducing operational costs.",
+        "C. Ethical and professional conduct.",
+        "D. Limiting claim payments."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 32,
+      "loid": "02426",
+      "question_text": "When handling a complex liability claim, Benjamin must choose between two legally acceptable settlement options. His decision to select the option that better serves both the insured and the claimant, rather than simply the least expensive choice, demonstrates which foundation of good-faith claims handling?",
+      "answer_choices": [
+        "A. Legal compliance only",
+        "B. Cost minimization",
+        "C. Ethics and professionalism",
+        "D. Regulatory avoidance"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 33,
+      "loid": "02426",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, wants to maintain professional standards when handling claims. Which behavior best demonstrates professionalism?",
+      "answer_choices": [
+        "A. Remaining silent when competitors are falsely accused",
+        "B. Following only the minimum legal requirements",
+        "C. Acting knowledgeably, courteously, and empathetically",
+        "D. Focusing solely on the insurer's financial interests"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 34,
+      "loid": "02441",
+      "question_text": "Mia is negotiating with an attorney representing a claimant. The attorney demands $50,000 for the claim. Rather than immediately countering, Mia asks the attorney to explain how this amount was calculated. This technique is effective because it",
+      "answer_choices": [
+        "A. Delays the negotiation unnecessarily.",
+        "B. Shows weakness in Mia's position.",
+        "C. Reveals the attorney's knowledge level and preparation.",
+        "D. Guarantees a lower settlement amount."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 35,
+      "loid": "02441",
+      "question_text": "During a negotiation, claims rep Lucas from Millstone Insurance wants to build rapport with a claimant before discussing settlement amounts. Which approach demonstrates the principle of yes?",
+      "answer_choices": [
+        "A. Starting with questions about basic facts that generate agreement",
+        "B. Presenting the lowest possible settlement offer first",
+        "C. Immediately addressing the most contentious issues",
+        "D. Offering multiple settlement options without discussion"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 36,
+      "loid": "02441",
+      "question_text": "Lucas is handling a property damage claim where the public adjuster is demanding $75,000. Lucas knows the claim is worth $60,000 maximum. He offers to settle for $65,000 if the claimant agrees to close the claim today and waive any right to supplemental payments. This negotiation approach is best described as",
+      "answer_choices": [
+        "A. Establishing strengths and weaknesses.",
+        "B. Leaning on the evaluation.",
+        "C. Making concessions cautiously.",
+        "D. Timing settlements effectively."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 37,
+      "loid": "02441",
+      "question_text": "During a negotiation with claimant attorney Kristian, claims rep Emily asks him to explain how he calculated his settlement demand of $50,000. By requesting this explanation before responding, Emily is demonstrating which negotiation technique?",
+      "answer_choices": [
+        "A. Making concessions cautiously",
+        "B. Leaning on the evaluation",
+        "C. Using the principle of yes",
+        "D. Performing a needs analysis"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 38,
+      "loid": "09597",
+      "question_text": "TechSecure Insurance Company wants to use data mining to identify which customers are most likely to purchase umbrella policies. After completing the business understanding phase of CRISP-DM, what should be their next step?",
+      "answer_choices": [
+        "A. To understand the types of data to use",
+        "B. To prepare the data by cleaning it",
+        "C. To develop a model to analyze the data",
+        "D. To evaluate the results of their analysis"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 39,
+      "loid": "09597",
+      "question_text": "Sofia, a data analyst at Westfork Mutual, needs to predict the probability that a customer will renew their policy based on premium increases. Which technique should she use?",
+      "answer_choices": [
+        "A. Association rule learning",
+        "B. Classification",
+        "C. Regression analysis",
+        "D. Cluster analysis"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 40,
+      "loid": "09597",
+      "question_text": "Millstone Insurance is analyzing its auto insurance data to determine the percentage increase in premium that would cause a customer to switch to another insurer. Which data mining technique should the company use?",
+      "answer_choices": [
+        "A. Cluster analysis",
+        "B. Classification",
+        "C. Association rule learning",
+        "D. Regression analysis"
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 41,
+      "loid": "09597",
+      "question_text": "Goshen Mutual wants to explore its data to discover previously unknown patterns in customer behavior without predetermined categories. Which data mining technique should they apply?",
+      "answer_choices": [
+        "A. Classification",
+        "B. Regression analysis",
+        "C. Cluster analysis",
+        "D. Business understanding"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 42,
+      "loid": "09597",
+      "question_text": "Millstone Insurance discovered through data analysis that customers who own luxury vehicles and have multiple policies tend to purchase higher liability limits. This discovery was made without any predetermined characteristics being analyzed. Which data mining technique did they most likely use?",
+      "answer_choices": [
+        "A. Classification",
+        "B. Association rule learning",
+        "C. Regression analysis",
+        "D. Cross-validation"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 43,
+      "loid": "09597",
+      "question_text": "Westfork Mutual needs to categorize incoming claims as either requiring fraud investigation or standard processing based on known fraud indicators. Which data mining technique should they employ?",
+      "answer_choices": [
+        "A. Association rule learning",
+        "B. Classification",
+        "C. Cluster analysis",
+        "D. Regression analysis"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 44,
+      "loid": "09656",
+      "question_text": "When Millstone Insurance develops a classification tree to identify potentially severe claims, the terminal points that classify claims as either \"complex\" or \"not complex\" are called",
+      "answer_choices": [
+        "A. Root nodes.",
+        "B. Recursive nodes.",
+        "C. Leaf nodes.",
+        "D. Information nodes."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 45,
+      "loid": "09656",
+      "question_text": "When evaluating a classification tree model for complex claims at Three Hills Insurance, which metric measures the predictive power of individual attributes in determining whether a claim will be complex?",
+      "answer_choices": [
+        "A. Information gain",
+        "B. Precision",
+        "C. Lift",
+        "D. Accuracy"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 46,
+      "loid": "10281",
+      "question_text": "When Sofia, a claims representative at Millstone Insurance, receives a new claim assignment, which activity should she complete before contacting the insured?",
+      "answer_choices": [
+        "A. Schedule a property inspection.",
+        "B. Calculate the settlement amount.",
+        "C. Identify the applicable policy.",
+        "D. Issue a proof of loss form."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 47,
+      "loid": "10281",
+      "question_text": "Miguel, a claims representative at Westfork Mutual, receives a workers compensation claim that appears to have no immediate injury. Which type of claim assignment would this most likely receive?",
+      "answer_choices": [
+        "A. Priority investigation claim",
+        "B. Coverage denial claim",
+        "C. Record-only claim",
+        "D. Expedited payment claim"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 48,
+      "loid": "10281",
+      "question_text": "Sofia, a claims representative for Millstone Insurance, needs to handle multiple activities for a new property damage claim. Which statement about the timing of these activities is most accurate?",
+      "answer_choices": [
+        "A. All activities must be completed in the exact order they appear in the claims manual.",
+        "B. Each activity must be fully completed before beginning the next one.",
+        "C. Activities can start and finish at various points and may occur simultaneously.",
+        "D. Activities always follow the same pattern regardless of the type of claim."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 49,
+      "loid": "10281",
+      "question_text": "When claims adjuster Marcus first contacts an insured about a theft claim, which one of the following forms would he typically NOT provide?",
+      "answer_choices": [
+        "A. First notice of loss form",
+        "B. Medical authorization form",
+        "C. Proof of loss form",
+        "D. Claim acknowledgment form"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 50,
+      "loid": "10315",
+      "question_text": "Lucas, a claims adjuster with Westfork Mutual, is reviewing a complaint that names multiple defendants in a construction site injury case. The insured is a general contractor with several subcontractors covered by endorsement. Which one of the following steps should Lucas prioritize to determine coverage?",
+      "answer_choices": [
+        "A. Check the statute of limitations for the claim.",
+        "B. Verify the jurisdiction and venue are correct.",
+        "C. Review all policy endorsements to identify covered parties.",
+        "D. Calculate the time remaining to file an answer."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 51,
+      "loid": "10315",
+      "question_text": "Benjamin, a claims representative at Westfork Mutual, receives a complaint demanding $750,000 in damages for injuries sustained in an accident involving the insured. The policy limit is $250,000. After confirming coverage and referring the case to defense counsel, what additional action should Benjamin take?",
+      "answer_choices": [
+        "A. Issue a reservation of rights letter.",
+        "B. Send an excess letter to the insured.",
+        "C. File a motion to dismiss.",
+        "D. Request summary judgment."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 52,
+      "loid": "10315",
+      "question_text": "Sofia, a claims representative at Millstone Insurance, receives a complaint demanding $750,000 for injuries from an auto accident. The insured's policy limit is $250,000. After confirming coverage and referring to defense counsel, what additional action must Sofia take?",
+      "answer_choices": [
+        "A. Request an immediate settlement conference.",
+        "B. Deny the claim based on excessive demands.",
+        "C. Send an excess letter to the insured.",
+        "D. File a motion to reduce the demand."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 53,
+      "loid": "11021",
+      "question_text": "Marcus is handling an auto theft claim for Westfork Mutual. The insured reports their vehicle was stolen from a shopping mall parking lot. They claim to have lost the police report, cannot remember which precinct responded, and asks repeatedly about when they can expect payment. Which of these behaviors should concern Marcus the most as a potential fraud indicator?",
+      "answer_choices": [
+        "A. Parking at a shopping mall",
+        "B. Losing the police report",
+        "C. Not remembering the precinct",
+        "D. Asking about payment timing"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 54,
+      "loid": "11021",
+      "question_text": "Daniel works as a claims adjuster for Millstone Insurance. Regarding the impact of fraudulent claims on the insurance industry, Daniel knows that",
+      "answer_choices": [
+        "A. Fraudulent claims only affect the insurer's profit margins.",
+        "B. Paying fraudulent claims leads to higher premiums for all insureds.",
+        "C. Insurance fraud is too rare to significantly impact operations.",
+        "D. State laws prevent insurers from raising premiums due to fraud."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 55,
+      "loid": "11021",
+      "question_text": "During a claim investigation for stolen electronics, claims representative Olivia notices several concerning details. The insured, Mustafa, reports that $15,000 worth of equipment was taken from his home office. He paid cash for all items and says he threw away the receipts after setting up the equipment. The police report confirms a break-in occurred. Mustafa calls Olivia daily asking when he'll receive payment. Which factor should Olivia identify as the strongest fraud indicator?",
+      "answer_choices": [
+        "A. High value of stolen items",
+        "B. Lack of receipts for cash purchases",
+        "C. Police report confirming break-in",
+        "D. Frequent calls requesting payment status"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 56,
+      "loid": "11021",
+      "question_text": "Katarina works for Millstone Insurance and is handling a commercial property claim involving a suspicious warehouse fire. The business owner is pushing for immediate payment and has provided minimal documentation. As Katarina proceeds with her fraud investigation, she must ensure compliance with",
+      "answer_choices": [
+        "A. Only the deadlines set by Millstone Insurance.",
+        "B. Only the time limits established by state law.",
+        "C. Both state regulations and Millstone Insurance's internal deadlines.",
+        "D. Her own professional judgment regarding timing."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 57,
+      "loid": "11126",
+      "question_text": "Westfork Mutual has established a subsidiary company to handle claims for self-insured businesses. This subsidiary company functions as which type of claims handler?",
+      "answer_choices": [
+        "A. Public adjuster",
+        "B. Independent adjuster",
+        "C. Third-party administrator",
+        "D. Staff claims representative"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 58,
+      "loid": "11126",
+      "question_text": "When Millstone Insurance needs to handle claims in areas where they have no physical offices, they would most likely use which type of claims personnel?",
+      "answer_choices": [
+        "A. Public adjusters",
+        "B. Inside claims representatives",
+        "C. Independent adjusters",
+        "D. Marketing representatives"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 59,
+      "loid": "11126",
+      "question_text": "Which of the following best describes the relationship between public adjusters and insureds?",
+      "answer_choices": [
+        "A. Public adjusters are employees of the insurance company assigned to complex claims.",
+        "B. Public adjusters work for third-party administrators on behalf of self-insured businesses.",
+        "C. Public adjusters are hired and paid by insureds to represent their interests in claims.",
+        "D. Public adjusters are independent contractors who report directly to the insurer's home office."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 60,
+      "loid": "11126",
+      "question_text": "Millstone Insurance allows certain individuals to pay smaller claims up to $2,500 directly to insureds without prior approval. Who would typically have this authority?",
+      "answer_choices": [
+        "A. Public adjusters",
+        "B. Third-party administrators",
+        "C. Independent adjusters",
+        "D. Producers"
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 61,
+      "loid": "11127",
+      "question_text": "After investigating a fire claim at Malvern Manufacturing, claims representative Lucas discovered that the insured was storing hazardous chemicals not disclosed on the application. To address coverage implications and prevent similar issues in the future, Lucas should share this information with which department?",
+      "answer_choices": [
+        "A. Legal",
+        "B. Customer Service",
+        "C. Marketing and Sales",
+        "D. Underwriting"
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 62,
+      "loid": "11127",
+      "question_text": "Sofia is employed by Millstone Insurance where she manages risk selection by coordinating decisions about products, pricing, and underwriting guidelines. She works closely with other underwriters but does not directly interact with producers or applicants. Sofia is a(n)",
+      "answer_choices": [
+        "A. Premium auditor.",
+        "B. Line underwriter.",
+        "C. Staff underwriter.",
+        "D. Claims adjuster."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 63,
+      "loid": "11127",
+      "question_text": "Lucas works in the claims department at Millstone Insurance. His thorough documentation of claim patterns and loss trends would be most valuable to which department?",
+      "answer_choices": [
+        "A. Customer Service for explaining coverage details to policyholders",
+        "B. Premium Audit for verifying employment classification",
+        "C. Marketing and Sales for developing targeted strategies for specific customer segment",
+        "D. Actuarial for analyzing loss trends and setting appropriate rates and reserves"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 64,
+      "loid": "11128",
+      "question_text": "What aspect of claims communication is most critical when Westfork Mutual's claims representative must deliver a claim denial decision to a policyholder?",
+      "answer_choices": [
+        "A. Using technical insurance terminology to demonstrate expertise",
+        "B. Sending the denial via text message for quick delivery",
+        "C. Providing a clear explanation of the rationale behind the decision",
+        "D. Referring the claimant to the underwriting department"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 65,
+      "loid": "11128",
+      "question_text": "What communication method should claims representative Lucas avoid when attempting to demonstrate empathy to a claimant from Westfork Mutual?",
+      "answer_choices": [
+        "A. Phone conversations with active listening",
+        "B. Text messaging due to its impersonal nature and legal implications",
+        "C. In-person meetings at the loss location",
+        "D. Written correspondence via certified mail"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 66,
+      "loid": "11128",
+      "question_text": "When Millstone Insurance's claims representative Sofia needs to communicate a partial claim denial to insured Benjamin, which approach best demonstrates good-faith claims handling?",
+      "answer_choices": [
+        "A. Send a brief text message stating the denial decision.",
+        "B. Have a supervisor deliver the denial to avoid confrontation.",
+        "C. Mail a standard denial form without additional explanation.",
+        "D. Provide a detailed explanation of the coverage limitations and denial reasons."
+      ],
+      "correct_answer": "D"
+    },
+    {
+      "question_number": 67,
+      "loid": "11128",
+      "question_text": "When Sofia from Millstone Insurance conducts initial contact with a claimant, she should focus on",
+      "answer_choices": [
+        "A. Minimizing the claim's importance to reduce processing time.",
+        "B. Listening empathetically and explaining the investigation process.",
+        "C. Directing all communication through written channels only.",
+        "D. Limiting contact to email correspondence."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 68,
+      "loid": "11129",
+      "question_text": "Sofia works in the claims department at Millstone Insurance. She is analyzing timeliness of payments, number of files reopened each month, and percentage of recovery from subrogation. What type of evaluation is Sofia performing?",
+      "answer_choices": [
+        "A. Customer satisfaction survey",
+        "B. Best practices review",
+        "C. Quantitative claims audit",
+        "D. Qualitative assessment"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 69,
+      "loid": "11130",
+      "question_text": "Claims adjuster Sofia is interviewing a claimant and asks, \"You were wearing your seatbelt at the time of the accident, weren't you?\" Sofia has asked a(n)",
+      "answer_choices": [
+        "A. Open-ended question.",
+        "B. Direct question.",
+        "C. Leading question.",
+        "D. Indirect question."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 70,
+      "loid": "11130",
+      "question_text": "Claims representative Lucas is beginning a recorded statement with a slip-and-fall claimant at Huntington Grill. According to the seven-part method, what should be included in the first part of the statement?",
+      "answer_choices": [
+        "A. Description of injuries and property damage",
+        "B. Step-by-step description of how the incident occurred",
+        "C. Date, time, location, and permission to record",
+        "D. Witness contact information and statements"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 71,
+      "loid": "11130",
+      "question_text": "Millstone Insurance is handling a liability claim where their insured, Lucas, allegedly caused property damage to Glaston Insurance Agency's building. As part of the formal discovery process, Lucas must appear before the plaintiff's attorney to answer questions while under oath. Lucas is participating in a(n)",
+      "answer_choices": [
+        "A. Proof of loss.",
+        "B. Recorded statement.",
+        "C. Deposition.",
+        "D. Written interrogatory."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 72,
+      "loid": "11131",
+      "question_text": "After Millstone Insurance pays a workers compensation claim for injuries caused by a defective forklift, claims representative Marcus discovers the manufacturer was aware of the safety defect. Through which legal principle can Millstone Insurance seek reimbursement from the manufacturer?",
+      "answer_choices": [
+        "A. Proximate cause",
+        "B. Comparative negligence",
+        "C. Subrogation",
+        "D. Estoppel"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 73,
+      "loid": "11131",
+      "question_text": "Erin is handling a property damage claim for Westfork Mutual. The insured's warehouse suffered fire damage, but Erin suspects some of the claimed damage existed before the fire. Which investigation method would best help her verify the timing of the damage?",
+      "answer_choices": [
+        "A. Conducting a prior claim investigation",
+        "B. Interviewing neighboring business owners",
+        "C. Reviewing the fire department report",
+        "D. Obtaining expert testimony on fire patterns"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 74,
+      "loid": "11132",
+      "question_text": "While reviewing claim files for quality assurance, Lucas discovers that one of his team members has been including inappropriate content in file status notes. Which type of remark would be LEAST acceptable in a claim file that could be discoverable in court?",
+      "answer_choices": [
+        "A. The specific time and date when witness statements were collected",
+        "B. A detailed description of vehicle damage with repair estimates",
+        "C. Comments about the claimant's religious beliefs affecting their credibility",
+        "D. Objective summaries of police reports and expert opinions"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 75,
+      "loid": "11132",
+      "question_text": "Claims representative Lucas at Millstone Insurance must prepare a large loss report for a claim with reserves exceeding $750,000. This internal report will most likely be distributed to which of the following parties?",
+      "answer_choices": [
+        "A. The policyholder's attorney for review",
+        "B. Management within the insurance organization",
+        "C. The state insurance commissioner",
+        "D. Competing insurance companies"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 76,
+      "loid": "11132",
+      "question_text": "Sofia works as a claims adjuster and maintains detailed activity logs for each claim. When documenting a recent auto accident involving multiple parties, which type of information should she exclude from her file notes?",
+      "answer_choices": [
+        "A. The time and location of the accident",
+        "B. The makes and models of vehicles involved",
+        "C. Comments about the drivers' ethnicities",
+        "D. The extent of property damage observed"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 77,
+      "loid": "11132",
+      "question_text": "While reviewing claim files at Millstone Insurance, a supervisor found this note: \"Claimant's story doesn't add up - he's definitely trying to pull a fast one.\" This statement should be revised because it lacks which essential characteristic of professional documentation?",
+      "answer_choices": [
+        "A. Chronological order",
+        "B. Neutral tone",
+        "C. Detailed information",
+        "D. External verification"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 78,
+      "loid": "11133",
+      "question_text": "During discovery in a personal injury lawsuit against Westfork Mutual's insured, defense counsel discovers that the plaintiff has graphic photographs of injuries that are unrelated to the incident in question. To prevent these prejudicial photos from being shown to the jury, the defense attorney should file a",
+      "answer_choices": [
+        "A. Motion for summary judgment.",
+        "B. Motion to compel.",
+        "C. Motion in limine.",
+        "D. Motion to dismiss."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 79,
+      "loid": "11133",
+      "question_text": "Claims representative Sarah is reviewing a pretrial report from defense counsel that includes several case citations to support their legal strategy. One citation reads: Thompson v. ABC Insurance Co., 789 F.3d 234, 9th Cir. (2018). Sarah knows that in this citation format, the number 234 represents the",
+      "answer_choices": [
+        "A. Volume number.",
+        "B. Page number.",
+        "C. Court identifier.",
+        "D. Case sequence number."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 80,
+      "loid": "11133",
+      "question_text": "Attorney Sofia represents Goshen Mutual in a case where discovery has been completed. She wants the court to rule in her client's favor because no material facts are in dispute and the law supports their position. Sofia should prepare a",
+      "answer_choices": [
+        "A. Motion to suppress.",
+        "B. Motion to dismiss.",
+        "C. Motion for summary judgment.",
+        "D. Motion in limine."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 81,
+      "loid": "11133",
+      "question_text": "During discovery, Samuel, a defense attorney for Millstone Insurance, learns that multiple witnesses have provided conflicting statements about whether his client ran a red light. He believes there are no genuine disputes about the material facts and wants to resolve the case before trial. He should file a",
+      "answer_choices": [
+        "A. Motion to dismiss.",
+        "B. Motion for partial judgment.",
+        "C. Motion for summary judgment.",
+        "D. Motion in limine."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 82,
+      "loid": "11134",
+      "question_text": "After a windstorm damages Sofia's retail store, she incurs various expenses. Which one of the following represents an indirect loss?",
+      "answer_choices": [
+        "A. Replacing the damaged roof",
+        "B. Repairing broken windows",
+        "C. Lost sales revenue while closed for repairs",
+        "D. Replacing destroyed inventory"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 83,
+      "loid": "11134",
+      "question_text": "What policy element allows Millstone Insurance to exclude a specific breed of dog from a homeowners policy that would otherwise provide liability coverage?",
+      "answer_choices": [
+        "A. The conditions section",
+        "B. An endorsement",
+        "C. The policy period clause",
+        "D. The territorial limits provision"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 84,
+      "loid": "11134",
+      "question_text": "When analyzing coverage for a commercial general liability claim at Paradox Contractors, the claims professional must determine whether all parties involved qualify as insureds. Which one of the following scenarios presents the greatest challenge in making this determination?",
+      "answer_choices": [
+        "A. An employee of Paradox Contractors is injured while performing job duties.",
+        "B. A customer visiting the office slips on a wet floor.",
+        "C. An independent contractor hired by Paradox Contractors causes property damage while working on a project.",
+        "D. The company president damages a client's property during a business meeting."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 85,
+      "loid": "11135",
+      "question_text": "Millstone Insurance provides a general liability policy to Best Builders with a $25,000 self-insured retention, a $300,000 occurrence limit, and a $750,000 aggregate limit. Best Builders submitted a claim earlier in the policy period that resulted in a $200,000 payment from Millstone. If Best Builders now has a claim valued at $350,000, what amount will Millstone Insurance pay?",
+      "answer_choices": [
+        "A. $275,000",
+        "B. $300,000",
+        "C. $325,000",
+        "D. $350,000"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 86,
+      "loid": "11135",
+      "question_text": "Tobias rents warehouse space from Westfork Mutual Properties for his distribution business. When a storm damaged the warehouse roof and his inventory, Tobias submitted a claim to the building's property insurer. The insurer denied his claim even though he suffered significant losses. What is the most likely reason for this denial?",
+      "answer_choices": [
+        "A. The policy had exceeded its aggregate limit for the year.",
+        "B. Storm damage is typically excluded from commercial policies.",
+        "C. His name was not included in the policy declarations or endorsements.",
+        "D. He failed to meet the coinsurance requirements."
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 87,
+      "loid": "11135",
+      "question_text": "Mia was severely burned when a water heater at Huntington Grill exploded due to a manufacturing defect the company had ignored. Her attorney is seeking damages for her medical bills, lost wages, and pain and suffering. Which type of damages covers her pain and suffering?",
+      "answer_choices": [
+        "A. Special damages",
+        "B. General damages",
+        "C. Punitive damages",
+        "D. Exemplary damages"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 88,
+      "loid": "11135",
+      "question_text": "Marcus is a claims representative handling a commercial property claim. The policy has a $2,000,000 aggregate limit and a $750,000 per occurrence limit. The policyholder was already paid $400,000 for a previous claim during this policy period. The maximum amount Marcus can pay for this current claim is",
+      "answer_choices": [
+        "A. $400,000.",
+        "B. $750,000.",
+        "C. $1,600,000.",
+        "D. $2,000,000."
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 89,
+      "loid": "11136",
+      "question_text": "Before issuing a claim payment to Sofia Martinez, what database must Westfork Mutual check to comply with federal requirements?",
+      "answer_choices": [
+        "A. The state insurance commissioner's fraud database",
+        "B. The National Association of Insurance Commissioners registry",
+        "C. The Office of Foreign Assets Control master list",
+        "D. The Better Business Bureau complaint database"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 90,
+      "loid": "11136",
+      "question_text": "Before Goshen Mutual can issue a claim payment to Sofia Martinez, federal law requires them to check which database?",
+      "answer_choices": [
+        "A. Office of Foreign Assets Control list",
+        "B. State insurance commission registry",
+        "C. National Association of Insurance Commissioners database",
+        "D. Federal Reserve payment authorization system"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 91,
+      "loid": "11136",
+      "question_text": "When Westfork Mutual processes a claim payment of $750 in Massachusetts, what must the claims representative verify before issuing payment?",
+      "answer_choices": [
+        "A. The claimant's employment status",
+        "B. Whether the claimant owes unpaid child support",
+        "C. The claimant's Medicare enrollment status",
+        "D. The claimant's credit history"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 92,
+      "loid": "11136",
+      "question_text": "Millstone Insurance must verify child support obligations before making a claim payment of $750 in Massachusetts. What happens if they fail to check the required database?",
+      "answer_choices": [
+        "A. The claim is automatically voided",
+        "B. The payment is delayed for 30 days",
+        "C. Financial consequences to the insurer",
+        "D. The claimant must repay the funds"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 93,
+      "loid": "11137",
+      "question_text": "Samuel works for Westfork Mutual and is investigating a workers' compensation claim where an employee alleges injury from repetitive motion at a warehouse. The company has implemented various IoT devices for safety monitoring. Which technology would best help Samuel understand the worker's movements and environment at the time of the alleged injury?",
+      "answer_choices": [
+        "A. High-definition cameras with motion sensors",
+        "B. Building sensors measuring air quality",
+        "C. Wearable sensor tags tracking worker movements",
+        "D. Robots monitoring environmental conditions"
+      ],
+      "correct_answer": "C"
+    },
+    {
+      "question_number": 94,
+      "loid": "11138",
+      "question_text": "Sofia, a data scientist at Westfork Mutual, is struggling to build an effective model for predicting auto insurance fraud. What type of knowledge would help her understand which claim characteristics are most suspicious to investigators?",
+      "answer_choices": [
+        "A. Domain knowledge",
+        "B. Statistical knowledge",
+        "C. Programming knowledge",
+        "D. Mathematical knowledge"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 95,
+      "loid": "11138",
+      "question_text": "Samuel works in underwriting at Millstone Insurance and notices their data science team's predictive models often miss the mark. What skill set would Samuel most likely contribute to improve the team's effectiveness?",
+      "answer_choices": [
+        "A. Advanced programming languages like Python and R",
+        "B. Domain knowledge about insurance products and risk assessment",
+        "C. Statistical modeling and mathematical algorithms",
+        "D. Database management and data extraction techniques"
+      ],
+      "correct_answer": "B"
+    },
+    {
+      "question_number": 96,
+      "loid": "11138",
+      "question_text": "Westfork Mutual recently hired Tobias to experiment with their big data using rapidly evolving methods to extract insights for new insurance products. Tobias is a(n)",
+      "answer_choices": [
+        "A. Claims representative.",
+        "B. Data scientist.",
+        "C. Underwriter.",
+        "D. Risk manager."
+      ],
+      "correct_answer": "B"
+    }
+  ]
+}
