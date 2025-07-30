@@ -226,6 +226,8 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Created duplicate entries for all 16 courses with alternative external IDs (32 courses total)
   - Duplicated all 41 question sets for non-AI course versions to ensure content parity
   - Duplicated all 2,656 questions and their versions for non-AI question sets
+  - Fixed course deduplication issue in `/api/courses` endpoint that was preventing non-AI courses from being found
+  - Dashboard now accepts both `course_id` and `courseId` URL parameters for flexibility
   - Users from different Moodle instances can now launch courses using their specific external IDs
   - Progress is tracked separately between AI and non-AI versions
   - Example: CPCU 530 now has external_id '8435' (AI) and '7424' (non-AI)

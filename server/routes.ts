@@ -480,39 +480,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const allCourses = await storage.getAllCourses();
       
-      // Group courses by their course number (extracted from title or external_id)
-      const courseMap = new Map();
-      
-      for (const course of allCourses) {
-        // Extract course number
-        let courseNumber = null;
-        
-        // First check if courseNumber starts with course number
-        const titleMatch = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/)?.[0];
-        if (titleMatch) {
-          courseNumber = titleMatch;
-        } else if (course.externalId) {
-          // Check external ID for course number
-          const externalIdMatch = course.externalId.match(/(CPCU|AIC)\s+\d+/)?.[0];
-          if (externalIdMatch) {
-            courseNumber = externalIdMatch;
-          }
-        }
-        
-        if (courseNumber) {
-          // If we already have this course number, use the one with question sets
-          const existing = courseMap.get(courseNumber);
-          if (!existing || (await storage.getQuestionSetsByCourse(course.id)).length > 0) {
-            courseMap.set(courseNumber, course);
-          }
-        } else {
-          // Course without standard number, include it with its ID as key
-          courseMap.set(`course_${course.id}`, course);
-        }
-      }
-      
-      // Convert map back to array of unique courses
-      const uniqueCourses = Array.from(courseMap.values()).filter(course => {
+      // Don't deduplicate courses - return all courses including AI and non-AI versions
+      const uniqueCourses = allCourses.filter(course => {
         // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
         const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
                                (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
