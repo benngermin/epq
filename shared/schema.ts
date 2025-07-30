@@ -19,6 +19,15 @@ export const courses = pgTable("courses", {
   courseTitle: text("course_title").notNull(),
   externalId: text("external_id").unique(), // Client's course ID
   bubbleUniqueId: text("bubble_unique_id").unique(), // Bubble's unique course ID
+  isAi: boolean("is_ai").default(true).notNull(), // Keep the column we already added
+});
+
+export const courseExternalMappings = pgTable("course_external_mappings", {
+  id: serial("id").primaryKey(),
+  externalId: text("external_id").unique().notNull(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  source: text("source"), // Optional: track where this mapping came from (e.g., "moodle_v2")
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const questionSets = pgTable("question_sets", {

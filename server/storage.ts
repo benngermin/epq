@@ -1,5 +1,5 @@
 import {
-  users, courses, questionSets, questions, questionVersions, 
+  users, courses, courseExternalMappings, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
@@ -183,8 +183,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCourseByExternalId(externalId: string): Promise<Course | undefined> {
+    // First check the courses table for direct external ID match
     const [course] = await db.select().from(courses).where(eq(courses.externalId, externalId));
-    return course || undefined;
+    
+    if (course) {
+      return course;
+    }
+    
+    // If not found, check the mapping table
+    const [mapping] = await db.select()
+      .from(courseExternalMappings)
+      .where(eq(courseExternalMappings.externalId, externalId));
+    
+    if (mapping) {
+      const [mappedCourse] = await db.select()
+        .from(courses)
+        .where(eq(courses.id, mapping.courseId));
+      return mappedCourse || undefined;
+    }
+    
+    return undefined;
   }
 
   async getCourseByBubbleId(bubbleUniqueId: string): Promise<Course | undefined> {
