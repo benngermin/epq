@@ -14,6 +14,7 @@ import { withCircuitBreaker } from "./utils/connection-pool";
 import { eq, sql, desc, asc, inArray } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
+import { handleDatabaseError } from "./utils/error-handler";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {

@@ -343,6 +343,12 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - Enhanced answer validation logic for different question formats
 
 Recent Updates:
+- July 31, 2025: Fixed Neon database connection termination errors (57P01)
+  - Added Neon-specific error codes to retryable errors list
+  - Reduced connection pool from 20/5 to 10/2 to stay within Neon limits
+  - Reduced idle timeout from 5 minutes to 1 minute to prevent terminations
+  - Created comprehensive error handler for clearer database error messages
+  - Improved error responses with specific error codes for different failure types
 - July 23, 2025: Question UI Enhancements
   - Moved question number to the right side of the question header
   - Added question type badges on the left side with unique colors based on The Institutes brand palette

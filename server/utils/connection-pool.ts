@@ -87,7 +87,10 @@ export async function withCircuitBreaker<T>(
             error.message.includes('Error connecting to database') ||
             error.message.includes('UND_ERR_CONNECT_TIMEOUT') ||
             error.message.includes('ECONNRESET') ||
-            error.message.includes('ENOTFOUND')
+            error.message.includes('ENOTFOUND') ||
+            error.message.includes('terminating connection due to administrator command') ||
+            error.message.includes('57P01') ||
+            error.message.includes('connection terminated')
           );
         
         if (!isRetryableError || attempt === maxRetries) {
