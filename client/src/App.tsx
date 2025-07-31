@@ -8,17 +8,20 @@ import { AuthProvider } from "./hooks/use-auth";
 import { QuestionProvider } from "./contexts/question-context";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
+import { DashboardErrorBoundary } from "./components/dashboard-error-boundary";
 
 // Lazy load pages for better performance with retry logic
 const lazyWithRetry = (importFn: () => Promise<any>) => {
   return lazy(() =>
-    importFn().catch(() => {
+    importFn().catch((error) => {
+      console.error('Failed to load module:', error);
       // Retry once after a delay if the import fails
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         setTimeout(() => {
-          importFn().then(resolve).catch(() => {
-            // If retry fails, reload the page
-            window.location.reload();
+          importFn().then(resolve).catch((retryError) => {
+            console.error('Retry failed:', retryError);
+            // Show error message instead of reloading
+            reject(new Error('Failed to load application module. Please refresh the page.'));
           });
         }, 1000);
       });
@@ -45,8 +48,8 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <ProtectedRoute path="/" component={() => <Dashboard />} />
-        <ProtectedRoute path="/dashboard" component={() => <Dashboard />} />
+        <ProtectedRoute path="/" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
+        <ProtectedRoute path="/dashboard" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
 
         <ProtectedRoute path="/question-set/:id" component={() => <QuestionSetPractice />} />
         <AdminProtectedRoute path="/admin" component={() => <AdminPanel />} />

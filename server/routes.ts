@@ -164,12 +164,19 @@ setInterval(() => {
 
 // Cleanup function to prevent memory leaks
 function cleanupStream(streamId: string) {
-  const stream = activeStreams.get(streamId);
-  if (stream) {
-    // Clear large data first
-    stream.chunks = [];
-    stream.error = undefined;
-    // Then delete the stream
+  try {
+    const stream = activeStreams.get(streamId);
+    if (stream) {
+      // Clear large data first
+      stream.chunks = [];
+      stream.error = undefined;
+      // Then delete the stream
+      activeStreams.delete(streamId);
+      console.log(`Stream ${streamId} cleaned up successfully. Active streams: ${activeStreams.size}`);
+    }
+  } catch (error) {
+    console.error(`Error cleaning up stream ${streamId}:`, error);
+    // Force delete even if there was an error
     activeStreams.delete(streamId);
   }
 }
@@ -550,13 +557,16 @@ export function registerRoutes(app: Express): Server {
       const { externalId } = req.params;
       
       // Validate external ID format - should be alphanumeric and not too long
-      if (!externalId || externalId.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(externalId)) {
+      if (!externalId || externalId.length > 100 || !/^[a-zA-Z0-9_\-\s]+$/.test(externalId)) {
         return res.status(400).json({ message: "Invalid external ID format" });
       }
       
-      console.log(`📚 Looking up course by external ID: ${externalId}`);
+      // Sanitize the external ID to prevent injection attacks
+      const sanitizedExternalId = externalId.trim();
       
-      const course = await storage.getCourseByExternalId(externalId);
+      console.log(`📚 Looking up course by external ID: ${sanitizedExternalId}`);
+      
+      const course = await storage.getCourseByExternalId(sanitizedExternalId);
       
       if (!course) {
         console.log(`❌ Course not found for external ID: ${externalId}`);

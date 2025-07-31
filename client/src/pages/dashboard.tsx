@@ -22,23 +22,24 @@ export default function Dashboard() {
     // Process once we have courses data
     if (!coursesLoading && !userLoading && courses && courses.length > 0) {
       const processCourseSelection = async () => {
-        console.log('Dashboard: Processing course selection', {
-          coursesCount: courses.length,
-          firstCourse: courses[0],
-          hasQuestionSets: courses[0]?.questionSets !== undefined,
-          questionSetsCount: courses[0]?.questionSets?.length
-        });
-        
-        // Parse URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        // Check for both course_id and courseId parameters (support both formats, case-insensitive)
-        const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('course_ID');
-        const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
-        
-        // Store assignment name for future use
-        if (assignmentName) {
-          (window as any).currentAssignmentName = assignmentName;
-        }
+        try {
+          console.log('Dashboard: Processing course selection', {
+            coursesCount: courses.length,
+            firstCourse: courses[0],
+            hasQuestionSets: courses[0]?.questionSets !== undefined,
+            questionSetsCount: courses[0]?.questionSets?.length
+          });
+          
+          // Parse URL parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          // Check for both course_id and courseId parameters (support both formats, case-insensitive)
+          const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('course_ID');
+          const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
+          
+          // Store assignment name for future use
+          if (assignmentName) {
+            (window as any).currentAssignmentName = assignmentName;
+          }
         
         // Log parameter parsing
         console.log('URL Parameters:', {
@@ -159,9 +160,13 @@ export default function Dashboard() {
           alert(`The course "${courseName}" doesn't have any question sets. Please contact your administrator or select a different course.`);
         }
       }
-    };
-    
-    processCourseSelection();
+        } catch (error) {
+          console.error('Error processing course selection:', error);
+          alert('An error occurred while loading your course. Please refresh the page and try again.');
+        }
+      };
+      
+      processCourseSelection();
     }
   }, [coursesLoading, userLoading, courses, setLocation]);
 
