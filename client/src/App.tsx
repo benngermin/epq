@@ -9,14 +9,30 @@ import { QuestionProvider } from "./contexts/question-context";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
 
-// Lazy load pages for better performance
-const NotFound = lazy(() => import("@/pages/not-found"));
-const AuthPage = lazy(() => import("@/pages/auth-page"));
-const Dashboard = lazy(() => import("@/pages/dashboard"));
+// Lazy load pages for better performance with retry logic
+const lazyWithRetry = (importFn: () => Promise<any>) => {
+  return lazy(() =>
+    importFn().catch(() => {
+      // Retry once after a delay if the import fails
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          importFn().then(resolve).catch(() => {
+            // If retry fails, reload the page
+            window.location.reload();
+          });
+        }, 1000);
+      });
+    })
+  );
+};
 
-const AdminPanel = lazy(() => import("@/pages/admin-panel"));
-const QuestionSetPractice = lazy(() => import("@/pages/question-set-practice-optimized"));
-const Debug = lazy(() => import("@/pages/Debug"));
+const NotFound = lazyWithRetry(() => import("@/pages/not-found"));
+const AuthPage = lazyWithRetry(() => import("@/pages/auth-page"));
+const Dashboard = lazyWithRetry(() => import("@/pages/dashboard"));
+
+const AdminPanel = lazyWithRetry(() => import("@/pages/admin-panel"));
+const QuestionSetPractice = lazyWithRetry(() => import("@/pages/question-set-practice-optimized"));
+const Debug = lazyWithRetry(() => import("@/pages/Debug"));
 
 // Loading component
 const PageLoader = () => (

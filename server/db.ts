@@ -36,7 +36,8 @@ if (process.env.NODE_ENV === 'development') {
   };
   
   const poolRemoveHandler = () => {
-    console.log('Database connection removed from pool');
+    // Commenting out to reduce noise - this is normal behavior for connection pools
+    // console.log('Database connection removed from pool');
   };
 
   pool.on('error', poolErrorHandler);

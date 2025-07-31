@@ -272,6 +272,11 @@ When the app is launched with URL parameters like `?courseId=8433&assignmentName
   - In production, users never see auth page buttons - they're immediately redirected to Cognito SSO
   - Admin privileges are determined by user's email address after SSO authentication
   - This creates a seamless experience where production users don't need to make authentication choices
+- July 31, 2025: Fixed critical bugs in application
+  - Resolved module import errors with lazy loading by implementing retry logic for failed module imports
+  - Fixed database connection pool logging noise by reducing verbose connection lifecycle logs
+  - Improved authentication error handling to prevent unnecessary 401 error logging during initial page loads
+  - These fixes improve application stability and reduce console noise in development
 - January 22, 2025: Enhanced course material matching with leading zero handling
   - Fixed issue where questions with LOIDs containing leading zeros (e.g., '05259') couldn't find course materials with LOIDs without leading zeros (e.g., '5259')
   - Updated getCourseMaterialByLoid to try multiple matching strategies:
