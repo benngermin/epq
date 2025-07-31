@@ -718,5 +718,3 @@ export default function QuestionSetPractice() {
     </ErrorBoundary>
   );
 }
-
-export default QuestionSetPractice;
