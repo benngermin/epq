@@ -1,12 +1,15 @@
 import {
   users, courses, courseExternalMappings, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
+  userCourseProgress, dailyActivitySummary,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
   type CourseMaterial, type InsertCourseMaterial, type ChatbotLog, type InsertChatbotLog,
+  type UserCourseProgress, type InsertUserCourseProgress,
+  type DailyActivitySummary, type InsertDailyActivitySummary,
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
@@ -146,6 +149,14 @@ export interface IStorage {
     uniqueUsers: number;
     averageScore: number;
   }>>;
+  
+  // User course progress operations
+  updateUserCourseProgress(userId: number, courseId: number, updates: Partial<InsertUserCourseProgress>): Promise<void>;
+  getUserProgressByCourse(userId: number, courseId: number): Promise<UserCourseProgress | null>;
+  
+  // Daily activity summary operations
+  updateDailyActivitySummary(date: Date, updates: Partial<InsertDailyActivitySummary>): Promise<void>;
+  getDailyActivitySummaries(startDate: Date, endDate: Date): Promise<DailyActivitySummary[]>;
   
   sessionStore: any;
 }
@@ -833,6 +844,69 @@ export class DatabaseStorage implements IStorage {
       uniqueUsers: Number(stat.uniqueUsers) || 0,
       averageScore: stat.totalAttempts ? (Number(stat.correctAnswers) / Number(stat.totalAttempts) * 100) : 0
     }));
+  }
+  
+  // User course progress operations
+  async updateUserCourseProgress(userId: number, courseId: number, updates: Partial<InsertUserCourseProgress>): Promise<void> {
+    const existing = await db.select()
+      .from(userCourseProgress)
+      .where(and(eq(userCourseProgress.userId, userId), eq(userCourseProgress.courseId, courseId)))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db.update(userCourseProgress)
+        .set({
+          ...updates,
+          lastActivity: new Date()
+        })
+        .where(eq(userCourseProgress.id, existing[0].id));
+    } else {
+      await db.insert(userCourseProgress).values({
+        userId,
+        courseId,
+        ...updates
+      });
+    }
+  }
+  
+  async getUserProgressByCourse(userId: number, courseId: number): Promise<UserCourseProgress | null> {
+    const result = await db.select()
+      .from(userCourseProgress)
+      .where(and(eq(userCourseProgress.userId, userId), eq(userCourseProgress.courseId, courseId)))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+  
+  // Daily activity summary operations
+  async updateDailyActivitySummary(date: Date, updates: Partial<InsertDailyActivitySummary>): Promise<void> {
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const existing = await db.select()
+      .from(dailyActivitySummary)
+      .where(eq(dailyActivitySummary.date, dateOnly))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db.update(dailyActivitySummary)
+        .set(updates)
+        .where(eq(dailyActivitySummary.id, existing[0].id));
+    } else {
+      await db.insert(dailyActivitySummary).values({
+        date: dateOnly,
+        ...updates
+      });
+    }
+  }
+  
+  async getDailyActivitySummaries(startDate: Date, endDate: Date): Promise<DailyActivitySummary[]> {
+    return await db.select()
+      .from(dailyActivitySummary)
+      .where(and(
+        sql`${dailyActivitySummary.date} >= ${startDate}`,
+        sql`${dailyActivitySummary.date} <= ${endDate}`
+      ))
+      .orderBy(asc(dailyActivitySummary.date));
   }
 }
 

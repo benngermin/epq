@@ -119,9 +119,44 @@ export const chatbotLogs = pgTable("chatbot_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Track user progress through courses for better analytics
+export const userCourseProgress = pgTable("user_course_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  questionSetsCompleted: integer("question_sets_completed").default(0).notNull(),
+  questionsAnswered: integer("questions_answered").default(0).notNull(),
+  correctAnswers: integer("correct_answers").default(0).notNull(),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+});
+
+// Pre-aggregated daily stats for faster dashboard loading
+export const dailyActivitySummary = pgTable("daily_activity_summary", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull(),
+  activeUsers: integer("active_users").default(0).notNull(),
+  newUsers: integer("new_users").default(0).notNull(),
+  testRunsStarted: integer("test_runs_started").default(0).notNull(),
+  testRunsCompleted: integer("test_runs_completed").default(0).notNull(),
+  questionsAnswered: integer("questions_answered").default(0).notNull(),
+  aiInteractions: integer("ai_interactions").default(0).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   testRuns: many(userTestRuns),
+  courseProgress: many(userCourseProgress),
+}));
+
+export const userCourseProgressRelations = relations(userCourseProgress, ({ one }) => ({
+  user: one(users, {
+    fields: [userCourseProgress.userId],
+    references: [users.id],
+  }),
+  course: one(courses, {
+    fields: [userCourseProgress.courseId],
+    references: [courses.id],
+  }),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -203,6 +238,8 @@ export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
 export const insertChatbotLogSchema = createInsertSchema(chatbotLogs);
+export const insertUserCourseProgressSchema = createInsertSchema(userCourseProgress);
+export const insertDailyActivitySummarySchema = createInsertSchema(dailyActivitySummary);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -228,6 +265,10 @@ export type CourseMaterial = typeof courseMaterials.$inferSelect;
 export type InsertCourseMaterial = z.infer<typeof insertCourseMaterialSchema>;
 export type ChatbotLog = typeof chatbotLogs.$inferSelect;
 export type InsertChatbotLog = z.infer<typeof insertChatbotLogSchema>;
+export type UserCourseProgress = typeof userCourseProgress.$inferSelect;
+export type InsertUserCourseProgress = z.infer<typeof insertUserCourseProgressSchema>;
+export type DailyActivitySummary = typeof dailyActivitySummary.$inferSelect;
+export type InsertDailyActivitySummary = z.infer<typeof insertDailyActivitySummarySchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
