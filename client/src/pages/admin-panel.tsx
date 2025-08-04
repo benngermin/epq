@@ -24,6 +24,7 @@ import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { ChatbotLogsSection } from "@/components/chatbot-logs-section";
+import { AppLogsSection } from "@/components/app-logs-section";
 import type { AiSettings, PromptVersion } from "@shared/schema";
 
 
@@ -1038,11 +1039,16 @@ export default function AdminPanel() {
             <TabsContent value="logs">
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Chatbot Logs</h1>
-                  <p className="text-muted-foreground mt-2">View all chatbot interactions and AI model usage</p>
+                  <h1 className="text-2xl font-bold text-foreground">Application Logs & Analytics</h1>
+                  <p className="text-muted-foreground mt-2">Comprehensive usage statistics and performance metrics</p>
                 </div>
 
-                <ChatbotLogsSection />
+                <AppLogsSection />
+                
+                <div className="mt-8">
+                  <h2 className="text-xl font-semibold text-foreground mb-4">Chatbot Interaction Logs</h2>
+                  <ChatbotLogsSection />
+                </div>
               </div>
             </TabsContent>
 
@@ -1444,7 +1450,7 @@ function QuestionsList({ questionSetId }: { questionSetId: number }) {
           <div className="flex justify-between items-start mb-2">
             <h4 className="font-medium text-sm">Question {question.originalQuestionNumber || index + 1}</h4>
             <span className="text-xs bg-secondary px-2 py-1 rounded">
-              {question.questionType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Multiple Choice'}
+              {question.questionType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Multiple Choice'}
             </span>
           </div>
           

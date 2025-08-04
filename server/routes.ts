@@ -1848,6 +1848,47 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Comprehensive logs endpoints
+  app.get("/api/admin/logs/overview", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getOverallStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching overall stats:", error);
+      res.status(500).json({ message: "Failed to fetch overall statistics" });
+    }
+  });
+
+  app.get("/api/admin/logs/users", requireAdmin, async (req, res) => {
+    try {
+      const userStats = await storage.getUserStats();
+      res.json(userStats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ message: "Failed to fetch user statistics" });
+    }
+  });
+
+  app.get("/api/admin/logs/questions", requireAdmin, async (req, res) => {
+    try {
+      const questionStats = await storage.getQuestionStats();
+      res.json(questionStats);
+    } catch (error) {
+      console.error("Error fetching question stats:", error);
+      res.status(500).json({ message: "Failed to fetch question statistics" });
+    }
+  });
+
+  app.get("/api/admin/logs/courses", requireAdmin, async (req, res) => {
+    try {
+      const courseStats = await storage.getCourseStats();
+      res.json(courseStats);
+    } catch (error) {
+      console.error("Error fetching course stats:", error);
+      res.status(500).json({ message: "Failed to fetch course statistics" });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {

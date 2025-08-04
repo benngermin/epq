@@ -92,6 +92,61 @@ export interface IStorage {
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
   
+  // Statistics methods for logs page
+  getOverallStats(): Promise<{
+    totalUsers: number;
+    totalCourses: number;
+    totalQuestionSets: number;
+    totalQuestions: number;
+    totalTestRuns: number;
+    totalAnswers: number;
+    activeUsersToday: number;
+    activeUsersThisWeek: number;
+    activeUsersThisMonth: number;
+  }>;
+  
+  getUserStats(): Promise<Array<{
+    userId: number;
+    userName: string;
+    userEmail: string;
+    totalTestRuns: number;
+    totalAnswers: number;
+    correctAnswers: number;
+    lastActive: Date | null;
+    registeredAt: Date;
+  }>>;
+  
+  getQuestionStats(): Promise<{
+    byQuestionSet: Array<{
+      questionSetId: number;
+      questionSetTitle: string;
+      courseTitle: string;
+      totalAttempts: number;
+      correctAttempts: number;
+      incorrectAttempts: number;
+      successRate: number;
+    }>;
+    mostFailedQuestions: Array<{
+      questionId: number;
+      questionText: string;
+      questionSetTitle: string;
+      failureCount: number;
+      totalAttempts: number;
+      failureRate: number;
+    }>;
+  }>;
+  
+  getCourseStats(): Promise<Array<{
+    courseId: number;
+    courseNumber: string;
+    courseTitle: string;
+    totalQuestionSets: number;
+    totalQuestions: number;
+    totalAttempts: number;
+    uniqueUsers: number;
+    averageScore: number;
+  }>>;
+  
   sessionStore: any;
 }
 
@@ -574,6 +629,210 @@ export class DatabaseStorage implements IStorage {
   async createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog> {
     const [newLog] = await db.insert(chatbotLogs).values(log).returning();
     return newLog;
+  }
+
+  async getOverallStats(): Promise<{
+    totalUsers: number;
+    totalCourses: number;
+    totalQuestionSets: number;
+    totalQuestions: number;
+    totalTestRuns: number;
+    totalAnswers: number;
+    activeUsersToday: number;
+    activeUsersThisWeek: number;
+    activeUsersThisMonth: number;
+  }> {
+    const [userCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
+    const [courseCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(courses);
+    const [questionSetCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(questionSets);
+    const [questionCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(questions);
+    const [testRunCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userTestRuns);
+    const [answerCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userAnswers);
+
+    // Active users calculations
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [activeToday] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+      .from(userTestRuns)
+      .where(sql`started_at >= ${today.toISOString()}`);
+
+    const [activeWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+      .from(userTestRuns)
+      .where(sql`started_at >= ${weekAgo.toISOString()}`);
+
+    const [activeMonth] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+      .from(userTestRuns)
+      .where(sql`started_at >= ${monthAgo.toISOString()}`);
+
+    return {
+      totalUsers: Number(userCount.count),
+      totalCourses: Number(courseCount.count),
+      totalQuestionSets: Number(questionSetCount.count),
+      totalQuestions: Number(questionCount.count),
+      totalTestRuns: Number(testRunCount.count),
+      totalAnswers: Number(answerCount.count),
+      activeUsersToday: Number(activeToday.count),
+      activeUsersThisWeek: Number(activeWeek.count),
+      activeUsersThisMonth: Number(activeMonth.count)
+    };
+  }
+
+  async getUserStats(): Promise<Array<{
+    userId: number;
+    userName: string;
+    userEmail: string;
+    totalTestRuns: number;
+    totalAnswers: number;
+    correctAnswers: number;
+    lastActive: Date | null;
+    registeredAt: Date;
+  }>> {
+    const userStatsQuery = await db.select({
+      userId: users.id,
+      userName: users.name,
+      userEmail: users.email,
+      registeredAt: users.createdAt,
+      totalTestRuns: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`,
+      totalAnswers: sql<number>`COUNT(${userAnswers.id})`,
+      correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
+      lastActive: sql<Date | null>`MAX(${userTestRuns.startedAt})`
+    })
+    .from(users)
+    .leftJoin(userTestRuns, eq(userTestRuns.userId, users.id))
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .groupBy(users.id, users.name, users.email, users.createdAt)
+    .orderBy(desc(sql`MAX(${userTestRuns.startedAt})`));
+
+    return userStatsQuery.map(stat => ({
+      userId: stat.userId,
+      userName: stat.userName,
+      userEmail: stat.userEmail,
+      totalTestRuns: Number(stat.totalTestRuns) || 0,
+      totalAnswers: Number(stat.totalAnswers) || 0,
+      correctAnswers: Number(stat.correctAnswers) || 0,
+      lastActive: stat.lastActive,
+      registeredAt: stat.registeredAt
+    }));
+  }
+
+  async getQuestionStats(): Promise<{
+    byQuestionSet: Array<{
+      questionSetId: number;
+      questionSetTitle: string;
+      courseTitle: string;
+      totalAttempts: number;
+      correctAttempts: number;
+      incorrectAttempts: number;
+      successRate: number;
+    }>;
+    mostFailedQuestions: Array<{
+      questionId: number;
+      questionText: string;
+      questionSetTitle: string;
+      failureCount: number;
+      totalAttempts: number;
+      failureRate: number;
+    }>;
+  }> {
+    // Stats by question set
+    const byQuestionSetQuery = await db.select({
+      questionSetId: questionSets.id,
+      questionSetTitle: questionSets.title,
+      courseTitle: courses.courseTitle,
+      totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
+      correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
+      incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
+    })
+    .from(questionSets)
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .innerJoin(questions, eq(questions.questionSetId, questionSets.id))
+    .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .groupBy(questionSets.id, questionSets.title, courses.courseTitle)
+    .having(sql`COUNT(${userAnswers.id}) > 0`)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+
+    const byQuestionSet = byQuestionSetQuery.map(stat => ({
+      questionSetId: stat.questionSetId,
+      questionSetTitle: stat.questionSetTitle,
+      courseTitle: stat.courseTitle,
+      totalAttempts: Number(stat.totalAttempts) || 0,
+      correctAttempts: Number(stat.correctAttempts) || 0,
+      incorrectAttempts: Number(stat.incorrectAttempts) || 0,
+      successRate: stat.totalAttempts ? Number(stat.correctAttempts) / Number(stat.totalAttempts) * 100 : 0
+    }));
+
+    // Most failed questions
+    const mostFailedQuery = await db.select({
+      questionId: questions.id,
+      questionText: questionVersions.questionText,
+      questionSetTitle: questionSets.title,
+      totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
+      failureCount: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
+    })
+    .from(questions)
+    .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
+    .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .groupBy(questions.id, questionVersions.questionText, questionSets.title)
+    .having(sql`COUNT(${userAnswers.id}) > 0 AND SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END) > 0`)
+    .orderBy(desc(sql`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`))
+    .limit(20);
+
+    const mostFailedQuestions = mostFailedQuery.map(stat => ({
+      questionId: stat.questionId,
+      questionText: stat.questionText.substring(0, 100) + (stat.questionText.length > 100 ? '...' : ''),
+      questionSetTitle: stat.questionSetTitle,
+      failureCount: Number(stat.failureCount) || 0,
+      totalAttempts: Number(stat.totalAttempts) || 0,
+      failureRate: stat.totalAttempts ? Number(stat.failureCount) / Number(stat.totalAttempts) * 100 : 0
+    }));
+
+    return { byQuestionSet, mostFailedQuestions };
+  }
+
+  async getCourseStats(): Promise<Array<{
+    courseId: number;
+    courseNumber: string;
+    courseTitle: string;
+    totalQuestionSets: number;
+    totalQuestions: number;
+    totalAttempts: number;
+    uniqueUsers: number;
+    averageScore: number;
+  }>> {
+    const courseStatsQuery = await db.select({
+      courseId: courses.id,
+      courseNumber: courses.courseNumber,
+      courseTitle: courses.courseTitle,
+      totalQuestionSets: sql<number>`COUNT(DISTINCT ${questionSets.id})`,
+      totalQuestions: sql<number>`COUNT(DISTINCT ${questions.id})`,
+      totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
+      uniqueUsers: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})`,
+      correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`
+    })
+    .from(courses)
+    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
+    .leftJoin(questions, eq(questions.questionSetId, questionSets.id))
+    .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
+    .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+
+    return courseStatsQuery.map(stat => ({
+      courseId: stat.courseId,
+      courseNumber: stat.courseNumber,
+      courseTitle: stat.courseTitle,
+      totalQuestionSets: Number(stat.totalQuestionSets) || 0,
+      totalQuestions: Number(stat.totalQuestions) || 0,
+      totalAttempts: Number(stat.totalAttempts) || 0,
+      uniqueUsers: Number(stat.uniqueUsers) || 0,
+      averageScore: stat.totalAttempts ? (Number(stat.correctAnswers) / Number(stat.totalAttempts) * 100) : 0
+    }));
   }
 }
 

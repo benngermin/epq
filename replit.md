@@ -72,6 +72,13 @@ EPQ is a comprehensive online test-preparation platform designed for The Institu
 - Question-set import options  
   - JSON file import for individual sets  
   - **Bubble API Integration** for bulk import (with course filter, batch selection, automatic course creation)
+- **Comprehensive Logs & Analytics** (added August 2025)
+  - Overall usage statistics dashboard
+  - User activity tracking with performance metrics
+  - Course engagement analytics
+  - Question-level success/failure rates
+  - Most failed questions identification
+  - Chatbot interaction logs
 
 ## Data Flow
 
@@ -129,8 +136,9 @@ EPQ is a comprehensive online test-preparation platform designed for The Institu
 4. Production optimizations: tree-shaking & minification
 
 
-## Recent Highlights (Jan – Jul 2025)
+## Recent Highlights (Jan – Aug 2025)
 
+* **Comprehensive Logs & Analytics (Aug 4)** — Added full application analytics to admin panel with overall stats, user activity tracking, course engagement metrics, question-level success rates, and identification of most failed questions.
 * **Schema Upgrade (Jul 24)** — `title` → `courseNumber`, added `courseTitle`, removed `description`; full DB migration & API update completed.
 * **New Question Types (Jan 23)** — drag-and-drop ordering, numerical entry, short answer, multi-response, and select-list; UI & validation logic added.
 * **Content-Import Pipeline (Jul 22–30)** — Bubble.io learning-object import, external-ID mapping table (32 AI + non-AI IDs), and dashboard lookup endpoint.

@@ -126,10 +126,10 @@ export function setupAuth(app: Express) {
       throw new Error('Cognito SSO configuration is required but failed to initialize');
     }
   } else {
-    console.error('❌ CRITICAL: Cognito SSO environment variables are missing!');
-    console.error('Required: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET');
-    console.error('Optional: COGNITO_REDIRECT_URI (will be auto-detected if not provided)');
-    throw new Error('Cognito SSO configuration is required but missing');
+    console.warn('⚠️ WARNING: Cognito SSO environment variables are missing!');
+    console.warn('Required for production: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET');
+    console.warn('Optional: COGNITO_REDIRECT_URI (will be auto-detected if not provided)');
+    console.warn('Running in development mode with local authentication only');
   }
 
   // Local authentication strategy - now available for admin users only
