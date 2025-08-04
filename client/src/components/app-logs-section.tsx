@@ -200,7 +200,7 @@ export function AppLogsSection() {
               No Activity Data Available
             </CardTitle>
             <CardDescription className="text-amber-700 dark:text-amber-300">
-              The analytics dashboard will populate once users start taking practice tests. 
+              The analytics dashboard will populate once users start taking question sets. 
               Currently showing structure and available metrics.
             </CardDescription>
           </CardHeader>
@@ -258,7 +258,7 @@ export function AppLogsSection() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-orange-500" />
-              Test Activity
+              Question Set Activity
             </CardTitle>
           </CardHeader>
           <CardContent>
