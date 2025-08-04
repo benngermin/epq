@@ -30,11 +30,20 @@ export default function Dashboard() {
             questionSetsCount: courses[0]?.questionSets?.length
           });
           
-          // Parse URL parameters
+          // Parse URL parameters - normalize to handle case-insensitive matching
           const urlParams = new URLSearchParams(window.location.search);
-          // Check for both course_id and courseId parameters (support both formats, case-insensitive)
-          const courseIdParam = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('course_ID');
-          const assignmentName = urlParams.get('assignment_name') || urlParams.get('assignmentName');
+          let courseIdParam: string | null = null;
+          let assignmentName: string | null = null;
+          
+          // Check all parameter variations in a case-insensitive way
+          urlParams.forEach((value, key) => {
+            const lowerKey = key.toLowerCase();
+            if ((lowerKey === 'course_id' || lowerKey === 'courseid') && !courseIdParam) {
+              courseIdParam = value;
+            } else if ((lowerKey === 'assignment_name' || lowerKey === 'assignmentname') && !assignmentName) {
+              assignmentName = value;
+            }
+          });
           
           // Store assignment name for future use
           if (assignmentName) {
