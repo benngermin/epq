@@ -324,8 +324,8 @@ export function AppLogsSection() {
                         <TableCell>{course.uniqueUsers}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Progress value={course.averageScore} className="w-16 h-2" />
-                            <span className="text-sm">{course.averageScore.toFixed(1)}%</span>
+                            <Progress value={course.averageScore || 0} className="w-16 h-2" />
+                            <span className="text-sm">{(course.averageScore || 0).toFixed(1)}%</span>
                           </div>
                         </TableCell>
                       </TableRow>
