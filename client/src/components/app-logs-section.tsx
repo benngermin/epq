@@ -228,9 +228,6 @@ export function AppLogsSection() {
   }
 
   // Calculate some additional metrics
-  const totalSuccessRate = overallStats && overallStats.totalAnswers > 0
-    ? ((questionStats?.byQuestionSet.reduce((acc, qs) => acc + qs.correctAttempts, 0) || 0) / overallStats.totalAnswers * 100).toFixed(1)
-    : '0';
 
   const COLORS = ['#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
   
@@ -281,9 +278,6 @@ export function AppLogsSection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallStats?.totalTestRuns || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Success rate: {totalSuccessRate}%
-            </p>
           </CardContent>
         </Card>
       </div>
