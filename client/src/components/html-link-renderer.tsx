@@ -34,12 +34,24 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
     // Using [\s\S] to match any character including newlines for multi-line content
     const htmlTagRegex = /<(a|b|i|strong|em|u|br|p|span|code|pre|h[1-6]|ul|ol|li|blockquote|hr|sub|sup|mark|del|ins|feedback_incorrect|feedback_correct)\b([^>]*)>([\s\S]*?)<\/\1>|<(br|hr)\s*\/?>|<\/(p|div|li)>/gi;
     
-    // Process all HTML tags
-    const processHtml = (htmlText: string): (string | JSX.Element)[] => {
+    // Process all HTML tags with error handling
+    const processHtml = (htmlText: string, depth: number = 0): (string | JSX.Element)[] => {
+      // Prevent stack overflow from deeply nested content
+      if (depth > 10) {
+        console.warn('HTML parsing depth limit reached');
+        return [htmlText];
+      }
+      
       const htmlParts: (string | JSX.Element)[] = [];
       let htmlLastIndex = 0;
       
-      const matches = Array.from(htmlText.matchAll(htmlTagRegex));
+      let matches: RegExpMatchArray[];
+      try {
+        matches = Array.from(htmlText.matchAll(htmlTagRegex));
+      } catch (e) {
+        console.error('Failed to parse HTML:', e);
+        return [htmlText];
+      }
       
       for (const match of matches) {
         const matchIndex = match.index!;
@@ -82,28 +94,28 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline cursor-pointer"
             >
-              {processHtml(innerContent)}
+              {processHtml(innerContent, depth + 1)}
             </a>
           );
         } else if (tagName?.toLowerCase() === 'b' || tagName?.toLowerCase() === 'strong') {
           // Bold text
           htmlParts.push(
             <strong key={`bold-${keyCounter}`}>
-              {processHtml(innerContent)}
+              {processHtml(innerContent, depth + 1)}
             </strong>
           );
         } else if (tagName?.toLowerCase() === 'i' || tagName?.toLowerCase() === 'em') {
           // Italic text
           htmlParts.push(
             <em key={`italic-${keyCounter}`}>
-              {processHtml(innerContent)}
+              {processHtml(innerContent, depth + 1)}
             </em>
           );
         } else if (tagName?.toLowerCase() === 'u') {
           // Underlined text
           htmlParts.push(
             <u key={`underline-${keyCounter}`}>
-              {processHtml(innerContent)}
+              {processHtml(innerContent, depth + 1)}
             </u>
           );
         } else if (tagName?.toLowerCase() === 'code') {

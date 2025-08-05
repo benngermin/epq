@@ -15,14 +15,16 @@ neonConfig.webSocketConstructor = ws;
 // Create a connection pool with optimized limits to reduce churn
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Reduced max connections to stay within Neon limits
-  min: 2, // Reduced minimum connections to avoid idle terminations
-  idleTimeoutMillis: 60000, // Reduced to 1 minute to prevent Neon from terminating idle connections
+  max: 20, // Increased max connections for better concurrency
+  min: 5, // Increased minimum connections to maintain pool
+  idleTimeoutMillis: 300000, // Increased to 5 minutes to reduce connection churn
   connectionTimeoutMillis: 10000, // Timeout connection attempts after 10 seconds
   // Add error handling for connection issues
   application_name: 'cpc-practice',
   query_timeout: 30000, // 30 second query timeout
   allowExitOnIdle: true, // Allow the process to exit when pool is idle
+  statement_timeout: 30000, // 30 second statement timeout
+  idle_in_transaction_session_timeout: 10000, // Kill idle transactions after 10 seconds
 });
 
 // Log pool events in development
@@ -32,7 +34,8 @@ if (process.env.NODE_ENV === 'development') {
   };
   
   const poolConnectHandler = () => {
-    console.log('New database connection established');
+    // Removed connection logging to reduce noise
+    // console.log('New database connection established');
   };
   
   const poolRemoveHandler = () => {

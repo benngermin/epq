@@ -80,9 +80,11 @@ export function setupAuth(app: Express) {
         if (err) {
           console.error('Session save error:', err);
         }
+        next();
       });
+    } else {
+      next();
     }
-    next();
   });
 
   // Initialize Cognito SSO - REQUIRED for authentication

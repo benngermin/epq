@@ -28,18 +28,25 @@ export function usePerformanceMonitor(componentName: string) {
         timestamp: Date.now()
       };
       
-      // Store in session storage for debugging
-      const existingMetrics = JSON.parse(
-        sessionStorage.getItem('performance-metrics') || '[]'
-      );
-      existingMetrics.push(metrics);
-      
-      // Keep only last 100 metrics
-      if (existingMetrics.length > 100) {
-        existingMetrics.shift();
+      // Store in session storage for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const existingMetrics = JSON.parse(
+            sessionStorage.getItem('performance-metrics') || '[]'
+          );
+          existingMetrics.push(metrics);
+          
+          // Keep only last 50 metrics to reduce memory usage
+          if (existingMetrics.length > 50) {
+            existingMetrics.splice(0, existingMetrics.length - 50);
+          }
+          
+          sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
+        } catch (e) {
+          // Ignore sessionStorage errors (quota exceeded, etc.)
+          console.warn('Failed to store performance metrics:', e);
+        }
       }
-      
-      sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
     };
   }, [componentName]);
 }

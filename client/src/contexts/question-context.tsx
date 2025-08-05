@@ -19,10 +19,23 @@ export function QuestionProvider({ children }: { children: ReactNode }) {
   };
 
   const setQuestionFlipped = (questionId: number, isFlipped: boolean) => {
-    setQuestionStates(prev => ({
-      ...prev,
-      [questionId]: { ...prev[questionId], isFlipped }
-    }));
+    setQuestionStates(prev => {
+      const newState = {
+        ...prev,
+        [questionId]: { ...prev[questionId], isFlipped }
+      };
+      
+      // Clean up old states to prevent memory leak
+      const keys = Object.keys(newState);
+      if (keys.length > 100) {
+        // Keep only the most recent 100 states
+        const sortedKeys = keys.sort((a, b) => Number(b) - Number(a));
+        const keysToRemove = sortedKeys.slice(100);
+        keysToRemove.forEach(key => delete newState[Number(key)]);
+      }
+      
+      return newState;
+    });
   };
 
   return (
