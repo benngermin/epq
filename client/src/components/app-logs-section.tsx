@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -19,6 +20,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users,
   BookOpen,
@@ -34,6 +37,8 @@ import {
   UserCheck,
   Target,
   Award,
+  Search,
+  Filter,
 } from "lucide-react";
 import { format } from "date-fns";
 import { 
@@ -125,6 +130,11 @@ export function AppLogsSection() {
     queryKey: ["/api/admin/logs/courses"],
   });
 
+  // User filtering state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [performanceFilter, setPerformanceFilter] = useState("all");
+
   // Prepare data for charts
   const userActivityData = overallStats ? [
     { name: 'Today', value: overallStats.activeUsersToday, fill: '#0ea5e9' },
@@ -150,6 +160,44 @@ export function AppLogsSection() {
     testRuns: user.totalTestRuns,
     successRate: user.totalAnswers > 0 ? (user.correctAnswers / user.totalAnswers * 100) : 0,
   })) || [];
+
+  // Filter users based on search and filters
+  const filteredUsers = useMemo(() => {
+    if (!userStats) return [];
+    
+    return userStats.filter(user => {
+      // Search filter
+      const matchesSearch = searchTerm === "" || 
+        user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.userEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Activity filter
+      let matchesActivity = true;
+      if (activityFilter === "active") {
+        matchesActivity = user.totalTestRuns > 0;
+      } else if (activityFilter === "inactive") {
+        matchesActivity = user.totalTestRuns === 0;
+      } else if (activityFilter === "recent") {
+        matchesActivity = user.lastActive !== null && 
+          new Date(user.lastActive) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
+      }
+      
+      // Performance filter
+      let matchesPerformance = true;
+      const successRate = user.totalAnswers > 0 ? (user.correctAnswers / user.totalAnswers * 100) : 0;
+      if (performanceFilter === "high") {
+        matchesPerformance = successRate >= 80;
+      } else if (performanceFilter === "medium") {
+        matchesPerformance = successRate >= 50 && successRate < 80;
+      } else if (performanceFilter === "low") {
+        matchesPerformance = successRate < 50 && user.totalAnswers > 0;
+      } else if (performanceFilter === "nodata") {
+        matchesPerformance = user.totalAnswers === 0;
+      }
+      
+      return matchesSearch && matchesActivity && matchesPerformance;
+    });
+  }, [userStats, searchTerm, activityFilter, performanceFilter]);
 
   if (overallLoading || usersLoading || questionsLoading || coursesLoading) {
     return (
@@ -390,6 +438,53 @@ export function AppLogsSection() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Search and Filter Controls */}
+              <div className="mb-6 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={activityFilter} onValueChange={setActivityFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Activity Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Users</SelectItem>
+                        <SelectItem value="active">Active Users</SelectItem>
+                        <SelectItem value="inactive">Inactive Users</SelectItem>
+                        <SelectItem value="recent">Recently Active</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Performance" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Performance</SelectItem>
+                        <SelectItem value="high">High (80%+)</SelectItem>
+                        <SelectItem value="medium">Medium (50-79%)</SelectItem>
+                        <SelectItem value="low">Low (&lt;50%)</SelectItem>
+                        <SelectItem value="nodata">No Data</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>Showing {filteredUsers.length} of {userStats?.length || 0} users</span>
+                  </div>
+                </div>
+              </div>
               <ScrollArea className="h-[600px]">
                 <Table>
                   <TableHeader>
@@ -404,7 +499,7 @@ export function AppLogsSection() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {userStats?.map((user) => {
+                    {filteredUsers.map((user) => {
                       const successRate = user.totalAnswers > 0
                         ? ((user.correctAnswers / user.totalAnswers) * 100).toFixed(1)
                         : "0";
