@@ -1100,7 +1100,7 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, answer } = req.body;
       const userId = req.user!.id;
 
-      console.log(`[Answer Submission] User ${userId} submitting answer for questionSet ${questionSetId}, questionVersion ${questionVersionId}, answer: ${answer}`);
+
 
       if (isNaN(questionSetId)) {
         return res.status(400).json({ message: "Invalid question set ID" });
@@ -1126,18 +1126,14 @@ export function registerRoutes(app: Express): Server {
         // Create a new test run for this practice session
         console.log(`[Practice Log] User ${userId} starting practice for question set ${questionSetId}`);
         
-        // Get all question versions for this question set to create the question order
-        const questions = await storage.getQuestionsByQuestionSet(questionSetId);
-        const questionVersionIds: number[] = [];
+        // Use the optimized batch query to get all question versions at once
+        const questionsWithVersions = await withCircuitBreaker(() => 
+          batchFetchQuestionsWithVersions(questionSetId)
+        );
         
-        for (const question of questions) {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          if (versions.length > 0) {
-            // Use the latest version
-            const latestVersion = versions[versions.length - 1];
-            questionVersionIds.push(latestVersion.id);
-          }
-        }
+        const questionVersionIds = questionsWithVersions
+          .filter(q => q.latestVersion)
+          .map(q => q.latestVersion!.id);
         
         testRun = await storage.createUserTestRun({
           userId,
