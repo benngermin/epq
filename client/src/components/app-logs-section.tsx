@@ -69,6 +69,7 @@ interface OverallStats {
   activeUsersToday: number;
   activeUsersThisWeek: number;
   activeUsersThisMonth: number;
+  testRunsStartedToday: number;
 }
 
 interface UserStat {
@@ -273,11 +274,14 @@ export function AppLogsSection() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-orange-500" />
-              Question Set Activity
+              Total Question Sets Started
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallStats?.totalTestRuns || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Started today: {overallStats?.testRunsStartedToday || 0}
+            </p>
           </CardContent>
         </Card>
       </div>

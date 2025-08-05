@@ -729,6 +729,7 @@ export class DatabaseStorage implements IStorage {
     activeUsersToday: number;
     activeUsersThisWeek: number;
     activeUsersThisMonth: number;
+    testRunsStartedToday: number;
   }> {
     const [userCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
     const [courseCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(courses);
@@ -755,6 +756,10 @@ export class DatabaseStorage implements IStorage {
       .from(userTestRuns)
       .where(sql`started_at >= ${monthAgo.toISOString()}`);
 
+    const [testRunsToday] = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(userTestRuns)
+      .where(sql`started_at >= ${today.toISOString()}`);
+
     return {
       totalUsers: Number(userCount.count),
       totalCourses: Number(courseCount.count),
@@ -764,7 +769,8 @@ export class DatabaseStorage implements IStorage {
       totalAnswers: Number(answerCount.count),
       activeUsersToday: Number(activeToday.count),
       activeUsersThisWeek: Number(activeWeek.count),
-      activeUsersThisMonth: Number(activeMonth.count)
+      activeUsersThisMonth: Number(activeMonth.count),
+      testRunsStartedToday: Number(testRunsToday.count)
     };
   }
 
