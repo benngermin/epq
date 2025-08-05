@@ -139,10 +139,10 @@ export function AppLogsSection() {
     score: course.averageScore || 0,
   })) || [];
 
-  const questionSuccessData = questionStats?.byQuestionSet.slice(0, 8).map(qs => ({
-    name: qs.questionSetTitle.length > 20 ? qs.questionSetTitle.substring(0, 20) + '...' : qs.questionSetTitle,
-    successRate: qs.successRate,
-    attempts: qs.totalAttempts,
+  const courseUsageData = courseStats?.slice(0, 8).map(course => ({
+    name: course.courseNumber,
+    attempts: course.totalAttempts,
+    users: course.uniqueUsers,
   })) || [];
 
   const userPerformanceData = userStats?.slice(0, 10).map(user => ({
@@ -347,22 +347,22 @@ export function AppLogsSection() {
         </Card>
       </div>
 
-      {/* Question Success Rate Chart */}
+      {/* Question Set Usage Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="h-5 w-5" />
-            Question Set Performance
+            Question Set Usage
           </CardTitle>
-          <CardDescription>Success rates by question set</CardDescription>
+          <CardDescription>Usage statistics by course</CardDescription>
         </CardHeader>
         <CardContent>
-          {questionSuccessData.length > 0 ? (
+          {courseUsageData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={questionSuccessData}>
+              <AreaChart data={courseUsageData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="name" className="text-xs" angle={-45} textAnchor="end" height={60} />
-                <YAxis className="text-xs" domain={[0, 100]} />
+                <YAxis className="text-xs" />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--background))', 
@@ -371,7 +371,7 @@ export function AppLogsSection() {
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="successRate" 
+                  dataKey="attempts" 
                   stroke="#10b981" 
                   fill="#10b981" 
                   fillOpacity={0.3}
@@ -380,7 +380,7 @@ export function AppLogsSection() {
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              No question performance data available
+              No course usage data available
             </div>
           )}
         </CardContent>

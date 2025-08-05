@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
-import { ChatbotLogsSection } from "@/components/chatbot-logs-section";
+
 import { AppLogsSection } from "@/components/app-logs-section";
 import type { AiSettings, PromptVersion } from "@shared/schema";
 
@@ -1044,11 +1044,6 @@ export default function AdminPanel() {
                 </div>
 
                 <AppLogsSection />
-                
-                <div className="mt-8">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Chatbot Interaction Logs</h2>
-                  <ChatbotLogsSection />
-                </div>
               </div>
             </TabsContent>
 
