@@ -171,15 +171,22 @@ export default function QuestionSetPractice() {
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
+      debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
       const res = await apiRequest("POST", `/api/question-sets/${questionSetId}/answer`, {
         questionVersionId,
         answer,
       });
-      return res.json();
+      const data = await res.json();
+      debugLog(`Answer submission response:`, data);
+      return data;
     },
     onSuccess: (data) => {
+      debugLog(`Answer submitted successfully:`, data);
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
+    },
+    onError: (error) => {
+      debugError(`Answer submission failed:`, error);
     },
   });
 
@@ -210,14 +217,22 @@ export default function QuestionSetPractice() {
   }, [currentQuestionIndex, practiceData]);
 
   const handleSubmitAnswer = (answer: string) => {
+    debugLog(`handleSubmitAnswer called with answer: ${answer}`);
     if (!currentQuestion?.latestVersion?.id) {
+      debugError(`Cannot submit answer - no question version id`, { currentQuestion });
       return;
     }
     
+    debugLog(`Setting answer for question ${currentQuestion.id}: ${answer}`);
     setUserAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: answer
     }));
+    
+    debugLog(`Calling submitAnswerMutation with:`, {
+      questionVersionId: currentQuestion.latestVersion.id,
+      answer: answer
+    });
     
     submitAnswerMutation.mutate({
       questionVersionId: currentQuestion.latestVersion.id,

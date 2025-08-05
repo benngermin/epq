@@ -1100,6 +1100,8 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, answer } = req.body;
       const userId = req.user!.id;
 
+      console.log(`[Answer Submission] User ${userId} submitting answer for questionSet ${questionSetId}, questionVersion ${questionVersionId}, answer: ${answer}`);
+
       if (isNaN(questionSetId)) {
         return res.status(400).json({ message: "Invalid question set ID" });
       }
