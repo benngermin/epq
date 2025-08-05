@@ -756,9 +756,10 @@ export class DatabaseStorage implements IStorage {
       .from(userTestRuns)
       .where(sql`started_at >= ${monthAgo.toISOString()}`);
 
-    const [testRunsToday] = await db.select({ count: sql<number>`COUNT(*)` })
+    const [testRunsToday] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
-      .where(sql`DATE(started_at) = CURRENT_DATE`);
+      .innerJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
+      .where(sql`DATE(${userTestRuns.startedAt}) = CURRENT_DATE`);
 
     return {
       totalUsers: Number(userCount.count),
