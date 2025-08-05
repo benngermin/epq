@@ -597,6 +597,66 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getQuestionSetAnalytics(): Promise<any[]> {
+    try {
+      // Get all question sets with their course info
+      const questionSetsData = await db.select({
+        questionSetId: questionSets.id,
+        questionSetTitle: questionSets.title,
+        courseId: questionSets.courseId,
+        courseTitle: courses.courseTitle,
+        courseNumber: courses.courseNumber,
+      })
+      .from(questionSets)
+      .leftJoin(courses, eq(questionSets.courseId, courses.id));
+
+      // Get test run statistics for each question set
+      const analytics = await Promise.all(questionSetsData.map(async (qs) => {
+        // Count total test runs (started sessions)
+        const testRunStats = await db.select({
+          totalRuns: sql<number>`COUNT(*)::int`,
+          completedRuns: sql<number>`SUM(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END)::int`,
+          uniqueUsers: sql<number>`COUNT(DISTINCT user_id)::int`,
+        })
+        .from(userTestRuns)
+        .where(eq(userTestRuns.questionSetId, qs.questionSetId));
+
+        // Get answer statistics
+        const answerStats = await db.select({
+          totalAnswers: sql<number>`COUNT(*)::int`,
+          correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)::int`,
+        })
+        .from(userAnswers)
+        .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+        .where(eq(userTestRuns.questionSetId, qs.questionSetId));
+
+        const stats = testRunStats[0];
+        const answers = answerStats[0];
+
+        return {
+          questionSetId: qs.questionSetId,
+          questionSetTitle: qs.questionSetTitle,
+          courseId: qs.courseId,
+          courseTitle: qs.courseTitle,
+          courseNumber: qs.courseNumber,
+          totalSessionsStarted: stats?.totalRuns || 0,
+          completedSessions: stats?.completedRuns || 0,
+          uniqueUsers: stats?.uniqueUsers || 0,
+          totalAnswers: answers?.totalAnswers || 0,
+          correctAnswers: answers?.correctAnswers || 0,
+          averageScore: answers?.totalAnswers > 0 
+            ? Math.round((answers.correctAnswers / answers.totalAnswers) * 100) 
+            : 0,
+        };
+      }));
+
+      return analytics.sort((a, b) => b.totalSessionsStarted - a.totalSessionsStarted);
+    } catch (error) {
+      console.error("Error getting question set analytics:", error);
+      return [];
+    }
+  }
+
   async updateQuestionSetCount(questionSetId: number): Promise<void> {
     const questions = await this.getQuestionsByQuestionSet(questionSetId);
     await this.updateQuestionSet(questionSetId, { questionCount: questions.length });
