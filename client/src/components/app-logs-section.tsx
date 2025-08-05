@@ -117,6 +117,8 @@ interface CourseStat {
 export function AppLogsSection() {
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview"],
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    staleTime: 0, // Always consider data stale
   });
 
   const { data: userStats, isLoading: usersLoading } = useQuery<UserStat[]>({

@@ -1915,6 +1915,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // Comprehensive logs endpoints
   app.get("/api/admin/logs/overview", requireAdmin, async (req, res) => {
     try {
+      // Disable caching for real-time stats
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Surrogate-Control', 'no-store');
+      
       const stats = await storage.getOverallStats();
       res.json(stats);
     } catch (error) {
