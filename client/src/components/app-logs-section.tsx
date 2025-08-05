@@ -208,7 +208,7 @@ export function AppLogsSection() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -235,21 +235,6 @@ export function AppLogsSection() {
             <div className="text-2xl font-bold">{overallStats?.totalCourses || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {overallStats?.totalQuestionSets || 0} question sets
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileQuestion className="h-4 w-4 text-green-500" />
-              Total Questions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats?.totalQuestions || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {overallStats?.totalAnswers || 0} answers submitted
             </p>
           </CardContent>
         </Card>
