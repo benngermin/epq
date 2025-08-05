@@ -826,6 +826,8 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/question-sets/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid question set ID" });
       }
@@ -835,6 +837,16 @@ export function registerRoutes(app: Express): Server {
       if (!questionSet) {
         return res.status(404).json({ message: "Question set not found" });
       }
+      
+      // Log that user is viewing this question set
+      console.log(`[Practice Log] User ${userId} viewing question set ${id} - ${questionSet.title}`);
+      
+      // Update daily activity to track unique users
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Note: We're not creating a test run here yet - that happens on first answer
+      // This just tracks that the user viewed the question set
       
       res.json(questionSet);
     } catch (error) {
@@ -1086,6 +1098,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
       const { questionVersionId, answer } = req.body;
+      const userId = req.user!.id;
 
       if (isNaN(questionSetId)) {
         return res.status(400).json({ message: "Invalid question set ID" });
@@ -1102,6 +1115,59 @@ export function registerRoutes(app: Express): Server {
       }
 
       const isCorrect = answer === questionVersion.correctAnswer;
+
+      // Log this practice answer for analytics
+      // First, find or create a practice test run for this user and question set
+      let testRun = await storage.getActiveUserTestRunForQuestionSet(userId, questionSetId);
+      
+      if (!testRun) {
+        // Create a new test run for this practice session
+        console.log(`[Practice Log] User ${userId} starting practice for question set ${questionSetId}`);
+        
+        // Get all question versions for this question set to create the question order
+        const questions = await storage.getQuestionsByQuestionSet(questionSetId);
+        const questionVersionIds: number[] = [];
+        
+        for (const question of questions) {
+          const versions = await storage.getQuestionVersionsByQuestion(question.id);
+          if (versions.length > 0) {
+            // Use the latest version
+            const latestVersion = versions[versions.length - 1];
+            questionVersionIds.push(latestVersion.id);
+          }
+        }
+        
+        testRun = await storage.createUserTestRun({
+          userId,
+          questionSetId,
+          questionOrder: questionVersionIds,
+          startedAt: new Date(),
+        });
+      }
+
+      // Check if user already answered this question in this test run
+      const existingAnswer = await storage.getUserAnswer(testRun.id, questionVersionId);
+      
+      if (!existingAnswer) {
+        // Create the answer record
+        await storage.createUserAnswer({
+          userTestRunId: testRun.id,
+          questionVersionId,
+          chosenAnswer: answer,
+          isCorrect,
+          answeredAt: new Date(),
+        });
+        
+        console.log(`[Practice Log] User ${userId} answered question ${questionVersionId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+
+        // Update daily activity summary
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        await storage.updateDailyActivitySummary(today, {
+          questionsAnswered: await storage.getDailyQuestionCount(today) + 1,
+        });
+      }
 
       // For question set practice, we return the answer validation result
       const answerData = {

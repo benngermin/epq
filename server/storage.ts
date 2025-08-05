@@ -13,7 +13,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
@@ -66,6 +66,7 @@ export interface IStorage {
   getUserAnswersByTestRun(testRunId: number): Promise<UserAnswer[]>;
   createUserAnswer(answer: InsertUserAnswer): Promise<UserAnswer>;
   getUserAnswer(testRunId: number, questionVersionId: number): Promise<UserAnswer | undefined>;
+  getActiveUserTestRunForQuestionSet(userId: number, questionSetId: number): Promise<UserTestRun | undefined>;
   
   // AI settings methods
   getAiSettings(): Promise<AiSettings | undefined>;
@@ -157,6 +158,7 @@ export interface IStorage {
   // Daily activity summary operations
   updateDailyActivitySummary(date: Date, updates: Partial<InsertDailyActivitySummary>): Promise<void>;
   getDailyActivitySummaries(startDate: Date, endDate: Date): Promise<DailyActivitySummary[]>;
+  getDailyQuestionCount(date: Date): Promise<number>;
   
   sessionStore: any;
 }
@@ -440,6 +442,21 @@ export class DatabaseStorage implements IStorage {
         eq(userAnswers.questionVersionId, questionVersionId)
       ));
     return answer || undefined;
+  }
+
+  async getActiveUserTestRunForQuestionSet(userId: number, questionSetId: number): Promise<UserTestRun | undefined> {
+    // Find the most recent uncompleted test run for this user and question set
+    const [testRun] = await db.select()
+      .from(userTestRuns)
+      .where(and(
+        eq(userTestRuns.userId, userId),
+        eq(userTestRuns.questionSetId, questionSetId),
+        isNull(userTestRuns.completedAt)
+      ))
+      .orderBy(desc(userTestRuns.startedAt))
+      .limit(1);
+    
+    return testRun || undefined;
   }
 
   async getAiSettings(): Promise<AiSettings | undefined> {
@@ -907,6 +924,16 @@ export class DatabaseStorage implements IStorage {
         sql`${dailyActivitySummary.date} <= ${endDate}`
       ))
       .orderBy(asc(dailyActivitySummary.date));
+  }
+
+  async getDailyQuestionCount(date: Date): Promise<number> {
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const [summary] = await db.select()
+      .from(dailyActivitySummary)
+      .where(eq(dailyActivitySummary.date, dateOnly))
+      .limit(1);
+    
+    return summary?.questionsAnswered || 0;
   }
 }
 
