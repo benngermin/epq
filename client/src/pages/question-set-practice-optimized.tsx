@@ -36,7 +36,8 @@ export default function QuestionSetPractice() {
   // Redirect to auth if not logged in
   useEffect(() => {
     // Only redirect when we're sure the user is not authenticated (not during loading)
-    if (user === null && !authLoading) { // null means definitely not authenticated, undefined means still loading
+    // Also handle error states where the user query failed
+    if (!authLoading && !user) {
       setLocation("/auth");
     }
   }, [user, authLoading, setLocation]);

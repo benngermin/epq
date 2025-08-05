@@ -72,20 +72,8 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Add middleware to ensure session is saved
-  app.use((req, res, next) => {
-    // Save session after each request to ensure persistence
-    if (req.session && req.session.save) {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-        }
-        next();
-      });
-    } else {
-      next();
-    }
-  });
+  // Session middleware is already configured to handle saving automatically
+  // The express-session middleware saves sessions when they are modified
 
   // Initialize Cognito SSO - REQUIRED for authentication
   const cognitoDomain = process.env.COGNITO_DOMAIN;
