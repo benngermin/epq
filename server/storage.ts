@@ -758,7 +758,7 @@ export class DatabaseStorage implements IStorage {
 
     const [testRunsToday] = await db.select({ count: sql<number>`COUNT(*)` })
       .from(userTestRuns)
-      .where(sql`started_at >= ${today.toISOString()}`);
+      .where(sql`DATE(started_at) = CURRENT_DATE`);
 
     return {
       totalUsers: Number(userCount.count),
