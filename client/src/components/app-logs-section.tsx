@@ -259,10 +259,33 @@ export function AppLogsSection() {
     return [...courseStats].sort((a, b) => b.totalAttempts - a.totalAttempts);
   }, [courseStats]);
 
-  // Sort question stats by total attempts (highest first)
-  const sortedQuestionStats = useMemo(() => {
+  // Group question stats by course and sort
+  const groupedQuestionStats = useMemo(() => {
     if (!questionStats?.byQuestionSet) return [];
-    return [...questionStats.byQuestionSet].sort((a, b) => b.totalAttempts - a.totalAttempts);
+    
+    // Group by course
+    const grouped = questionStats.byQuestionSet.reduce((acc, qs) => {
+      const courseKey = `${qs.courseNumber || 'Unknown'}|${qs.courseTitle || 'Unknown Course'}`;
+      if (!acc[courseKey]) {
+        acc[courseKey] = {
+          courseNumber: qs.courseNumber || 'Unknown',
+          courseTitle: qs.courseTitle || 'Unknown Course',
+          questionSets: [],
+          totalAttempts: 0
+        };
+      }
+      acc[courseKey].questionSets.push(qs);
+      acc[courseKey].totalAttempts += qs.totalAttempts;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // Sort courses by total attempts, then sort question sets within each course
+    return Object.values(grouped)
+      .sort((a, b) => b.totalAttempts - a.totalAttempts)
+      .map(course => ({
+        ...course,
+        questionSets: course.questionSets.sort((a: any, b: any) => b.totalAttempts - a.totalAttempts)
+      }));
   }, [questionStats?.byQuestionSet]);
 
   // Sort failed questions by failure rate (highest first), then alphabetically by title
@@ -727,62 +750,75 @@ export function AppLogsSection() {
         <TabsContent value="questions">
           <Card>
             <CardHeader>
-              <CardTitle>Question Set Performance</CardTitle>
+              <CardTitle>Question Set Performance by Course</CardTitle>
               <CardDescription>
-                Success rates and attempt statistics by question set
+                Performance metrics for question sets grouped by course
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Question Set</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Total Attempts</TableHead>
-                      <TableHead>Correct</TableHead>
-                      <TableHead>Incorrect</TableHead>
-                      <TableHead>Success Rate</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedQuestionStats?.map((qs) => {
-                      // Validate success rate calculation
-                      const calculatedSuccessRate = qs.totalAttempts > 0 
-                        ? ((qs.correctAttempts / qs.totalAttempts) * 100) 
-                        : 0;
-                      
-                      return (
-                        <TableRow key={qs.questionSetId}>
-                          <TableCell className="font-medium">{qs.questionSetTitle}</TableCell>
-                          <TableCell>{qs.courseTitle}</TableCell>
-                          <TableCell>{qs.totalAttempts}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="gap-1">
-                              <CheckCircle className="h-3 w-3 text-green-500" />
-                              {qs.correctAttempts}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="gap-1">
-                              <XCircle className="h-3 w-3 text-red-500" />
-                              {qs.incorrectAttempts}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Progress 
-                                value={calculatedSuccessRate} 
-                                className={`w-16 h-2 ${calculatedSuccessRate < 50 ? "[&>div]:bg-red-500" : calculatedSuccessRate < 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
-                              />
-                              <span className="text-sm font-medium">{calculatedSuccessRate.toFixed(1)}%</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="space-y-4">
+                  {groupedQuestionStats?.map((course) => (
+                    <Card key={course.courseNumber} className="border-l-4 border-l-blue-500">
+                      <CardHeader className="pb-3 bg-muted/50">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base font-semibold">
+                              {course.courseNumber}
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                              {course.courseTitle} • {course.questionSets.length} Question Sets • {course.totalAttempts} Total Attempts
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[40%]">Question Set</TableHead>
+                              <TableHead className="text-right">Attempts</TableHead>
+                              <TableHead className="text-right">Correct</TableHead>
+                              <TableHead className="text-right">Incorrect</TableHead>
+                              <TableHead>Success Rate</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {course.questionSets.map((qs: any) => {
+                              const calculatedSuccessRate = qs.totalAttempts > 0 
+                                ? ((qs.correctAttempts / qs.totalAttempts) * 100) 
+                                : 0;
+                              
+                              return (
+                                <TableRow key={qs.questionSetId}>
+                                  <TableCell className="font-medium">{qs.questionSetTitle}</TableCell>
+                                  <TableCell className="text-right">{qs.totalAttempts}</TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="text-green-600 font-medium">{qs.correctAttempts}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="text-red-600 font-medium">{qs.incorrectAttempts}</span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Progress 
+                                        value={calculatedSuccessRate} 
+                                        className={`w-20 h-2 ${calculatedSuccessRate < 50 ? "[&>div]:bg-red-500" : calculatedSuccessRate < 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
+                                      />
+                                      <span className="text-sm font-medium min-w-[45px] text-right">
+                                        {calculatedSuccessRate.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>
