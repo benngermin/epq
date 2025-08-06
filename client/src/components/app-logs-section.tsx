@@ -486,7 +486,11 @@ export function AppLogsSection() {
                     textAnchor={questionsAnsweredChartData.length > 10 ? "end" : "middle"}
                     height={questionsAnsweredChartData.length > 10 ? 60 : 30}
                   />
-                  <YAxis className="text-xs" />
+                  <YAxis 
+                    className="text-xs" 
+                    tickCount={8}
+                    tickFormatter={(value) => value.toLocaleString()}
+                  />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
@@ -514,7 +518,11 @@ export function AppLogsSection() {
                     interval={0}
                     tick={{ fontSize: 11 }}
                   />
-                  <YAxis className="text-xs" />
+                  <YAxis 
+                    className="text-xs" 
+                    tickCount={8}
+                    tickFormatter={(value) => value.toLocaleString()}
+                  />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
