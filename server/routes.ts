@@ -153,7 +153,10 @@ const STREAM_TIMEOUT = 120000; // 2 minutes
 // Start heartbeat monitor for streams
 setInterval(() => {
   const now = Date.now();
-  activeStreams.forEach((stream, streamId) => {
+  // Create a copy of the entries to avoid modification during iteration
+  const streamEntries = Array.from(activeStreams.entries());
+  
+  streamEntries.forEach(([streamId, stream]) => {
     if (!stream.done && !stream.aborted && (now - stream.lastActivity) > STREAM_TIMEOUT) {
       console.warn(`Stream ${streamId} timed out - marking as done`);
       stream.error = "Stream timed out. Please try again.";
@@ -187,7 +190,13 @@ setInterval(() => {
   const oldStreamAge = 5 * 60 * 1000; // 5 minutes (reduced from 10)
   const staleStreamAge = 10 * 60 * 1000; // 10 minutes for stale streams
   
-  activeStreams.forEach((stream, streamId) => {
+  // Create a copy of the stream IDs to avoid modification during iteration
+  const streamIds = Array.from(activeStreams.keys());
+  
+  streamIds.forEach((streamId) => {
+    const stream = activeStreams.get(streamId);
+    if (!stream) return; // Stream may have been deleted already
+    
     // Clean up completed/aborted streams after 5 minutes
     if ((stream.done || stream.aborted) && (now - stream.lastActivity) > oldStreamAge) {
       console.log(`Cleaning up old stream: ${streamId}`);
@@ -296,27 +305,28 @@ async function streamOpenRouterToBuffer(
     const streamStartTime = Date.now();
     const STREAM_MAX_DURATION = 60000; // 60 seconds max for a single stream
     
-    while (true) {
-      // Check if stream was aborted
-      if (stream.aborted) {
-        console.log(`Stream ${streamId} aborted during processing`);
-        reader.cancel();
-        break;
-      }
-      
-      // Check if stream has been running too long
-      if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
-        console.warn(`Stream ${streamId} exceeded max duration of ${STREAM_MAX_DURATION}ms`);
-        stream.error = "Response took too long. Please try again.";
-        reader.cancel();
-        break;
-      }
+    try {
+      while (true) {
+        // Check if stream was aborted
+        if (stream.aborted) {
+          console.log(`Stream ${streamId} aborted during processing`);
+          await reader.cancel();
+          break;
+        }
+        
+        // Check if stream has been running too long
+        if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
+          console.warn(`Stream ${streamId} exceeded max duration of ${STREAM_MAX_DURATION}ms`);
+          stream.error = "Response took too long. Please try again.";
+          await reader.cancel();
+          break;
+        }
 
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        break;
-      }
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
       
       const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
@@ -386,6 +396,18 @@ async function streamOpenRouterToBuffer(
         } catch (e) {
           console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
         }
+      }
+    }
+    } catch (error) {
+      console.error(`Stream ${streamId} processing error:`, error);
+      stream.error = error instanceof Error ? error.message : 'Stream processing failed';
+      throw error;
+    } finally {
+      // Always cancel the reader to free resources
+      try {
+        await reader.cancel();
+      } catch (e) {
+        // Ignore errors when canceling an already closed reader
       }
     }
 

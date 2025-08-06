@@ -1,10 +1,11 @@
 # Bug Report - Exam Practice Questions (EPQ) Application
 
 ## Analysis Date: August 5, 2025
+## Last Updated: January 9, 2025
 
 After conducting a comprehensive analysis of your application, I've identified several potential bugs and areas of concern. Here's a detailed report:
 
-## 1. CRITICAL: Memory Leak in usePerformanceMonitor Hook
+## 1. CRITICAL: Memory Leak in usePerformanceMonitor Hook ✅ FIXED
 
 **Location**: `client/src/hooks/use-performance-monitor.ts`
 
@@ -12,7 +13,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Impact**: Performance metrics will be inaccurate, potentially leading to false positives in performance monitoring.
 
-**Fix Required**: The effect should run on every render (empty dependency array) rather than when componentName changes.
+**Fix Applied**: Updated to record render start time immediately when component renders, and removed the dependency array from useEffect to ensure it runs on every render.
 
 ## 2. WARNING: Event Listener Memory Leak in useIsMobile Hook
 
@@ -24,7 +25,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Fix Required**: Update to use the modern event listener API consistently.
 
-## 3. MODERATE: Race Condition in streamOpenRouterToBuffer
+## 3. MODERATE: Race Condition in streamOpenRouterToBuffer ✅ FIXED
 
 **Location**: `server/routes.ts` (lines 299-320)
 
@@ -32,7 +33,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Impact**: Could lead to hanging connections or incomplete responses in edge cases.
 
-**Fix Required**: Ensure reader.cancel() is called in all error paths and add proper try-finally blocks.
+**Fix Applied**: Added try-catch-finally blocks to ensure reader.cancel() is called in all error paths, and made reader.cancel() calls asynchronous with proper error handling.
 
 ## 4. MODERATE: Missing Error Handling in Cognito Auth Callback
 
@@ -44,7 +45,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Fix Required**: Redirect to an error page instead of returning JSON during OAuth flow errors.
 
-## 5. WARNING: Potential Session Race Condition
+## 5. WARNING: Potential Session Race Condition ✅ FIXED
 
 **Location**: `server/auth.ts` (lines 185-188)
 
@@ -52,9 +53,9 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Impact**: In rare cases, the user might appear logged in on the client but the session isn't fully saved on the server.
 
-**Fix Required**: Promisify req.login or ensure proper session handling.
+**Fix Applied**: Added req.session.save() calls after req.login() to ensure the session is fully persisted before sending the response.
 
-## 6. MINOR: Inefficient Question Status Calculation
+## 6. MINOR: Inefficient Question Status Calculation ✅ FIXED
 
 **Location**: `client/src/components/question-navigation.tsx` (lines 30-38)
 
@@ -62,7 +63,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Impact**: Unnecessary re-renders and calculations, especially with 100+ questions.
 
-**Fix Required**: Use useMemo to memoize the calculation.
+**Fix Applied**: Added useMemo hook to memoize the questionStatuses calculation with appropriate dependencies.
 
 ## 7. WARNING: Missing Await in Bulk Import Operations
 
@@ -74,7 +75,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Fix Required**: Consider implementing transaction support for bulk operations.
 
-## 8. MINOR: Stale Closure Risk in Active Streams Cleanup
+## 8. MINOR: Stale Closure Risk in Active Streams Cleanup ✅ FIXED
 
 **Location**: `server/routes.ts` (lines 185-197)
 
@@ -82,7 +83,7 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Impact**: Memory leaks if streams aren't properly cleaned up.
 
-**Fix Required**: Use proper iteration with defensive copying.
+**Fix Applied**: Modified both the heartbeat monitor and cleanup intervals to create defensive copies of the Map entries before iteration using Array.from().
 
 ## 9. PERFORMANCE: Database Query Without Index
 
@@ -106,21 +107,30 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 ## Summary
 
-The application is generally well-structured with good error handling patterns in place. Most issues found are minor to moderate and relate to:
-- Memory management in React hooks
-- Race conditions in async operations
-- Session handling edge cases
-- Performance optimizations
+The application is generally well-structured with good error handling patterns in place. Most critical issues have been fixed:
 
-**Critical Issues**: 1 (Performance monitoring accuracy)
-**Moderate Issues**: 3 (Race conditions, session handling)
-**Minor Issues**: 5 (Performance, memory leaks)
+### Fixed Issues (January 9, 2025):
+✅ **CRITICAL**: Memory leak in usePerformanceMonitor hook - Fixed
+✅ **MODERATE**: Race condition in streamOpenRouterToBuffer - Fixed  
+✅ **WARNING**: Session race condition in auth.ts - Fixed
+✅ **MINOR**: Inefficient question status calculation - Fixed with memoization
+✅ **MINOR**: Stale closure risk in active streams cleanup - Fixed
+
+### Remaining Issues:
+- **WARNING**: Event listener memory leak in useIsMobile hook (already using correct API)
+- **MODERATE**: Missing error handling in Cognito Auth Callback  
+- **WARNING**: Missing await in bulk import operations
+- **PERFORMANCE**: Database query optimization opportunities
+- **WARNING**: Content Security Policy too permissive
+
+**Fixed Issues**: 5 (1 Critical, 1 Moderate, 3 Minor/Warning)
+**Remaining Issues**: 5 (1 Moderate, 2 Warning, 2 Performance/Security)
 
 ## Recommendations
 
-1. **Immediate**: Fix the usePerformanceMonitor hook dependency array
-2. **High Priority**: Address race conditions in streaming and session handling
-3. **Medium Priority**: Add memoization for expensive calculations
-4. **Low Priority**: Improve CSP configuration and optimize database queries
+1. **Completed**: Critical performance and race condition fixes
+2. **Next Priority**: Address Cognito auth error handling and bulk import operations
+3. **Medium Priority**: Database query optimization and CSP improvements
+4. **Low Priority**: Review remaining edge cases
 
-The application appears stable for production use, but addressing these issues will improve reliability and performance, especially under high load conditions.
+The application is now more stable with the critical bugs fixed, particularly around performance monitoring, streaming operations, and session management.

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
@@ -26,16 +27,18 @@ export function QuestionNavigation({
 }: QuestionNavigationProps) {
   const totalQuestions = testRun.questionOrder?.length || 85;
   
-  // Create array of question statuses
-  const questionStatuses = Array.from({ length: totalQuestions }, (_, index) => {
-    const answer = answeredQuestions.find(a => {
-      const questionVersionId = testRun.questionOrder[index];
-      return a.questionVersionId === questionVersionId;
+  // Memoize question statuses to avoid recalculation on every render
+  const questionStatuses = useMemo(() => {
+    return Array.from({ length: totalQuestions }, (_, index) => {
+      const answer = answeredQuestions.find(a => {
+        const questionVersionId = testRun.questionOrder[index];
+        return a.questionVersionId === questionVersionId;
+      });
+      
+      if (!answer) return "unanswered";
+      return answer.isCorrect ? "correct" : "incorrect";
     });
-    
-    if (!answer) return "unanswered";
-    return answer.isCorrect ? "correct" : "incorrect";
-  });
+  }, [totalQuestions, answeredQuestions, testRun.questionOrder]);
 
   // Function to generate meaningful title for each question
   const getQuestionTitle = (index: number): string => {

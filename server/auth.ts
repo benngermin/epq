@@ -184,7 +184,14 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.json(user);
+        // Ensure session is saved before sending response
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Failed to save session after registration:', saveErr);
+            return next(saveErr);
+          }
+          res.json(user);
+        });
       });
     } else {
       res.status(403).json({ message: "Registration is disabled. Please use Single Sign-On." });
@@ -205,7 +212,14 @@ export function setupAuth(app: Express) {
       
       req.login(user, (err) => {
         if (err) return next(err);
-        res.json(user);
+        // Ensure session is saved before sending response
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Failed to save session after login:', saveErr);
+            return next(saveErr);
+          }
+          res.json(user);
+        });
       });
     })(req, res, next);
   });
