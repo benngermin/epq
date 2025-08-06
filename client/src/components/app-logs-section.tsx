@@ -215,7 +215,7 @@ export function AppLogsSection() {
     }
   }, [questionsAnsweredData, questionsAnsweredViewType, questionsAnsweredGroupBy]);
 
-  // Filter users based on search and filters
+  // Filter and sort users based on search and filters
   const filteredUsers = useMemo(() => {
     if (!userStats) return [];
     
@@ -250,8 +250,33 @@ export function AppLogsSection() {
       }
       
       return matchesSearch && matchesActivity && matchesPerformance;
-    });
+    }).sort((a, b) => a.userName.localeCompare(b.userName)); // Sort alphabetically by username
   }, [userStats, searchTerm, activityFilter, performanceFilter]);
+
+  // Sort course stats alphabetically by course number
+  const sortedCourseStats = useMemo(() => {
+    if (!courseStats) return [];
+    return [...courseStats].sort((a, b) => a.courseNumber.localeCompare(b.courseNumber));
+  }, [courseStats]);
+
+  // Sort question stats alphabetically by question set title
+  const sortedQuestionStats = useMemo(() => {
+    if (!questionStats?.byQuestionSet) return [];
+    return [...questionStats.byQuestionSet].sort((a, b) => 
+      a.questionSetTitle.localeCompare(b.questionSetTitle)
+    );
+  }, [questionStats?.byQuestionSet]);
+
+  // Sort failed questions by failure rate (highest first), then alphabetically by title
+  const sortedFailedQuestions = useMemo(() => {
+    if (!questionStats?.mostFailedQuestions) return [];
+    return [...questionStats.mostFailedQuestions].sort((a, b) => {
+      if (a.failureRate !== b.failureRate) {
+        return b.failureRate - a.failureRate; // Highest failure rate first
+      }
+      return a.questionSetTitle.localeCompare(b.questionSetTitle); // Then alphabetically
+    });
+  }, [questionStats?.mostFailedQuestions]);
 
   if (overallLoading || usersLoading || questionsLoading || coursesLoading) {
     return (
@@ -628,9 +653,10 @@ export function AppLogsSection() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => {
-                      const successRate = user.totalAnswers > 0
-                        ? ((user.correctAnswers / user.totalAnswers) * 100).toFixed(1)
-                        : "0";
+                      // Validate success rate calculation
+                      const calculatedSuccessRate = user.totalAnswers > 0
+                        ? ((user.correctAnswers / user.totalAnswers) * 100)
+                        : 0;
                       
                       return (
                         <TableRow key={user.userId}>
@@ -640,8 +666,8 @@ export function AppLogsSection() {
                           <TableCell>{user.totalAnswers}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Progress value={parseFloat(successRate)} className="w-16 h-2" />
-                              <span className="text-sm">{successRate}%</span>
+                              <Progress value={calculatedSuccessRate} className="w-16 h-2" />
+                              <span className="text-sm">{calculatedSuccessRate.toFixed(1)}%</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -694,7 +720,7 @@ export function AppLogsSection() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {courseStats?.map((course) => (
+                    {sortedCourseStats?.map((course) => (
                       <TableRow key={course.courseId}>
                         <TableCell className="font-medium">{course.courseNumber}</TableCell>
                         <TableCell>{course.courseTitle}</TableCell>
@@ -740,34 +766,41 @@ export function AppLogsSection() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {questionStats?.byQuestionSet.map((qs) => (
-                      <TableRow key={qs.questionSetId}>
-                        <TableCell className="font-medium">{qs.questionSetTitle}</TableCell>
-                        <TableCell>{qs.courseTitle}</TableCell>
-                        <TableCell>{qs.totalAttempts}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="gap-1">
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                            {qs.correctAttempts}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="gap-1">
-                            <XCircle className="h-3 w-3 text-red-500" />
-                            {qs.incorrectAttempts}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress 
-                              value={qs.successRate} 
-                              className={`w-16 h-2 ${qs.successRate < 50 ? "[&>div]:bg-red-500" : qs.successRate < 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
-                            />
-                            <span className="text-sm font-medium">{qs.successRate.toFixed(1)}%</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {sortedQuestionStats?.map((qs) => {
+                      // Validate success rate calculation
+                      const calculatedSuccessRate = qs.totalAttempts > 0 
+                        ? ((qs.correctAttempts / qs.totalAttempts) * 100) 
+                        : 0;
+                      
+                      return (
+                        <TableRow key={qs.questionSetId}>
+                          <TableCell className="font-medium">{qs.questionSetTitle}</TableCell>
+                          <TableCell>{qs.courseTitle}</TableCell>
+                          <TableCell>{qs.totalAttempts}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="gap-1">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              {qs.correctAttempts}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="gap-1">
+                              <XCircle className="h-3 w-3 text-red-500" />
+                              {qs.incorrectAttempts}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress 
+                                value={calculatedSuccessRate} 
+                                className={`w-16 h-2 ${calculatedSuccessRate < 50 ? "[&>div]:bg-red-500" : calculatedSuccessRate < 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
+                              />
+                              <span className="text-sm font-medium">{calculatedSuccessRate.toFixed(1)}%</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>
@@ -790,34 +823,41 @@ export function AppLogsSection() {
             <CardContent>
               <ScrollArea className="h-[600px]">
                 <div className="space-y-4">
-                  {questionStats?.mostFailedQuestions.map((question, index) => (
-                    <Card key={question.questionId} className="border-l-4 border-l-red-500">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-medium">
-                            #{index + 1} - {question.questionSetTitle}
-                          </CardTitle>
-                          <Badge variant="destructive" className="gap-1">
-                            <XCircle className="h-3 w-3" />
-                            {question.failureRate.toFixed(1)}% failure rate
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {question.questionText}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span>
-                            <strong>{question.failureCount}</strong> failures
-                          </span>
-                          <span>
-                            <strong>{question.totalAttempts}</strong> total attempts
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {sortedFailedQuestions?.map((question, index) => {
+                    // Validate failure rate calculation
+                    const calculatedFailureRate = question.totalAttempts > 0 
+                      ? ((question.failureCount / question.totalAttempts) * 100) 
+                      : 0;
+                    
+                    return (
+                      <Card key={question.questionId} className="border-l-4 border-l-red-500">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-medium">
+                              #{index + 1} - {question.questionSetTitle}
+                            </CardTitle>
+                            <Badge variant="destructive" className="gap-1">
+                              <XCircle className="h-3 w-3" />
+                              {calculatedFailureRate.toFixed(1)}% failure rate
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {question.questionText}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span>
+                              <strong>{question.failureCount}</strong> failures
+                            </span>
+                            <span>
+                              <strong>{question.totalAttempts}</strong> total attempts
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </CardContent>
