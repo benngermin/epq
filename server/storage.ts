@@ -151,6 +151,28 @@ export interface IStorage {
     averageScore: number;
   }>>;
   
+  getQuestionSetDetailedStats(questionSetId: number): Promise<{
+    questionSetInfo: {
+      id: number;
+      title: string;
+      courseTitle: string;
+      courseNumber: string;
+      totalQuestions: number;
+      totalAttempts: number;
+      successRate: number;
+    };
+    questions: Array<{
+      questionId: number;
+      questionNumber: number;
+      questionText: string;
+      totalAttempts: number;
+      correctAttempts: number;
+      incorrectAttempts: number;
+      successRate: number;
+      averageTimeSpent: number;
+    }>;
+  }>;
+  
   // User course progress operations
   updateUserCourseProgress(userId: number, courseId: number, updates: Partial<InsertUserCourseProgress>): Promise<void>;
   getUserProgressByCourse(userId: number, courseId: number): Promise<UserCourseProgress | null>;
@@ -812,6 +834,104 @@ export class DatabaseStorage implements IStorage {
       lastActive: stat.lastActive,
       registeredAt: stat.registeredAt
     }));
+  }
+
+  async getQuestionSetDetailedStats(questionSetId: number): Promise<{
+    questionSetInfo: {
+      id: number;
+      title: string;
+      courseTitle: string;
+      courseNumber: string;
+      totalQuestions: number;
+      totalAttempts: number;
+      successRate: number;
+    };
+    questions: Array<{
+      questionId: number;
+      questionNumber: number;
+      questionText: string;
+      totalAttempts: number;
+      correctAttempts: number;
+      incorrectAttempts: number;
+      successRate: number;
+      averageTimeSpent: number;
+    }>;
+  }> {
+    // Get question set info
+    const questionSetInfo = await db.select({
+      id: questionSets.id,
+      title: questionSets.title,
+      courseTitle: courses.courseTitle,
+      courseNumber: courses.courseNumber,
+    })
+    .from(questionSets)
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .where(eq(questionSets.id, questionSetId))
+    .limit(1);
+
+    if (!questionSetInfo.length) {
+      throw new Error("Question set not found");
+    }
+
+    // Get total attempts for the question set
+    const totalAttemptsQuery = await db.select({
+      totalAttempts: sql<number>`COUNT(DISTINCT ${userAnswers.id})`,
+      correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
+    })
+    .from(questions)
+    .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(eq(questions.questionSetId, questionSetId));
+
+    const totalStats = totalAttemptsQuery[0];
+    const overallSuccessRate = totalStats?.totalAttempts > 0 
+      ? (Number(totalStats.correctAttempts) / Number(totalStats.totalAttempts)) * 100 
+      : 0;
+
+    // Get detailed stats for each question
+    const questionStats = await db.select({
+      questionId: questions.id,
+      questionNumber: questions.originalQuestionNumber,
+      questionText: questionVersions.questionText,
+      totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
+      correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
+      incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`,
+      averageTimeSpent: sql<number>`AVG(EXTRACT(EPOCH FROM (${userAnswers.answeredAt} - LAG(${userAnswers.answeredAt}, 1) OVER (PARTITION BY ${userAnswers.userTestRunId} ORDER BY ${userAnswers.answeredAt}))))`,
+    })
+    .from(questions)
+    .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(eq(questions.questionSetId, questionSetId))
+    .groupBy(questions.id, questions.originalQuestionNumber, questionVersions.questionText)
+    .orderBy(questions.originalQuestionNumber);
+
+    // Count total questions
+    const totalQuestions = await db.select({
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(questions)
+    .where(eq(questions.questionSetId, questionSetId));
+
+    return {
+      questionSetInfo: {
+        ...questionSetInfo[0],
+        totalQuestions: Number(totalQuestions[0]?.count) || 0,
+        totalAttempts: Number(totalStats?.totalAttempts) || 0,
+        successRate: overallSuccessRate,
+      },
+      questions: questionStats.map(q => ({
+        questionId: q.questionId,
+        questionNumber: q.questionNumber,
+        questionText: q.questionText.substring(0, 200) + (q.questionText.length > 200 ? '...' : ''),
+        totalAttempts: Number(q.totalAttempts) || 0,
+        correctAttempts: Number(q.correctAttempts) || 0,
+        incorrectAttempts: Number(q.incorrectAttempts) || 0,
+        successRate: q.totalAttempts > 0 
+          ? (Number(q.correctAttempts) / Number(q.totalAttempts)) * 100 
+          : 0,
+        averageTimeSpent: Number(q.averageTimeSpent) || 0,
+      })),
+    };
   }
 
   async getQuestionStats(): Promise<{

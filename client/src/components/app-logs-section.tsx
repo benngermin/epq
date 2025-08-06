@@ -59,6 +59,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { CourseHierarchyLogs } from "./course-hierarchy-logs";
 
 interface OverallStats {
   totalUsers: number;
@@ -261,14 +262,16 @@ export function AppLogsSection() {
 
   // Group question stats by course and sort
   const groupedQuestionStats = useMemo(() => {
-    if (!questionStats?.byQuestionSet) return [];
+    if (!questionStats?.byQuestionSet || !courseStats) return [];
     
-    // Group by course
+    // Group by course title
     const grouped = questionStats.byQuestionSet.reduce((acc, qs) => {
-      const courseKey = `${qs.courseNumber || 'Unknown'}|${qs.courseTitle || 'Unknown Course'}`;
+      const courseKey = qs.courseTitle || 'Unknown Course';
       if (!acc[courseKey]) {
+        // Find the course number from courseStats
+        const course = courseStats.find(c => c.courseTitle === qs.courseTitle);
         acc[courseKey] = {
-          courseNumber: qs.courseNumber || 'Unknown',
+          courseNumber: course?.courseNumber || 'Unknown',
           courseTitle: qs.courseTitle || 'Unknown Course',
           questionSets: [],
           totalAttempts: 0
@@ -286,7 +289,7 @@ export function AppLogsSection() {
         ...course,
         questionSets: course.questionSets.sort((a: any, b: any) => b.totalAttempts - a.totalAttempts)
       }));
-  }, [questionStats?.byQuestionSet]);
+  }, [questionStats?.byQuestionSet, courseStats]);
 
   // Sort failed questions by failure rate (highest first), then alphabetically by title
   const sortedFailedQuestions = useMemo(() => {
@@ -595,10 +598,9 @@ export function AppLogsSection() {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="questions">Questions</TabsTrigger>
           <TabsTrigger value="failures">Failed Questions</TabsTrigger>
         </TabsList>
 
@@ -699,129 +701,9 @@ export function AppLogsSection() {
           </Card>
         </TabsContent>
 
-        {/* Courses Tab */}
+        {/* Courses Tab - Now shows hierarchical view */}
         <TabsContent value="courses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Performance</CardTitle>
-              <CardDescription>
-                Course-level statistics and engagement metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Question Sets</TableHead>
-                      <TableHead>Questions</TableHead>
-                      <TableHead>Total Attempts</TableHead>
-                      <TableHead>Unique Users</TableHead>
-                      <TableHead>Average Score</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedCourseStats?.map((course) => (
-                      <TableRow key={course.courseId}>
-                        <TableCell className="font-medium">{course.courseNumber}</TableCell>
-                        <TableCell>{course.courseTitle}</TableCell>
-                        <TableCell>{course.totalQuestionSets}</TableCell>
-                        <TableCell>{course.totalQuestions}</TableCell>
-                        <TableCell>{course.totalAttempts}</TableCell>
-                        <TableCell>{course.uniqueUsers}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={course.averageScore || 0} className="w-16 h-2" />
-                            <span className="text-sm">{(course.averageScore || 0).toFixed(1)}%</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Questions Tab */}
-        <TabsContent value="questions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Question Set Performance by Course</CardTitle>
-              <CardDescription>
-                Performance metrics for question sets grouped by course
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-4">
-                  {groupedQuestionStats?.map((course) => (
-                    <Card key={course.courseNumber} className="border-l-4 border-l-blue-500">
-                      <CardHeader className="pb-3 bg-muted/50">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-base font-semibold">
-                              {course.courseNumber}
-                            </CardTitle>
-                            <CardDescription className="text-sm">
-                              {course.courseTitle} • {course.questionSets.length} Question Sets • {course.totalAttempts} Total Attempts
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[40%]">Question Set</TableHead>
-                              <TableHead className="text-right">Attempts</TableHead>
-                              <TableHead className="text-right">Correct</TableHead>
-                              <TableHead className="text-right">Incorrect</TableHead>
-                              <TableHead>Success Rate</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {course.questionSets.map((qs: any) => {
-                              const calculatedSuccessRate = qs.totalAttempts > 0 
-                                ? ((qs.correctAttempts / qs.totalAttempts) * 100) 
-                                : 0;
-                              
-                              return (
-                                <TableRow key={qs.questionSetId}>
-                                  <TableCell className="font-medium">{qs.questionSetTitle}</TableCell>
-                                  <TableCell className="text-right">{qs.totalAttempts}</TableCell>
-                                  <TableCell className="text-right">
-                                    <span className="text-green-600 font-medium">{qs.correctAttempts}</span>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <span className="text-red-600 font-medium">{qs.incorrectAttempts}</span>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <Progress 
-                                        value={calculatedSuccessRate} 
-                                        className={`w-20 h-2 ${calculatedSuccessRate < 50 ? "[&>div]:bg-red-500" : calculatedSuccessRate < 70 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-green-500"}`}
-                                      />
-                                      <span className="text-sm font-medium min-w-[45px] text-right">
-                                        {calculatedSuccessRate.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          <CourseHierarchyLogs />
         </TabsContent>
 
         {/* Failed Questions Tab */}

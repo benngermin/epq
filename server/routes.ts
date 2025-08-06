@@ -1993,6 +1993,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  app.get("/api/admin/logs/question-set/:questionSetId/details", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const detailedStats = await storage.getQuestionSetDetailedStats(questionSetId);
+      res.json(detailedStats);
+    } catch (error) {
+      console.error("Error fetching question set detailed stats:", error);
+      res.status(500).json({ message: "Failed to fetch question set detailed statistics" });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {
