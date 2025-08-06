@@ -248,7 +248,7 @@ export function CourseHierarchyLogs() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Target className="h-4 w-4 text-muted-foreground" />
-                          <span>{course.totalAttempts} attempts</span>
+                          <span>{course.totalAttempts} questions answered</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Progress value={course.averageScore || 0} className="w-20 h-2" />
@@ -303,7 +303,7 @@ export function CourseHierarchyLogs() {
                                       </div>
                                       <div className="flex items-center gap-4 text-sm">
                                         <span className="text-muted-foreground">
-                                          {questionSet.totalAttempts} attempts
+                                          {questionSet.totalAttempts} questions answered
                                         </span>
                                         <div className="flex items-center gap-2">
                                           <span className="text-green-600 font-medium">
