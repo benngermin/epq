@@ -1159,15 +1159,18 @@ export class DatabaseStorage implements IStorage {
     count: number;
   }>> {
     const result = await db.select({
+      courseId: courses.id,
       courseName: courses.courseNumber,
+      courseTitle: courses.courseTitle,
       count: sql<number>`COUNT(${userAnswers.id})`
     })
     .from(userAnswers)
     .innerJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
     .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
     .innerJoin(courses, eq(courses.id, questionSets.courseId))
-    .groupBy(courses.courseNumber)
-    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+    .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`))
+    .limit(10);
 
     return result.map(row => ({
       courseName: row.courseName,

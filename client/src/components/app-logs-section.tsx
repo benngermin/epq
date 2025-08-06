@@ -475,7 +475,7 @@ export function AppLogsSection() {
         </CardHeader>
         <CardContent>
           {questionsAnsweredChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={400}>
               {questionsAnsweredViewType === 'date' ? (
                 <AreaChart data={questionsAnsweredChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -503,23 +503,31 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionsAnsweredChartData}>
+                <BarChart data={questionsAnsweredChartData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
                     className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={100}
+                    interval={0}
+                    tick={{ fontSize: 11 }}
                   />
                   <YAxis className="text-xs" />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
                       border: '1px solid hsl(var(--border))' 
-                    }} 
+                    }}
+                    formatter={(value: any) => [value.toLocaleString(), 'Questions']}
                   />
-                  <Bar dataKey="value" fill="#10b981" radius={[8, 8, 0, 0]} name="Questions" />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#10b981" 
+                    radius={[8, 8, 0, 0]} 
+                    name="Questions"
+                  />
                 </BarChart>
               )}
             </ResponsiveContainer>
