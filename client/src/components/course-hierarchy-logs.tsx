@@ -208,22 +208,23 @@ export function CourseHierarchyLogs() {
               
               return (
                 <Card key={course.courseId} className="border-l-4 border-l-primary">
-                  <CardHeader className="pb-3">
+                  <CardHeader 
+                    className={`pb-3 ${hasData ? 'cursor-pointer hover:bg-muted/20 transition-colors' : ''}`}
+                    onClick={() => hasData && toggleCourse(course.courseId)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0 h-auto"
-                          onClick={() => toggleCourse(course.courseId)}
-                          disabled={!hasData}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
+                        <div className="p-0 h-auto">
+                          {hasData ? (
+                            isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )
                           ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <div className="h-4 w-4" />
                           )}
-                        </Button>
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-base">
@@ -272,21 +273,19 @@ export function CourseHierarchyLogs() {
                               
                               return (
                                 <Card key={questionSet.questionSetId} className="border-l-4 border-l-blue-500">
-                                  <CardHeader className="pb-3 bg-muted/30">
+                                  <CardHeader 
+                                    className="pb-3 bg-muted/30 cursor-pointer hover:bg-muted/40 transition-colors"
+                                    onClick={() => toggleQuestionSet(questionSet.questionSetId)}
+                                  >
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3 flex-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="p-0 h-auto"
-                                          onClick={() => toggleQuestionSet(questionSet.questionSetId)}
-                                        >
+                                        <div className="p-0 h-auto">
                                           {isQSExpanded ? (
                                             <ChevronDown className="h-4 w-4" />
                                           ) : (
                                             <ChevronRight className="h-4 w-4" />
                                           )}
-                                        </Button>
+                                        </div>
                                         <div className="flex-1">
                                           <div className="flex items-center gap-2">
                                             <FileQuestion className="h-4 w-4 text-muted-foreground" />
@@ -299,12 +298,12 @@ export function CourseHierarchyLogs() {
                                               </Badge>
                                             )}
                                           </div>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {questionSet.totalAttempts} questions answered
+                                          </p>
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-4 text-sm">
-                                        <span className="text-muted-foreground">
-                                          {questionSet.totalAttempts} questions answered
-                                        </span>
                                         <div className="flex items-center gap-2">
                                           <span className="text-green-600 font-medium">
                                             {questionSet.correctAttempts}
@@ -356,15 +355,11 @@ export function CourseHierarchyLogs() {
                                                   <TableHead className="text-right">Correct</TableHead>
                                                   <TableHead className="text-right">Incorrect</TableHead>
                                                   <TableHead>Pass Rate</TableHead>
-                                                  <TableHead className="text-right">Avg Time</TableHead>
                                                 </TableRow>
                                               </TableHeader>
                                               <TableBody>
                                                 {detailedStats.questions.map(question => {
                                                   const passRate = question.successRate;
-                                                  const avgTimeFormatted = question.averageTimeSpent > 0 
-                                                    ? `${Math.round(question.averageTimeSpent)}s` 
-                                                    : '-';
                                                   
                                                   return (
                                                     <TableRow key={question.questionId}>
@@ -411,9 +406,6 @@ export function CourseHierarchyLogs() {
                                                             <TrendingUp className="h-3 w-3 text-green-500" />
                                                           )}
                                                         </div>
-                                                      </TableCell>
-                                                      <TableCell className="text-right text-sm text-muted-foreground">
-                                                        {avgTimeFormatted}
                                                       </TableCell>
                                                     </TableRow>
                                                   );
