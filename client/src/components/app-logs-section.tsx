@@ -644,7 +644,7 @@ export function AppLogsSection() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Test Runs</TableHead>
+                      <TableHead>Question Sets</TableHead>
                       <TableHead>Total Answers</TableHead>
                       <TableHead>Success Rate</TableHead>
                       <TableHead>Last Active</TableHead>
