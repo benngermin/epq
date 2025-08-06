@@ -139,7 +139,7 @@ EPQ is a comprehensive online test-preparation platform designed for The Institu
 ## Recent Highlights (Jan – Aug 2025)
 
 * **Enhanced Database Tracking (Aug 4)** — Added `user_course_progress` and `daily_activity_summary` tables for richer analytics; tracks user progress per course and pre-aggregates daily stats for dashboard performance.
-* **Comprehensive Logs & Analytics (Aug 4)** — Added full application analytics to admin panel with overall stats, user activity tracking, course engagement metrics, question-level success rates, and identification of most failed questions.
+* **Comprehensive Logs & Analytics (Aug 4–6)** — Added full application analytics to admin panel with overall stats, user activity tracking, course engagement metrics, question-level success rates, and identification of most failed questions. Unified courses, question sets, and questions into single hierarchical view with expandable details.
 * **Schema Upgrade (Jul 24)** — `title` → `courseNumber`, added `courseTitle`, removed `description`; full DB migration & API update completed.
 * **New Question Types (Jan 23)** — drag-and-drop ordering, numerical entry, short answer, multi-response, and select-list; UI & validation logic added.
 * **Content-Import Pipeline (Jul 22–30)** — Bubble.io learning-object import, external-ID mapping table (32 AI + non-AI IDs), and dashboard lookup endpoint.

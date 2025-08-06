@@ -84,6 +84,7 @@ interface QuestionSetDetailedStats {
 export function CourseHierarchyLogs() {
   const [expandedCourses, setExpandedCourses] = useState<Set<number>>(new Set());
   const [expandedQuestionSets, setExpandedQuestionSets] = useState<Set<number>>(new Set());
+  const [questionSetDetails, setQuestionSetDetails] = useState<Map<number, QuestionSetDetailedStats>>(new Map());
   const [loadingQuestionSets, setLoadingQuestionSets] = useState<Set<number>>(new Set());
 
   // Fetch course stats
@@ -100,6 +101,11 @@ export function CourseHierarchyLogs() {
 
   // Function to fetch detailed stats for a specific question set
   const fetchQuestionSetDetails = async (questionSetId: number) => {
+    // Check if we already have the details
+    if (questionSetDetails.has(questionSetId)) {
+      return;
+    }
+    
     setLoadingQuestionSets(prev => new Set(prev).add(questionSetId));
     
     try {
@@ -107,8 +113,10 @@ export function CourseHierarchyLogs() {
       if (!response.ok) throw new Error('Failed to fetch question set details');
       const data: QuestionSetDetailedStats = await response.json();
       
-      // Store in cache for future use
-      return data;
+      // Store in state
+      setQuestionSetDetails(prev => new Map(prev).set(questionSetId, data));
+    } catch (error) {
+      console.error(`Failed to fetch details for question set ${questionSetId}:`, error);
     } finally {
       setLoadingQuestionSets(prev => {
         const newSet = new Set(prev);
@@ -117,15 +125,6 @@ export function CourseHierarchyLogs() {
       });
     }
   };
-
-  // Use separate queries for each expanded question set
-  const questionSetQueries = Array.from(expandedQuestionSets).map(questionSetId => 
-    useQuery<QuestionSetDetailedStats>({
-      queryKey: [`/api/admin/logs/question-set/${questionSetId}/details`],
-      queryFn: () => fetchQuestionSetDetails(questionSetId),
-      enabled: expandedQuestionSets.has(questionSetId),
-    })
-  );
 
   const toggleCourse = (courseId: number) => {
     setExpandedCourses(prev => {
@@ -145,13 +144,15 @@ export function CourseHierarchyLogs() {
     });
   };
 
-  const toggleQuestionSet = (questionSetId: number) => {
+  const toggleQuestionSet = async (questionSetId: number) => {
     setExpandedQuestionSets(prev => {
       const newSet = new Set(prev);
       if (newSet.has(questionSetId)) {
         newSet.delete(questionSetId);
       } else {
         newSet.add(questionSetId);
+        // Fetch details when expanding
+        fetchQuestionSetDetails(questionSetId);
       }
       return newSet;
     });
@@ -267,10 +268,7 @@ export function CourseHierarchyLogs() {
                             {course.questionSets.map(questionSet => {
                               const isQSExpanded = expandedQuestionSets.has(questionSet.questionSetId);
                               const isLoadingQS = loadingQuestionSets.has(questionSet.questionSetId);
-                              const queryResult = questionSetQueries.find(
-                                (_, index) => Array.from(expandedQuestionSets)[index] === questionSet.questionSetId
-                              );
-                              const detailedStats = queryResult?.data;
+                              const detailedStats = questionSetDetails.get(questionSet.questionSetId);
                               
                               return (
                                 <Card key={questionSet.questionSetId} className="border-l-4 border-l-blue-500">
@@ -341,7 +339,7 @@ export function CourseHierarchyLogs() {
                                   <Collapsible open={isQSExpanded}>
                                     <CollapsibleContent>
                                       <CardContent className="pt-4">
-                                        {isLoadingQS || queryResult?.isLoading ? (
+                                        {isLoadingQS ? (
                                           <div className="space-y-2">
                                             {[1, 2, 3].map(i => (
                                               <Skeleton key={i} className="h-12 w-full" />
