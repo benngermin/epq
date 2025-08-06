@@ -896,7 +896,6 @@ export class DatabaseStorage implements IStorage {
       totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
       correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
       incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`,
-      averageTimeSpent: sql<number>`AVG(EXTRACT(EPOCH FROM (${userAnswers.answeredAt} - LAG(${userAnswers.answeredAt}, 1) OVER (PARTITION BY ${userAnswers.userTestRunId} ORDER BY ${userAnswers.answeredAt}))))`,
     })
     .from(questions)
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
@@ -929,7 +928,7 @@ export class DatabaseStorage implements IStorage {
         successRate: q.totalAttempts > 0 
           ? (Number(q.correctAttempts) / Number(q.totalAttempts)) * 100 
           : 0,
-        averageTimeSpent: Number(q.averageTimeSpent) || 0,
+        averageTimeSpent: 0, // Time tracking would require different approach
       })),
     };
   }
