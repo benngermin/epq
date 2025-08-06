@@ -67,6 +67,7 @@ interface QuestionSetDetailedStats {
     courseNumber: string;
     totalQuestions: number;
     totalAttempts: number;
+    totalQuestionSetAttempts: number;
     successRate: number;
   };
   questions: Array<{
@@ -298,9 +299,11 @@ export function CourseHierarchyLogs() {
                                               </Badge>
                                             )}
                                           </div>
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            {questionSet.totalAttempts} questions answered
-                                          </p>
+                                          {detailedStats && detailedStats.questionSetInfo.totalQuestionSetAttempts > 0 && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {detailedStats.questionSetInfo.totalQuestionSetAttempts} question set{detailedStats.questionSetInfo.totalQuestionSetAttempts !== 1 ? 's' : ''} attempted
+                                            </p>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-4 text-sm">

@@ -844,6 +844,7 @@ export class DatabaseStorage implements IStorage {
       courseNumber: string;
       totalQuestions: number;
       totalAttempts: number;
+      totalQuestionSetAttempts: number;
       successRate: number;
     };
     questions: Array<{
@@ -911,11 +912,19 @@ export class DatabaseStorage implements IStorage {
     .from(questions)
     .where(eq(questions.questionSetId, questionSetId));
 
+    // Count unique question set attempts (test runs)
+    const questionSetAttempts = await db.select({
+      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`,
+    })
+    .from(userTestRuns)
+    .where(eq(userTestRuns.questionSetId, questionSetId));
+
     return {
       questionSetInfo: {
         ...questionSetInfo[0],
         totalQuestions: Number(totalQuestions[0]?.count) || 0,
         totalAttempts: Number(totalStats?.totalAttempts) || 0,
+        totalQuestionSetAttempts: Number(questionSetAttempts[0]?.count) || 0,
         successRate: overallSuccessRate,
       },
       questions: questionStats.map(q => ({
