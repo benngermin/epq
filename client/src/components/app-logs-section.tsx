@@ -253,18 +253,16 @@ export function AppLogsSection() {
     }).sort((a, b) => a.userName.localeCompare(b.userName)); // Sort alphabetically by username
   }, [userStats, searchTerm, activityFilter, performanceFilter]);
 
-  // Sort course stats alphabetically by course number
+  // Sort course stats by total attempts (highest first)
   const sortedCourseStats = useMemo(() => {
     if (!courseStats) return [];
-    return [...courseStats].sort((a, b) => a.courseNumber.localeCompare(b.courseNumber));
+    return [...courseStats].sort((a, b) => b.totalAttempts - a.totalAttempts);
   }, [courseStats]);
 
-  // Sort question stats alphabetically by question set title
+  // Sort question stats by total attempts (highest first)
   const sortedQuestionStats = useMemo(() => {
     if (!questionStats?.byQuestionSet) return [];
-    return [...questionStats.byQuestionSet].sort((a, b) => 
-      a.questionSetTitle.localeCompare(b.questionSetTitle)
-    );
+    return [...questionStats.byQuestionSet].sort((a, b) => b.totalAttempts - a.totalAttempts);
   }, [questionStats?.byQuestionSet]);
 
   // Sort failed questions by failure rate (highest first), then alphabetically by title
