@@ -598,10 +598,9 @@ export function AppLogsSection() {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="failures">Failed Questions</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -704,62 +703,6 @@ export function AppLogsSection() {
         {/* Courses Tab - Now shows hierarchical view */}
         <TabsContent value="courses">
           <CourseHierarchyLogs />
-        </TabsContent>
-
-        {/* Failed Questions Tab */}
-        <TabsContent value="failures">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                Most Failed Questions
-              </CardTitle>
-              <CardDescription>
-                Questions with the highest failure rates that may need review
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-4">
-                  {sortedFailedQuestions?.map((question, index) => {
-                    // Validate failure rate calculation
-                    const calculatedFailureRate = question.totalAttempts > 0 
-                      ? ((question.failureCount / question.totalAttempts) * 100) 
-                      : 0;
-                    
-                    return (
-                      <Card key={question.questionId} className="border-l-4 border-l-red-500">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-medium">
-                              #{index + 1} - {question.questionSetTitle}
-                            </CardTitle>
-                            <Badge variant="destructive" className="gap-1">
-                              <XCircle className="h-3 w-3" />
-                              {calculatedFailureRate.toFixed(1)}% failure rate
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {question.questionText}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span>
-                              <strong>{question.failureCount}</strong> failures
-                            </span>
-                            <span>
-                              <strong>{question.totalAttempts}</strong> total attempts
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
