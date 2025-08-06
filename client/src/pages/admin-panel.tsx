@@ -835,10 +835,6 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
                   <div className="flex justify-between items-center">
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-900">Content Management</h1>
-                      <p className="text-gray-600 mt-1">Manage courses, question sets, and course materials</p>
-                    </div>
                     <div className="flex gap-3">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -1026,11 +1022,6 @@ export default function AdminPanel() {
             {/* AI & Settings Tab */}
             <TabsContent value="settings">
               <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">AI & Settings</h1>
-                  <p className="text-muted-foreground mt-2">Configure AI model parameters and behavior</p>
-                </div>
-
                 <AISettingsSection />
               </div>
             </TabsContent>
@@ -1038,11 +1029,6 @@ export default function AdminPanel() {
             {/* Logs Tab */}
             <TabsContent value="logs">
               <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Application Logs & Analytics</h1>
-                  <p className="text-muted-foreground mt-2">Comprehensive usage statistics and performance metrics</p>
-                </div>
-
                 <AppLogsSection />
               </div>
             </TabsContent>
