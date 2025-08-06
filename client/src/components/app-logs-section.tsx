@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   BookOpen,
@@ -114,6 +115,12 @@ interface CourseStat {
   averageScore: number;
 }
 
+interface UsageData {
+  date?: string;
+  courseName?: string;
+  count: number;
+}
+
 export function AppLogsSection() {
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview"],
@@ -132,36 +139,81 @@ export function AppLogsSection() {
     queryKey: ["/api/admin/logs/courses"],
   });
 
+  // State for chart controls
+  const [questionSetGroupBy, setQuestionSetGroupBy] = useState<'day' | 'week' | 'month'>('day');
+  const [questionSetViewType, setQuestionSetViewType] = useState<'date' | 'course'>('date');
+  const [questionsAnsweredGroupBy, setQuestionsAnsweredGroupBy] = useState<'day' | 'week' | 'month'>('day');
+  const [questionsAnsweredViewType, setQuestionsAnsweredViewType] = useState<'date' | 'course'>('date');
+
+  // Fetch question set usage data
+  const { data: questionSetUsageData, isLoading: questionSetUsageLoading } = useQuery<UsageData[]>({
+    queryKey: ["/api/admin/logs/question-set-usage", { groupBy: questionSetGroupBy, viewType: questionSetViewType }],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/question-set-usage?groupBy=${questionSetGroupBy}&viewType=${questionSetViewType}`);
+      if (!response.ok) throw new Error('Failed to fetch question set usage');
+      return response.json();
+    },
+  });
+
+  // Fetch questions answered data
+  const { data: questionsAnsweredData, isLoading: questionsAnsweredLoading } = useQuery<UsageData[]>({
+    queryKey: ["/api/admin/logs/questions-answered", { groupBy: questionsAnsweredGroupBy, viewType: questionsAnsweredViewType }],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/questions-answered?groupBy=${questionsAnsweredGroupBy}&viewType=${questionsAnsweredViewType}`);
+      if (!response.ok) throw new Error('Failed to fetch questions answered');
+      return response.json();
+    },
+  });
+
   // User filtering state
   const [searchTerm, setSearchTerm] = useState("");
   const [activityFilter, setActivityFilter] = useState("all");
   const [performanceFilter, setPerformanceFilter] = useState("all");
 
-  // Prepare data for charts
-  const userActivityData = overallStats ? [
-    { name: 'Today', value: overallStats.activeUsersToday, fill: '#0ea5e9' },
-    { name: 'This Week', value: overallStats.activeUsersThisWeek, fill: '#3b82f6' },
-    { name: 'This Month', value: overallStats.activeUsersThisMonth, fill: '#6366f1' },
-  ] : [];
+  // Format chart data
+  const formatDateLabel = (dateStr: string, groupBy: 'day' | 'week' | 'month') => {
+    const date = new Date(dateStr);
+    switch(groupBy) {
+      case 'week':
+        return format(date, 'MMM dd');
+      case 'month':
+        return format(date, 'MMM yyyy');
+      default:
+        return format(date, 'MMM dd');
+    }
+  };
 
-  const topCoursesByEngagement = courseStats?.slice(0, 10).map(course => ({
-    name: course.courseNumber,
-    attempts: course.totalAttempts,
-    users: course.uniqueUsers,
-    score: course.averageScore || 0,
-  })) || [];
+  const questionSetChartData = useMemo(() => {
+    if (!questionSetUsageData) return [];
+    
+    if (questionSetViewType === 'course') {
+      return questionSetUsageData.map(item => ({
+        name: item.courseName || '',
+        value: item.count
+      }));
+    } else {
+      return questionSetUsageData.map(item => ({
+        name: formatDateLabel(item.date || '', questionSetGroupBy),
+        value: item.count
+      }));
+    }
+  }, [questionSetUsageData, questionSetViewType, questionSetGroupBy]);
 
-  const courseUsageData = courseStats?.slice(0, 8).map(course => ({
-    name: course.courseNumber,
-    attempts: course.totalAttempts,
-    users: course.uniqueUsers,
-  })) || [];
-
-  const userPerformanceData = userStats?.slice(0, 10).map(user => ({
-    name: user.userName,
-    testRuns: user.totalTestRuns,
-    successRate: user.totalAnswers > 0 ? (user.correctAnswers / user.totalAnswers * 100) : 0,
-  })) || [];
+  const questionsAnsweredChartData = useMemo(() => {
+    if (!questionsAnsweredData) return [];
+    
+    if (questionsAnsweredViewType === 'course') {
+      return questionsAnsweredData.map(item => ({
+        name: item.courseName || '',
+        value: item.count
+      }));
+    } else {
+      return questionsAnsweredData.map(item => ({
+        name: formatDateLabel(item.date || '', questionsAnsweredGroupBy),
+        value: item.count
+      }));
+    }
+  }, [questionsAnsweredData, questionsAnsweredViewType, questionsAnsweredGroupBy]);
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -204,8 +256,8 @@ export function AppLogsSection() {
   if (overallLoading || usersLoading || questionsLoading || coursesLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-32" />
@@ -229,10 +281,6 @@ export function AppLogsSection() {
     );
   }
 
-  // Calculate some additional metrics
-
-  const COLORS = ['#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
-  
   // Check if we have any data
   const hasData = overallStats && (overallStats.totalTestRuns > 0 || overallStats.totalAnswers > 0);
 
@@ -287,73 +335,59 @@ export function AppLogsSection() {
         </Card>
       </div>
 
-      {/* Content Distribution Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Content Distribution
-            </CardTitle>
-            <CardDescription>Questions across courses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {courseStats && courseStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={courseStats.slice(0, 8).map(c => ({
-                  name: c.courseNumber,
-                  questions: c.totalQuestions,
-                  sets: c.totalQuestionSets
-                }))}>
+      {/* Question Set Usage Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Question Set Usage
+              </CardTitle>
+              <CardDescription>
+                {questionSetViewType === 'date' 
+                  ? `Question sets started by ${questionSetGroupBy}`
+                  : 'Question sets by course'}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Select value={questionSetViewType} onValueChange={(value: 'date' | 'course') => setQuestionSetViewType(value)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">By Date</SelectItem>
+                  <SelectItem value="course">By Course</SelectItem>
+                </SelectContent>
+              </Select>
+              {questionSetViewType === 'date' && (
+                <Select value={questionSetGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionSetGroupBy(value)}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="month">Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {questionSetChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              {questionSetViewType === 'date' ? (
+                <AreaChart data={questionSetChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))' 
-                    }} 
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-xs" 
+                    angle={questionSetChartData.length > 10 ? -45 : 0}
+                    textAnchor={questionSetChartData.length > 10 ? "end" : "middle"}
+                    height={questionSetChartData.length > 10 ? 60 : 30}
                   />
-                  <Bar dataKey="questions" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="sets" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                Loading content data...
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              User Registration Trend
-            </CardTitle>
-            <CardDescription>User growth over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {userStats && userStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={
-                  userStats
-                    .sort((a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime())
-                    .reduce((acc: any[], user, index) => {
-                      const date = format(new Date(user.registeredAt), "MMM yyyy");
-                      const existing = acc.find(item => item.month === date);
-                      if (existing) {
-                        existing.users++;
-                      } else {
-                        acc.push({ month: date, users: 1, total: (acc[acc.length - 1]?.total || 0) + 1 });
-                      }
-                      return acc;
-                    }, [])
-                    .slice(-12)
-                }>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
                   <YAxis className="text-xs" />
                   <Tooltip 
                     contentStyle={{ 
@@ -363,56 +397,135 @@ export function AppLogsSection() {
                   />
                   <Area 
                     type="monotone" 
-                    dataKey="total" 
-                    stroke="#10b981" 
-                    fill="#10b981"
+                    dataKey="value" 
+                    stroke="#3b82f6" 
+                    fill="#3b82f6" 
                     fillOpacity={0.3}
+                    name="Question Sets"
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                Loading user data...
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Question Set Usage Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Question Set Usage
-          </CardTitle>
-          <CardDescription>Usage statistics by course</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {courseUsageData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={courseUsageData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="name" className="text-xs" angle={-45} textAnchor="end" height={60} />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))' 
-                  }} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="attempts" 
-                  stroke="#10b981" 
-                  fill="#10b981" 
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
+              ) : (
+                <BarChart data={questionSetChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-xs"
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))' 
+                    }} 
+                  />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets" />
+                </BarChart>
+              )}
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              No course usage data available
+              {questionSetUsageLoading ? 'Loading...' : 'No data available'}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Questions Answered Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileQuestion className="h-5 w-5" />
+                Questions Answered
+              </CardTitle>
+              <CardDescription>
+                {questionsAnsweredViewType === 'date' 
+                  ? `Total questions answered by ${questionsAnsweredGroupBy}`
+                  : 'Questions answered by course'}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Select value={questionsAnsweredViewType} onValueChange={(value: 'date' | 'course') => setQuestionsAnsweredViewType(value)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">By Date</SelectItem>
+                  <SelectItem value="course">By Course</SelectItem>
+                </SelectContent>
+              </Select>
+              {questionsAnsweredViewType === 'date' && (
+                <Select value={questionsAnsweredGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionsAnsweredGroupBy(value)}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="month">Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {questionsAnsweredChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              {questionsAnsweredViewType === 'date' ? (
+                <AreaChart data={questionsAnsweredChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-xs" 
+                    angle={questionsAnsweredChartData.length > 10 ? -45 : 0}
+                    textAnchor={questionsAnsweredChartData.length > 10 ? "end" : "middle"}
+                    height={questionsAnsweredChartData.length > 10 ? 60 : 30}
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))' 
+                    }} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10b981" 
+                    fill="#10b981" 
+                    fillOpacity={0.3}
+                    name="Questions"
+                  />
+                </AreaChart>
+              ) : (
+                <BarChart data={questionsAnsweredChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-xs"
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))' 
+                    }} 
+                  />
+                  <Bar dataKey="value" fill="#10b981" radius={[8, 8, 0, 0]} name="Questions" />
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              {questionsAnsweredLoading ? 'Loading...' : 'No data available'}
             </div>
           )}
         </CardContent>
@@ -458,18 +571,18 @@ export function AppLogsSection() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Users</SelectItem>
-                        <SelectItem value="active">Active Users</SelectItem>
-                        <SelectItem value="inactive">Inactive Users</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
                         <SelectItem value="recent">Recently Active</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
                       <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Performance" />
+                        <SelectValue placeholder="Performance Level" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Performance</SelectItem>
-                        <SelectItem value="high">High (80%+)</SelectItem>
+                        <SelectItem value="high">High (≥80%)</SelectItem>
                         <SelectItem value="medium">Medium (50-79%)</SelectItem>
                         <SelectItem value="low">Low (&lt;50%)</SelectItem>
                         <SelectItem value="nodata">No Data</SelectItem>

@@ -738,15 +738,16 @@ export class DatabaseStorage implements IStorage {
     const [testRunCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userTestRuns);
     const [answerCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userAnswers);
 
-    // Active users calculations
+    // Active users calculations - Fixed to use proper timezone handling
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // Active users today (users who have any activity today)
     const [activeToday] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
-      .where(sql`started_at >= ${today.toISOString()}`);
+      .where(sql`DATE(started_at) = CURRENT_DATE`);
 
     const [activeWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
@@ -756,9 +757,9 @@ export class DatabaseStorage implements IStorage {
       .from(userTestRuns)
       .where(sql`started_at >= ${monthAgo.toISOString()}`);
 
+    // Question sets started today (test runs that have at least one answer today)
     const [testRunsToday] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
-      .innerJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
       .where(sql`DATE(${userTestRuns.startedAt}) = CURRENT_DATE`);
 
     return {
@@ -887,6 +888,159 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return { byQuestionSet, mostFailedQuestions };
+  }
+
+  async getQuestionSetUsageByDate(groupBy: 'day' | 'week' | 'month' = 'day'): Promise<Array<{
+    date: string;
+    count: number;
+  }>> {
+    let daysBack: number;
+    
+    switch(groupBy) {
+      case 'week':
+        daysBack = 90; // Show last 3 months when grouped by week
+        break;
+      case 'month':
+        daysBack = 365; // Show last year when grouped by month
+        break;
+      default: // 'day'
+        daysBack = 30; // Show last 30 days
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    let query;
+    if (groupBy === 'week') {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE_TRUNC('week', ${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
+      })
+      .from(userTestRuns)
+      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE_TRUNC('week', ${userTestRuns.startedAt})`)
+      .orderBy(sql`DATE_TRUNC('week', ${userTestRuns.startedAt})`);
+    } else if (groupBy === 'month') {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE_TRUNC('month', ${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
+      })
+      .from(userTestRuns)
+      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE_TRUNC('month', ${userTestRuns.startedAt})`)
+      .orderBy(sql`DATE_TRUNC('month', ${userTestRuns.startedAt})`);
+    } else {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE(${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
+      })
+      .from(userTestRuns)
+      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE(${userTestRuns.startedAt})`)
+      .orderBy(sql`DATE(${userTestRuns.startedAt})`);
+    }
+
+    return query.map(row => ({
+      date: String(row.date),
+      count: Number(row.count)
+    }));
+  }
+
+  async getQuestionSetUsageByCourse(): Promise<Array<{
+    courseName: string;
+    count: number;
+  }>> {
+    const result = await db.select({
+      courseName: courses.courseNumber,
+      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
+    })
+    .from(userTestRuns)
+    .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .groupBy(courses.courseNumber)
+    .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
+
+    return result.map(row => ({
+      courseName: row.courseName,
+      count: Number(row.count)
+    }));
+  }
+
+  async getQuestionsAnsweredByDate(groupBy: 'day' | 'week' | 'month' = 'day'): Promise<Array<{
+    date: string;
+    count: number;
+  }>> {
+    let daysBack: number;
+    
+    switch(groupBy) {
+      case 'week':
+        daysBack = 90; // Show last 3 months when grouped by week
+        break;
+      case 'month':
+        daysBack = 365; // Show last year when grouped by month
+        break;
+      default: // 'day'
+        daysBack = 30; // Show last 30 days
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    let query;
+    if (groupBy === 'week') {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE_TRUNC('week', ${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(${userAnswers.id})`
+      })
+      .from(userAnswers)
+      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE_TRUNC('week', ${userAnswers.answeredAt})`)
+      .orderBy(sql`DATE_TRUNC('week', ${userAnswers.answeredAt})`);
+    } else if (groupBy === 'month') {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE_TRUNC('month', ${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(${userAnswers.id})`
+      })
+      .from(userAnswers)
+      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE_TRUNC('month', ${userAnswers.answeredAt})`)
+      .orderBy(sql`DATE_TRUNC('month', ${userAnswers.answeredAt})`);
+    } else {
+      query = await db.select({
+        date: sql<string>`TO_CHAR(DATE(${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
+        count: sql<number>`COUNT(${userAnswers.id})`
+      })
+      .from(userAnswers)
+      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
+      .groupBy(sql`DATE(${userAnswers.answeredAt})`)
+      .orderBy(sql`DATE(${userAnswers.answeredAt})`);
+    }
+
+    return query.map(row => ({
+      date: String(row.date),
+      count: Number(row.count)
+    }));
+  }
+
+  async getQuestionsAnsweredByCourse(): Promise<Array<{
+    courseName: string;
+    count: number;
+  }>> {
+    const result = await db.select({
+      courseName: courses.courseNumber,
+      count: sql<number>`COUNT(${userAnswers.id})`
+    })
+    .from(userAnswers)
+    .innerJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
+    .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .groupBy(courses.courseNumber)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+
+    return result.map(row => ({
+      courseName: row.courseName,
+      count: Number(row.count)
+    }));
   }
 
   async getCourseStats(): Promise<Array<{

@@ -1959,6 +1959,40 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  app.get("/api/admin/logs/question-set-usage", requireAdmin, async (req, res) => {
+    try {
+      const { groupBy = 'day', viewType = 'date' } = req.query;
+      
+      if (viewType === 'course') {
+        const data = await storage.getQuestionSetUsageByCourse();
+        res.json(data);
+      } else {
+        const data = await storage.getQuestionSetUsageByDate(groupBy as 'day' | 'week' | 'month');
+        res.json(data);
+      }
+    } catch (error) {
+      console.error("Error fetching question set usage:", error);
+      res.status(500).json({ message: "Failed to fetch question set usage" });
+    }
+  });
+
+  app.get("/api/admin/logs/questions-answered", requireAdmin, async (req, res) => {
+    try {
+      const { groupBy = 'day', viewType = 'date' } = req.query;
+      
+      if (viewType === 'course') {
+        const data = await storage.getQuestionsAnsweredByCourse();
+        res.json(data);
+      } else {
+        const data = await storage.getQuestionsAnsweredByDate(groupBy as 'day' | 'week' | 'month');
+        res.json(data);
+      }
+    } catch (error) {
+      console.error("Error fetching questions answered:", error);
+      res.status(500).json({ message: "Failed to fetch questions answered" });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {
