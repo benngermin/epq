@@ -647,8 +647,6 @@ export function AppLogsSection() {
                       <TableHead>Question Sets</TableHead>
                       <TableHead>Total Answers</TableHead>
                       <TableHead>Success Rate</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead>Registered</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -668,22 +666,6 @@ export function AppLogsSection() {
                             <div className="flex items-center gap-2">
                               <Progress value={calculatedSuccessRate} className="w-16 h-2" />
                               <span className="text-sm">{calculatedSuccessRate.toFixed(1)}%</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {user.lastActive ? (
-                              <div className="flex items-center gap-1 text-sm">
-                                <Clock className="h-3 w-3" />
-                                {format(new Date(user.lastActive), "MMM dd, yyyy")}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">Never</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1 text-sm">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(user.registeredAt), "MMM dd, yyyy")}
                             </div>
                           </TableCell>
                         </TableRow>
