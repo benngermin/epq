@@ -894,17 +894,29 @@ export class DatabaseStorage implements IStorage {
     date: string;
     count: number;
   }>> {
+    // First get the actual date range of data
+    const [dateRange] = await db.select({
+      minDate: sql<Date>`MIN(${userTestRuns.startedAt})`,
+      maxDate: sql<Date>`MAX(${userTestRuns.startedAt})`
+    }).from(userTestRuns).where(sql`${userTestRuns.startedAt} IS NOT NULL`);
+    
+    if (!dateRange.minDate || !dateRange.maxDate) {
+      return [];
+    }
+
     let daysBack: number;
+    const now = new Date();
+    const dataStartDate = new Date(dateRange.minDate);
     
     switch(groupBy) {
       case 'week':
-        daysBack = 90; // Show last 3 months when grouped by week
+        daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
         break;
       case 'month':
-        daysBack = 365; // Show last year when grouped by month
+        daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
         break;
       default: // 'day'
-        daysBack = 30; // Show last 30 days
+        daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
     }
 
     const startDate = new Date();
@@ -912,37 +924,91 @@ export class DatabaseStorage implements IStorage {
 
     let query;
     if (groupBy === 'week') {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE_TRUNC('week', ${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
-      })
-      .from(userTestRuns)
-      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE_TRUNC('week', ${userTestRuns.startedAt})`)
-      .orderBy(sql`DATE_TRUNC('week', ${userTestRuns.startedAt})`);
+      // Generate series of weeks and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp),
+            DATE_TRUNC('week', CURRENT_DATE),
+            '1 week'::interval
+          ) AS week_date
+        ),
+        week_data AS (
+          SELECT 
+            DATE_TRUNC('week', started_at) as week_date,
+            COUNT(DISTINCT id) as count
+          FROM user_test_runs
+          WHERE started_at >= ${startDate.toISOString()}
+            AND started_at IS NOT NULL
+          GROUP BY DATE_TRUNC('week', started_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.week_date, 'YYYY-MM-DD') as date,
+          COALESCE(week_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN week_data ON date_series.week_date = week_data.week_date
+        ORDER BY date_series.week_date
+      `);
+      query = result.rows as any[];
     } else if (groupBy === 'month') {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE_TRUNC('month', ${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
-      })
-      .from(userTestRuns)
-      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE_TRUNC('month', ${userTestRuns.startedAt})`)
-      .orderBy(sql`DATE_TRUNC('month', ${userTestRuns.startedAt})`);
+      // Generate series of months and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp),
+            DATE_TRUNC('month', CURRENT_DATE),
+            '1 month'::interval
+          ) AS month_date
+        ),
+        month_data AS (
+          SELECT 
+            DATE_TRUNC('month', started_at) as month_date,
+            COUNT(DISTINCT id) as count
+          FROM user_test_runs
+          WHERE started_at >= ${startDate.toISOString()}
+            AND started_at IS NOT NULL
+          GROUP BY DATE_TRUNC('month', started_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.month_date, 'YYYY-MM-DD') as date,
+          COALESCE(month_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN month_data ON date_series.month_date = month_data.month_date
+        ORDER BY date_series.month_date
+      `);
+      query = result.rows as any[];
     } else {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE(${userTestRuns.startedAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
-      })
-      .from(userTestRuns)
-      .where(sql`${userTestRuns.startedAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE(${userTestRuns.startedAt})`)
-      .orderBy(sql`DATE(${userTestRuns.startedAt})`);
+      // Generate series of days and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            ${startDate.toISOString()}::date,
+            CURRENT_DATE,
+            '1 day'::interval
+          )::date AS day_date
+        ),
+        day_data AS (
+          SELECT 
+            DATE(started_at) as day_date,
+            COUNT(DISTINCT id) as count
+          FROM user_test_runs
+          WHERE started_at >= ${startDate.toISOString()}
+            AND started_at IS NOT NULL
+          GROUP BY DATE(started_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.day_date, 'YYYY-MM-DD') as date,
+          COALESCE(day_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN day_data ON date_series.day_date = day_data.day_date
+        ORDER BY date_series.day_date
+      `);
+      query = result.rows as any[];
     }
-
+    
     return query.map(row => ({
       date: String(row.date),
-      count: Number(row.count)
+      count: Number(row.count || 0)
     }));
   }
 
@@ -970,17 +1036,29 @@ export class DatabaseStorage implements IStorage {
     date: string;
     count: number;
   }>> {
+    // First get the actual date range of data
+    const [dateRange] = await db.select({
+      minDate: sql<Date>`MIN(${userAnswers.answeredAt})`,
+      maxDate: sql<Date>`MAX(${userAnswers.answeredAt})`
+    }).from(userAnswers).where(sql`${userAnswers.answeredAt} IS NOT NULL`);
+    
+    if (!dateRange.minDate || !dateRange.maxDate) {
+      return [];
+    }
+
     let daysBack: number;
+    const now = new Date();
+    const dataStartDate = new Date(dateRange.minDate);
     
     switch(groupBy) {
       case 'week':
-        daysBack = 90; // Show last 3 months when grouped by week
+        daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
         break;
       case 'month':
-        daysBack = 365; // Show last year when grouped by month
+        daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
         break;
       default: // 'day'
-        daysBack = 30; // Show last 30 days
+        daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
     }
 
     const startDate = new Date();
@@ -988,37 +1066,91 @@ export class DatabaseStorage implements IStorage {
 
     let query;
     if (groupBy === 'week') {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE_TRUNC('week', ${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(${userAnswers.id})`
-      })
-      .from(userAnswers)
-      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE_TRUNC('week', ${userAnswers.answeredAt})`)
-      .orderBy(sql`DATE_TRUNC('week', ${userAnswers.answeredAt})`);
+      // Generate series of weeks and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp),
+            DATE_TRUNC('week', CURRENT_DATE),
+            '1 week'::interval
+          ) AS week_date
+        ),
+        week_data AS (
+          SELECT 
+            DATE_TRUNC('week', answered_at) as week_date,
+            COUNT(id) as count
+          FROM user_answers
+          WHERE answered_at >= ${startDate.toISOString()}
+            AND answered_at IS NOT NULL
+          GROUP BY DATE_TRUNC('week', answered_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.week_date, 'YYYY-MM-DD') as date,
+          COALESCE(week_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN week_data ON date_series.week_date = week_data.week_date
+        ORDER BY date_series.week_date
+      `);
+      query = result.rows as any[];
     } else if (groupBy === 'month') {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE_TRUNC('month', ${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(${userAnswers.id})`
-      })
-      .from(userAnswers)
-      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE_TRUNC('month', ${userAnswers.answeredAt})`)
-      .orderBy(sql`DATE_TRUNC('month', ${userAnswers.answeredAt})`);
+      // Generate series of months and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp),
+            DATE_TRUNC('month', CURRENT_DATE),
+            '1 month'::interval
+          ) AS month_date
+        ),
+        month_data AS (
+          SELECT 
+            DATE_TRUNC('month', answered_at) as month_date,
+            COUNT(id) as count
+          FROM user_answers
+          WHERE answered_at >= ${startDate.toISOString()}
+            AND answered_at IS NOT NULL
+          GROUP BY DATE_TRUNC('month', answered_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.month_date, 'YYYY-MM-DD') as date,
+          COALESCE(month_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN month_data ON date_series.month_date = month_data.month_date
+        ORDER BY date_series.month_date
+      `);
+      query = result.rows as any[];
     } else {
-      query = await db.select({
-        date: sql<string>`TO_CHAR(DATE(${userAnswers.answeredAt}), 'YYYY-MM-DD')`,
-        count: sql<number>`COUNT(${userAnswers.id})`
-      })
-      .from(userAnswers)
-      .where(sql`${userAnswers.answeredAt} >= ${startDate.toISOString()}`)
-      .groupBy(sql`DATE(${userAnswers.answeredAt})`)
-      .orderBy(sql`DATE(${userAnswers.answeredAt})`);
+      // Generate series of days and left join with actual data
+      const result = await db.execute(sql`
+        WITH date_series AS (
+          SELECT generate_series(
+            ${startDate.toISOString()}::date,
+            CURRENT_DATE,
+            '1 day'::interval
+          )::date AS day_date
+        ),
+        day_data AS (
+          SELECT 
+            DATE(answered_at) as day_date,
+            COUNT(id) as count
+          FROM user_answers
+          WHERE answered_at >= ${startDate.toISOString()}
+            AND answered_at IS NOT NULL
+          GROUP BY DATE(answered_at)
+        )
+        SELECT 
+          TO_CHAR(date_series.day_date, 'YYYY-MM-DD') as date,
+          COALESCE(day_data.count, 0) as count
+        FROM date_series
+        LEFT JOIN day_data ON date_series.day_date = day_data.day_date
+        ORDER BY date_series.day_date
+      `);
+      query = result.rows as any[];
     }
-
+    
     return query.map(row => ({
       date: String(row.date),
-      count: Number(row.count)
+      count: Number(row.count || 0)
     }));
   }
 
