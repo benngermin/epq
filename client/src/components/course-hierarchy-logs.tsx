@@ -352,7 +352,7 @@ export function CourseHierarchyLogs() {
                                                 <TableRow>
                                                   <TableHead className="w-16">#</TableHead>
                                                   <TableHead className="w-[40%]">Question</TableHead>
-                                                  <TableHead className="text-right">Attempts</TableHead>
+                                                  <TableHead className="text-right">Questions Answered</TableHead>
                                                   <TableHead className="text-right">Correct</TableHead>
                                                   <TableHead className="text-right">Incorrect</TableHead>
                                                   <TableHead>Pass Rate</TableHead>
