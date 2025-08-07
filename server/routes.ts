@@ -1964,7 +1964,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.get("/api/admin/logs/questions", requireAdmin, async (req, res) => {
     try {
-      const questionStats = await storage.getQuestionStats();
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      const questionStats = await storage.getQuestionStats(start, end);
       res.json(questionStats);
     } catch (error) {
       console.error("Error fetching question stats:", error);
@@ -1974,7 +1977,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.get("/api/admin/logs/courses", requireAdmin, async (req, res) => {
     try {
-      const courseStats = await storage.getCourseStats();
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      const courseStats = await storage.getCourseStats(start, end);
       res.json(courseStats);
     } catch (error) {
       console.error("Error fetching course stats:", error);
@@ -2019,12 +2025,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.get("/api/admin/logs/question-set/:questionSetId/details", requireAdmin, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
+      const { startDate, endDate } = req.query;
       
       if (isNaN(questionSetId)) {
         return res.status(400).json({ message: "Invalid question set ID" });
       }
       
-      const detailedStats = await storage.getQuestionSetDetailedStats(questionSetId);
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      const detailedStats = await storage.getQuestionSetDetailedStats(questionSetId, start, end);
       res.json(detailedStats);
     } catch (error) {
       console.error("Error fetching question set detailed stats:", error);

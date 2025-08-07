@@ -26,6 +26,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   ChevronRight,
   ChevronDown,
   BookOpen,
@@ -36,7 +42,12 @@ import {
   Users,
   Target,
   AlertCircle,
+  CalendarIcon,
+  X,
 } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 interface CourseStat {
   courseId: number;
@@ -89,30 +100,52 @@ export function CourseHierarchyLogs() {
   const [expandedQuestionSets, setExpandedQuestionSets] = useState<Set<number>>(new Set());
   const [questionSetDetails, setQuestionSetDetails] = useState<Map<number, QuestionSetDetailedStats>>(new Map());
   const [loadingQuestionSets, setLoadingQuestionSets] = useState<Set<number>>(new Set());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Build query params based on date range
+  const queryParams = new URLSearchParams();
+  if (dateRange?.from) {
+    queryParams.append('startDate', dateRange.from.toISOString());
+  }
+  if (dateRange?.to) {
+    queryParams.append('endDate', dateRange.to.toISOString());
+  }
+  const queryString = queryParams.toString();
 
   // Fetch course stats
   const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
-    queryKey: ["/api/admin/logs/courses"],
+    queryKey: ["/api/admin/logs/courses", queryString],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/courses${queryString ? `?${queryString}` : ''}`);
+      if (!response.ok) throw new Error('Failed to fetch courses');
+      return response.json();
+    },
   });
 
   // Fetch question stats (grouped by question set)
   const { data: questionStats, isLoading: questionsLoading } = useQuery<{
     byQuestionSet: QuestionSetStat[];
   }>({
-    queryKey: ["/api/admin/logs/questions"],
+    queryKey: ["/api/admin/logs/questions", queryString],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/questions${queryString ? `?${queryString}` : ''}`);
+      if (!response.ok) throw new Error('Failed to fetch questions');
+      return response.json();
+    },
   });
 
   // Function to fetch detailed stats for a specific question set
   const fetchQuestionSetDetails = async (questionSetId: number) => {
-    // Check if we already have the details
-    if (questionSetDetails.has(questionSetId)) {
+    // Check if we already have the details for this date range
+    const cacheKey = `${questionSetId}_${queryString}`;
+    if (questionSetDetails.has(questionSetId) && !queryString) {
       return;
     }
     
     setLoadingQuestionSets(prev => new Set(prev).add(questionSetId));
     
     try {
-      const response = await fetch(`/api/admin/logs/question-set/${questionSetId}/details`);
+      const response = await fetch(`/api/admin/logs/question-set/${questionSetId}/details${queryString ? `?${queryString}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch question set details');
       const data: QuestionSetDetailedStats = await response.json();
       
@@ -191,18 +224,91 @@ export function CourseHierarchyLogs() {
     );
   }
 
+  // Clear date filter
+  const clearDateFilter = () => {
+    setDateRange(undefined);
+    // Clear cached question set details when date filter changes
+    setQuestionSetDetails(new Map());
+  };
+
+  // When date range changes, clear the question set details cache
+  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+    // Clear cached question set details when date filter changes
+    setQuestionSetDetails(new Map());
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
-          Course Performance Hierarchy
-        </CardTitle>
-        <CardDescription>
-          Comprehensive view of courses, question sets, and individual question performance
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Course Performance Hierarchy
+            </CardTitle>
+            <CardDescription>
+              Comprehensive view of courses, question sets, and individual question performance
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Select date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={handleDateRangeChange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            {dateRange && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearDateFilter}
+                title="Clear date filter"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
+        {dateRange && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Showing data from {format(dateRange.from, "MMM dd, yyyy")} 
+              {dateRange.to && ` to ${format(dateRange.to, "MMM dd, yyyy")}`}
+            </p>
+          </div>
+        )}
         <ScrollArea className="h-[700px] pr-4">
           <div className="space-y-4">
             {groupedData.map(course => {

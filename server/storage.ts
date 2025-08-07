@@ -13,7 +13,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray, isNull, gte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
@@ -874,7 +874,7 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getQuestionSetDetailedStats(questionSetId: number): Promise<{
+  async getQuestionSetDetailedStats(questionSetId: number, startDate?: Date, endDate?: Date): Promise<{
     questionSetInfo: {
       id: number;
       title: string;
@@ -896,6 +896,14 @@ export class DatabaseStorage implements IStorage {
       averageTimeSpent: number;
     }>;
   }> {
+    // Build date conditions
+    const dateConditions = [];
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
+    }
     // Get question set info
     const questionSetInfo = await db.select({
       id: questionSets.id,
@@ -920,7 +928,11 @@ export class DatabaseStorage implements IStorage {
     .from(questions)
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
-    .where(eq(questions.questionSetId, questionSetId));
+    .where(
+      dateConditions.length > 0 
+        ? and(eq(questions.questionSetId, questionSetId), ...dateConditions)
+        : eq(questions.questionSetId, questionSetId)
+    );
 
     const totalStats = totalAttemptsQuery[0];
     const overallSuccessRate = totalStats?.totalAttempts > 0 
@@ -939,7 +951,11 @@ export class DatabaseStorage implements IStorage {
     .from(questions)
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
-    .where(eq(questions.questionSetId, questionSetId))
+    .where(
+      dateConditions.length > 0 
+        ? and(eq(questions.questionSetId, questionSetId), ...dateConditions)
+        : eq(questions.questionSetId, questionSetId)
+    )
     .groupBy(questions.id, questions.originalQuestionNumber, questionVersions.questionText)
     .orderBy(questions.originalQuestionNumber);
 
@@ -951,11 +967,17 @@ export class DatabaseStorage implements IStorage {
     .where(eq(questions.questionSetId, questionSetId));
 
     // Count unique question set attempts (test runs)
+    const questionSetAttemptsConditions = [eq(userTestRuns.questionSetId, questionSetId)];
+    if (startDate || endDate) {
+      if (startDate) questionSetAttemptsConditions.push(gte(userTestRuns.startedAt, startDate));
+      if (endDate) questionSetAttemptsConditions.push(lte(userTestRuns.startedAt, endDate));
+    }
+    
     const questionSetAttempts = await db.select({
       count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`,
     })
     .from(userTestRuns)
-    .where(eq(userTestRuns.questionSetId, questionSetId));
+    .where(and(...questionSetAttemptsConditions));
 
     return {
       questionSetInfo: {
@@ -980,7 +1002,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getQuestionStats(): Promise<{
+  async getQuestionStats(startDate?: Date, endDate?: Date): Promise<{
     byQuestionSet: Array<{
       questionSetId: number;
       questionSetTitle: string;
@@ -1000,6 +1022,15 @@ export class DatabaseStorage implements IStorage {
       failureRate: number;
     }>;
   }> {
+    // Build date conditions
+    const dateConditions = [];
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
+    }
+
     // Stats by question set
     const byQuestionSetQuery = await db.select({
       questionSetId: questionSets.id,
@@ -1015,6 +1046,7 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(questions, eq(questions.questionSetId, questionSets.id))
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
     .groupBy(questionSets.id, questionSets.title, courses.courseTitle, questionSets.isAi)
     .having(sql`COUNT(${userAnswers.id}) > 0`)
     .orderBy(desc(sql`COUNT(${userAnswers.id})`));
@@ -1042,6 +1074,7 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
     .groupBy(questions.id, questionVersions.questionText, questionSets.title)
     .having(sql`COUNT(${userAnswers.id}) > 0 AND SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END) > 0`)
     .orderBy(desc(sql`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`))
@@ -1431,7 +1464,7 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getCourseStats(): Promise<Array<{
+  async getCourseStats(startDate?: Date, endDate?: Date): Promise<Array<{
     courseId: number;
     courseNumber: string;
     courseTitle: string;
@@ -1442,6 +1475,15 @@ export class DatabaseStorage implements IStorage {
     uniqueUsers: number;
     averageScore: number;
   }>> {
+    // Build date conditions
+    const dateConditions = [];
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
+    }
+
     const courseStatsQuery = await db.select({
       courseId: courses.id,
       courseNumber: courses.courseNumber,
@@ -1459,6 +1501,7 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
     .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
     .groupBy(courses.id, courses.courseNumber, courses.courseTitle, courses.isAi)
     .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
