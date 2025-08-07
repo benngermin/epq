@@ -506,8 +506,16 @@ export function AppLogsSection() {
                     angle={questionSetChartData.length > 10 ? -45 : 0}
                     textAnchor={questionSetChartData.length > 10 ? "end" : "middle"}
                     height={questionSetChartData.length > 10 ? 60 : 30}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}
                   />
-                  <YAxis className="text-xs" />
+                  <YAxis className="text-xs" tick={{ 
+                    fill: 'hsl(var(--foreground))', 
+                    fontSize: 12 
+                  }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
@@ -532,8 +540,16 @@ export function AppLogsSection() {
                     angle={-45}
                     textAnchor="end"
                     height={60}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}
                   />
-                  <YAxis className="text-xs" />
+                  <YAxis className="text-xs" tick={{ 
+                    fill: 'hsl(var(--foreground))', 
+                    fontSize: 12 
+                  }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
@@ -608,11 +624,20 @@ export function AppLogsSection() {
                     angle={questionsAnsweredChartData.length > 10 ? -45 : 0}
                     textAnchor={questionsAnsweredChartData.length > 10 ? "end" : "middle"}
                     height={questionsAnsweredChartData.length > 10 ? 60 : 30}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}
                   />
                   <YAxis 
                     className="text-xs" 
                     tickCount={8}
                     tickFormatter={(value) => value.toLocaleString()}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12 
+                    }}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -638,11 +663,20 @@ export function AppLogsSection() {
                     angle={-45}
                     textAnchor="end"
                     height={60}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}
                   />
                   <YAxis 
                     className="text-xs" 
                     tickCount={8}
                     tickFormatter={(value) => value.toLocaleString()}
+                    tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 12 
+                    }}
                   />
                   <Tooltip 
                     contentStyle={{ 
