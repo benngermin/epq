@@ -597,10 +597,10 @@ export function AppLogsSection() {
       </Card>
 
       {/* Detailed Tabs */}
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs defaultValue="courses" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
