@@ -1,4 +1,4 @@
-# Insurance Professional Certification Exam Preparation Platform
+# Exam Practice Questions
 
 ## Overview
 An advanced AI-powered platform for insurance professional certification exam preparation, offering intelligent, adaptive learning experiences tailored to individual student needs. The platform supports multiple certification paths including CPCU (Chartered Property Casualty Underwriter) and AIC (Associate in Claims) programs.
@@ -31,21 +31,14 @@ An advanced AI-powered platform for insurance professional certification exam pr
    - External course ID mapping for integration with external LMS
    - Bubble.io integration for content import
 
-3. **Practice Test System**
-   - Multiple question types:
-     - Multiple choice
-     - Fill in the blank
-     - Numerical entry
-     - Short answer
-     - Matching
-     - Ordering
+3. **Question Set System**
    - Question versioning system
    - Progress tracking and analytics
    - Randomized question ordering
 
 4. **AI-Powered Tutoring**
    - Context-aware chatbot for question explanations
-   - Configurable AI models (Claude, GPT-4, Gemini)
+   - Configurable AI models
    - Prompt versioning system
    - Response logging for quality monitoring
 
@@ -183,6 +176,40 @@ An advanced AI-powered platform for insurance professional certification exam pr
 │   └── schema.ts      # Database schema & types
 └── package.json       # Dependencies
 ```
+
+# Custom Global Preferences
+
+These rules apply to all interactions and code. Deviate only if explicitly told to.
+
+### 1) Change Control
+- **Never modify any prompts without explicit user approval.**
+- **Never change LLMs or model settings without confirmation.**
+- **Never edit, delete, or write data (DBs, files, inputs) without approval in this conversation.**
+
+### 2) Communication (Plan → Clarify → Close)
+- **Plan:** Briefly state what you’ll do, why, and potential impacts; for non-trivial work, outline numbered steps and wait for the go-ahead.
+- **Clarify:** Ask immediately if anything is unclear or conflicting.
+- **Close:** Summarize what you did and suggest next steps.
+
+### 3) Coding Standards
+- Write readable code: descriptive names, comments only for non-obvious logic, DRY.
+- Keep it modular: small, reusable functions/components.
+- Consistent formatting: 4-space indent; keep lines ~≤80 chars where practical; avoid needless complexity.
+- Robust errors: handle exceptions, log meaningfully, return user-friendly messages.
+- Performance & security: validate inputs, avoid inefficient loops, never hard-code secrets.
+
+### 4) Data Handling & Safety
+- Use anonymized or mock data for sensitive scenarios whenever possible.
+- Back up affected code/data before risky changes and explain how to roll back.
+
+### 5) Testing & Version Control
+- Add unit tests for new functions/features; target ≥80% coverage on critical paths.
+- Run tests and report any failures before finalizing.
+
+### 6) Dependencies, Research & Response Style
+- Use latest stable libraries after confirming stack compatibility.
+- If you research externally, cite sources and briefly state why they’re relevant.
+- Keep responses focused and concise; include code snippets/examples when helpful.
 
 ## Recent Changes & Updates
 
