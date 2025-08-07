@@ -365,18 +365,21 @@ export function AppLogsSection() {
       )}
 
       {/* Time Scale Dropdown */}
-      <div className="flex justify-end">
-        <Select value={timeScale} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setTimeScale(value)}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Day</SelectItem>
-            <SelectItem value="week">Week</SelectItem>
-            <SelectItem value="month">Month</SelectItem>
-            <SelectItem value="all">All Time</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex justify-end mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground">Time Range:</span>
+          <Select value={timeScale} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setTimeScale(value)}>
+            <SelectTrigger className="w-[140px] border-2 border-primary/20 hover:border-primary/40 transition-colors">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Day</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -521,21 +524,25 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionSetChartData}>
+                <BarChart data={questionSetChartData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
-                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={100}
+                    interval={0}
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }}
                   />
-                  <YAxis className="text-xs" />
+                  <YAxis tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))' 
-                    }} 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      padding: '8px 12px'
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
                   />
                   <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets" />
                 </BarChart>
@@ -627,23 +634,25 @@ export function AppLogsSection() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
-                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
                     height={100}
                     interval={0}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }}
                   />
                   <YAxis 
-                    className="text-xs" 
                     tickCount={8}
                     tickFormatter={(value) => value.toLocaleString()}
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                   />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))' 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      padding: '8px 12px'
                     }}
+                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
                     formatter={(value: any) => [value.toLocaleString(), 'Questions']}
                   />
                   <Bar 
