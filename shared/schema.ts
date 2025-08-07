@@ -37,6 +37,7 @@ export const questionSets = pgTable("question_sets", {
   description: text("description"),
   questionCount: integer("question_count").default(0).notNull(),
   externalId: text("external_id").unique(), // Bubble question set ID
+  isAi: boolean("is_ai").default(true).notNull(), // Track if this is an AI or Non-AI question set
 });
 
 

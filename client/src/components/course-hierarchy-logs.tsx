@@ -54,6 +54,7 @@ interface QuestionSetStat {
   questionSetId: number;
   questionSetTitle: string;
   courseTitle: string;
+  isAi?: boolean;
   totalAttempts: number;
   correctAttempts: number;
   incorrectAttempts: number;
@@ -303,6 +304,15 @@ export function CourseHierarchyLogs() {
                                             <h4 className="font-medium text-sm">
                                               {questionSet.questionSetTitle}
                                             </h4>
+                                            {questionSet.isAi !== undefined && (
+                                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                                questionSet.isAi 
+                                                  ? 'bg-blue-100 text-blue-700' 
+                                                  : 'bg-gray-100 text-gray-700'
+                                              }`}>
+                                                {questionSet.isAi ? 'AI' : 'Non-AI'}
+                                              </span>
+                                            )}
                                             {detailedStats && (
                                               <Badge variant="outline" className="text-xs">
                                                 {detailedStats.questionSetInfo.totalQuestions} questions

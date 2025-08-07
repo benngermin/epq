@@ -131,6 +131,7 @@ export interface IStorage {
       questionSetId: number;
       questionSetTitle: string;
       courseTitle: string;
+      isAi: boolean;
       totalAttempts: number;
       correctAttempts: number;
       incorrectAttempts: number;
@@ -984,6 +985,7 @@ export class DatabaseStorage implements IStorage {
       questionSetId: number;
       questionSetTitle: string;
       courseTitle: string;
+      isAi: boolean;
       totalAttempts: number;
       correctAttempts: number;
       incorrectAttempts: number;
@@ -1003,6 +1005,7 @@ export class DatabaseStorage implements IStorage {
       questionSetId: questionSets.id,
       questionSetTitle: questionSets.title,
       courseTitle: courses.courseTitle,
+      isAi: questionSets.isAi,
       totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
       correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
       incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
@@ -1012,7 +1015,7 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(questions, eq(questions.questionSetId, questionSets.id))
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
-    .groupBy(questionSets.id, questionSets.title, courses.courseTitle)
+    .groupBy(questionSets.id, questionSets.title, courses.courseTitle, questionSets.isAi)
     .having(sql`COUNT(${userAnswers.id}) > 0`)
     .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
@@ -1020,6 +1023,7 @@ export class DatabaseStorage implements IStorage {
       questionSetId: stat.questionSetId,
       questionSetTitle: stat.questionSetTitle,
       courseTitle: stat.courseTitle,
+      isAi: stat.isAi,
       totalAttempts: Number(stat.totalAttempts) || 0,
       correctAttempts: Number(stat.correctAttempts) || 0,
       incorrectAttempts: Number(stat.incorrectAttempts) || 0,
