@@ -101,6 +101,8 @@ export function CourseHierarchyLogs() {
   const [questionSetDetails, setQuestionSetDetails] = useState<Map<number, QuestionSetDetailedStats>>(new Map());
   const [loadingQuestionSets, setLoadingQuestionSets] = useState<Set<number>>(new Set());
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Build query params based on date range
   const queryParams = new URLSearchParams();
@@ -227,15 +229,23 @@ export function CourseHierarchyLogs() {
   // Clear date filter
   const clearDateFilter = () => {
     setDateRange(undefined);
+    setTempDateRange(undefined);
     // Clear cached question set details when date filter changes
     setQuestionSetDetails(new Map());
   };
 
-  // When date range changes, clear the question set details cache
-  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
-    setDateRange(newDateRange);
+  // Apply the date filter
+  const applyDateFilter = () => {
+    setDateRange(tempDateRange);
+    setIsCalendarOpen(false);
     // Clear cached question set details when date filter changes
     setQuestionSetDetails(new Map());
+  };
+
+  // Cancel date selection
+  const cancelDateSelection = () => {
+    setTempDateRange(dateRange);
+    setIsCalendarOpen(false);
   };
 
   return (
@@ -252,7 +262,7 @@ export function CourseHierarchyLogs() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -260,6 +270,10 @@ export function CourseHierarchyLogs() {
                     "justify-start text-left font-normal",
                     !dateRange && "text-muted-foreground"
                   )}
+                  onClick={() => {
+                    setTempDateRange(dateRange);
+                    setIsCalendarOpen(true);
+                  }}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange?.from ? (
@@ -276,15 +290,33 @@ export function CourseHierarchyLogs() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={handleDateRangeChange}
-                  numberOfMonths={2}
-                />
+              <PopoverContent className="w-auto p-4" align="end">
+                <div className="space-y-4">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={tempDateRange?.from || new Date()}
+                    selected={tempDateRange}
+                    onSelect={setTempDateRange}
+                    numberOfMonths={2}
+                  />
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelDateSelection}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={applyDateFilter}
+                      disabled={!tempDateRange?.from}
+                    >
+                      Apply Filter
+                    </Button>
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
             {dateRange && (
