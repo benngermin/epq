@@ -1943,7 +1943,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.set('Expires', '0');
       res.set('Surrogate-Control', 'no-store');
       
-      const stats = await storage.getOverallStats();
+      const timeScale = (req.query.timeScale as string) || 'day';
+      const stats = await storage.getOverallStats(timeScale);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching overall stats:", error);

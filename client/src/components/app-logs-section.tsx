@@ -72,6 +72,11 @@ interface OverallStats {
   activeUsersThisWeek: number;
   activeUsersThisMonth: number;
   testRunsStartedToday: number;
+  testRunsThisWeek: number;
+  testRunsThisMonth: number;
+  answersToday: number;
+  answersThisWeek: number;
+  answersThisMonth: number;
 }
 
 interface UserStat {
@@ -123,8 +128,16 @@ interface UsageData {
 }
 
 export function AppLogsSection() {
+  // State for time scale filter
+  const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month' | 'all'>('day');
+
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
-    queryKey: ["/api/admin/logs/overview"],
+    queryKey: ["/api/admin/logs/overview", timeScale],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/overview?timeScale=${timeScale}`);
+      if (!response.ok) throw new Error('Failed to fetch overview stats');
+      return response.json();
+    },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
@@ -351,19 +364,42 @@ export function AppLogsSection() {
         </Card>
       )}
 
+      {/* Time Scale Dropdown */}
+      <div className="flex justify-end">
+        <Select value={timeScale} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setTimeScale(value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="day">Day</SelectItem>
+            <SelectItem value="week">Week</SelectItem>
+            <SelectItem value="month">Month</SelectItem>
+            <SelectItem value="all">All Time</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-500" />
-              Total Users
+              Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overallStats?.totalUsers || 0}</div>
+            <div className="text-2xl font-bold">
+              {timeScale === 'all' ? overallStats?.totalUsers || 0 : 
+               timeScale === 'day' ? overallStats?.activeUsersToday || 0 :
+               timeScale === 'week' ? overallStats?.activeUsersThisWeek || 0 :
+               overallStats?.activeUsersThisMonth || 0}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Active today: {overallStats?.activeUsersToday || 0}
+              {timeScale === 'all' ? 'Total registered' :
+               timeScale === 'day' ? 'Active today' :
+               timeScale === 'week' ? 'Active this week' :
+               'Active this month'}
             </p>
           </CardContent>
         </Card>
@@ -372,13 +408,44 @@ export function AppLogsSection() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-orange-500" />
-              Total Question Sets Started
+              Question Sets
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overallStats?.totalTestRuns || 0}</div>
+            <div className="text-2xl font-bold">
+              {timeScale === 'all' ? overallStats?.totalTestRuns || 0 :
+               timeScale === 'day' ? overallStats?.testRunsStartedToday || 0 :
+               timeScale === 'week' ? overallStats?.testRunsThisWeek || 0 :
+               overallStats?.testRunsThisMonth || 0}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Started today: {overallStats?.testRunsStartedToday || 0}
+              {timeScale === 'all' ? 'Total started' :
+               timeScale === 'day' ? 'Started today' :
+               timeScale === 'week' ? 'Started this week' :
+               'Started this month'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              Question Answers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {timeScale === 'all' ? overallStats?.totalAnswers || 0 :
+               timeScale === 'day' ? overallStats?.answersToday || 0 :
+               timeScale === 'week' ? overallStats?.answersThisWeek || 0 :
+               overallStats?.answersThisMonth || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {timeScale === 'all' ? 'Total answered' :
+               timeScale === 'day' ? 'Answered today' :
+               timeScale === 'week' ? 'Answered this week' :
+               'Answered this month'}
             </p>
           </CardContent>
         </Card>

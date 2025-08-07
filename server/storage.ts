@@ -97,7 +97,7 @@ export interface IStorage {
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
   
   // Statistics methods for logs page
-  getOverallStats(): Promise<{
+  getOverallStats(timeScale?: string): Promise<{
     totalUsers: number;
     totalCourses: number;
     totalQuestionSets: number;
@@ -107,6 +107,12 @@ export interface IStorage {
     activeUsersToday: number;
     activeUsersThisWeek: number;
     activeUsersThisMonth: number;
+    testRunsStartedToday: number;
+    testRunsThisWeek: number;
+    testRunsThisMonth: number;
+    answersToday: number;
+    answersThisWeek: number;
+    answersThisMonth: number;
   }>;
   
   getUserStats(): Promise<Array<{
@@ -741,7 +747,7 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
-  async getOverallStats(): Promise<{
+  async getOverallStats(timeScale?: string): Promise<{
     totalUsers: number;
     totalCourses: number;
     totalQuestionSets: number;
@@ -752,6 +758,11 @@ export class DatabaseStorage implements IStorage {
     activeUsersThisWeek: number;
     activeUsersThisMonth: number;
     testRunsStartedToday: number;
+    testRunsThisWeek: number;
+    testRunsThisMonth: number;
+    answersToday: number;
+    answersThisWeek: number;
+    answersThisMonth: number;
   }> {
     const [userCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
     const [courseCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(courses);
@@ -779,10 +790,31 @@ export class DatabaseStorage implements IStorage {
       .from(userTestRuns)
       .where(sql`started_at >= ${monthAgo.toISOString()}`);
 
-    // Question sets started today (test runs that have at least one answer today)
+    // Question sets started statistics
     const [testRunsToday] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
       .where(sql`DATE(${userTestRuns.startedAt}) = CURRENT_DATE`);
+
+    const [testRunsWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
+      .from(userTestRuns)
+      .where(sql`${userTestRuns.startedAt} >= ${weekAgo.toISOString()}`);
+
+    const [testRunsMonth] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
+      .from(userTestRuns)
+      .where(sql`${userTestRuns.startedAt} >= ${monthAgo.toISOString()}`);
+
+    // Questions answered statistics
+    const [answersToday] = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(userAnswers)
+      .where(sql`DATE(${userAnswers.answeredAt}) = CURRENT_DATE`);
+
+    const [answersWeek] = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(userAnswers)
+      .where(sql`${userAnswers.answeredAt} >= ${weekAgo.toISOString()}`);
+
+    const [answersMonth] = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(userAnswers)
+      .where(sql`${userAnswers.answeredAt} >= ${monthAgo.toISOString()}`);
 
     return {
       totalUsers: Number(userCount.count),
@@ -794,7 +826,12 @@ export class DatabaseStorage implements IStorage {
       activeUsersToday: Number(activeToday.count),
       activeUsersThisWeek: Number(activeWeek.count),
       activeUsersThisMonth: Number(activeMonth.count),
-      testRunsStartedToday: Number(testRunsToday.count)
+      testRunsStartedToday: Number(testRunsToday.count),
+      testRunsThisWeek: Number(testRunsWeek.count),
+      testRunsThisMonth: Number(testRunsMonth.count),
+      answersToday: Number(answersToday.count),
+      answersThisWeek: Number(answersWeek.count),
+      answersThisMonth: Number(answersMonth.count)
     };
   }
 
