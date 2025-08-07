@@ -510,7 +510,7 @@ export function AppLogsSection() {
         </CardHeader>
         <CardContent>
           {questionSetChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={450}>
               {questionSetViewType === 'date' ? (
                 <AreaChart data={questionSetChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -591,7 +591,7 @@ export function AppLogsSection() {
               )}
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[450px] text-muted-foreground">
               {questionSetUsageLoading ? 'Loading...' : 'No data available'}
             </div>
           )}
@@ -651,7 +651,7 @@ export function AppLogsSection() {
         </CardHeader>
         <CardContent>
           {questionsAnsweredChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={450}>
               {questionsAnsweredViewType === 'date' ? (
                 <AreaChart data={questionsAnsweredChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -747,7 +747,7 @@ export function AppLogsSection() {
               )}
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[450px] text-muted-foreground">
               {questionsAnsweredLoading ? 'Loading...' : 'No data available'}
             </div>
           )}
