@@ -972,7 +972,16 @@ export default function AdminPanel() {
                         <CardHeader className="pb-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <CardTitle className="text-xl">{course.courseNumber}: {course.courseTitle}</CardTitle>
+                              <CardTitle className="text-xl">
+                                {course.courseNumber}: {course.courseTitle}
+                                <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                                  course.isAi 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {course.isAi ? 'AI' : 'Non-AI'}
+                                </span>
+                              </CardTitle>
                               <CardDescription className="mt-1">
                                 {course.courseTitle}
                                 {course.questionSetCount > 0 && (
@@ -985,7 +994,7 @@ export default function AdminPanel() {
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <QuestionSetsSection courseId={course.id} />
+                          <QuestionSetsSection courseId={course.id} isAiCourse={course.isAi} />
                         </CardContent>
                       </Card>
                     ))
@@ -1353,7 +1362,7 @@ function CourseMaterialsSection() {
   );
 }
 
-function QuestionSetsSection({ courseId }: { courseId: number }) {
+function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiCourse?: boolean }) {
   const { data: questionSets, isLoading: questionSetsLoading } = useQuery({
     queryKey: ["/api/admin/question-sets", courseId],
     queryFn: () => fetch(`/api/admin/question-sets/${courseId}`).then(res => res.json()),
@@ -1377,7 +1386,18 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
             .map((questionSet: any) => (
             <div key={questionSet.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900">{questionSet.title}</h4>
+                <h4 className="font-medium text-gray-900">
+                  {questionSet.title}
+                  {isAiCourse !== undefined && (
+                    <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+                      isAiCourse 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {isAiCourse ? 'AI' : 'Non-AI'}
+                    </span>
+                  )}
+                </h4>
                 <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
               </div>
               <Dialog>
@@ -1389,9 +1409,20 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Questions in {questionSet.title}</DialogTitle>
+                    <DialogTitle>
+                      Questions in {questionSet.title}
+                      {isAiCourse !== undefined && (
+                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                          isAiCourse 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {isAiCourse ? 'AI' : 'Non-AI'}
+                        </span>
+                      )}
+                    </DialogTitle>
                   </DialogHeader>
-                  <QuestionsList questionSetId={questionSet.id} />
+                  <QuestionsList questionSetId={questionSet.id} isAiCourse={isAiCourse} />
                 </DialogContent>
               </Dialog>
             </div>
@@ -1406,7 +1437,7 @@ function QuestionSetsSection({ courseId }: { courseId: number }) {
   );
 }
 
-function QuestionsList({ questionSetId }: { questionSetId: number }) {
+function QuestionsList({ questionSetId, isAiCourse }: { questionSetId: number; isAiCourse?: boolean }) {
   const { data: questions, isLoading } = useQuery({
     queryKey: ["/api/admin/questions", questionSetId],
     queryFn: () => fetch(`/api/admin/questions/${questionSetId}`).then(res => res.json()),
@@ -1429,7 +1460,18 @@ function QuestionsList({ questionSetId }: { questionSetId: number }) {
       {questions.map((question: any, index: number) => (
         <div key={question.id} className="border rounded-lg p-4">
           <div className="flex justify-between items-start mb-2">
-            <h4 className="font-medium text-sm">Question {question.originalQuestionNumber || index + 1}</h4>
+            <h4 className="font-medium text-sm">
+              Question {question.originalQuestionNumber || index + 1}
+              {isAiCourse !== undefined && (
+                <span className={`ml-2 px-1.5 py-0.5 text-xs font-medium rounded ${
+                  isAiCourse 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'bg-gray-50 text-gray-600'
+                }`}>
+                  {isAiCourse ? 'AI' : 'Non-AI'}
+                </span>
+              )}
+            </h4>
             <span className="text-xs bg-secondary px-2 py-1 rounded">
               {question.questionType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Multiple Choice'}
             </span>

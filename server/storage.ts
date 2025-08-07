@@ -1431,6 +1431,7 @@ export class DatabaseStorage implements IStorage {
     courseId: number;
     courseNumber: string;
     courseTitle: string;
+    isAi: boolean;
     totalQuestionSets: number;
     totalQuestions: number;
     totalAttempts: number;
@@ -1441,6 +1442,7 @@ export class DatabaseStorage implements IStorage {
       courseId: courses.id,
       courseNumber: courses.courseNumber,
       courseTitle: courses.courseTitle,
+      isAi: courses.isAi,
       totalQuestionSets: sql<number>`COUNT(DISTINCT ${questionSets.id})`,
       totalQuestions: sql<number>`COUNT(DISTINCT ${questions.id})`,
       totalAttempts: sql<number>`COUNT(${userAnswers.id})`,
@@ -1453,13 +1455,14 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
     .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
-    .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
+    .groupBy(courses.id, courses.courseNumber, courses.courseTitle, courses.isAi)
     .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
     return courseStatsQuery.map(stat => ({
       courseId: stat.courseId,
       courseNumber: stat.courseNumber,
       courseTitle: stat.courseTitle,
+      isAi: stat.isAi,
       totalQuestionSets: Number(stat.totalQuestionSets) || 0,
       totalQuestions: Number(stat.totalQuestions) || 0,
       totalAttempts: Number(stat.totalAttempts) || 0,

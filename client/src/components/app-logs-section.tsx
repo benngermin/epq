@@ -115,6 +115,7 @@ interface CourseStat {
   courseId: number;
   courseNumber: string;
   courseTitle: string;
+  isAi?: boolean;
   totalQuestionSets: number;
   totalQuestions: number;
   totalAttempts: number;

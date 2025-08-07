@@ -42,6 +42,7 @@ interface CourseStat {
   courseId: number;
   courseNumber: string;
   courseTitle: string;
+  isAi?: boolean;
   totalQuestionSets: number;
   totalQuestions: number;
   totalAttempts: number;
@@ -231,6 +232,15 @@ export function CourseHierarchyLogs() {
                             <h3 className="font-semibold text-base">
                               {course.courseNumber}
                             </h3>
+                            {course.isAi !== undefined && (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                course.isAi 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {course.isAi ? 'AI' : 'Non-AI'}
+                              </span>
+                            )}
                             <Badge variant="outline">
                               {course.totalQuestionSets} sets
                             </Badge>
