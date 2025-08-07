@@ -524,25 +524,25 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionSetChartData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
+                <BarChart data={questionSetChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
+                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={100}
-                    interval={0}
-                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }}
+                    height={60}
                   />
-                  <YAxis tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }} />
+                  <YAxis className="text-xs" />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '6px',
-                      padding: '8px 12px'
+                      padding: '8px 12px',
+                      opacity: 0.95
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                    wrapperStyle={{ zIndex: 1000 }}
                   />
                   <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets" />
                 </BarChart>
@@ -630,29 +630,29 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionsAnsweredChartData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
+                <BarChart data={questionsAnsweredChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
+                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={100}
-                    interval={0}
-                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }}
+                    height={60}
                   />
                   <YAxis 
+                    className="text-xs" 
                     tickCount={8}
                     tickFormatter={(value) => value.toLocaleString()}
-                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                   />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))', 
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '6px',
-                      padding: '8px 12px'
+                      padding: '8px 12px',
+                      opacity: 0.95
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                    wrapperStyle={{ zIndex: 1000 }}
                     formatter={(value: any) => [value.toLocaleString(), 'Questions']}
                   />
                   <Bar 
