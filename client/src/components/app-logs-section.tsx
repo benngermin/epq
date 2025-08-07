@@ -58,6 +58,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  LabelList,
 } from "recharts";
 import { CourseHierarchyLogs } from "./course-hierarchy-logs";
 
@@ -156,14 +157,16 @@ export function AppLogsSection() {
   // State for chart controls
   const [questionSetGroupBy, setQuestionSetGroupBy] = useState<'day' | 'week' | 'month'>('day');
   const [questionSetViewType, setQuestionSetViewType] = useState<'date' | 'course'>('date');
+  const [questionSetTimeRange, setQuestionSetTimeRange] = useState<'day' | 'week' | 'month' | 'all'>('all');
   const [questionsAnsweredGroupBy, setQuestionsAnsweredGroupBy] = useState<'day' | 'week' | 'month'>('day');
   const [questionsAnsweredViewType, setQuestionsAnsweredViewType] = useState<'date' | 'course'>('date');
+  const [questionsAnsweredTimeRange, setQuestionsAnsweredTimeRange] = useState<'day' | 'week' | 'month' | 'all'>('all');
 
   // Fetch question set usage data
   const { data: questionSetUsageData, isLoading: questionSetUsageLoading } = useQuery<UsageData[]>({
-    queryKey: ["/api/admin/logs/question-set-usage", { groupBy: questionSetGroupBy, viewType: questionSetViewType }],
+    queryKey: ["/api/admin/logs/question-set-usage", { groupBy: questionSetGroupBy, viewType: questionSetViewType, timeRange: questionSetTimeRange }],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/logs/question-set-usage?groupBy=${questionSetGroupBy}&viewType=${questionSetViewType}`);
+      const response = await fetch(`/api/admin/logs/question-set-usage?groupBy=${questionSetGroupBy}&viewType=${questionSetViewType}&timeRange=${questionSetTimeRange}`);
       if (!response.ok) throw new Error('Failed to fetch question set usage');
       return response.json();
     },
@@ -171,9 +174,9 @@ export function AppLogsSection() {
 
   // Fetch questions answered data
   const { data: questionsAnsweredData, isLoading: questionsAnsweredLoading } = useQuery<UsageData[]>({
-    queryKey: ["/api/admin/logs/questions-answered", { groupBy: questionsAnsweredGroupBy, viewType: questionsAnsweredViewType }],
+    queryKey: ["/api/admin/logs/questions-answered", { groupBy: questionsAnsweredGroupBy, viewType: questionsAnsweredViewType, timeRange: questionsAnsweredTimeRange }],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/logs/questions-answered?groupBy=${questionsAnsweredGroupBy}&viewType=${questionsAnsweredViewType}`);
+      const response = await fetch(`/api/admin/logs/questions-answered?groupBy=${questionsAnsweredGroupBy}&viewType=${questionsAnsweredViewType}&timeRange=${questionsAnsweredTimeRange}`);
       if (!response.ok) throw new Error('Failed to fetch questions answered');
       return response.json();
     },
@@ -465,11 +468,22 @@ export function AppLogsSection() {
               </CardTitle>
               <CardDescription>
                 {questionSetViewType === 'date' 
-                  ? `Question sets started by ${questionSetGroupBy}`
-                  : 'Question sets by course'}
+                  ? `Question sets started by ${questionSetGroupBy} (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`
+                  : `Question sets by course (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`}
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Select value={questionSetTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionSetTimeRange(value)}>
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Last Day</SelectItem>
+                  <SelectItem value="week">Last Week</SelectItem>
+                  <SelectItem value="month">Last Month</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={questionSetViewType} onValueChange={(value: 'date' | 'course') => setQuestionSetViewType(value)}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
@@ -532,23 +546,27 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionSetChartData}>
+                <BarChart data={questionSetChartData} margin={{ bottom: 80, left: 10, right: 10, top: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
-                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={80}
+                    interval={0}
                     tick={{ 
                       fill: 'hsl(var(--foreground))', 
-                      fontSize: 12,
-                      fontWeight: 500
+                      fontSize: 11,
+                      fontWeight: 600
+                    }}
+                    style={{
+                      fill: 'hsl(var(--foreground))'
                     }}
                   />
-                  <YAxis className="text-xs" tick={{ 
+                  <YAxis tick={{ 
                     fill: 'hsl(var(--foreground))', 
-                    fontSize: 12 
+                    fontSize: 11,
+                    fontWeight: 500
                   }} />
                   <Tooltip 
                     contentStyle={{ 
@@ -556,11 +574,13 @@ export function AppLogsSection() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '6px',
                       padding: '8px 12px',
-                      opacity: 0.95
+                      opacity: 0.98
                     }}
                     wrapperStyle={{ zIndex: 1000 }}
                   />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets" />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets">
+                    <LabelList position="top" fill="hsl(var(--foreground))" fontSize={10} fontWeight={600} />
+                  </Bar>
                 </BarChart>
               )}
             </ResponsiveContainer>
@@ -583,11 +603,22 @@ export function AppLogsSection() {
               </CardTitle>
               <CardDescription>
                 {questionsAnsweredViewType === 'date' 
-                  ? `Total questions answered by ${questionsAnsweredGroupBy}`
-                  : 'Questions answered by course'}
+                  ? `Total questions answered by ${questionsAnsweredGroupBy} (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`
+                  : `Questions answered by course (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`}
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Select value={questionsAnsweredTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionsAnsweredTimeRange(value)}>
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Last Day</SelectItem>
+                  <SelectItem value="week">Last Week</SelectItem>
+                  <SelectItem value="month">Last Month</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={questionsAnsweredViewType} onValueChange={(value: 'date' | 'course') => setQuestionsAnsweredViewType(value)}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
@@ -655,27 +686,30 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionsAnsweredChartData}>
+                <BarChart data={questionsAnsweredChartData} margin={{ bottom: 80, left: 10, right: 10, top: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
-                    className="text-xs"
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={80}
+                    interval={0}
                     tick={{ 
                       fill: 'hsl(var(--foreground))', 
-                      fontSize: 12,
-                      fontWeight: 500
+                      fontSize: 11,
+                      fontWeight: 600
+                    }}
+                    style={{
+                      fill: 'hsl(var(--foreground))'
                     }}
                   />
                   <YAxis 
-                    className="text-xs" 
                     tickCount={8}
                     tickFormatter={(value) => value.toLocaleString()}
                     tick={{ 
                       fill: 'hsl(var(--foreground))', 
-                      fontSize: 12 
+                      fontSize: 11,
+                      fontWeight: 500
                     }}
                   />
                   <Tooltip 
@@ -684,7 +718,7 @@ export function AppLogsSection() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '6px',
                       padding: '8px 12px',
-                      opacity: 0.95
+                      opacity: 0.98
                     }}
                     wrapperStyle={{ zIndex: 1000 }}
                     formatter={(value: any) => [value.toLocaleString(), 'Questions']}
@@ -694,7 +728,9 @@ export function AppLogsSection() {
                     fill="#10b981" 
                     radius={[8, 8, 0, 0]} 
                     name="Questions"
-                  />
+                  >
+                    <LabelList position="top" fill="hsl(var(--foreground))" fontSize={10} fontWeight={600} />
+                  </Bar>
                 </BarChart>
               )}
             </ResponsiveContainer>

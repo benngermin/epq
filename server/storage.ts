@@ -13,7 +13,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull, gte } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
@@ -1055,7 +1055,7 @@ export class DatabaseStorage implements IStorage {
     return { byQuestionSet, mostFailedQuestions };
   }
 
-  async getQuestionSetUsageByDate(groupBy: 'day' | 'week' | 'month' = 'day'): Promise<Array<{
+  async getQuestionSetUsageByDate(groupBy: 'day' | 'week' | 'month' = 'day', timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
     date: string;
     count: number;
   }>> {
@@ -1073,15 +1073,34 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const dataStartDate = new Date(dateRange.minDate);
     
-    switch(groupBy) {
-      case 'week':
-        daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-        break;
-      case 'month':
-        daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-        break;
-      default: // 'day'
-        daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+    // First determine daysBack based on timeRange
+    if (timeRange === 'all') {
+      // Show data based on groupBy setting
+      switch(groupBy) {
+        case 'week':
+          daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+          break;
+        case 'month':
+          daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+          break;
+        default: // 'day'
+          daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+    } else {
+      // Use timeRange to determine how far back to show data
+      switch(timeRange) {
+        case 'day':
+          daysBack = 1;
+          break;
+        case 'week':
+          daysBack = 7;
+          break;
+        case 'month':
+          daysBack = 30;
+          break;
+        default:
+          daysBack = 30;
+      }
     }
 
     const startDate = new Date();
@@ -1177,19 +1196,42 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getQuestionSetUsageByCourse(): Promise<Array<{
+  async getQuestionSetUsageByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
     courseName: string;
     count: number;
   }>> {
-    const result = await db.select({
+    // Build the base query
+    const baseQuery = db.select({
       courseName: courses.courseNumber,
       count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
     })
     .from(userTestRuns)
     .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
-    .innerJoin(courses, eq(courses.id, questionSets.courseId))
-    .groupBy(courses.courseNumber)
-    .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
+    .innerJoin(courses, eq(courses.id, questionSets.courseId));
+
+    // Add time filter if not 'all'
+    let finalQuery;
+    if (timeRange !== 'all') {
+      const startDate = new Date();
+      switch(timeRange) {
+        case 'day':
+          startDate.setDate(startDate.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setDate(startDate.getDate() - 30);
+          break;
+      }
+      finalQuery = baseQuery.where(gte(userTestRuns.startedAt, startDate));
+    } else {
+      finalQuery = baseQuery;
+    }
+
+    const result = await finalQuery
+      .groupBy(courses.courseNumber)
+      .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
 
     return result.map(row => ({
       courseName: row.courseName,
@@ -1197,7 +1239,7 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getQuestionsAnsweredByDate(groupBy: 'day' | 'week' | 'month' = 'day'): Promise<Array<{
+  async getQuestionsAnsweredByDate(groupBy: 'day' | 'week' | 'month' = 'day', timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
     date: string;
     count: number;
   }>> {
@@ -1215,15 +1257,34 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const dataStartDate = new Date(dateRange.minDate);
     
-    switch(groupBy) {
-      case 'week':
-        daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-        break;
-      case 'month':
-        daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-        break;
-      default: // 'day'
-        daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+    // First determine daysBack based on timeRange
+    if (timeRange === 'all') {
+      // Show data based on groupBy setting
+      switch(groupBy) {
+        case 'week':
+          daysBack = Math.min(90, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+          break;
+        case 'month':
+          daysBack = Math.min(365, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+          break;
+        default: // 'day'
+          daysBack = Math.min(30, Math.ceil((now.getTime() - dataStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+    } else {
+      // Use timeRange to determine how far back to show data
+      switch(timeRange) {
+        case 'day':
+          daysBack = 1;
+          break;
+        case 'week':
+          daysBack = 7;
+          break;
+        case 'month':
+          daysBack = 30;
+          break;
+        default:
+          daysBack = 30;
+      }
     }
 
     const startDate = new Date();
@@ -1319,11 +1380,12 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getQuestionsAnsweredByCourse(): Promise<Array<{
+  async getQuestionsAnsweredByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
     courseName: string;
     count: number;
   }>> {
-    const result = await db.select({
+    // Build the base query
+    const baseQuery = db.select({
       courseId: courses.id,
       courseName: courses.courseNumber,
       courseTitle: courses.courseTitle,
@@ -1332,10 +1394,32 @@ export class DatabaseStorage implements IStorage {
     .from(userAnswers)
     .innerJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
     .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
-    .innerJoin(courses, eq(courses.id, questionSets.courseId))
-    .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
-    .orderBy(desc(sql`COUNT(${userAnswers.id})`))
-    .limit(10);
+    .innerJoin(courses, eq(courses.id, questionSets.courseId));
+
+    // Add time filter if not 'all'
+    let finalQuery;
+    if (timeRange !== 'all') {
+      const startDate = new Date();
+      switch(timeRange) {
+        case 'day':
+          startDate.setDate(startDate.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setDate(startDate.getDate() - 30);
+          break;
+      }
+      finalQuery = baseQuery.where(gte(userAnswers.answeredAt, startDate));
+    } else {
+      finalQuery = baseQuery;
+    }
+
+    const result = await finalQuery
+      .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
+      .orderBy(desc(sql`COUNT(${userAnswers.id})`))
+      .limit(10);
 
     return result.map(row => ({
       courseName: row.courseName,

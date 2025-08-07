@@ -1984,13 +1984,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.get("/api/admin/logs/question-set-usage", requireAdmin, async (req, res) => {
     try {
-      const { groupBy = 'day', viewType = 'date' } = req.query;
+      const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
       
       if (viewType === 'course') {
-        const data = await storage.getQuestionSetUsageByCourse();
+        const data = await storage.getQuestionSetUsageByCourse(timeRange as 'day' | 'week' | 'month' | 'all');
         res.json(data);
       } else {
-        const data = await storage.getQuestionSetUsageByDate(groupBy as 'day' | 'week' | 'month');
+        const data = await storage.getQuestionSetUsageByDate(groupBy as 'day' | 'week' | 'month', timeRange as 'day' | 'week' | 'month' | 'all');
         res.json(data);
       }
     } catch (error) {
@@ -2001,13 +2001,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.get("/api/admin/logs/questions-answered", requireAdmin, async (req, res) => {
     try {
-      const { groupBy = 'day', viewType = 'date' } = req.query;
+      const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
       
       if (viewType === 'course') {
-        const data = await storage.getQuestionsAnsweredByCourse();
+        const data = await storage.getQuestionsAnsweredByCourse(timeRange as 'day' | 'week' | 'month' | 'all');
         res.json(data);
       } else {
-        const data = await storage.getQuestionsAnsweredByDate(groupBy as 'day' | 'week' | 'month');
+        const data = await storage.getQuestionsAnsweredByDate(groupBy as 'day' | 'week' | 'month', timeRange as 'day' | 'week' | 'month' | 'all');
         res.json(data);
       }
     } catch (error) {
