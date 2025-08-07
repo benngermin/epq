@@ -113,7 +113,8 @@ export class CognitoAuth {
       req.session.save((err) => {
         if (err) {
           console.error('Failed to save session:', err);
-          return res.status(500).json({ error: 'Session error' });
+          // Redirect to auth page with error instead of returning JSON
+          return res.redirect('/auth?error=session_save_failed');
         }
 
         console.log('Session saved successfully');
@@ -187,9 +188,9 @@ export class CognitoAuth {
               if (questionSets.length > 0) {
                 // Redirect to the first question set of the course
                 redirectUrl = `/question-set/${questionSets[0].id}`;
-                console.log(`Redirecting to question set ${questionSets[0].id} for course ${course.title}`);
+                console.log(`Redirecting to question set ${questionSets[0].id} for course ${course.courseTitle}`);
               } else {
-                console.warn(`No question sets found for course ${course.title}`);
+                console.warn(`No question sets found for course ${course.courseTitle}`);
               }
             } else {
               console.warn(`No course found with external ID: ${externalCourseId}`);
