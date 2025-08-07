@@ -546,22 +546,28 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionSetChartData} margin={{ bottom: 80, left: 10, right: 10, top: 10 }}>
+                <BarChart data={questionSetChartData} margin={{ bottom: 100, left: 10, right: 10, top: 20 }}>
+                  <defs>
+                    <filter id="textBg">
+                      <feFlood floodColor="white" floodOpacity="0.9"/>
+                      <feComposite in="SourceGraphic" operator="over"/>
+                    </filter>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={100}
                     interval={0}
                     tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 11,
-                      fontWeight: 600
+                      fill: '#000000', 
+                      fontSize: 12,
+                      fontWeight: 700,
+                      filter: 'url(#textBg)'
                     }}
-                    style={{
-                      fill: 'hsl(var(--foreground))'
-                    }}
+                    tickLine={{ stroke: '#333333' }}
+                    axisLine={{ stroke: '#333333' }}
                   />
                   <YAxis tick={{ 
                     fill: 'hsl(var(--foreground))', 
@@ -579,7 +585,13 @@ export function AppLogsSection() {
                     wrapperStyle={{ zIndex: 1000 }}
                   />
                   <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets">
-                    <LabelList position="top" fill="hsl(var(--foreground))" fontSize={10} fontWeight={600} />
+                    <LabelList 
+                      position="top" 
+                      fill="#ffffff" 
+                      fontSize={11} 
+                      fontWeight={700}
+                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                    />
                   </Bar>
                 </BarChart>
               )}
@@ -686,22 +698,28 @@ export function AppLogsSection() {
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={questionsAnsweredChartData} margin={{ bottom: 80, left: 10, right: 10, top: 10 }}>
+                <BarChart data={questionsAnsweredChartData} margin={{ bottom: 100, left: 10, right: 10, top: 20 }}>
+                  <defs>
+                    <filter id="textBg2">
+                      <feFlood floodColor="white" floodOpacity="0.9"/>
+                      <feComposite in="SourceGraphic" operator="over"/>
+                    </filter>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={100}
                     interval={0}
                     tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 11,
-                      fontWeight: 600
+                      fill: '#000000', 
+                      fontSize: 12,
+                      fontWeight: 700,
+                      filter: 'url(#textBg2)'
                     }}
-                    style={{
-                      fill: 'hsl(var(--foreground))'
-                    }}
+                    tickLine={{ stroke: '#333333' }}
+                    axisLine={{ stroke: '#333333' }}
                   />
                   <YAxis 
                     tickCount={8}
@@ -729,7 +747,13 @@ export function AppLogsSection() {
                     radius={[8, 8, 0, 0]} 
                     name="Questions"
                   >
-                    <LabelList position="top" fill="hsl(var(--foreground))" fontSize={10} fontWeight={600} />
+                    <LabelList 
+                      position="top" 
+                      fill="#ffffff" 
+                      fontSize={11} 
+                      fontWeight={700}
+                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                    />
                   </Bar>
                 </BarChart>
               )}
