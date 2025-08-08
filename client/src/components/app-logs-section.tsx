@@ -536,7 +536,7 @@ export function AppLogsSection() {
                     }} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
+                        backgroundColor: '#ffffff', 
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                         padding: '8px 12px',
@@ -579,7 +579,7 @@ export function AppLogsSection() {
                     }} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
+                        backgroundColor: '#ffffff', 
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                         padding: '8px 12px',
@@ -689,7 +689,7 @@ export function AppLogsSection() {
                     />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
+                        backgroundColor: '#ffffff', 
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                         padding: '8px 12px',
@@ -736,7 +736,7 @@ export function AppLogsSection() {
                     />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
+                        backgroundColor: '#ffffff', 
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                         padding: '8px 12px',
