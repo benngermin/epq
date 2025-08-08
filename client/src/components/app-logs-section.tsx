@@ -537,8 +537,13 @@ export function AppLogsSection() {
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))' 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        opacity: 0.95
                       }} 
+                      wrapperStyle={{ zIndex: 1000 }}
                     />
                     <Area 
                       type="monotone" 
@@ -576,9 +581,10 @@ export function AppLogsSection() {
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))', 
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         padding: '8px 12px',
-                        opacity: 0.98
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        opacity: 0.95
                       }}
                       wrapperStyle={{ zIndex: 1000 }}
                     />
@@ -684,8 +690,13 @@ export function AppLogsSection() {
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))' 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        opacity: 0.95
                       }} 
+                      wrapperStyle={{ zIndex: 1000 }}
                     />
                     <Area 
                       type="monotone" 
@@ -727,9 +738,10 @@ export function AppLogsSection() {
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))', 
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         padding: '8px 12px',
-                        opacity: 0.98
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        opacity: 0.95
                       }}
                       wrapperStyle={{ zIndex: 1000 }}
                       formatter={(value: any) => [value.toLocaleString(), 'Questions']}
