@@ -2000,6 +2000,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
     try {
       const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
       
+      // Add no-cache headers to ensure fresh data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       if (viewType === 'course') {
         const data = await storage.getQuestionSetUsageByCourse(timeRange as 'day' | 'week' | 'month' | 'all');
         res.json(data);
@@ -2016,6 +2021,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.get("/api/admin/logs/questions-answered", requireAdmin, async (req, res) => {
     try {
       const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
+      
+      // Add no-cache headers to ensure fresh data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
       
       if (viewType === 'course') {
         const data = await storage.getQuestionsAnsweredByCourse(timeRange as 'day' | 'week' | 'month' | 'all');
