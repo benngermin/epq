@@ -1210,8 +1210,8 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            (${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date,
-            (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date,
+            DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'America/New_York'),
+            DATE(CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 day'::interval
           )::date AS day_date
         ),
@@ -1394,8 +1394,8 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            (${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date,
-            (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date,
+            DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'America/New_York'),
+            DATE(CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 day'::interval
           )::date AS day_date
         ),

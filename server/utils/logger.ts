@@ -41,87 +41,55 @@ export function getTodayEST(): Date {
   // Get the current date/time
   const now = new Date();
   
-  // Format the current date in Eastern timezone to get year, month, day
-  const easternDateParts = now.toLocaleDateString("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).split('/');
+  // Get the date string in Eastern timezone
+  const easternDateStr = now.toLocaleDateString("en-CA", {
+    timeZone: "America/New_York"
+  }); // Returns YYYY-MM-DD format
   
-  // Rearrange from MM/DD/YYYY to YYYY-MM-DD format
-  const [month, day, year] = easternDateParts;
-  const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  // Create a date for midnight Eastern time
+  // Since we want midnight Eastern, we need to figure out what UTC time that is
+  const testDate = new Date(`${easternDateStr}T00:00:00`);
   
-  // Create a date object for midnight in Eastern time
-  // We create it as a UTC date and then use Intl.DateTimeFormat to get the correct UTC time
+  // Format with timezone to check if DST is active
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
     timeZoneName: 'short'
   });
   
-  // Create a date for midnight Eastern by parsing the formatted string
-  const midnightEastern = new Date(`${dateStr}T00:00:00`);
-  const parts = formatter.formatToParts(midnightEastern);
+  const parts = formatter.formatToParts(testDate);
+  const tzName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
   
-  // Extract the timezone offset from the formatted parts
-  const timezoneName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
-  const isDST = timezoneName.includes('EDT');
-  const offsetHours = isDST ? -4 : -5;
+  // EDT is UTC-4, EST is UTC-5
+  const isDST = tzName.includes('EDT') || tzName.includes('Eastern Daylight');
+  const offsetHours = isDST ? 4 : 5;
   
-  // Create the final date with the correct offset
-  const offsetMinutes = offsetHours * 60;
-  const utcTime = new Date(`${dateStr}T00:00:00`).getTime() - (offsetMinutes * 60 * 1000);
-  
-  return new Date(utcTime);
+  // Return midnight Eastern as UTC
+  return new Date(`${easternDateStr}T0${offsetHours}:00:00.000Z`);
 }
 
 // Get a date at midnight in Eastern Time for a given date (handles EST/EDT automatically)
 export function getDateAtMidnightEST(date: Date): Date {
-  // Format the given date in Eastern timezone to get year, month, day
-  const easternDateParts = date.toLocaleDateString("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).split('/');
+  // Get the date string in Eastern timezone
+  const easternDateStr = date.toLocaleDateString("en-CA", {
+    timeZone: "America/New_York"
+  }); // Returns YYYY-MM-DD format
   
-  // Rearrange from MM/DD/YYYY to YYYY-MM-DD format
-  const [month, day, year] = easternDateParts;
-  const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  // Create a date for midnight Eastern time
+  const testDate = new Date(`${easternDateStr}T00:00:00`);
   
-  // Create a date object for midnight in Eastern time
+  // Format with timezone to check if DST is active
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
     timeZoneName: 'short'
   });
   
-  // Create a date for midnight Eastern by parsing the formatted string
-  const midnightEastern = new Date(`${dateStr}T00:00:00`);
-  const parts = formatter.formatToParts(midnightEastern);
+  const parts = formatter.formatToParts(testDate);
+  const tzName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
   
-  // Extract the timezone offset from the formatted parts
-  const timezoneName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
-  const isDST = timezoneName.includes('EDT');
-  const offsetHours = isDST ? -4 : -5;
+  // EDT is UTC-4, EST is UTC-5
+  const isDST = tzName.includes('EDT') || tzName.includes('Eastern Daylight');
+  const offsetHours = isDST ? 4 : 5;
   
-  // Create the final date with the correct offset
-  const offsetMinutes = offsetHours * 60;
-  const utcTime = new Date(`${dateStr}T00:00:00`).getTime() - (offsetMinutes * 60 * 1000);
-  
-  return new Date(utcTime);
+  // Return midnight Eastern as UTC
+  return new Date(`${easternDateStr}T0${offsetHours}:00:00.000Z`);
 }
