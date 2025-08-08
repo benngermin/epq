@@ -1176,7 +1176,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(week_data.count, 0) as count
         FROM date_series
         LEFT JOIN week_data ON date_series.week_date = week_data.week_date
-        ORDER BY date_series.week_date
+        ORDER BY date_series.week_date DESC
       `);
       query = result.rows as any[];
     } else if (groupBy === 'month') {
@@ -1203,7 +1203,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(month_data.count, 0) as count
         FROM date_series
         LEFT JOIN month_data ON date_series.month_date = month_data.month_date
-        ORDER BY date_series.month_date
+        ORDER BY date_series.month_date DESC
       `);
       query = result.rows as any[];
     } else {
@@ -1230,18 +1230,15 @@ export class DatabaseStorage implements IStorage {
           COALESCE(day_data.count, 0) as count
         FROM date_series
         LEFT JOIN day_data ON date_series.day_date = day_data.day_date
-        ORDER BY date_series.day_date
+        ORDER BY date_series.day_date DESC
       `);
       query = result.rows as any[];
     }
     
-    const result = query.map(row => ({
+    return query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
-    
-    console.log('[DEBUG] getQuestionSetUsageByDate result (last 3):', result.slice(-3));
-    return result;
   }
 
   async getQuestionSetUsageByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
@@ -1364,7 +1361,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(week_data.count, 0) as count
         FROM date_series
         LEFT JOIN week_data ON date_series.week_date = week_data.week_date
-        ORDER BY date_series.week_date
+        ORDER BY date_series.week_date DESC
       `);
       query = result.rows as any[];
     } else if (groupBy === 'month') {
@@ -1391,7 +1388,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(month_data.count, 0) as count
         FROM date_series
         LEFT JOIN month_data ON date_series.month_date = month_data.month_date
-        ORDER BY date_series.month_date
+        ORDER BY date_series.month_date DESC
       `);
       query = result.rows as any[];
     } else {
@@ -1418,18 +1415,15 @@ export class DatabaseStorage implements IStorage {
           COALESCE(day_data.count, 0) as count
         FROM date_series
         LEFT JOIN day_data ON date_series.day_date = day_data.day_date
-        ORDER BY date_series.day_date
+        ORDER BY date_series.day_date DESC
       `);
       query = result.rows as any[];
     }
     
-    const result = query.map(row => ({
+    return query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
-    
-    console.log('[DEBUG] getQuestionsAnsweredByDate result (last 3):', result.slice(-3));
-    return result;
   }
 
   async getQuestionsAnsweredByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
