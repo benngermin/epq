@@ -36,41 +36,92 @@ export function formatDateEST(date: Date): string {
   });
 }
 
-// Get today's date at midnight in EST
+// Get today's date at midnight in Eastern Time (handles EST/EDT automatically)
 export function getTodayEST(): Date {
-  // Get current time in EST
-  const estString = new Date().toLocaleString("en-US", {
+  // Get the current date/time
+  const now = new Date();
+  
+  // Format the current date in Eastern timezone to get year, month, day
+  const easternDateParts = now.toLocaleDateString("en-US", {
     timeZone: "America/New_York",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  }).split('/');
+  
+  // Rearrange from MM/DD/YYYY to YYYY-MM-DD format
+  const [month, day, year] = easternDateParts;
+  const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  
+  // Create a date object for midnight in Eastern time
+  // We create it as a UTC date and then use Intl.DateTimeFormat to get the correct UTC time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
   });
   
-  // Parse the EST date string (MM/DD/YYYY format)
-  const [month, day, year] = estString.split('/');
+  // Create a date for midnight Eastern by parsing the formatted string
+  const midnightEastern = new Date(`${dateStr}T00:00:00`);
+  const parts = formatter.formatToParts(midnightEastern);
   
-  // Create a new date at midnight EST
-  // Note: JavaScript Date constructor uses local time, but we want UTC that represents EST midnight
-  const estMidnight = new Date(`${year}-${month}-${day}T00:00:00-05:00`);
+  // Extract the timezone offset from the formatted parts
+  const timezoneName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
+  const isDST = timezoneName.includes('EDT');
+  const offsetHours = isDST ? -4 : -5;
   
-  return estMidnight;
+  // Create the final date with the correct offset
+  const offsetMinutes = offsetHours * 60;
+  const utcTime = new Date(`${dateStr}T00:00:00`).getTime() - (offsetMinutes * 60 * 1000);
+  
+  return new Date(utcTime);
 }
 
-// Get a date at midnight in EST for a given date
+// Get a date at midnight in Eastern Time for a given date (handles EST/EDT automatically)
 export function getDateAtMidnightEST(date: Date): Date {
-  // Convert the date to EST string
-  const estString = date.toLocaleString("en-US", {
+  // Format the given date in Eastern timezone to get year, month, day
+  const easternDateParts = date.toLocaleDateString("en-US", {
     timeZone: "America/New_York",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  }).split('/');
+  
+  // Rearrange from MM/DD/YYYY to YYYY-MM-DD format
+  const [month, day, year] = easternDateParts;
+  const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  
+  // Create a date object for midnight in Eastern time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
   });
   
-  // Parse the EST date string (MM/DD/YYYY format)
-  const [month, day, year] = estString.split('/');
+  // Create a date for midnight Eastern by parsing the formatted string
+  const midnightEastern = new Date(`${dateStr}T00:00:00`);
+  const parts = formatter.formatToParts(midnightEastern);
   
-  // Create a new date at midnight EST
-  const estMidnight = new Date(`${year}-${month}-${day}T00:00:00-05:00`);
+  // Extract the timezone offset from the formatted parts
+  const timezoneName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
+  const isDST = timezoneName.includes('EDT');
+  const offsetHours = isDST ? -4 : -5;
   
-  return estMidnight;
+  // Create the final date with the correct offset
+  const offsetMinutes = offsetHours * 60;
+  const utcTime = new Date(`${dateStr}T00:00:00`).getTime() - (offsetMinutes * 60 * 1000);
+  
+  return new Date(utcTime);
 }
