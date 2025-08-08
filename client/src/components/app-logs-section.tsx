@@ -465,7 +465,7 @@ export function AppLogsSection() {
           <CardHeader>
             <div className="flex flex-col gap-2">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-5 w-5" />
                   Question Set Usage
                 </CardTitle>
@@ -607,7 +607,7 @@ export function AppLogsSection() {
           <CardHeader>
             <div className="flex flex-col gap-2">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <FileQuestion className="h-5 w-5" />
                   Questions Answered
                 </CardTitle>
