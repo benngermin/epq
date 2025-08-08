@@ -1235,10 +1235,13 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     }
     
-    return query.map(row => ({
+    const result = query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
+    
+    console.log('[DEBUG] getQuestionSetUsageByDate result (last 3):', result.slice(-3));
+    return result;
   }
 
   async getQuestionSetUsageByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
@@ -1420,10 +1423,13 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     }
     
-    return query.map(row => ({
+    const result = query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
+    
+    console.log('[DEBUG] getQuestionsAnsweredByDate result (last 3):', result.slice(-3));
+    return result;
   }
 
   async getQuestionsAnsweredByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
