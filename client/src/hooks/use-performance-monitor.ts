@@ -17,20 +17,20 @@ export function usePerformanceMonitor(componentName: string) {
     const renderEndTime = performance.now();
     const renderTime = renderEndTime - renderStartTime.current;
     
-    // Only log slow renders in development
-    if (process.env.NODE_ENV === 'development' && renderTime > 50) {
-      console.warn(`[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render`);
-    }
-    
-    // Store metrics for analysis
-    const metrics: PerformanceMetrics = {
-      renderTime,
-      componentName,
-      timestamp: Date.now()
-    };
-    
-    // Store in session storage for debugging (only in development)
+    // Only process metrics in development
     if (process.env.NODE_ENV === 'development') {
+      // Only log slow renders
+      if (renderTime > 50) {
+        console.warn(`[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render`);
+      }
+      
+      // Store metrics for analysis
+      const metrics: PerformanceMetrics = {
+        renderTime,
+        componentName,
+        timestamp: Date.now()
+      };
+      
       try {
         const existingMetrics = JSON.parse(
           sessionStorage.getItem('performance-metrics') || '[]'
@@ -45,7 +45,9 @@ export function usePerformanceMonitor(componentName: string) {
         sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
       } catch (e) {
         // Ignore sessionStorage errors (quota exceeded, etc.)
-        console.warn('Failed to store performance metrics:', e);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to store performance metrics:', e);
+        }
       }
     }
   }); // Empty dependency array - run on every render

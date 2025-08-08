@@ -26,13 +26,20 @@ class DatabaseCircuitBreaker {
       }
     }
 
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
       const result = await Promise.race([
         operation(),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timeout')), this.timeoutMs)
-        )
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Operation timeout')), this.timeoutMs);
+        })
       ]);
+
+      // Clear timeout if operation succeeds
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       // Success - reset circuit breaker
       if (this.state.state === 'HALF_OPEN') {
@@ -42,6 +49,11 @@ class DatabaseCircuitBreaker {
 
       return result;
     } catch (error) {
+      // Clear timeout on error too
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
       this.handleFailure();
       throw error;
     }

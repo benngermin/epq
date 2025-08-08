@@ -155,4 +155,17 @@ app.use((req, res, next) => {
 
   process.on('SIGTERM', gracefulShutdown);
   process.on('SIGINT', gracefulShutdown);
-})();
+  
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process in production, but log for monitoring
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Exiting due to unhandled promise rejection in development');
+      process.exit(1);
+    }
+  });
+})().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});
