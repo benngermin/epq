@@ -17,6 +17,7 @@ import { eq, and, desc, asc, sql, not, inArray, isNull, gte, lte } from "drizzle
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
+import { getDateAtMidnightEST, getTodayEST } from "./utils/logger";
 
 export interface IStorage {
   // User methods
@@ -774,7 +775,7 @@ export class DatabaseStorage implements IStorage {
 
     // Active users calculations - Fixed to use proper timezone handling
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = getTodayEST();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -1107,7 +1108,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     let daysBack: number;
-    const now = new Date();
+    const now = getTodayEST();
     const dataStartDate = new Date(dateRange.minDate);
     
     // First determine daysBack based on timeRange
@@ -1140,7 +1141,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const startDate = new Date();
+    const startDate = getTodayEST();
     startDate.setDate(startDate.getDate() - daysBack);
 
     let query;
@@ -1149,19 +1150,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp),
-            DATE_TRUNC('week', CURRENT_DATE),
+            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('week', CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 week'::interval
           ) AS week_date
         ),
         week_data AS (
           SELECT 
-            DATE_TRUNC('week', started_at) as week_date,
+            DATE_TRUNC('week', started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as week_date,
             COUNT(DISTINCT id) as count
           FROM user_test_runs
           WHERE started_at >= ${startDate.toISOString()}
             AND started_at IS NOT NULL
-          GROUP BY DATE_TRUNC('week', started_at)
+          GROUP BY DATE_TRUNC('week', started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.week_date, 'YYYY-MM-DD') as date,
@@ -1176,19 +1177,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp),
-            DATE_TRUNC('month', CURRENT_DATE),
+            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 month'::interval
           ) AS month_date
         ),
         month_data AS (
           SELECT 
-            DATE_TRUNC('month', started_at) as month_date,
+            DATE_TRUNC('month', started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as month_date,
             COUNT(DISTINCT id) as count
           FROM user_test_runs
           WHERE started_at >= ${startDate.toISOString()}
             AND started_at IS NOT NULL
-          GROUP BY DATE_TRUNC('month', started_at)
+          GROUP BY DATE_TRUNC('month', started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.month_date, 'YYYY-MM-DD') as date,
@@ -1203,19 +1204,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            ${startDate.toISOString()}::date,
-            CURRENT_DATE,
+            (${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date,
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date,
             '1 day'::interval
           )::date AS day_date
         ),
         day_data AS (
           SELECT 
-            DATE(started_at) as day_date,
+            DATE(started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as day_date,
             COUNT(DISTINCT id) as count
           FROM user_test_runs
           WHERE started_at >= ${startDate.toISOString()}
             AND started_at IS NOT NULL
-          GROUP BY DATE(started_at)
+          GROUP BY DATE(started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.day_date, 'YYYY-MM-DD') as date,
@@ -1291,7 +1292,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     let daysBack: number;
-    const now = new Date();
+    const now = getTodayEST();
     const dataStartDate = new Date(dateRange.minDate);
     
     // First determine daysBack based on timeRange
@@ -1324,7 +1325,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const startDate = new Date();
+    const startDate = getTodayEST();
     startDate.setDate(startDate.getDate() - daysBack);
 
     let query;
@@ -1333,19 +1334,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp),
-            DATE_TRUNC('week', CURRENT_DATE),
+            DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('week', CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 week'::interval
           ) AS week_date
         ),
         week_data AS (
           SELECT 
-            DATE_TRUNC('week', answered_at) as week_date,
+            DATE_TRUNC('week', answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as week_date,
             COUNT(id) as count
           FROM user_answers
           WHERE answered_at >= ${startDate.toISOString()}
             AND answered_at IS NOT NULL
-          GROUP BY DATE_TRUNC('week', answered_at)
+          GROUP BY DATE_TRUNC('week', answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.week_date, 'YYYY-MM-DD') as date,
@@ -1360,19 +1361,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp),
-            DATE_TRUNC('month', CURRENT_DATE),
+            DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
             '1 month'::interval
           ) AS month_date
         ),
         month_data AS (
           SELECT 
-            DATE_TRUNC('month', answered_at) as month_date,
+            DATE_TRUNC('month', answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as month_date,
             COUNT(id) as count
           FROM user_answers
           WHERE answered_at >= ${startDate.toISOString()}
             AND answered_at IS NOT NULL
-          GROUP BY DATE_TRUNC('month', answered_at)
+          GROUP BY DATE_TRUNC('month', answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.month_date, 'YYYY-MM-DD') as date,
@@ -1387,19 +1388,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
-            ${startDate.toISOString()}::date,
-            CURRENT_DATE,
+            (${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date,
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date,
             '1 day'::interval
           )::date AS day_date
         ),
         day_data AS (
           SELECT 
-            DATE(answered_at) as day_date,
+            DATE(answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') as day_date,
             COUNT(id) as count
           FROM user_answers
           WHERE answered_at >= ${startDate.toISOString()}
             AND answered_at IS NOT NULL
-          GROUP BY DATE(answered_at)
+          GROUP BY DATE(answered_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')
         )
         SELECT 
           TO_CHAR(date_series.day_date, 'YYYY-MM-DD') as date,
@@ -1552,7 +1553,7 @@ export class DatabaseStorage implements IStorage {
   
   // Daily activity summary operations
   async updateDailyActivitySummary(date: Date, updates: Partial<InsertDailyActivitySummary>): Promise<void> {
-    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dateOnly = getDateAtMidnightEST(date);
     
     const existing = await db.select()
       .from(dailyActivitySummary)
@@ -1582,7 +1583,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDailyQuestionCount(date: Date): Promise<number> {
-    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dateOnly = getDateAtMidnightEST(date);
     const [summary] = await db.select()
       .from(dailyActivitySummary)
       .where(eq(dailyActivitySummary.date, dateOnly))

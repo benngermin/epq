@@ -15,6 +15,7 @@ import { eq, sql, desc, asc, inArray } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
+import { getTodayEST } from "./utils/logger";
 
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
@@ -864,8 +865,7 @@ export function registerRoutes(app: Express): Server {
       console.log(`[Practice Log] User ${userId} viewing question set ${id} - ${questionSet.title}`);
       
       // Update daily activity to track unique users
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = getTodayEST();
       
       // Note: We're not creating a test run here yet - that happens on first answer
       // This just tracks that the user viewed the question set
@@ -1181,8 +1181,7 @@ export function registerRoutes(app: Express): Server {
         console.log(`[Practice Log] User ${userId} answered question ${questionVersionId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
 
         // Update daily activity summary
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = getTodayEST();
         
         await storage.updateDailyActivitySummary(today, {
           questionsAnswered: await storage.getDailyQuestionCount(today) + 1,
