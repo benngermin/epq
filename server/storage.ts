@@ -1181,7 +1181,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(week_data.count, 0) as count
         FROM date_series
         LEFT JOIN week_data ON date_series.week_date = week_data.week_date
-        ORDER BY date_series.week_date DESC
+        ORDER BY date_series.week_date ASC
       `);
       query = result.rows as any[];
     } else if (groupBy === 'month') {
@@ -1208,7 +1208,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(month_data.count, 0) as count
         FROM date_series
         LEFT JOIN month_data ON date_series.month_date = month_data.month_date
-        ORDER BY date_series.month_date DESC
+        ORDER BY date_series.month_date ASC
       `);
       query = result.rows as any[];
     } else {
@@ -1235,16 +1235,18 @@ export class DatabaseStorage implements IStorage {
           COALESCE(day_data.count, 0) as count
         FROM date_series
         LEFT JOIN day_data ON date_series.day_date = day_data.day_date
-        ORDER BY date_series.day_date DESC
+        ORDER BY date_series.day_date ASC
       `);
       query = result.rows as any[];
       console.log('[getQuestionSetUsageByDate] First 3 dates returned:', query.slice(0, 3).map(r => r.date));
     }
     
-    return query.map(row => ({
+    const finalResult = query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
+    console.log('[getQuestionSetUsageByDate] Last date in result:', finalResult[finalResult.length - 1]?.date);
+    return finalResult;
   }
 
   async getQuestionSetUsageByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{
@@ -1372,7 +1374,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(week_data.count, 0) as count
         FROM date_series
         LEFT JOIN week_data ON date_series.week_date = week_data.week_date
-        ORDER BY date_series.week_date DESC
+        ORDER BY date_series.week_date ASC
       `);
       query = result.rows as any[];
     } else if (groupBy === 'month') {
@@ -1399,7 +1401,7 @@ export class DatabaseStorage implements IStorage {
           COALESCE(month_data.count, 0) as count
         FROM date_series
         LEFT JOIN month_data ON date_series.month_date = month_data.month_date
-        ORDER BY date_series.month_date DESC
+        ORDER BY date_series.month_date ASC
       `);
       query = result.rows as any[];
     } else {
@@ -1426,16 +1428,18 @@ export class DatabaseStorage implements IStorage {
           COALESCE(day_data.count, 0) as count
         FROM date_series
         LEFT JOIN day_data ON date_series.day_date = day_data.day_date
-        ORDER BY date_series.day_date DESC
+        ORDER BY date_series.day_date ASC
       `);
       query = result.rows as any[];
       console.log('[getQuestionsAnsweredByDate] First 3 dates returned:', query.slice(0, 3).map(r => r.date));
     }
     
-    return query.map(row => ({
+    const finalResult = query.map(row => ({
       date: String(row.date),
       count: Number(row.count || 0)
     }));
+    console.log('[getQuestionsAnsweredByDate] Last date in result:', finalResult[finalResult.length - 1]?.date);
+    return finalResult;
   }
 
   async getQuestionsAnsweredByCourse(timeRange: 'day' | 'week' | 'month' | 'all' = 'all'): Promise<Array<{

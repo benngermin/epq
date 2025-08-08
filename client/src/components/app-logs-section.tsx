@@ -210,10 +210,13 @@ export function AppLogsSection() {
         value: item.count
       }));
     } else {
-      return questionSetUsageData.map(item => ({
+      console.log('[questionSetChartData] Raw dates:', questionSetUsageData.map(item => item.date));
+      const result = questionSetUsageData.map(item => ({
         name: formatDateLabel(item.date || '', questionSetGroupBy),
         value: item.count
       }));
+      console.log('[questionSetChartData] Last item:', result[result.length - 1]);
+      return result;
     }
   }, [questionSetUsageData, questionSetViewType, questionSetGroupBy]);
 
