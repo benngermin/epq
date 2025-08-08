@@ -458,304 +458,307 @@ export function AppLogsSection() {
         </Card>
       </div>
 
-      {/* Question Set Usage Chart */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Question Set Usage
-              </CardTitle>
-              <CardDescription>
-                {questionSetViewType === 'date' 
-                  ? `Question sets started by ${questionSetGroupBy} (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`
-                  : `Question sets by course (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Select value={questionSetTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionSetTimeRange(value)}>
-                <SelectTrigger className="w-[110px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Last Day</SelectItem>
-                  <SelectItem value="week">Last Week</SelectItem>
-                  <SelectItem value="month">Last Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={questionSetViewType} onValueChange={(value: 'date' | 'course') => setQuestionSetViewType(value)}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">By Date</SelectItem>
-                  <SelectItem value="course">By Course</SelectItem>
-                </SelectContent>
-              </Select>
-              {questionSetViewType === 'date' && (
-                <Select value={questionSetGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionSetGroupBy(value)}>
-                  <SelectTrigger className="w-[100px]">
+      {/* Side-by-side Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Question Set Usage Chart */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Question Set Usage
+                </CardTitle>
+                <CardDescription>
+                  {questionSetViewType === 'date' 
+                    ? `Question sets started by ${questionSetGroupBy} (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`
+                    : `Question sets by course (${questionSetTimeRange === 'all' ? 'All Time' : `Last ${questionSetTimeRange}`})`}
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Select value={questionSetTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionSetTimeRange(value)}>
+                  <SelectTrigger className="w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
+                    <SelectItem value="day">Last Day</SelectItem>
+                    <SelectItem value="week">Last Week</SelectItem>
+                    <SelectItem value="month">Last Month</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
+                <Select value={questionSetViewType} onValueChange={(value: 'date' | 'course') => setQuestionSetViewType(value)}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">By Date</SelectItem>
+                    <SelectItem value="course">By Course</SelectItem>
+                  </SelectContent>
+                </Select>
+                {questionSetViewType === 'date' && (
+                  <Select value={questionSetGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionSetGroupBy(value)}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Day</SelectItem>
+                      <SelectItem value="week">Week</SelectItem>
+                      <SelectItem value="month">Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {questionSetChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={450}>
-              {questionSetViewType === 'date' ? (
-                <AreaChart data={questionSetChartData} margin={{ right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    className="text-xs" 
-                    angle={questionSetChartData.length > 10 ? -45 : 0}
-                    textAnchor={questionSetChartData.length > 10 ? "end" : "middle"}
-                    height={questionSetChartData.length > 10 ? 60 : 30}
-                    interval={0}
-                    tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 12,
-                      fontWeight: 500
-                    }}
-                  />
-                  <YAxis className="text-xs" tick={{ 
-                    fill: 'hsl(var(--foreground))', 
-                    fontSize: 12 
-                  }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))' 
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#3b82f6" 
-                    fill="#3b82f6" 
-                    fillOpacity={0.3}
-                    name="Question Sets"
-                  />
-                </AreaChart>
-              ) : (
-                <BarChart data={questionSetChartData} margin={{ bottom: 80, left: 20, right: 20, top: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={0}
-                    tick={{ 
-                      fill: '#000000', 
-                      fontSize: 11,
-                      fontWeight: 600,
-                      dy: 10
-                    }}
-                    tickLine={{ stroke: '#666666' }}
-                    axisLine={{ stroke: '#666666' }}
-                  />
-                  <YAxis tick={{ 
-                    fill: 'hsl(var(--foreground))', 
-                    fontSize: 11,
-                    fontWeight: 500
-                  }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      opacity: 0.98
-                    }}
-                    wrapperStyle={{ zIndex: 1000 }}
-                  />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Question Sets">
-                    <LabelList 
-                      position="top" 
-                      fill="#333333" 
-                      fontSize={11} 
-                      fontWeight={600}
-                      offset={5}
+          </CardHeader>
+          <CardContent>
+            {questionSetChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                {questionSetViewType === 'date' ? (
+                  <AreaChart data={questionSetChartData} margin={{ right: 20, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs" 
+                      angle={questionSetChartData.length > 8 ? -45 : 0}
+                      textAnchor={questionSetChartData.length > 8 ? "end" : "middle"}
+                      height={questionSetChartData.length > 8 ? 60 : 30}
+                      interval={0}
+                      tick={{ 
+                        fill: 'hsl(var(--foreground))', 
+                        fontSize: 11,
+                        fontWeight: 500
+                      }}
                     />
-                  </Bar>
-                </BarChart>
-              )}
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[450px] text-muted-foreground">
-              {questionSetUsageLoading ? 'Loading...' : 'No data available'}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <YAxis className="text-xs" tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 11 
+                    }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))' 
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#3b82f6" 
+                      fill="#3b82f6" 
+                      fillOpacity={0.3}
+                      name="Question Sets"
+                    />
+                  </AreaChart>
+                ) : (
+                  <BarChart data={questionSetChartData} margin={{ bottom: 70, left: 10, right: 10, top: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      interval={0}
+                      tick={{ 
+                        fill: '#000000', 
+                        fontSize: 10,
+                        fontWeight: 600,
+                        dy: 10
+                      }}
+                      tickLine={{ stroke: '#666666' }}
+                      axisLine={{ stroke: '#666666' }}
+                    />
+                    <YAxis tick={{ 
+                      fill: 'hsl(var(--foreground))', 
+                      fontSize: 10,
+                      fontWeight: 500
+                    }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        opacity: 0.98
+                      }}
+                      wrapperStyle={{ zIndex: 1000 }}
+                    />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Question Sets">
+                      <LabelList 
+                        position="top" 
+                        fill="#333333" 
+                        fontSize={10} 
+                        fontWeight={600}
+                        offset={3}
+                      />
+                    </Bar>
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                {questionSetUsageLoading ? 'Loading...' : 'No data available'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Questions Answered Chart */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileQuestion className="h-5 w-5" />
-                Questions Answered
-              </CardTitle>
-              <CardDescription>
-                {questionsAnsweredViewType === 'date' 
-                  ? `Total questions answered by ${questionsAnsweredGroupBy} (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`
-                  : `Questions answered by course (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Select value={questionsAnsweredTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionsAnsweredTimeRange(value)}>
-                <SelectTrigger className="w-[110px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Last Day</SelectItem>
-                  <SelectItem value="week">Last Week</SelectItem>
-                  <SelectItem value="month">Last Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={questionsAnsweredViewType} onValueChange={(value: 'date' | 'course') => setQuestionsAnsweredViewType(value)}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">By Date</SelectItem>
-                  <SelectItem value="course">By Course</SelectItem>
-                </SelectContent>
-              </Select>
-              {questionsAnsweredViewType === 'date' && (
-                <Select value={questionsAnsweredGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionsAnsweredGroupBy(value)}>
-                  <SelectTrigger className="w-[100px]">
+        {/* Questions Answered Chart */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileQuestion className="h-5 w-5" />
+                  Questions Answered
+                </CardTitle>
+                <CardDescription>
+                  {questionsAnsweredViewType === 'date' 
+                    ? `Total questions answered by ${questionsAnsweredGroupBy} (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`
+                    : `Questions answered by course (${questionsAnsweredTimeRange === 'all' ? 'All Time' : `Last ${questionsAnsweredTimeRange}`})`}
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Select value={questionsAnsweredTimeRange} onValueChange={(value: 'day' | 'week' | 'month' | 'all') => setQuestionsAnsweredTimeRange(value)}>
+                  <SelectTrigger className="w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
+                    <SelectItem value="day">Last Day</SelectItem>
+                    <SelectItem value="week">Last Week</SelectItem>
+                    <SelectItem value="month">Last Month</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
+                <Select value={questionsAnsweredViewType} onValueChange={(value: 'date' | 'course') => setQuestionsAnsweredViewType(value)}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">By Date</SelectItem>
+                    <SelectItem value="course">By Course</SelectItem>
+                  </SelectContent>
+                </Select>
+                {questionsAnsweredViewType === 'date' && (
+                  <Select value={questionsAnsweredGroupBy} onValueChange={(value: 'day' | 'week' | 'month') => setQuestionsAnsweredGroupBy(value)}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Day</SelectItem>
+                      <SelectItem value="week">Week</SelectItem>
+                      <SelectItem value="month">Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {questionsAnsweredChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={450}>
-              {questionsAnsweredViewType === 'date' ? (
-                <AreaChart data={questionsAnsweredChartData} margin={{ right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    className="text-xs" 
-                    angle={questionsAnsweredChartData.length > 10 ? -45 : 0}
-                    textAnchor={questionsAnsweredChartData.length > 10 ? "end" : "middle"}
-                    height={questionsAnsweredChartData.length > 10 ? 60 : 30}
-                    interval={0}
-                    tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 12,
-                      fontWeight: 500
-                    }}
-                  />
-                  <YAxis 
-                    className="text-xs" 
-                    tickCount={8}
-                    tickFormatter={(value) => value.toLocaleString()}
-                    tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 12 
-                    }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))' 
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#10b981" 
-                    fill="#10b981" 
-                    fillOpacity={0.3}
-                    name="Questions"
-                  />
-                </AreaChart>
-              ) : (
-                <BarChart data={questionsAnsweredChartData} margin={{ bottom: 80, left: 20, right: 20, top: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={0}
-                    tick={{ 
-                      fill: '#000000', 
-                      fontSize: 11,
-                      fontWeight: 600,
-                      dy: 10
-                    }}
-                    tickLine={{ stroke: '#666666' }}
-                    axisLine={{ stroke: '#666666' }}
-                  />
-                  <YAxis 
-                    tickCount={8}
-                    tickFormatter={(value) => value.toLocaleString()}
-                    tick={{ 
-                      fill: 'hsl(var(--foreground))', 
-                      fontSize: 11,
-                      fontWeight: 500
-                    }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      opacity: 0.98
-                    }}
-                    wrapperStyle={{ zIndex: 1000 }}
-                    formatter={(value: any) => [value.toLocaleString(), 'Questions']}
-                  />
-                  <Bar 
-                    dataKey="value" 
-                    fill="#10b981" 
-                    radius={[8, 8, 0, 0]} 
-                    name="Questions"
-                  >
-                    <LabelList 
-                      position="top" 
-                      fill="#333333" 
-                      fontSize={11} 
-                      fontWeight={600}
-                      offset={5}
+          </CardHeader>
+          <CardContent>
+            {questionsAnsweredChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                {questionsAnsweredViewType === 'date' ? (
+                  <AreaChart data={questionsAnsweredChartData} margin={{ right: 20, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs" 
+                      angle={questionsAnsweredChartData.length > 8 ? -45 : 0}
+                      textAnchor={questionsAnsweredChartData.length > 8 ? "end" : "middle"}
+                      height={questionsAnsweredChartData.length > 8 ? 60 : 30}
+                      interval={0}
+                      tick={{ 
+                        fill: 'hsl(var(--foreground))', 
+                        fontSize: 11,
+                        fontWeight: 500
+                      }}
                     />
-                  </Bar>
-                </BarChart>
-              )}
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[450px] text-muted-foreground">
-              {questionsAnsweredLoading ? 'Loading...' : 'No data available'}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <YAxis 
+                      className="text-xs" 
+                      tickCount={7}
+                      tickFormatter={(value) => value.toLocaleString()}
+                      tick={{ 
+                        fill: 'hsl(var(--foreground))', 
+                        fontSize: 11 
+                      }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))' 
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#10b981" 
+                      fill="#10b981" 
+                      fillOpacity={0.3}
+                      name="Questions"
+                    />
+                  </AreaChart>
+                ) : (
+                  <BarChart data={questionsAnsweredChartData} margin={{ bottom: 70, left: 10, right: 10, top: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      interval={0}
+                      tick={{ 
+                        fill: '#000000', 
+                        fontSize: 10,
+                        fontWeight: 600,
+                        dy: 10
+                      }}
+                      tickLine={{ stroke: '#666666' }}
+                      axisLine={{ stroke: '#666666' }}
+                    />
+                    <YAxis 
+                      tickCount={7}
+                      tickFormatter={(value) => value.toLocaleString()}
+                      tick={{ 
+                        fill: 'hsl(var(--foreground))', 
+                        fontSize: 10,
+                        fontWeight: 500
+                      }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        opacity: 0.98
+                      }}
+                      wrapperStyle={{ zIndex: 1000 }}
+                      formatter={(value: any) => [value.toLocaleString(), 'Questions']}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      fill="#10b981" 
+                      radius={[6, 6, 0, 0]} 
+                      name="Questions"
+                    >
+                      <LabelList 
+                        position="top" 
+                        fill="#333333" 
+                        fontSize={10} 
+                        fontWeight={600}
+                        offset={3}
+                      />
+                    </Bar>
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                {questionsAnsweredLoading ? 'Loading...' : 'No data available'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="courses" className="space-y-4">
