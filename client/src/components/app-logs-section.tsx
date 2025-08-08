@@ -190,12 +190,19 @@ export function AppLogsSection() {
 
   // Format chart data
   const formatDateLabel = (dateStr: string, groupBy: 'day' | 'week' | 'month') => {
-    console.log('[formatDateLabel] Input dateStr:', dateStr);
-    const date = new Date(dateStr);
-    console.log('[formatDateLabel] Parsed date:', date.toISOString(), 'Local:', date.toLocaleDateString());
-    const formatted = groupBy === 'month' ? format(date, 'MMM yyyy') : format(date, 'MMM dd');
-    console.log('[formatDateLabel] Formatted result:', formatted);
-    return formatted;
+    // Parse the date string as noon to avoid timezone issues
+    // When we parse "2025-08-08" we want it to be that date in local time
+    // Adding T12:00:00 ensures we're in the middle of the day to avoid DST edge cases
+    const date = new Date(dateStr + 'T12:00:00');
+    
+    switch(groupBy) {
+      case 'week':
+        return format(date, 'MMM dd');
+      case 'month':
+        return format(date, 'MMM yyyy');
+      default:
+        return format(date, 'MMM dd');
+    }
   };
 
   const questionSetChartData = useMemo(() => {
@@ -207,13 +214,10 @@ export function AppLogsSection() {
         value: item.count
       }));
     } else {
-      console.log('[questionSetChartData] Raw dates:', questionSetUsageData.map(item => item.date));
-      const result = questionSetUsageData.map(item => ({
+      return questionSetUsageData.map(item => ({
         name: formatDateLabel(item.date || '', questionSetGroupBy),
         value: item.count
       }));
-      console.log('[questionSetChartData] Last item:', result[result.length - 1]);
-      return result;
     }
   }, [questionSetUsageData, questionSetViewType, questionSetGroupBy]);
 
