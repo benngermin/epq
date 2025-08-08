@@ -1115,7 +1115,9 @@ export class DatabaseStorage implements IStorage {
 
     let daysBack: number;
     const now = getTodayEST();
+    // Add 1 day to endDate to include today's full data
     const endDate = getTodayEST();
+    endDate.setDate(endDate.getDate() + 1);
     const dataStartDate = new Date(dateRange.minDate);
     
     // First determine daysBack based on timeRange
@@ -1300,7 +1302,9 @@ export class DatabaseStorage implements IStorage {
 
     let daysBack: number;
     const now = getTodayEST();
+    // Add 1 day to endDate to include today's full data
     const endDate = getTodayEST();
+    endDate.setDate(endDate.getDate() + 1);
     const dataStartDate = new Date(dateRange.minDate);
     
     // First determine daysBack based on timeRange
