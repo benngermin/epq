@@ -190,15 +190,12 @@ export function AppLogsSection() {
 
   // Format chart data
   const formatDateLabel = (dateStr: string, groupBy: 'day' | 'week' | 'month') => {
+    console.log('[formatDateLabel] Input dateStr:', dateStr);
     const date = new Date(dateStr);
-    switch(groupBy) {
-      case 'week':
-        return format(date, 'MMM dd');
-      case 'month':
-        return format(date, 'MMM yyyy');
-      default:
-        return format(date, 'MMM dd');
-    }
+    console.log('[formatDateLabel] Parsed date:', date.toISOString(), 'Local:', date.toLocaleDateString());
+    const formatted = groupBy === 'month' ? format(date, 'MMM yyyy') : format(date, 'MMM dd');
+    console.log('[formatDateLabel] Formatted result:', formatted);
+    return formatted;
   };
 
   const questionSetChartData = useMemo(() => {
