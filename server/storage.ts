@@ -350,39 +350,42 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQuestionSet(id: number): Promise<boolean> {
     try {
-      // First, check if there are any test runs that reference this question set
-      const referencingTestRuns = await db.select().from(userTestRuns).where(eq(userTestRuns.questionSetId, id));
-      
-      // If there are test runs referencing this question set, we should not delete it
-      if (referencingTestRuns.length > 0) {
-        throw new Error('Cannot delete question set with existing test runs');
-      }
+      // Use transaction to ensure all deletions are atomic
+      return await db.transaction(async (tx) => {
+        // First, check if there are any test runs that reference this question set
+        const referencingTestRuns = await tx.select().from(userTestRuns).where(eq(userTestRuns.questionSetId, id));
+        
+        // If there are test runs referencing this question set, we should not delete it
+        if (referencingTestRuns.length > 0) {
+          throw new Error('Cannot delete question set with existing test runs');
+        }
 
-      // Delete user answers for all question versions in this set
-      await db.execute(sql`
-        DELETE FROM user_answers 
-        WHERE question_version_id IN (
-          SELECT qv.id 
-          FROM question_versions qv 
-          JOIN questions q ON qv.question_id = q.id 
-          WHERE q.question_set_id = ${id}
-        )
-      `);
+        // Delete user answers for all question versions in this set
+        await tx.execute(sql`
+          DELETE FROM user_answers 
+          WHERE question_version_id IN (
+            SELECT qv.id 
+            FROM question_versions qv 
+            JOIN questions q ON qv.question_id = q.id 
+            WHERE q.question_set_id = ${id}
+          )
+        `);
 
-      // Delete all question versions for questions in this set
-      await db.execute(sql`
-        DELETE FROM question_versions 
-        WHERE question_id IN (
-          SELECT id FROM questions WHERE question_set_id = ${id}
-        )
-      `);
+        // Delete all question versions for questions in this set
+        await tx.execute(sql`
+          DELETE FROM question_versions 
+          WHERE question_id IN (
+            SELECT id FROM questions WHERE question_set_id = ${id}
+          )
+        `);
 
-      // Delete all questions in the set
-      await db.delete(questions).where(eq(questions.questionSetId, id));
+        // Delete all questions in the set
+        await tx.delete(questions).where(eq(questions.questionSetId, id));
 
-      // Finally, delete the question set
-      const result = await db.delete(questionSets).where(eq(questionSets.id, id));
-      return (result.rowCount || 0) > 0;
+        // Finally, delete the question set
+        const result = await tx.delete(questionSets).where(eq(questionSets.id, id));
+        return (result.rowCount || 0) > 0;
+      });
     } catch (error) {
       console.error('Error in deleteQuestionSet:', error);
       throw error;
@@ -531,10 +534,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setActivePromptVersion(id: number): Promise<void> {
-    // First deactivate all versions
-    await db.update(promptVersions).set({ isActive: false });
-    // Then activate the specified version
-    await db.update(promptVersions).set({ isActive: true }).where(eq(promptVersions.id, id));
+    // Use transaction to ensure atomic update
+    await db.transaction(async (tx) => {
+      // First deactivate all versions
+      await tx.update(promptVersions).set({ isActive: false });
+      // Then activate the specified version
+      await tx.update(promptVersions).set({ isActive: true }).where(eq(promptVersions.id, id));
+    });
   }
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {

@@ -17,12 +17,21 @@ import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
 import { getTodayEST } from "./utils/logger";
 
+// Custom error class for HTTP errors
+class HttpError extends Error {
+  status: number;
+  
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = 'HttpError';
+  }
+}
+
 // Type assertion helper for authenticated requests
 function assertAuthenticated(req: Request): asserts req is Request & { user: NonNullable<Express.User> } {
   if (!req.isAuthenticated() || !req.user) {
-    const error = new Error('Authentication required') as any;
-    error.status = 401;
-    throw error;
+    throw new HttpError('Authentication required', 401);
   }
 }
 

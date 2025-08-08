@@ -50,6 +50,11 @@ async function comparePasswords(supplied: string, stored: string | null) {
 }
 
 export function setupAuth(app: Express) {
+  // Critical: Ensure SESSION_SECRET is set in production
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
     resave: false, // Prevent unnecessary session writes
@@ -248,11 +253,9 @@ export function setupAuth(app: Express) {
           hasUser: !!req.user,
           sessionId: req.sessionID,
           sessionExists: !!req.session,
-          sessionData: req.session ? Object.keys(req.session) : [],
+          // Removed sensitive data: sessionData, cookies
           method: req.method,
-          path: req.path,
-          userAgent: req.headers['user-agent']?.slice(0, 50),
-          cookies: req.headers.cookie?.slice(0, 100)
+          path: req.path
         });
       }
       return res.status(401).json({ message: "Not authenticated" });
