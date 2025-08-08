@@ -46,9 +46,9 @@ export function getTodayEST(): Date {
     timeZone: "America/New_York"
   }); // Returns YYYY-MM-DD format
   
-  // Create a date for midnight Eastern time
-  // Since we want midnight Eastern, we need to figure out what UTC time that is
-  const testDate = new Date(`${easternDateStr}T00:00:00`);
+  // Create a date object for midnight in the local (server) timezone
+  // Then we'll adjust it to represent midnight Eastern Time in UTC
+  const midnightLocal = new Date(`${easternDateStr}T00:00:00`);
   
   // Format with timezone to check if DST is active
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -56,15 +56,17 @@ export function getTodayEST(): Date {
     timeZoneName: 'short'
   });
   
-  const parts = formatter.formatToParts(testDate);
+  const parts = formatter.formatToParts(midnightLocal);
   const tzName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
   
   // EDT is UTC-4, EST is UTC-5
   const isDST = tzName.includes('EDT') || tzName.includes('Eastern Daylight');
   const offsetHours = isDST ? 4 : 5;
   
-  // Return midnight Eastern as UTC
-  return new Date(`${easternDateStr}T0${offsetHours}:00:00.000Z`);
+  // Midnight Eastern Time in UTC is the date plus the offset hours
+  // For example: Aug 8 midnight EDT = Aug 8 04:00 UTC (same calendar day, 4 hours later)
+  const hourString = offsetHours.toString().padStart(2, '0');
+  return new Date(`${easternDateStr}T${hourString}:00:00.000Z`);
 }
 
 // Get a date at midnight in Eastern Time for a given date (handles EST/EDT automatically)
@@ -74,8 +76,8 @@ export function getDateAtMidnightEST(date: Date): Date {
     timeZone: "America/New_York"
   }); // Returns YYYY-MM-DD format
   
-  // Create a date for midnight Eastern time
-  const testDate = new Date(`${easternDateStr}T00:00:00`);
+  // Create a date object for midnight in the local (server) timezone
+  const midnightLocal = new Date(`${easternDateStr}T00:00:00`);
   
   // Format with timezone to check if DST is active
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -83,13 +85,15 @@ export function getDateAtMidnightEST(date: Date): Date {
     timeZoneName: 'short'
   });
   
-  const parts = formatter.formatToParts(testDate);
+  const parts = formatter.formatToParts(midnightLocal);
   const tzName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
   
   // EDT is UTC-4, EST is UTC-5
   const isDST = tzName.includes('EDT') || tzName.includes('Eastern Daylight');
   const offsetHours = isDST ? 4 : 5;
   
-  // Return midnight Eastern as UTC
-  return new Date(`${easternDateStr}T0${offsetHours}:00:00.000Z`);
+  // Midnight Eastern Time in UTC is the date plus the offset hours
+  // For example: Aug 8 midnight EDT = Aug 8 04:00 UTC (same calendar day, 4 hours later)
+  const hourString = offsetHours.toString().padStart(2, '0');
+  return new Date(`${easternDateStr}T${hourString}:00:00.000Z`);
 }
