@@ -62,6 +62,11 @@ import {
 } from "recharts";
 import { CourseHierarchyLogs } from "./course-hierarchy-logs";
 
+// Utility function to format numbers with commas
+const formatNumber = (num: number): string => {
+  return num.toLocaleString();
+};
+
 interface OverallStats {
   totalUsers: number;
   totalCourses: number;
@@ -401,10 +406,12 @@ export function AppLogsSection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {timeScale === 'all' ? overallStats?.totalUsers || 0 : 
-               timeScale === 'day' ? overallStats?.activeUsersToday || 0 :
-               timeScale === 'week' ? overallStats?.activeUsersThisWeek || 0 :
-               overallStats?.activeUsersThisMonth || 0}
+              {formatNumber(
+                timeScale === 'all' ? overallStats?.totalUsers || 0 : 
+                timeScale === 'day' ? overallStats?.activeUsersToday || 0 :
+                timeScale === 'week' ? overallStats?.activeUsersThisWeek || 0 :
+                overallStats?.activeUsersThisMonth || 0
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {timeScale === 'all' ? 'Total registered' :
@@ -424,10 +431,12 @@ export function AppLogsSection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {timeScale === 'all' ? overallStats?.totalTestRuns || 0 :
-               timeScale === 'day' ? overallStats?.testRunsStartedToday || 0 :
-               timeScale === 'week' ? overallStats?.testRunsThisWeek || 0 :
-               overallStats?.testRunsThisMonth || 0}
+              {formatNumber(
+                timeScale === 'all' ? overallStats?.totalTestRuns || 0 :
+                timeScale === 'day' ? overallStats?.testRunsStartedToday || 0 :
+                timeScale === 'week' ? overallStats?.testRunsThisWeek || 0 :
+                overallStats?.testRunsThisMonth || 0
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {timeScale === 'all' ? 'Total started' :
@@ -447,10 +456,12 @@ export function AppLogsSection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {timeScale === 'all' ? overallStats?.totalAnswers || 0 :
-               timeScale === 'day' ? overallStats?.answersToday || 0 :
-               timeScale === 'week' ? overallStats?.answersThisWeek || 0 :
-               overallStats?.answersThisMonth || 0}
+              {formatNumber(
+                timeScale === 'all' ? overallStats?.totalAnswers || 0 :
+                timeScale === 'day' ? overallStats?.answersToday || 0 :
+                timeScale === 'week' ? overallStats?.answersThisWeek || 0 :
+                overallStats?.answersThisMonth || 0
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {timeScale === 'all' ? 'Total answered' :
@@ -548,6 +559,7 @@ export function AppLogsSection() {
                         opacity: 0.95
                       }} 
                       wrapperStyle={{ zIndex: 1000 }}
+                      formatter={(value: any) => [formatNumber(value), 'Question Sets']}
                     />
                     <Area 
                       type="monotone" 
@@ -591,6 +603,7 @@ export function AppLogsSection() {
                         opacity: 0.95
                       }}
                       wrapperStyle={{ zIndex: 1000 }}
+                      formatter={(value: any) => [formatNumber(value), 'Question Sets']}
                     />
                     <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Question Sets">
                       <LabelList 
@@ -701,6 +714,7 @@ export function AppLogsSection() {
                         opacity: 0.95
                       }} 
                       wrapperStyle={{ zIndex: 1000 }}
+                      formatter={(value: any) => [formatNumber(value), 'Questions']}
                     />
                     <Area 
                       type="monotone" 
@@ -836,7 +850,7 @@ export function AppLogsSection() {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
-                    <span>Showing {filteredUsers.length} of {userStats?.length || 0} users</span>
+                    <span>Showing {formatNumber(filteredUsers.length)} of {formatNumber(userStats?.length || 0)} users</span>
                   </div>
                 </div>
               </div>
@@ -862,8 +876,8 @@ export function AppLogsSection() {
                         <TableRow key={user.userId}>
                           <TableCell className="font-medium">{user.userName}</TableCell>
                           <TableCell>{user.userEmail}</TableCell>
-                          <TableCell>{user.totalTestRuns}</TableCell>
-                          <TableCell>{user.totalAnswers}</TableCell>
+                          <TableCell>{formatNumber(user.totalTestRuns)}</TableCell>
+                          <TableCell>{formatNumber(user.totalAnswers)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Progress value={calculatedSuccessRate} className="w-16 h-2" />

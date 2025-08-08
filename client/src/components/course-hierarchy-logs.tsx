@@ -49,6 +49,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
+// Utility function to format numbers with commas
+const formatNumber = (num: number): string => {
+  return num.toLocaleString();
+};
+
 interface CourseStat {
   courseId: number;
   courseNumber: string;
@@ -381,10 +386,10 @@ export function CourseHierarchyLogs() {
                               </span>
                             )}
                             <Badge variant="outline">
-                              {course.totalQuestionSets} sets
+                              {formatNumber(course.totalQuestionSets)} sets
                             </Badge>
                             <Badge variant="outline">
-                              {course.totalQuestions} questions
+                              {formatNumber(course.totalQuestions)} questions
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -395,11 +400,11 @@ export function CourseHierarchyLogs() {
                       <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>{course.uniqueUsers} users</span>
+                          <span>{formatNumber(course.uniqueUsers)} users</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Target className="h-4 w-4 text-muted-foreground" />
-                          <span>{course.totalAttempts} questions answered</span>
+                          <span>{formatNumber(course.totalAttempts)} questions answered</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Progress value={course.averageScore || 0} className="w-20 h-2" />
@@ -453,7 +458,7 @@ export function CourseHierarchyLogs() {
                                             )}
                                             {detailedStats && (
                                               <Badge variant="outline" className="text-xs">
-                                                {detailedStats.questionSetInfo.totalQuestions} questions
+                                                {formatNumber(detailedStats.questionSetInfo.totalQuestions)} questions
                                               </Badge>
                                             )}
                                           </div>
@@ -467,11 +472,11 @@ export function CourseHierarchyLogs() {
                                       <div className="flex items-center gap-4 text-sm">
                                         <div className="flex items-center gap-2">
                                           <span className="text-green-600 font-medium">
-                                            {questionSet.correctAttempts}
+                                            {formatNumber(questionSet.correctAttempts)}
                                           </span>
                                           <span className="text-muted-foreground">/</span>
                                           <span className="text-red-600 font-medium">
-                                            {questionSet.incorrectAttempts}
+                                            {formatNumber(questionSet.incorrectAttempts)}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -533,16 +538,16 @@ export function CourseHierarchyLogs() {
                                                         </span>
                                                       </TableCell>
                                                       <TableCell className="text-right">
-                                                        {question.totalAttempts}
+                                                        {formatNumber(question.totalAttempts)}
                                                       </TableCell>
                                                       <TableCell className="text-right">
                                                         <span className="text-green-600 font-medium">
-                                                          {question.correctAttempts}
+                                                          {formatNumber(question.correctAttempts)}
                                                         </span>
                                                       </TableCell>
                                                       <TableCell className="text-right">
                                                         <span className="text-red-600 font-medium">
-                                                          {question.incorrectAttempts}
+                                                          {formatNumber(question.incorrectAttempts)}
                                                         </span>
                                                       </TableCell>
                                                       <TableCell>
