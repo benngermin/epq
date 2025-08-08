@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { closeDatabase } from "./db";
 import { createDatabaseIndexes } from "./utils/db-indexes";
+import { logWithEST } from "./utils/logger";
 import dotenv from "dotenv";
 
 // Load environment variables from .env file
@@ -85,7 +86,8 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      // Use EST logging instead of the default UTC logging
+      logWithEST(logLine);
     }
   });
 

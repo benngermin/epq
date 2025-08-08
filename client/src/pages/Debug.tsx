@@ -150,8 +150,14 @@ export default function Debug() {
               <span className="text-sm font-mono">{formatUptime(status.server.uptime)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Last Update</span>
-              <span className="text-sm">{format(new Date(status.timestamp), 'HH:mm:ss')}</span>
+              <span className="text-sm text-muted-foreground">Last Update (EST)</span>
+              <span className="text-sm">{new Date(status.timestamp).toLocaleTimeString('en-US', { 
+                timeZone: 'America/New_York',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              })}</span>
             </div>
           </CardContent>
         </Card>
