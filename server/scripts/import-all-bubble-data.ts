@@ -134,12 +134,12 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
       if (!course) {
         console.log(`  📚 Creating new course: ${courseNumber}`);
         course = await storage.createCourse({
-          title: courseNumber, // Use only course number as title
-          description: `${courseTitle} - Imported from Bubble repository`,
+          courseTitle: courseTitle,
+          courseNumber: courseNumber,
           externalId: courseNumber
         });
       } else {
-        console.log(`  ✓ Found existing course: ${course.title}`);
+        console.log(`  ✓ Found existing course: ${course.courseTitle}`);
       }
 
       // Check if question set already exists
@@ -229,7 +229,7 @@ async function importQuestionSets(bubbleQuestionSets: any[]) {
       
     } catch (error) {
       importResults.failed++;
-      const errorMsg = `Failed to import ${bubbleQuestionSet.title}: ${error.message}`;
+      const errorMsg = `Failed to import ${bubbleQuestionSet.title}: ${error instanceof Error ? error.message : String(error)}`;
       importResults.errors.push(errorMsg);
       console.error(`  ❌ ${errorMsg}`);
     }

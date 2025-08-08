@@ -25,7 +25,7 @@ interface ChatbotLog {
 export function ChatbotLogsSection() {
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
 
-  const { data: logs = [], isLoading } = useQuery({
+  const { data: logs = [], isLoading } = useQuery<ChatbotLog[]>({
     queryKey: ['/api/admin/chatbot-logs'],
   });
 

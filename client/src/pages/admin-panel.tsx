@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -24,7 +24,8 @@ import { useLocation } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
-import { AppLogsSection } from "@/components/app-logs-section";
+// Lazy load the AppLogsSection component to reduce initial bundle size
+const AppLogsSection = lazy(() => import("@/components/app-logs-section").then(module => ({ default: module.AppLogsSection })));
 import type { AiSettings, PromptVersion } from "@shared/schema";
 
 
@@ -1038,7 +1039,22 @@ export default function AdminPanel() {
             {/* Logs Tab */}
             <TabsContent value="logs">
               <div className="space-y-6">
-                <AppLogsSection />
+                <Suspense fallback={
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Loading Logs...</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="animate-pulse space-y-4">
+                        <div className="h-32 bg-muted rounded"></div>
+                        <div className="h-32 bg-muted rounded"></div>
+                        <div className="h-32 bg-muted rounded"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                }>
+                  <AppLogsSection />
+                </Suspense>
               </div>
             </TabsContent>
 
