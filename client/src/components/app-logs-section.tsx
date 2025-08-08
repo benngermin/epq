@@ -513,7 +513,7 @@ export function AppLogsSection() {
           {questionSetChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={450}>
               {questionSetViewType === 'date' ? (
-                <AreaChart data={questionSetChartData}>
+                <AreaChart data={questionSetChartData} margin={{ right: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
@@ -521,6 +521,7 @@ export function AppLogsSection() {
                     angle={questionSetChartData.length > 10 ? -45 : 0}
                     textAnchor={questionSetChartData.length > 10 ? "end" : "middle"}
                     height={questionSetChartData.length > 10 ? 60 : 30}
+                    interval={0}
                     tick={{ 
                       fill: 'hsl(var(--foreground))', 
                       fontSize: 12,
@@ -654,7 +655,7 @@ export function AppLogsSection() {
           {questionsAnsweredChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={450}>
               {questionsAnsweredViewType === 'date' ? (
-                <AreaChart data={questionsAnsweredChartData}>
+                <AreaChart data={questionsAnsweredChartData} margin={{ right: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
@@ -662,6 +663,7 @@ export function AppLogsSection() {
                     angle={questionsAnsweredChartData.length > 10 ? -45 : 0}
                     textAnchor={questionsAnsweredChartData.length > 10 ? "end" : "middle"}
                     height={questionsAnsweredChartData.length > 10 ? 60 : 30}
+                    interval={0}
                     tick={{ 
                       fill: 'hsl(var(--foreground))', 
                       fontSize: 12,
