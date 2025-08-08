@@ -1115,10 +1115,13 @@ export class DatabaseStorage implements IStorage {
 
     let daysBack: number;
     const now = getTodayEST();
-    // Add 1 day to endDate to include today's full data
-    const endDate = getTodayEST();
-    endDate.setDate(endDate.getDate() + 1);
+    // Use current date/time to ensure we include all of today's data
+    const endDate = new Date();
     const dataStartDate = new Date(dateRange.minDate);
+    
+    console.log('[getQuestionSetUsageByDate] Current time:', new Date().toISOString());
+    console.log('[getQuestionSetUsageByDate] Today EST:', now.toISOString());
+    console.log('[getQuestionSetUsageByDate] EndDate for query:', endDate.toISOString());
     
     // First determine daysBack based on timeRange
     if (timeRange === 'all') {
@@ -1160,7 +1163,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE_TRUNC('week', ${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York'),
             '1 week'::interval
           ) AS week_date
         ),
@@ -1187,7 +1190,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE_TRUNC('month', ${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('month', NOW() AT TIME ZONE 'America/New_York'),
             '1 month'::interval
           ) AS month_date
         ),
@@ -1214,7 +1217,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE(${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE(NOW() AT TIME ZONE 'America/New_York'),
             '1 day'::interval
           )::date AS day_date
         ),
@@ -1235,6 +1238,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY date_series.day_date DESC
       `);
       query = result.rows as any[];
+      console.log('[getQuestionSetUsageByDate] First 3 dates returned:', query.slice(0, 3).map(r => r.date));
     }
     
     return query.map(row => ({
@@ -1302,10 +1306,13 @@ export class DatabaseStorage implements IStorage {
 
     let daysBack: number;
     const now = getTodayEST();
-    // Add 1 day to endDate to include today's full data
-    const endDate = getTodayEST();
-    endDate.setDate(endDate.getDate() + 1);
+    // Use current date/time to ensure we include all of today's data
+    const endDate = new Date();
     const dataStartDate = new Date(dateRange.minDate);
+    
+    console.log('[getQuestionsAnsweredByDate] Current time:', new Date().toISOString());
+    console.log('[getQuestionsAnsweredByDate] Today EST:', now.toISOString());
+    console.log('[getQuestionsAnsweredByDate] EndDate for query:', endDate.toISOString());
     
     // First determine daysBack based on timeRange
     if (timeRange === 'all') {
@@ -1347,7 +1354,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE_TRUNC('week', ${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('week', NOW() AT TIME ZONE 'America/New_York'),
             '1 week'::interval
           ) AS week_date
         ),
@@ -1374,7 +1381,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE_TRUNC('month', ${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE_TRUNC('month', NOW() AT TIME ZONE 'America/New_York'),
             '1 month'::interval
           ) AS month_date
         ),
@@ -1401,7 +1408,7 @@ export class DatabaseStorage implements IStorage {
         WITH date_series AS (
           SELECT generate_series(
             DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
-            DATE(${endDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
+            DATE(NOW() AT TIME ZONE 'America/New_York'),
             '1 day'::interval
           )::date AS day_date
         ),
@@ -1422,6 +1429,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY date_series.day_date DESC
       `);
       query = result.rows as any[];
+      console.log('[getQuestionsAnsweredByDate] First 3 dates returned:', query.slice(0, 3).map(r => r.date));
     }
     
     return query.map(row => ({
