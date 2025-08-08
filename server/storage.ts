@@ -782,7 +782,7 @@ export class DatabaseStorage implements IStorage {
     // Active users today (users who have any activity today)
     const [activeToday] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
-      .where(sql`DATE(started_at) = CURRENT_DATE`);
+      .where(sql`DATE(started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
     const [activeWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
@@ -795,7 +795,7 @@ export class DatabaseStorage implements IStorage {
     // Question sets started statistics
     const [testRunsToday] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
-      .where(sql`DATE(${userTestRuns.startedAt}) = CURRENT_DATE`);
+      .where(sql`DATE(${userTestRuns.startedAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
     const [testRunsWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
@@ -808,7 +808,7 @@ export class DatabaseStorage implements IStorage {
     // Questions answered statistics
     const [answersToday] = await db.select({ count: sql<number>`COUNT(*)` })
       .from(userAnswers)
-      .where(sql`DATE(${userAnswers.answeredAt}) = CURRENT_DATE`);
+      .where(sql`DATE(${userAnswers.answeredAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
     const [answersWeek] = await db.select({ count: sql<number>`COUNT(*)` })
       .from(userAnswers)
