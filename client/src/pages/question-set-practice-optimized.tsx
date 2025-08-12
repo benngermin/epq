@@ -479,7 +479,7 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden bg-muted/40 flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden px-4 py-1.5">
+        <div className="lg:hidden p-4">
           <Button
             variant="outline"
             size="sm"
