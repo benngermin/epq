@@ -96,6 +96,17 @@ export interface IStorage {
   
   // Chatbot feedback methods
   createChatbotFeedback(feedback: InsertChatbotFeedback): Promise<ChatbotFeedback>;
+  getChatbotFeedback(): Promise<Array<{
+    id: number;
+    userId: number | null;
+    userName: string;
+    userEmail: string;
+    messageId: string;
+    feedbackType: string;
+    feedbackMessage: string | null;
+    assistantMessage: string | null;
+    createdAt: Date;
+  }>>;
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
@@ -762,6 +773,45 @@ export class DatabaseStorage implements IStorage {
   async createChatbotFeedback(feedback: InsertChatbotFeedback): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
     return newFeedback;
+  }
+
+  async getChatbotFeedback(): Promise<Array<{
+    id: number;
+    userId: number | null;
+    userName: string;
+    userEmail: string;
+    messageId: string;
+    feedbackType: string;
+    feedbackMessage: string | null;
+    assistantMessage: string | null;
+    createdAt: Date;
+  }>> {
+    const result = await db.select({
+      id: chatbotFeedback.id,
+      userId: chatbotFeedback.userId,
+      userName: users.name,
+      userEmail: users.email,
+      messageId: chatbotFeedback.messageId,
+      feedbackType: chatbotFeedback.feedbackType,
+      feedbackMessage: chatbotFeedback.feedbackMessage,
+      assistantMessage: chatbotLogs.aiResponse,
+      createdAt: chatbotFeedback.createdAt,
+    })
+    .from(chatbotFeedback)
+    .leftJoin(users, eq(chatbotFeedback.userId, users.id))
+    .leftJoin(chatbotLogs, and(
+      eq(chatbotFeedback.userId, chatbotLogs.userId),
+      sql`${chatbotLogs.createdAt} <= ${chatbotFeedback.createdAt}`
+    ))
+    .orderBy(desc(chatbotFeedback.createdAt));
+
+    // Map the result to handle null users
+    return result.map(item => ({
+      ...item,
+      userName: item.userName || 'Anonymous User',
+      userEmail: item.userEmail || 'N/A',
+      assistantMessage: item.assistantMessage || null,
+    }));
   }
 
   async getOverallStats(timeScale?: string): Promise<{

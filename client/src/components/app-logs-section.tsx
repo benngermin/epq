@@ -40,6 +40,9 @@ import {
   Award,
   Search,
   Filter,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { 
@@ -94,6 +97,18 @@ interface UserStat {
   correctAnswers: number;
   lastActive: string | null;
   registeredAt: string;
+}
+
+interface FeedbackData {
+  id: number;
+  userId: number | null;
+  userName: string;
+  userEmail: string;
+  messageId: string;
+  feedbackType: string;
+  feedbackMessage: string | null;
+  assistantMessage: string | null;
+  createdAt: string;
 }
 
 interface QuestionStats {
@@ -158,6 +173,10 @@ export function AppLogsSection() {
 
   const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
     queryKey: ["/api/admin/logs/courses"],
+  });
+
+  const { data: feedbackData, isLoading: feedbackLoading } = useQuery<FeedbackData[]>({
+    queryKey: ["/api/admin/logs/feedback"],
   });
 
   // State for chart controls
@@ -792,9 +811,10 @@ export function AppLogsSection() {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="courses" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="courses">Courses</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -897,6 +917,88 @@ export function AppLogsSection() {
         {/* Courses Tab - Now shows hierarchical view */}
         <TabsContent value="courses">
           <CourseHierarchyLogs />
+        </TabsContent>
+
+        {/* Feedback Tab */}
+        <TabsContent value="feedback">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                User Feedback
+              </CardTitle>
+              <CardDescription>
+                All feedback submitted by users on AI assistant responses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {feedbackLoading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : !feedbackData || feedbackData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No feedback yet</p>
+                  <p className="text-sm mt-2">User feedback will appear here when submitted</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-4">
+                    {feedbackData.map((feedback) => (
+                      <div key={feedback.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${
+                              feedback.feedbackType === 'positive' 
+                                ? 'bg-green-100 text-green-600' 
+                                : 'bg-red-100 text-red-600'
+                            }`}>
+                              {feedback.feedbackType === 'positive' ? (
+                                <ThumbsUp className="h-4 w-4" />
+                              ) : (
+                                <ThumbsDown className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">{feedback.userName}</p>
+                              <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
+                              {feedback.feedbackType}
+                            </Badge>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {feedback.feedbackMessage && (
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <p className="text-sm font-medium mb-1">User Feedback:</p>
+                            <p className="text-sm">{feedback.feedbackMessage}</p>
+                          </div>
+                        )}
+                        
+                        {feedback.assistantMessage && (
+                          <div className="bg-muted/30 rounded-lg p-3">
+                            <p className="text-sm font-medium mb-1">Assistant Message:</p>
+                            <p className="text-sm line-clamp-3">{feedback.assistantMessage}</p>
+                          </div>
+                        )}
+                        
+                        <div className="text-xs text-muted-foreground">
+                          Message ID: {feedback.messageId}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

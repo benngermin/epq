@@ -2031,6 +2031,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  app.get("/api/admin/logs/feedback", requireAdmin, async (req, res) => {
+    try {
+      const feedbackData = await storage.getChatbotFeedback();
+      res.json(feedbackData);
+    } catch (error) {
+      console.error("Error fetching feedback data:", error);
+      res.status(500).json({ message: "Failed to fetch feedback data" });
+    }
+  });
+
   app.get("/api/admin/logs/question-set-usage", requireAdmin, async (req, res) => {
     try {
       const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
