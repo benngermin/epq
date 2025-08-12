@@ -47,21 +47,24 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
   const temperature = 0; // Always use deterministic output
   
-  // Set max tokens based on model
-  let maxTokens = 4096; // Default fallback
-  if (modelName.includes('claude-3-haiku')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-3-opus')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('claude-sonnet-4') || modelName.includes('claude-opus-4')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('gpt-3.5-turbo')) {
+  // Set max tokens based on model - more flexible approach for any OpenRouter model
+  let maxTokens = 8192; // Default to a reasonable max for most models
+  
+  // Common model patterns and their typical max tokens
+  if (modelName.includes('claude')) {
+    maxTokens = 4096; // Most Claude models use 4096
+  } else if (modelName.includes('gpt-3.5')) {
     maxTokens = 4096;
   } else if (modelName.includes('gpt-4')) {
     maxTokens = 8192;
-  } else if (modelName.includes('gemini-2.5-flash') || modelName.includes('gemini-2.5-pro')) {
-    maxTokens = 8192; // Gemini models support up to 8192 tokens
+  } else if (modelName.includes('gemini')) {
+    maxTokens = 8192; // Gemini models typically support 8192
+  } else if (modelName.includes('mixtral') || modelName.includes('mistral')) {
+    maxTokens = 8192; // Mistral/Mixtral models
+  } else if (modelName.includes('llama')) {
+    maxTokens = 4096; // LLaMA models typically use 4096
   }
+  // For any other model, the default of 8192 will be used
 
   try {
     const messages = [];
@@ -252,18 +255,24 @@ async function streamOpenRouterToBuffer(
   const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
   const temperature = 0;
   
-  let maxTokens = 4096;
-  if (modelName.includes('claude-3-haiku')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('claude-3-sonnet') || modelName.includes('claude-sonnet-4')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('gpt-3.5-turbo')) {
+  // Set max tokens based on model - more flexible approach for any OpenRouter model
+  let maxTokens = 8192; // Default to a reasonable max for most models
+  
+  // Common model patterns and their typical max tokens
+  if (modelName.includes('claude')) {
+    maxTokens = 4096; // Most Claude models use 4096
+  } else if (modelName.includes('gpt-3.5')) {
     maxTokens = 4096;
   } else if (modelName.includes('gpt-4')) {
     maxTokens = 8192;
-  } else if (modelName.includes('gemini-2.5-flash') || modelName.includes('gemini-2.5-pro')) {
-    maxTokens = 8192; // Gemini models support up to 8192 tokens
+  } else if (modelName.includes('gemini')) {
+    maxTokens = 8192; // Gemini models typically support 8192
+  } else if (modelName.includes('mixtral') || modelName.includes('mistral')) {
+    maxTokens = 8192; // Mistral/Mixtral models
+  } else if (modelName.includes('llama')) {
+    maxTokens = 4096; // LLaMA models typically use 4096
   }
+  // For any other model, the default of 8192 will be used
 
   try {
     const messages = [];

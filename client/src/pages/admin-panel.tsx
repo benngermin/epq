@@ -66,7 +66,7 @@ function AISettingsSection() {
   const aiSettingsForm = useForm<z.infer<typeof aiSettingsSchema>>({
     resolver: zodResolver(aiSettingsSchema),
     defaultValues: {
-      modelName: "google/gemini-2.5-flash",
+      modelName: "google/gemini-2.0-flash-exp", // Updated to latest Gemini model
     },
   });
 
@@ -81,7 +81,7 @@ function AISettingsSection() {
   React.useEffect(() => {
     if (aiSettings) {
       aiSettingsForm.reset({
-        modelName: aiSettings.modelName || "anthropic/claude-sonnet-4",
+        modelName: aiSettings.modelName || "google/gemini-2.0-flash-exp",
       });
     }
   }, [aiSettings, aiSettingsForm]);
@@ -168,25 +168,24 @@ function AISettingsSection() {
                 name="modelName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>AI Model</FormLabel>
+                    <FormLabel>AI Model (OpenRouter Slug)</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select AI model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {/* Google Models */}
-                          <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                          <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                          
-                          {/* OpenAI Models */}
-                          <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
-                          
-                          {/* Anthropic Models */}
-                          <SelectItem value="anthropic/claude-opus-4">Claude Opus 4</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input 
+                        placeholder="e.g., google/gemini-2.0-flash-exp, openai/gpt-4o, anthropic/claude-3.5-sonnet"
+                        {...field}
+                      />
                     </FormControl>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Enter any valid OpenRouter model slug. You can find available models at{" "}
+                      <a 
+                        href="https://openrouter.ai/models" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        openrouter.ai/models
+                      </a>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -196,10 +195,11 @@ function AISettingsSection() {
                 <p><strong>Model Settings:</strong></p>
                 <ul className="mt-1 space-y-1">
                   <li>• Temperature: Always set to 0 (deterministic responses)</li>
-                  <li>• Max Tokens: Automatically set to model maximum</li>
-                  <li className="ml-4">- Claude models: 4096 tokens</li>
-                  <li className="ml-4">- GPT models: 8192 tokens</li>
-                  <li className="ml-4">- Gemini models: 8192 tokens</li>
+                  <li>• Max Tokens: Automatically configured based on model capabilities</li>
+                  <li>• Popular models:</li>
+                  <li className="ml-4">- google/gemini-2.0-flash-exp (fast, cost-effective)</li>
+                  <li className="ml-4">- openai/gpt-4o (balanced performance)</li>
+                  <li className="ml-4">- anthropic/claude-3.5-sonnet (high quality)</li>
                 </ul>
               </div>
 
