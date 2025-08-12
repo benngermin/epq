@@ -323,21 +323,21 @@ export default function QuestionSetPractice() {
 
       
 
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full w-full flex flex-col">
-          {/* Mobile Control Buttons */}
-          <div className="lg:hidden mb-4 flex items-center justify-start">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex items-center gap-2"
-            >
-              <PanelLeft className="h-4 w-4" />
-              Progress ({Object.keys(userAnswers).length}/{questions.length})
-            </Button>
-          </div>
+      <div className="flex-1 overflow-hidden bg-muted/40">
+        {/* Mobile Progress Indicator - In Grey Background Area */}
+        <div className="lg:hidden px-4 py-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex items-center gap-2 bg-background"
+          >
+            <PanelLeft className="h-4 w-4" />
+            Progress ({Object.keys(userAnswers).length}/{questions.length})
+          </Button>
+        </div>
 
+        <div className="h-full w-full flex flex-col">
           <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative h-full">
           {/* Left Sidebar - Collapsible Progress Bar */}
           <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0 lg:h-full ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
@@ -499,7 +499,7 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 flex flex-col h-full p-4">
+          <div className="flex-1 min-w-0 flex flex-col h-full p-2 sm:p-3 md:p-4">
             <div className="flex-1 flex items-center justify-center min-h-0">
               <div className="w-full max-w-4xl mx-auto">
                 <QuestionCard
