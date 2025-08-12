@@ -1,0 +1,68 @@
+## Implement Feedback UI System
+
+### Add these components to the chatbot interface:
+
+1. **Add feedback buttons after each bot response:**
+   - Create two icon buttons: thumbs up (👍) and thumbs down (👎)
+   - Place them inline, below each bot message
+   - Use SVG icons with stroke color `#4a90e2`
+   - Add hover effect: scale(1.1) on hover
+   - Add active state: fill icon when clicked
+
+2. **Create a feedback modal component:**
+   - Modal title: "Feedback"
+   - Label text: "Please provide details:"
+   - Textarea with dynamic placeholder:
+     - For negative: "What aspects of this response fell short of your expectations?"
+     - For positive: "How did this answer meet your expectations or needs?"
+   - Two buttons: "Cancel" (white with border) and "Submit" (blue background #003d7a)
+   - Modal backdrop: semi-transparent black overlay
+   - Center modal on screen
+
+3. **Implement this interaction logic:**
+   ```
+   When thumbs up clicked:
+   - Mark button as active
+   - Send positive feedback to API
+   - Show success message for 3 seconds
+   
+   When thumbs down clicked:
+   - Mark button as active  
+   - Open feedback modal
+   - Set negative placeholder text
+   - Focus textarea
+   
+   When Submit clicked:
+   - Validate textarea not empty
+   - Send feedback to API with: {type, message, messageId, timestamp}
+   - Close modal
+   - Show success message
+   
+   When Cancel clicked or backdrop clicked or ESC pressed:
+   - Close modal
+   - Reset button states
+   ```
+
+4. **Create API endpoint:**
+   ```
+   POST /api/feedback
+   Body: {
+     type: 'positive' | 'negative',
+     message: string (optional for positive),
+     messageId: string,
+     timestamp: Date
+   }
+   ```
+
+5. **Add to existing chat message component:**
+   - Insert feedback buttons component after message content
+   - Track feedback state per message
+   - Disable buttons after feedback submitted
+
+6. **Style requirements:**
+   - Match existing app fonts and spacing
+   - Modal width: max 600px
+   - Animations: 0.3s ease for modal appearance
+   - Success message: green background, white text, auto-hide after 3s
+
+Test that feedback persists to database and modal works on mobile devices.
