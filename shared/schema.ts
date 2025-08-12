@@ -120,6 +120,16 @@ export const chatbotLogs = pgTable("chatbot_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const chatbotFeedback = pgTable("chatbot_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  messageId: text("message_id").notNull(),
+  feedbackType: text("feedback_type").notNull(), // 'positive' or 'negative'
+  feedbackMessage: text("feedback_message"),
+  questionVersionId: integer("question_version_id").references(() => questionVersions.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Track user progress through courses for better analytics
 export const userCourseProgress = pgTable("user_course_progress", {
   id: serial("id").primaryKey(),
@@ -239,6 +249,7 @@ export const insertAiSettingsSchema = createInsertSchema(aiSettings);
 export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
 export const insertChatbotLogSchema = createInsertSchema(chatbotLogs);
+export const insertChatbotFeedbackSchema = createInsertSchema(chatbotFeedback);
 export const insertUserCourseProgressSchema = createInsertSchema(userCourseProgress);
 export const insertDailyActivitySummarySchema = createInsertSchema(dailyActivitySummary);
 
@@ -266,6 +277,8 @@ export type CourseMaterial = typeof courseMaterials.$inferSelect;
 export type InsertCourseMaterial = z.infer<typeof insertCourseMaterialSchema>;
 export type ChatbotLog = typeof chatbotLogs.$inferSelect;
 export type InsertChatbotLog = z.infer<typeof insertChatbotLogSchema>;
+export type ChatbotFeedback = typeof chatbotFeedback.$inferSelect;
+export type InsertChatbotFeedback = z.infer<typeof insertChatbotFeedbackSchema>;
 export type UserCourseProgress = typeof userCourseProgress.$inferSelect;
 export type InsertUserCourseProgress = z.infer<typeof insertUserCourseProgressSchema>;
 export type DailyActivitySummary = typeof dailyActivitySummary.$inferSelect;

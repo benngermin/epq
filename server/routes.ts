@@ -1406,6 +1406,46 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
+  // Feedback endpoint for chatbot responses
+  app.post("/api/feedback", requireAuth, async (req, res) => {
+    try {
+      assertAuthenticated(req);
+      
+      const feedbackSchema = z.object({
+        type: z.enum(["positive", "negative"]),
+        message: z.string().optional(),
+        messageId: z.string(),
+        questionVersionId: z.number().optional(),
+        timestamp: z.string(),
+      });
+
+      const parsed = feedbackSchema.parse(req.body);
+      
+      // For negative feedback, message is required
+      if (parsed.type === "negative" && !parsed.message?.trim()) {
+        return res.status(400).json({ error: "Message is required for negative feedback" });
+      }
+
+      await storage.createChatbotFeedback({
+        userId: req.user.id,
+        messageId: parsed.messageId,
+        feedbackType: parsed.type,
+        feedbackMessage: parsed.message || null,
+        questionVersionId: parsed.questionVersionId || null,
+      });
+
+      console.log(`📝 Feedback received from user ${req.user.id}: ${parsed.type} for message ${parsed.messageId}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
   // Background stream processing
   async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number) {
     const stream = activeStreams.get(streamId);

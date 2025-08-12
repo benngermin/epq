@@ -1,13 +1,14 @@
 import {
   users, courses, courseExternalMappings, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
-  userCourseProgress, dailyActivitySummary,
+  chatbotFeedback, userCourseProgress, dailyActivitySummary,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
   type CourseMaterial, type InsertCourseMaterial, type ChatbotLog, type InsertChatbotLog,
+  type ChatbotFeedback, type InsertChatbotFeedback,
   type UserCourseProgress, type InsertUserCourseProgress,
   type DailyActivitySummary, type InsertDailyActivitySummary,
   type QuestionImport
@@ -92,6 +93,9 @@ export interface IStorage {
   // Chatbot log methods
   getChatbotLogs(): Promise<ChatbotLog[]>;
   createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog>;
+  
+  // Chatbot feedback methods
+  createChatbotFeedback(feedback: InsertChatbotFeedback): Promise<ChatbotFeedback>;
   
   // Progress tracking
   getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }>;
@@ -753,6 +757,11 @@ export class DatabaseStorage implements IStorage {
   async createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog> {
     const [newLog] = await db.insert(chatbotLogs).values(log).returning();
     return newLog;
+  }
+
+  async createChatbotFeedback(feedback: InsertChatbotFeedback): Promise<ChatbotFeedback> {
+    const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
+    return newFeedback;
   }
 
   async getOverallStats(timeScale?: string): Promise<{

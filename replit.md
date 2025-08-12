@@ -41,6 +41,8 @@ An advanced AI-powered platform for insurance professional certification exam pr
    - Configurable AI models
    - Prompt versioning system
    - Response logging for quality monitoring
+   - User feedback system with thumbs up/down ratings
+   - Detailed feedback modal for negative responses
 
 5. **Admin Dashboard**
    - User management
@@ -69,6 +71,7 @@ An advanced AI-powered platform for insurance professional certification exam pr
 - **user_answers**: Answer recording and scoring
 - **course_materials**: Learning object content
 - **chatbot_logs**: AI interaction tracking
+- **chatbot_feedback**: User feedback on AI responses
 - **user_course_progress**: Progress tracking
 - **daily_activity_summary**: Analytics aggregation
 
