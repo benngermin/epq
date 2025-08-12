@@ -794,15 +794,10 @@ export class DatabaseStorage implements IStorage {
       messageId: chatbotFeedback.messageId,
       feedbackType: chatbotFeedback.feedbackType,
       feedbackMessage: chatbotFeedback.feedbackMessage,
-      assistantMessage: chatbotLogs.aiResponse,
       createdAt: chatbotFeedback.createdAt,
     })
     .from(chatbotFeedback)
     .leftJoin(users, eq(chatbotFeedback.userId, users.id))
-    .leftJoin(chatbotLogs, and(
-      eq(chatbotFeedback.userId, chatbotLogs.userId),
-      sql`${chatbotLogs.createdAt} <= ${chatbotFeedback.createdAt}`
-    ))
     .orderBy(desc(chatbotFeedback.createdAt));
 
     // Map the result to handle null users
@@ -810,7 +805,7 @@ export class DatabaseStorage implements IStorage {
       ...item,
       userName: item.userName || 'Anonymous User',
       userEmail: item.userEmail || 'N/A',
-      assistantMessage: item.assistantMessage || null,
+      assistantMessage: null, // For now, we'll leave this null as matching message IDs is complex
     }));
   }
 
