@@ -12,6 +12,7 @@ interface FeedbackButtonsProps {
 export function FeedbackButtons({ messageId, questionVersionId, onFeedbackSubmitted }: FeedbackButtonsProps) {
   const [feedbackState, setFeedbackState] = useState<"positive" | "negative" | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"positive" | "negative">("positive");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -57,16 +58,18 @@ export function FeedbackButtons({ messageId, questionVersionId, onFeedbackSubmit
 
   const handleThumbsUp = () => {
     if (feedbackState || isSubmitting) return;
-    submitFeedback("positive");
+    setModalType("positive");
+    setIsModalOpen(true);
   };
 
   const handleThumbsDown = () => {
     if (feedbackState || isSubmitting) return;
+    setModalType("negative");
     setIsModalOpen(true);
   };
 
   const handleModalSubmit = async (message: string) => {
-    await submitFeedback("negative", message);
+    await submitFeedback(modalType, message);
     setIsModalOpen(false);
   };
 
@@ -115,7 +118,7 @@ export function FeedbackButtons({ messageId, questionVersionId, onFeedbackSubmit
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
-        feedbackType="negative"
+        feedbackType={modalType}
       />
     </>
   );

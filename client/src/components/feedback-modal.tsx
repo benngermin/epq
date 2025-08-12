@@ -37,9 +37,7 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, feedbackType }: Feedb
   }, [isOpen, onClose]);
 
   const handleSubmit = async () => {
-    if (!message.trim() && feedbackType === "negative") {
-      return;
-    }
+    // No validation - allow empty message for both positive and negative
     setIsSubmitting(true);
     await onSubmit(message);
     setIsSubmitting(false);
@@ -48,9 +46,9 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, feedbackType }: Feedb
 
   if (!isOpen) return null;
 
-  const placeholder = feedbackType === "negative"
-    ? "What aspects of this response fell short of your expectations?"
-    : "How did this answer meet your expectations or needs?";
+  const placeholder = feedbackType === "positive"
+    ? "How did this answer meet your expectations or needs?"
+    : "What aspects of this response fell short of your expectations?";
 
   return (
     <>
@@ -99,7 +97,7 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, feedbackType }: Feedb
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={(feedbackType === "negative" && !message.trim()) || isSubmitting}
+              disabled={isSubmitting}
               className="flex-1 bg-[#003d7a] hover:bg-[#003d7a]/90 text-white"
             >
               {isSubmitting ? "Submitting..." : "Submit"}

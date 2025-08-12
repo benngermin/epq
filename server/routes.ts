@@ -1420,11 +1420,6 @@ export function registerRoutes(app: Express): Server {
       });
 
       const parsed = feedbackSchema.parse(req.body);
-      
-      // For negative feedback, message is required
-      if (parsed.type === "negative" && !parsed.message?.trim()) {
-        return res.status(400).json({ error: "Message is required for negative feedback" });
-      }
 
       await storage.createChatbotFeedback({
         userId: req.user.id,
