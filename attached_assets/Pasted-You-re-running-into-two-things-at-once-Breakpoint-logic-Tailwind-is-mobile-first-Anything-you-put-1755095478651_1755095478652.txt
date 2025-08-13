@@ -1,0 +1,59 @@
+You’re running into two things at once:
+
+Breakpoint logic
+Tailwind is mobile-first. Anything you put behind md: won’t apply at 430px. If your base (no prefix) still contains truncate/whitespace-nowrap, those will win on phones no matter what you try at md:.
+
+A hidden truncate chain
+The ellipsis (“CPCU 50…”) means somewhere on the title or an ancestor you still have some combo of:
+truncate → sets overflow-hidden text-ellipsis whitespace-nowrap.
+Even if you add whitespace-normal later, the earlier truncate (or a parent with whitespace-nowrap) keeps forcing a single line.
+
+Do this (exact, minimal fix)
+In the header that shows the course title + “Question Set 1” select:
+
+tsx
+Copy
+Edit
+<header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+  <h1
+    className="
+      block w-full
+      text-base md:text-lg font-semibold leading-tight
+      whitespace-normal break-words
+      md:truncate md:whitespace-nowrap md:text-ellipsis
+    "
+  >
+    {courseTitle}
+  </h1>
+
+  <div className="w-full md:w-auto md:ml-auto">
+    <QuestionSetSelect ... />
+  </div>
+</header>
+Important removals on mobile (no prefixes):
+
+Remove truncate, text-ellipsis, whitespace-nowrap, and any overflow-hidden from the <h1> and its immediate parent.
+
+Only re-enable truncation at desktop with prefixes: md:truncate md:whitespace-nowrap md:text-ellipsis.
+
+Also check these two spots (common culprits):
+
+A wrapper div around the <h1> that has truncate or whitespace-nowrap. Strip them (or gate behind md:).
+
+Utility like justify-between on the header at mobile can squeeze the title. Use md:justify-between and no justify-between at base (we used gap-2 instead).
+
+You do not need line-clamp for this to work. It’s fine to leave it out entirely unless you want a hard 2-line cap.
+
+Quick verification (takes 30 seconds)
+In DevTools on the phone/emulator, select the <h1>.
+
+Computed → white-space must be normal at 430px.
+
+Computed → overflow must not be hidden at 430px.
+
+Temporarily add a debug class to the title: bg-yellow-100. If you still see an ellipsis, there’s still a truncate/nowrap on a parent—walk up the DOM and remove it (or gate it behind md:).
+
+Why your earlier attempts didn’t show up
+Moving behavior to md: doesn’t affect 430px (that’s < 768px).
+
+As long as any base or ancestor utility sets whitespace-nowrap/overflow-hidden, the title will keep truncating regardless of your new classes. Removing min-w-0 doesn’t fix that—nowrap is the blocker.
