@@ -325,7 +325,7 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden bg-muted/40">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden px-4 py-3">
+        <div className="lg:hidden px-4 pt-3 pb-1.5">
           <Button
             variant="outline"
             onClick={() => setSidebarOpen(!sidebarOpen)}
