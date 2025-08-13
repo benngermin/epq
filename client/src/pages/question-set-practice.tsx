@@ -537,7 +537,7 @@ export default function QuestionSetPractice() {
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Previous
                 </Button>
-                <div className="text-sm text-muted-foreground flex items-center">
+                <div className="hidden sm:flex text-sm text-muted-foreground items-center">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </div>
                 <Button
