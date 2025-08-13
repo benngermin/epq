@@ -163,9 +163,9 @@ export function QuestionCard({
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
+              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="flex-1 overflow-y-auto min-h-0">
-                  <div className="mb-2 sm:mb-3 md:mb-4 flex justify-between items-center">
+                  <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center">
                     <Badge 
                       variant="secondary" 
                       className={cn(
@@ -199,7 +199,7 @@ export function QuestionCard({
                       case "true_false":
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -217,7 +217,7 @@ export function QuestionCard({
                       case "pick_from_list":
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -236,7 +236,7 @@ export function QuestionCard({
                       case "matching":
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -255,7 +255,7 @@ export function QuestionCard({
                       case "drag_and_drop": // drag_and_drop uses the same component as ordering
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -288,7 +288,7 @@ export function QuestionCard({
                       case "multiple_response": // Uses PickFromList with allowMultiple=true
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -307,7 +307,7 @@ export function QuestionCard({
                       case "select_from_list": // Uses PickFromList with allowMultiple=false
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -326,7 +326,7 @@ export function QuestionCard({
                       default: // multiple_choice
                         return (
                           <>
-                            <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -336,7 +336,7 @@ export function QuestionCard({
                               onValueChange={setSelectedAnswerState}
                               disabled={hasAnswer || isSubmitting}
                             >
-                              <div className="space-y-1.5 sm:space-y-2 md:space-y-2.5 lg:space-y-3">
+                              <div className="space-y-1 sm:space-y-1.5 md:space-y-2.5 lg:space-y-3">
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
@@ -349,7 +349,7 @@ export function QuestionCard({
                                       <Label
                                         htmlFor={choiceLetter}
                                         className={cn(
-                                          "flex items-start p-2 sm:p-2.5 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                          "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
                                           "hover:border-primary hover:bg-accent",
                                           isSelected && "border-primary bg-primary/10",
                                           hasAnswer && "cursor-default"
@@ -382,7 +382,7 @@ export function QuestionCard({
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
-                <div className="mt-auto pt-2 sm:pt-3 md:pt-4 flex-shrink-0 border-t">
+                <div className="mt-auto pt-1 sm:pt-2 md:pt-4 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -425,7 +425,7 @@ export function QuestionCard({
                     <Button
                       onClick={handleSubmit}
                       disabled={!selectedAnswerState || isSubmitting}
-                      className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="w-full py-2 sm:py-2.5 md:py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
