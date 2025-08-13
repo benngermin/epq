@@ -24,8 +24,9 @@ export function TrueFalse({
       value={value}
       onValueChange={onChange}
       disabled={disabled}
+      className="flex-1"
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         {options.map((option) => {
           const isSelected = value === option;
           const isCorrectChoice = option === correctAnswer;
@@ -35,7 +36,7 @@ export function TrueFalse({
               <Label
                 htmlFor={option}
                 className={cn(
-                  "flex items-center p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                  "flex items-center p-5 rounded-lg border cursor-pointer transition-all duration-200",
                   "hover:border-primary hover:bg-accent",
                   isSelected && "border-primary bg-primary/10",
                   disabled && "cursor-default",
@@ -46,7 +47,7 @@ export function TrueFalse({
                 <RadioGroupItem
                   value={option}
                   id={option}
-                  className="mr-3"
+                  className="mr-4"
                 />
                 <span className="text-base font-medium">{option}</span>
               </Label>

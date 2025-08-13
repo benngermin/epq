@@ -325,8 +325,8 @@ export function QuestionCard({
                         
                       default: // multiple_choice
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex flex-col h-full">
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -335,8 +335,9 @@ export function QuestionCard({
                               value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                               onValueChange={setSelectedAnswerState}
                               disabled={hasAnswer || isSubmitting}
+                              className="flex-1"
                             >
-                              <div className="space-y-1 sm:space-y-1.5 md:space-y-2.5 lg:space-y-3">
+                              <div className="space-y-3 sm:space-y-3.5 md:space-y-4 lg:space-y-4">
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
@@ -349,7 +350,7 @@ export function QuestionCard({
                                       <Label
                                         htmlFor={choiceLetter}
                                         className={cn(
-                                          "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                          "flex items-center p-3 sm:p-3.5 md:p-4 lg:p-5 rounded-lg border cursor-pointer transition-all duration-200",
                                           "hover:border-primary hover:bg-accent",
                                           isSelected && "border-primary bg-primary/10",
                                           hasAnswer && "cursor-default"
@@ -358,7 +359,7 @@ export function QuestionCard({
                                         <RadioGroupItem
                                           value={choiceLetter}
                                           id={choiceLetter}
-                                          className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
+                                          className="mr-3 sm:mr-3.5 md:mr-4 lg:mr-5 flex-shrink-0"
                                         />
                                         <div className="flex-1 min-w-0">
                                           <span className="text-base text-foreground leading-relaxed">
@@ -371,7 +372,7 @@ export function QuestionCard({
                                 })}
                               </div>
                             </RadioGroup>
-                          </>
+                          </div>
                         );
                     }
                   })()}

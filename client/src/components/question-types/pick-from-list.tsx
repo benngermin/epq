@@ -25,7 +25,7 @@ export function PickFromList({
     const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
     
     return (
-      <div className="space-y-3">
+      <div className="space-y-4 flex-1">
         {answerChoices.map((choice, index) => {
           const isSelected = selectedValues.includes(choice);
           const isCorrectChoice = correctAnswer && correctAnswer.includes(choice);
@@ -35,7 +35,7 @@ export function PickFromList({
               <Label
                 htmlFor={`choice-${index}`}
                 className={cn(
-                  "flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200",
+                  "flex items-center p-4 sm:p-4 md:p-5 rounded-lg border cursor-pointer transition-all duration-200",
                   "hover:border-primary hover:bg-accent",
                   isSelected && "border-primary bg-primary/10",
                   disabled && "cursor-default",
@@ -53,9 +53,9 @@ export function PickFromList({
                     }
                   }}
                   disabled={disabled}
-                  className="mr-3"
+                  className="mr-4"
                 />
-                <span className="text-base">{choice}</span>
+                <span className="text-base leading-relaxed">{choice}</span>
               </Label>
             </div>
           );
