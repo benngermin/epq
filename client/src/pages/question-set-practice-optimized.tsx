@@ -662,7 +662,7 @@ export default function QuestionSetPractice() {
       </div>
 
       {/* Navigation Controls at Bottom - Full Width */}
-      <div className="bg-background border-t border-border p-4 flex-shrink-0">
+      <div className="bg-background border-t border-border p-2 sm:p-3 md:p-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex justify-between">
           <Button
             variant="outline"
