@@ -328,12 +328,13 @@ export default function QuestionSetPractice() {
         <div className="lg:hidden px-4 py-3">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center gap-2 bg-background"
+            className="flex items-center gap-2 bg-background h-auto py-2.5 px-3"
           >
-            <PanelLeft className="h-4 w-4" />
-            Progress ({Object.keys(userAnswers).length}/{questions.length})
+            <PanelLeft className="h-4 w-4 flex-shrink-0" />
+            <span className="leading-none inline-block">
+              Progress ({Object.keys(userAnswers).length}/{questions.length})
+            </span>
           </Button>
         </div>
 
