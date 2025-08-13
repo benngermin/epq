@@ -163,23 +163,23 @@ export function QuestionCard({
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
-                  <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center">
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "w-fit text-sm font-medium px-3 py-1",
-                        questionTypeConfig[questionType]?.color || "bg-accent text-accent-foreground border"
-                      )}
-                    >
-                      {questionTypeConfig[questionType]?.label || "Question"}
-                    </Badge>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Question {(question.questionIndex || 0) + 1}
-                    </span>
-                  </div>
+              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col h-full">
+                <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "w-fit text-sm font-medium px-3 py-1",
+                      questionTypeConfig[questionType]?.color || "bg-accent text-accent-foreground border"
+                    )}
+                  >
+                    {questionTypeConfig[questionType]?.label || "Question"}
+                  </Badge>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Question {(question.questionIndex || 0) + 1}
+                  </span>
+                </div>
 
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
@@ -198,77 +198,85 @@ export function QuestionCard({
                         
                       case "true_false":
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <TrueFalse
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              isCorrect={isCorrect}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <TrueFalse
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                isCorrect={isCorrect}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "pick_from_list":
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={question.latestVersion?.allowMultiple}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={question.latestVersion?.allowMultiple}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "matching":
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <Matching
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <Matching
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "ordering":
                       case "drag_and_drop": // drag_and_drop uses the same component as ordering
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <Ordering
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                              correctOrder={question.latestVersion?.correctOrder}
-                            />
-                          </>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <Ordering
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                correctOrder={question.latestVersion?.correctOrder}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "numerical_entry":
@@ -287,57 +295,61 @@ export function QuestionCard({
                         
                       case "multiple_response": // Uses PickFromList with allowMultiple=true
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={true}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
-                        );
-                        
-                      case "select_from_list": // Uses PickFromList with allowMultiple=false
-                        return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={false}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
-                        );
-                        
-                      default: // multiple_choice
-                        return (
-                          <>
+                          <div className="flex-1 min-h-0 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <RadioGroup
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onValueChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              className="flex-1 flex flex-col justify-center"
-                            >
-                              <div className="flex flex-col gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3 flex-1">
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={true}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
+                        );
+                        
+                      case "select_from_list": // Uses PickFromList with allowMultiple=false
+                        return (
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={false}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
+                        );
+                        
+                      default: // multiple_choice
+                        return (
+                          <div className="flex-1 min-h-0 flex flex-col">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+                              <p className="text-base text-foreground leading-relaxed text-left">
+                                {question.latestVersion?.questionText}
+                              </p>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                              <RadioGroup
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onValueChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                className="h-full flex flex-col justify-start gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3"
+                              >
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
@@ -346,44 +358,39 @@ export function QuestionCard({
                                   const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
 
                                   return (
-                                    <div key={choiceLetter} className="flex-1 flex">
-                                      <Label
-                                        htmlFor={choiceLetter}
-                                        className={cn(
-                                          "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200 flex-1",
-                                          "hover:border-primary hover:bg-accent",
-                                          isSelected && "border-primary bg-primary/10",
-                                          hasAnswer && "cursor-default"
-                                        )}
-                                      >
-                                        <RadioGroupItem
-                                          value={choiceLetter}
-                                          id={choiceLetter}
-                                          className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                          <span className="text-base text-foreground leading-relaxed">
-                                            {choice.replace(/^[A-D]\.\s*/, '')}
-                                          </span>
-                                        </div>
-                                      </Label>
-                                    </div>
+                                    <Label
+                                      key={choiceLetter}
+                                      htmlFor={choiceLetter}
+                                      className={cn(
+                                        "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                        "hover:border-primary hover:bg-accent",
+                                        isSelected && "border-primary bg-primary/10",
+                                        hasAnswer && "cursor-default"
+                                      )}
+                                    >
+                                      <RadioGroupItem
+                                        value={choiceLetter}
+                                        id={choiceLetter}
+                                        className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-base text-foreground leading-relaxed">
+                                          {choice.replace(/^[A-D]\.\s*/, '')}
+                                        </span>
+                                      </div>
+                                    </Label>
                                   );
                                 })}
-                              </div>
-                            </RadioGroup>
-                          </>
+                              </RadioGroup>
+                            </div>
+                          </div>
                         );
                     }
                   })()}
-
-
-
-
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
-                <div className="mt-auto pt-1 sm:pt-2 md:pt-4 flex-shrink-0 border-t">
+                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
