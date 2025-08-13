@@ -93,8 +93,6 @@ export class CognitoAuth {
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
-      console.log('Session ID before:', req.sessionID);
-      console.log('Query params:', req.query);
 
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
@@ -102,11 +100,9 @@ export class CognitoAuth {
       // Capture URL parameters to preserve them through the OAuth flow
       if (req.query.courseId) {
         req.session.courseId = req.query.courseId as string;
-        console.log('Captured courseId:', req.session.courseId);
       }
       if (req.query.assignmentName) {
         req.session.assignmentName = req.query.assignmentName as string;
-        console.log('Captured assignmentName:', req.session.assignmentName);
       }
 
       // Force session save before redirecting
@@ -118,9 +114,6 @@ export class CognitoAuth {
         }
 
         console.log('Session saved successfully');
-        console.log('Session ID:', req.sessionID);
-        console.log('State:', state);
-        console.log('Session data:', req.session);
 
         passport.authenticate('cognito', {
           state,
@@ -133,17 +126,13 @@ export class CognitoAuth {
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
         console.log('Cognito callback route hit!');
-        console.log('Query params:', req.query);
-        console.log('Session ID:', req.sessionID);
-        console.log('Session state:', req.session.state);
-        console.log('Query state:', req.query.state);
 
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
         // Verify state parameter (skip in development if session is missing)
         if (!isDevelopment && req.query.state !== req.session.state) {
-          console.log('State mismatch - expected:', req.session.state, 'got:', req.query.state);
+          console.log('State mismatch detected');
 
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
@@ -159,14 +148,13 @@ export class CognitoAuth {
       },
       async (req: Request, res: Response) => {
         // Successful authentication
-        console.log('Authentication successful, user:', req.user);
+        console.log('Authentication successful');
 
         // Check if we have stored courseId from the initial request
         const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
 
-        console.log('Retrieved courseId from session:', externalCourseId);
-        console.log('Retrieved assignmentName from session:', assignmentName);
+        console.log('Retrieved parameters from session');
 
         // Clear the stored parameters from session
         delete req.session.courseId;

@@ -5,7 +5,7 @@ Refresh or populate the local database by querying and importing:
 All Question Sets (slug: question_set)
 Use the Data API base URL: https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj
 
-Authenticate all requests with Bearer token using the API key: f3c17ebbeac064ee7d622172e95092d7 (ensure this is set as BUBBLE_API_KEY in the environment).
+Authenticate all requests with Bearer token using the API key from environment variable BUBBLE_API_KEY (ensure this is set in the environment).
 
 Query all question sets via:
 GET https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set

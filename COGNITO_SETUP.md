@@ -6,17 +6,17 @@ Your client needs to provide the following information from their AWS Cognito Us
 
 ### 1. Cognito Domain
 **What to ask for:** The custom domain URL for their Cognito hosted UI
-**Example from screenshot:** `users.login.theinstitutes.org`
+**Example:** `your-domain.auth.us-east-1.amazoncognito.com`
 **How they find it:** In AWS Console > Cognito > User Pool > App Integration > Domain
 
 ### 2. Client ID
 **What to ask for:** The App Client ID from their Cognito User Pool
-**Example from screenshot:** `6r574u9jasn360o9hg4ekht6g3`
+**Example:** `1a2b3c4d5e6f7g8h9i0j1k2l3m`
 **How they find it:** In AWS Console > Cognito > User Pool > App Integration > App Clients
 
 ### 3. Client Secret
 **What to ask for:** The App Client Secret (if they enabled it)
-**Example from screenshot:** `mgv0r2q6rk44m35peopfnc05sjpsh37bh03`
+**Example:** `your-client-secret-here-32chars-long`
 **How they find it:** In AWS Console > Cognito > User Pool > App Integration > App Clients > Show Details
 
 ### 4. Redirect URI Configuration
@@ -48,9 +48,9 @@ Tell your client to verify these settings in their Cognito User Pool:
 Once you have the information, add these environment variables to your Replit project:
 
 ```env
-COGNITO_DOMAIN=users.login.theinstitutes.org
-COGNITO_CLIENT_ID=6r574u9jasn360o9hg4ekht6g3
-COGNITO_CLIENT_SECRET=mgv0r2q6rk44m35peopfnc05sjpsh37bh03
+COGNITO_DOMAIN=your-domain.auth.us-east-1.amazoncognito.com
+COGNITO_CLIENT_ID=your-client-id-here
+COGNITO_CLIENT_SECRET=your-client-secret-here
 # COGNITO_REDIRECT_URI is optional - it will be auto-detected in development
 # Only set this for production if your production URL differs from the auto-detected one
 # COGNITO_REDIRECT_URI=https://your-app-domain.replit.app/auth/cognito/callback

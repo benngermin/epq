@@ -78,7 +78,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
+        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
       },
       body: JSON.stringify({
         model: modelName,
@@ -287,7 +287,7 @@ async function streamOpenRouterToBuffer(
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || "http://localhost:5000",
+        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
       },
       body: JSON.stringify({
         model: modelName,
@@ -512,8 +512,6 @@ export function registerRoutes(app: Express): Server {
         console.error(`Authentication failed for ${req.method} ${req.path}:`, {
           isAuthenticated: req.isAuthenticated(),
           hasUser: !!req.user,
-          sessionId: req.sessionID,
-          userAgent: req.headers['user-agent']?.slice(0, 50),
           isChatbotEndpoint: req.path.includes('/chatbot')
         });
       }

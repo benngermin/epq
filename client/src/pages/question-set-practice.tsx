@@ -1,10 +1,9 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -16,13 +15,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft, LogOut } from "lucide-react";
+import { GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft } from "lucide-react";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { OptimizedImage } from "@/components/optimized-image";
 
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
-import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();

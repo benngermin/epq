@@ -102,7 +102,7 @@ export function setupAuth(app: Express) {
       console.log(`✓ Using dynamic redirect URI for development: ${cognitoRedirectUri}`);
     } else {
       // Fallback to localhost for local development
-      cognitoRedirectUri = `http://localhost:${process.env.PORT || 5000}/auth/cognito/callback`;
+      cognitoRedirectUri = `${process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`}/auth/cognito/callback`;
       console.log(`✓ Using localhost redirect URI: ${cognitoRedirectUri}`);
     }
   }
@@ -246,17 +246,9 @@ export function setupAuth(app: Express) {
     }
 
     if (!req.isAuthenticated() || !req.user) {
-      // Only log authentication failures in development when explicitly debugging
-      if (process.env.NODE_ENV === 'development' && process.env.DEBUG_AUTH === 'true') {
-        console.log(`/api/user authentication check failed:`, {
-          isAuthenticated: req.isAuthenticated(),
-          hasUser: !!req.user,
-          sessionId: req.sessionID,
-          sessionExists: !!req.session,
-          // Removed sensitive data: sessionData, cookies
-          method: req.method,
-          path: req.path
-        });
+      // Authentication failed - minimal logging in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Authentication check failed for ${req.method} ${req.path}`);
       }
       return res.status(401).json({ message: "Not authenticated" });
     }

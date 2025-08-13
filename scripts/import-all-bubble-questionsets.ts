@@ -7,9 +7,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-url.com' 
-  : 'http://localhost:5000';
+const API_BASE_URL = process.env.APP_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://your-production-url.com' 
+    : 'http://localhost:5000');
 
 const BUBBLE_API_KEY = process.env.BUBBLE_API_KEY;
 

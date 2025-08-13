@@ -164,7 +164,7 @@ export function QuestionCard({
           <div className="card-flip-front">
             <Card className="h-full bg-card border shadow-sm flex flex-col">
               <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
                   <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center">
                     <Badge 
                       variant="secondary" 
@@ -326,7 +326,7 @@ export function QuestionCard({
                       default: // multiple_choice
                         return (
                           <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
@@ -335,8 +335,9 @@ export function QuestionCard({
                               value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                               onValueChange={setSelectedAnswerState}
                               disabled={hasAnswer || isSubmitting}
+                              className="flex-1 flex flex-col justify-center"
                             >
-                              <div className="space-y-1 sm:space-y-1.5 md:space-y-2.5 lg:space-y-3">
+                              <div className="flex flex-col gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3 flex-1">
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
@@ -345,11 +346,11 @@ export function QuestionCard({
                                   const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
 
                                   return (
-                                    <div key={choiceLetter}>
+                                    <div key={choiceLetter} className="flex-1 flex">
                                       <Label
                                         htmlFor={choiceLetter}
                                         className={cn(
-                                          "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                          "flex items-start p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200 flex-1",
                                           "hover:border-primary hover:bg-accent",
                                           isSelected && "border-primary bg-primary/10",
                                           hasAnswer && "cursor-default"

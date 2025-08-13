@@ -5,7 +5,7 @@
  */
 
 async function main() {
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = process.env.APP_URL || 'http://localhost:5000';
   
   console.log('🚀 Starting Bubble import via Admin API...\n');
   
