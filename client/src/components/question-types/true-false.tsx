@@ -26,7 +26,7 @@ export function TrueFalse({
       disabled={disabled}
       className="flex-1"
     >
-      <div className="space-y-4">
+      <div className="space-y-6 sm:space-y-7 md:space-y-8">
         {options.map((option) => {
           const isSelected = value === option;
           const isCorrectChoice = option === correctAnswer;
@@ -36,7 +36,7 @@ export function TrueFalse({
               <Label
                 htmlFor={option}
                 className={cn(
-                  "flex items-center p-5 rounded-lg border cursor-pointer transition-all duration-200",
+                  "flex items-center p-6 sm:p-7 md:p-8 lg:p-9 rounded-lg border cursor-pointer transition-all duration-200",
                   "hover:border-primary hover:bg-accent",
                   isSelected && "border-primary bg-primary/10",
                   disabled && "cursor-default",

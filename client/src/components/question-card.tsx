@@ -164,8 +164,8 @@ export function QuestionCard({
           <div className="card-flip-front">
             <Card className="h-full bg-card border shadow-sm flex flex-col">
               <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+                  <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                     <Badge 
                       variant="secondary" 
                       className={cn(
@@ -198,39 +198,43 @@ export function QuestionCard({
                         
                       case "true_false":
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex flex-col flex-1">
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <TrueFalse
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              isCorrect={isCorrect}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 flex flex-col justify-center">
+                              <TrueFalse
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                isCorrect={isCorrect}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "pick_from_list":
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex flex-col flex-1">
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={question.latestVersion?.allowMultiple}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 flex flex-col justify-center">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={question.latestVersion?.allowMultiple}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "matching":
@@ -287,45 +291,49 @@ export function QuestionCard({
                         
                       case "multiple_response": // Uses PickFromList with allowMultiple=true
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex flex-col flex-1">
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={true}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 flex flex-col justify-center">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={true}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       case "select_from_list": // Uses PickFromList with allowMultiple=false
                         return (
-                          <>
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5">
+                          <div className="flex flex-col flex-1">
+                            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <PickFromList
-                              answerChoices={question.latestVersion?.answerChoices || []}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              allowMultiple={false}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            />
-                          </>
+                            <div className="flex-1 flex flex-col justify-center">
+                              <PickFromList
+                                answerChoices={question.latestVersion?.answerChoices || []}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                allowMultiple={false}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                              />
+                            </div>
+                          </div>
                         );
                         
                       default: // multiple_choice
                         return (
-                          <div className="flex flex-col h-full">
+                          <div className="flex flex-col flex-1">
                             <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
@@ -335,9 +343,9 @@ export function QuestionCard({
                               value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                               onValueChange={setSelectedAnswerState}
                               disabled={hasAnswer || isSubmitting}
-                              className="flex-1"
+                              className="flex-1 flex flex-col"
                             >
-                              <div className="space-y-3 sm:space-y-3.5 md:space-y-4 lg:space-y-4">
+                              <div className="flex-1 flex flex-col justify-center space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-7">
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
@@ -350,7 +358,7 @@ export function QuestionCard({
                                       <Label
                                         htmlFor={choiceLetter}
                                         className={cn(
-                                          "flex items-center p-3 sm:p-3.5 md:p-4 lg:p-5 rounded-lg border cursor-pointer transition-all duration-200",
+                                          "flex items-center p-5 sm:p-6 md:p-7 lg:p-8 rounded-lg border cursor-pointer transition-all duration-200",
                                           "hover:border-primary hover:bg-accent",
                                           isSelected && "border-primary bg-primary/10",
                                           hasAnswer && "cursor-default"
