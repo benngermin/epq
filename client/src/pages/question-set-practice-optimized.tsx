@@ -626,7 +626,7 @@ export default function QuestionSetPractice() {
 
         {/* Right Main Content - Question */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 pt-0 pb-4 lg:p-4">
+          <div className="flex-1 overflow-y-auto px-4 pt-0 pb-1 sm:pb-2 md:pb-4 lg:p-4">
             <div className="w-full max-w-4xl mx-auto">
               {currentQuestion ? (
                 <QuestionCard

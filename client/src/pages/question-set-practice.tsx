@@ -504,7 +504,7 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden px-2 sm:px-3 md:px-4 pt-0 sm:pt-3 md:pt-4 pb-4">
+          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden px-2 sm:px-3 md:px-4 pt-0 sm:pt-3 md:pt-4 pb-1 sm:pb-2 md:pb-4">
             <div className="flex-1 overflow-y-auto flex items-center justify-center min-h-0">
               <div className="w-full max-w-4xl mx-auto">
                 <QuestionCard
