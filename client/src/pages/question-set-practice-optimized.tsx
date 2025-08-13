@@ -367,11 +367,11 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-6">
-          <div className="flex items-center justify-between h-24 lg:h-20">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto] md:items-center py-3 lg:py-4">
             {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 max-w-[calc(50%-100px)] lg:max-w-[calc(50%-120px)] xl:max-w-[calc(50%-140px)]">
+            <div className="col-span-1 w-full">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold truncate leading-tight lg:leading-[1.2]" 
+                className="text-lg lg:text-[28px] font-semibold w-full whitespace-normal break-words md:truncate md:whitespace-nowrap leading-tight lg:leading-[1.2]" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
@@ -389,7 +389,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Right - Dropdowns */}
-            <div className="flex-1 min-w-0 flex justify-end items-center gap-2 lg:gap-4">
+            <div className="w-full md:w-auto md:justify-self-end flex justify-end items-center gap-2 lg:gap-4">
               {/* Logout Button - Admin Only */}
               {user?.isAdmin && (
                 <Button
