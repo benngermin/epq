@@ -157,14 +157,14 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full">
-      <div className={cn("card-flip w-full", isFlipped && "flipped")}>
+    <div className="w-full h-full flex flex-col">
+      <div className={cn("card-flip w-full flex-1", isFlipped && "flipped")}>
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="max-h-[calc(100vh-180px)] bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0">
-                <div className="flex-1 overflow-y-auto">
+            <Card className="h-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-5 lg:p-6 xl:p-7 flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto min-h-0">
                   <div className="mb-2 sm:mb-3 md:mb-4 flex justify-between items-center">
                     <Badge 
                       variant="secondary" 
@@ -382,7 +382,7 @@ export function QuestionCard({
                 </div>
 
                 {/* Action buttons - always visible at bottom */}
-                <div className="mt-4 flex-shrink-0 border-t pt-4">
+                <div className="mt-auto pt-4 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -484,7 +484,7 @@ export function QuestionCard({
         .card-flip-front, .card-flip-back {
           position: absolute;
           width: 100%;
-          height: calc(100vh - 180px);
+          height: 100%;
           min-height: 400px;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
