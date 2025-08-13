@@ -456,7 +456,7 @@ export default function QuestionSetPractice() {
                   setLocation(`/question-set/${value}`);
                 }}
               >
-                <SelectTrigger className="w-[180px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
