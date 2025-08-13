@@ -323,9 +323,9 @@ export default function QuestionSetPractice() {
 
       
 
-      <div className="flex-1 overflow-hidden bg-muted/40">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden px-4 py-2">
+        <div className="lg:hidden bg-muted/40 px-4 py-2">
           <Button
             variant="outline"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -338,7 +338,7 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        <div className="h-full w-full flex flex-col">
+        <div className="h-full w-full flex flex-col bg-muted/40">
           <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative h-full">
           {/* Left Sidebar - Collapsible Progress Bar */}
           <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-72 xl:w-80 lg:transform-none lg:border-0 lg:h-full ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>

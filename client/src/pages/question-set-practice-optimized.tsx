@@ -479,19 +479,17 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden bg-muted/40">
-          <div className="px-4 py-2">
-            <Button
-              variant="outline"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex items-center gap-2 bg-background h-auto py-2.5 px-3"
-            >
-              <PanelLeft className="h-4 w-4 flex-shrink-0" />
-              <span className="leading-none inline-block">
-                Progress ({Object.keys(userAnswers).length}/{questions.length})
-              </span>
-            </Button>
-          </div>
+        <div className="lg:hidden bg-muted/40 px-4 py-2">
+          <Button
+            variant="outline"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex items-center gap-2 bg-background h-auto py-2.5 px-3"
+          >
+            <PanelLeft className="h-4 w-4 flex-shrink-0" />
+            <span className="leading-none inline-block">
+              Progress ({Object.keys(userAnswers).length}/{questions.length})
+            </span>
+          </Button>
         </div>
 
         <div className="flex-1 flex overflow-hidden bg-muted/40">
