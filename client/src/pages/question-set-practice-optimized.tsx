@@ -479,19 +479,21 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden bg-muted/40 px-4 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center gap-2 bg-background"
-          >
-            <PanelLeft className="h-4 w-4" />
-            Progress ({Object.keys(userAnswers).length}/{questions.length})
-          </Button>
+        <div className="lg:hidden bg-muted/40">
+          <div className="px-4 py-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-2 bg-background"
+            >
+              <PanelLeft className="h-4 w-4" />
+              Progress ({Object.keys(userAnswers).length}/{questions.length})
+            </Button>
+          </div>
         </div>
 
-        <div className="flex-1 flex overflow-hidden bg-background">
+        <div className="flex-1 flex overflow-hidden bg-muted/40">
           {/* Left Sidebar - Fixed height with proper scrolling */}
           <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
