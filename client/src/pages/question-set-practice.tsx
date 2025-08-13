@@ -277,12 +277,13 @@ export default function QuestionSetPractice() {
 
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
-        <div className="w-full px-6">
-          <div className="flex items-center h-20">
-            {/* Left - Course Name */}
-            <div className="flex-1 min-w-0 lg:max-w-[30%]">
+        <div className="w-full px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-4 sm:h-20 sm:py-0">
+            {/* Course Name - Full width on mobile, partial on desktop */}
+            <div className="w-full sm:flex-1 sm:min-w-0 lg:max-w-[30%]">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold truncate" 
+                className="w-full text-base sm:text-lg lg:text-[28px] font-semibold leading-tight 
+                           whitespace-normal break-words line-clamp-2 sm:line-clamp-1" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course?.title || "Loading..."}
               >
@@ -290,7 +291,7 @@ export default function QuestionSetPractice() {
               </h1>
             </div>
             
-            {/* Center - Logo */}
+            {/* Center - Logo (Desktop only) */}
             <div className="hidden lg:flex flex-1 justify-center px-4">
               <OptimizedImage 
                 src={institutesLogo} 
@@ -299,13 +300,13 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Right - Question Set Dropdown */}
-            <div className="flex-1 flex justify-end items-center">
+            {/* Question Set Dropdown - Below title on mobile, right-aligned on desktop */}
+            <div className="w-full sm:w-auto sm:ml-auto">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <SelectTrigger className="w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-full sm:w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
