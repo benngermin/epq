@@ -278,21 +278,24 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-4 md:px-6">
-          <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-[1fr_auto] md:items-center py-4 md:py-3 lg:py-4">
-            {/* Course Name - Always truncated with ellipsis */}
-            <div className="col-span-1 w-full">
+          <div className="flex items-center gap-3 py-4 md:py-3 lg:py-4">
+            {/* Course Name - Show only course number on mobile, full title on desktop */}
+            <div className="flex-1 min-w-0">
               <h1 
                 className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight
-                           w-full truncate whitespace-nowrap" 
+                           truncate whitespace-nowrap" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
-                title={course?.title || "Loading..."}
+                title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                {course?.title || "Loading..."}
+                <span className="md:hidden">{course?.courseNumber || "Loading..."}</span>
+                <span className="hidden md:inline">
+                  {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
+                </span>
               </h1>
             </div>
             
             {/* Center - Logo (Desktop only) */}
-            <div className="hidden lg:flex flex-1 justify-center px-4">
+            <div className="hidden lg:flex px-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -300,13 +303,13 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Question Set Dropdown - Below title on mobile, right-aligned on desktop */}
-            <div className="w-full md:w-auto md:justify-self-end">
+            {/* Question Set Dropdown - Always right-aligned */}
+            <div className="flex-shrink-0">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
               >
-                <SelectTrigger className="w-full md:w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-[140px] sm:w-[180px] md:w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>

@@ -367,20 +367,23 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
-          <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-[1fr_auto] md:items-center py-4 md:py-3 lg:py-4">
-            {/* Left - Course Name */}
-            <div className="col-span-1 w-full">
+          <div className="flex items-center gap-3 py-4 md:py-3 lg:py-4">
+            {/* Left - Course Name - Show only course number on mobile, full title on desktop */}
+            <div className="flex-1 min-w-0">
               <h1 
-                className="text-lg md:text-xl lg:text-[28px] font-semibold w-full truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
+                className="text-lg md:text-xl lg:text-[28px] font-semibold truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
+                <span className="md:hidden">{course?.courseNumber || "Loading..."}</span>
+                <span className="hidden md:inline">
+                  {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
+                </span>
               </h1>
             </div>
             
             {/* Center - Logo */}
-            <div className="hidden lg:flex px-4 mx-4">
+            <div className="hidden lg:flex px-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -389,7 +392,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Right - Dropdowns */}
-            <div className="w-full md:w-auto md:justify-self-end flex justify-start md:justify-end items-center gap-2 lg:gap-4">
+            <div className="flex-shrink-0 flex items-center gap-2 lg:gap-4">
               {/* Logout Button - Admin Only */}
               {user?.isAdmin && (
                 <Button
@@ -453,7 +456,7 @@ export default function QuestionSetPractice() {
                   setLocation(`/question-set/${value}`);
                 }}
               >
-                <SelectTrigger className="w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                <SelectTrigger className="w-[140px] sm:w-[180px] md:w-[200px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select a question set" />
                 </SelectTrigger>
                 <SelectContent>
