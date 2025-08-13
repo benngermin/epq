@@ -366,12 +366,12 @@ export default function QuestionSetPractice() {
       <div className="h-screen bg-background overflow-hidden flex flex-col">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
-        <div className="w-full px-6">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto] md:items-center py-3 lg:py-4">
+        <div className="w-full px-4 md:px-6">
+          <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-[1fr_auto] md:items-center py-4 md:py-3 lg:py-4">
             {/* Left - Course Name */}
             <div className="col-span-1 w-full">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold w-full truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
+                className="text-lg md:text-xl lg:text-[28px] font-semibold w-full truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
