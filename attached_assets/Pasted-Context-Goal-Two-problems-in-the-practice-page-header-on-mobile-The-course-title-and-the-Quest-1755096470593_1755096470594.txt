@@ -1,0 +1,75 @@
+Context / Goal
+
+Two problems in the practice page header on mobile:
+
+The course title and the “Question Set” select should stack vertically, but they still sit side-by-side.
+
+The title still shows an ellipsis; we want the full title on mobile and single-line truncate on desktop only.
+
+Please fix both.
+
+What to change (use Grid to force stacking, then clean up truncation)
+
+Replace the header layout with a mobile-first Grid. This guarantees stacking regardless of any stray inline-flex/justify-between classes.
+
+tsx
+Copy
+Edit
+// BEFORE: header uses flex and doesn't stack reliably
+// <header className="... flex ...">
+
+// AFTER
+<header className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto] md:items-center">
+  <h1
+    className="
+      block w-full
+      text-base md:text-lg font-semibold leading-tight
+      whitespace-normal break-words
+      md:truncate md:whitespace-nowrap md:text-ellipsis
+    "
+    title={courseTitle}
+  >
+    {courseTitle}
+  </h1>
+
+  <div className="w-full md:w-auto md:justify-self-end">
+    <QuestionSetSelect ... />
+  </div>
+</header>
+Mobile: grid-cols-1 → title on row 1, dropdown on row 2.
+
+Desktop: md:grid-cols-[1fr_auto] → title left, dropdown right.
+
+Remove any JS string shortening of the title. The ellipsis should not be inserted by code.
+
+Search for and delete any logic like:
+
+truncate(, shortTitle, formatTitle, .slice(...)+ '…', .substring(...) + '…'.
+
+Use the raw title:
+
+tsx
+Copy
+Edit
+const courseTitle = course?.title ?? "";
+Strip base-level truncation from the DOM tree.
+
+Ensure no base classes on the <h1> or its parents include truncate, overflow-hidden, or whitespace-nowrap.
+
+Truncation is desktop-only via md:truncate md:whitespace-nowrap md:text-ellipsis.
+
+Acceptance criteria
+
+At ~430px width, the header shows the full title (wrapping as needed) on the first row and the Question Set select on its own row beneath.
+
+At ≥768px, the header returns to a single row with the title on the left, select on the right, and the title truncated to one line if long.
+
+No JS-inserted ellipses remain.
+
+If it still won’t stack
+
+Verify in DevTools that the header is display: grid at 430px and has grid-template-columns: 1fr.
+
+If any ancestor sets display:flex with absolute positioning on the select, remove those at mobile.
+
+As a quick guard, add w-full on the select wrapper (already in the snippet) so it occupies its own row on mobile.
