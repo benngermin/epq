@@ -477,9 +477,9 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      <div className="flex-1 overflow-hidden bg-muted/40 flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden px-4 pt-4 pb-1">
+        <div className="lg:hidden bg-muted/40 px-4 py-4">
           <Button
             variant="outline"
             size="sm"
@@ -491,7 +491,7 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden bg-background">
           {/* Left Sidebar - Fixed height with proper scrolling */}
           <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
