@@ -277,13 +277,13 @@ export default function QuestionSetPractice() {
 
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
-        <div className="w-full px-4 md:px-6">
-          <div className="grid grid-cols-1 gap-2 py-4 md:grid-cols-[1fr_auto] md:items-center md:h-20 md:py-0 lg:grid-cols-[1fr_1fr_auto]">
+        <div className="w-full px-4 md:px-6 py-4 md:py-0">
+          <div className="space-y-3 md:space-y-0 md:flex md:items-center md:justify-between md:h-20">
             {/* Course Name - Full text on mobile, truncated on desktop */}
             <h1 
-              className="block w-full text-base md:text-lg lg:text-[28px] font-semibold leading-tight
+              className="text-base md:text-lg lg:text-[28px] font-semibold leading-tight
                          whitespace-normal break-words
-                         md:truncate md:whitespace-nowrap md:text-ellipsis" 
+                         md:truncate md:whitespace-nowrap md:text-ellipsis md:max-w-[50%] lg:max-w-[30%]" 
               style={{ fontFamily: '"Open Sans", sans-serif' }}
               title={course?.title || "Loading..."}
             >
@@ -291,7 +291,7 @@ export default function QuestionSetPractice() {
             </h1>
             
             {/* Center - Logo (Desktop only) */}
-            <div className="hidden lg:flex justify-center px-4">
+            <div className="hidden lg:flex flex-1 justify-center px-4">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -300,7 +300,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Question Set Dropdown - Below title on mobile, right-aligned on desktop */}
-            <div className="w-full md:w-auto md:justify-self-end">
+            <div className="w-full md:w-auto">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
