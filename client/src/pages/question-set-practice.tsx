@@ -325,7 +325,7 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden bg-muted/40">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden px-4 pt-3 pb-1.5">
+        <div className="lg:hidden px-4 py-2">
           <Button
             variant="outline"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -500,7 +500,7 @@ export default function QuestionSetPractice() {
           </div>
 
           {/* Right Main Content - Question and Chat */}
-          <div className="flex-1 min-w-0 flex flex-col h-full p-2 sm:p-3 md:p-4">
+          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden px-2 sm:px-3 md:px-4 pt-2 sm:pt-3 md:pt-4 pb-4">
             <div className="flex-1 flex items-center justify-center min-h-0">
               <div className="w-full max-w-4xl mx-auto">
                 <QuestionCard
