@@ -371,7 +371,7 @@ export default function QuestionSetPractice() {
             {/* Left - Course Name */}
             <div className="col-span-1 w-full">
               <h1 
-                className="text-lg lg:text-[28px] font-semibold w-full whitespace-normal break-words md:truncate md:whitespace-nowrap leading-tight lg:leading-[1.2]" 
+                className="text-lg lg:text-[28px] font-semibold w-full truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
@@ -389,7 +389,7 @@ export default function QuestionSetPractice() {
             </div>
             
             {/* Right - Dropdowns */}
-            <div className="w-full md:w-auto md:justify-self-end flex justify-end items-center gap-2 lg:gap-4">
+            <div className="w-full md:w-auto md:justify-self-end flex justify-start md:justify-end items-center gap-2 lg:gap-4">
               {/* Logout Button - Admin Only */}
               {user?.isAdmin && (
                 <Button

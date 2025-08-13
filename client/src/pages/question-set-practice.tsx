@@ -279,11 +279,11 @@ export default function QuestionSetPractice() {
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-4 md:px-6 py-4 md:py-0">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto] md:items-center py-3 lg:py-4">
-            {/* Course Name - Full text on mobile, truncated on desktop */}
+            {/* Course Name - Always truncated with ellipsis */}
             <div className="col-span-1 w-full">
               <h1 
                 className="text-base md:text-lg lg:text-[28px] font-semibold leading-tight
-                           w-full whitespace-normal break-words md:truncate md:whitespace-nowrap" 
+                           w-full truncate whitespace-nowrap" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course?.title || "Loading..."}
               >
