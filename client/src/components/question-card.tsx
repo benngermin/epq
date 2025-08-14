@@ -456,7 +456,7 @@ export function QuestionCard({
                 )}
               </div>
               <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0">
-                <div className="mb-16 md:mb-0">
+                <div className="mb-24 md:mb-0">
                   <Button 
                     onClick={handleReviewQuestion} 
                     variant="outline" 
