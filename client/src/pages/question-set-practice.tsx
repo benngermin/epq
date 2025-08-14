@@ -288,9 +288,9 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-4 md:px-6">
-          <div className="flex items-center gap-3 py-4 md:py-3 lg:py-4">
-            {/* Course Name - Show only course number on mobile, full title on desktop */}
-            <div className="flex-1 min-w-0">
+          <div className="grid grid-cols-3 items-center gap-3 py-4 md:py-3 lg:py-4">
+            {/* Left: Course Name - Truncates with ellipsis */}
+            <div className="min-w-0">
               <h1 
                 className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight
                            truncate whitespace-nowrap" 
@@ -304,17 +304,17 @@ export default function QuestionSetPractice() {
               </h1>
             </div>
             
-            {/* Center - Logo (Desktop only) */}
-            <div className="hidden lg:flex px-4">
+            {/* Center: Logo - Always centered */}
+            <div className="flex justify-center px-2">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
-                className="h-10" 
+                className="h-8 md:h-10" 
               />
             </div>
             
-            {/* Question Set Dropdown - Always right-aligned */}
-            <div className="flex-shrink-0">
+            {/* Right: Question Set Dropdown */}
+            <div className="flex justify-end">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
