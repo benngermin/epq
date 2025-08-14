@@ -335,13 +335,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 relative">
       {/* Messages area - scrollable with padding for footer */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className="p-4 space-y-3 pb-[160px]">
+        <div className="p-4 space-y-3 pb-4">
           {/* Show placeholder when no messages */}
           {messages.length === 0 && (
             <div className="flex w-full justify-center items-center min-h-[200px]">
@@ -392,7 +392,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       </div>
 
       {/* Footer with composer and Review Question button */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-950 border-t">
+      <div className="sticky bottom-0 bg-white dark:bg-gray-950 border-t z-10">
         <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
           <div className="flex space-x-2">
             <Input

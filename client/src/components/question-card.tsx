@@ -388,7 +388,7 @@ export function QuestionCard({
                 </div>
 
                 {/* Action buttons - always visible at bottom - add significant bottom padding on mobile for sticky footer clearance */}
-                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-32 md:pb-0 flex-shrink-0 border-t">
+                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-2 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -443,7 +443,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm">
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               {/* Remove overflow-hidden from Card to allow proper flex behavior */}
               {showChatbot && (
                 <SimpleStreamingChat
@@ -516,6 +516,8 @@ export function QuestionCard({
             flex: 1;
             min-height: 0;
             height: 100%;
+            max-height: 100%;
+            overflow: hidden;
           }
         }
         @media (min-width: 768px) {
