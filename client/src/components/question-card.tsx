@@ -445,8 +445,8 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full md:h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <Card className="w-full h-full md:h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+              <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
                     /* key forces a fresh instance when we change questions or reset all */
@@ -457,7 +457,7 @@ export function QuestionCard({
                   />
                 )}
               </div>
-              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0">
+              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
@@ -508,8 +508,9 @@ export function QuestionCard({
           }
           .card-flip-back {
             display: none;
-            height: calc(100vh - 150px);
-            max-height: calc(100vh - 150px);
+            height: calc(100vh - 100px);
+            max-height: calc(100vh - 100px);
+            position: relative;
           }
           .card-flip.flipped .card-flip-front {
             display: none;

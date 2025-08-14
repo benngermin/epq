@@ -332,7 +332,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         <div 
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth" 
-          style={{ minHeight: "0px", maxHeight: "calc(100vh - 280px)" }}
+          style={{ minHeight: "0px" }}
         >
           <div className="space-y-3 p-2 pt-4">
             {/* Show placeholder when no messages */}
