@@ -157,13 +157,13 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full flex flex-col max-h-[calc(100vh-240px)] lg:h-full">
+    <div className="w-full h-full flex flex-col">
       <div className={cn("card-flip w-full h-full", isFlipped && "flipped")}>
         <div className="card-flip-inner h-full">
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col h-full">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -204,7 +204,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <TrueFalse
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
@@ -224,7 +224,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -245,7 +245,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <Matching
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -266,7 +266,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <Ordering
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -301,7 +301,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -322,7 +322,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -343,7 +343,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[65vh]">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
