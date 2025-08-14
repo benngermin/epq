@@ -349,7 +349,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 key={message.id}
                 className={`flex w-full ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
               >
-                <div className={message.role === "assistant" ? "w-[96%]" : "max-w-[85%]"}>
+                <div className={message.role === "assistant" ? "w-[98%]" : "max-w-[85%]"}>
                   <div className={`rounded-lg px-3 py-2 text-base break-words ${
                     message.role === "assistant"
                       ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
