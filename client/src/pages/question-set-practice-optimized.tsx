@@ -631,10 +631,10 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden">
-          {/* Remove overflow-y-auto on mobile to prevent nested scrolling */}
-          <div className="flex-1 px-4 pt-0 pb-0 md:pb-4 lg:p-4 overflow-visible md:overflow-y-auto flex flex-col">
-            <div className="w-full max-w-4xl mx-auto h-auto md:h-full flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col">
+          {/* Updated to use flex-1 min-h-0 for proper flex shrinking */}
+          <div className="flex-1 min-h-0 px-4 pt-0 pb-0 md:pb-4 lg:p-4 overflow-visible md:overflow-y-auto flex flex-col">
+            <div className="w-full max-w-4xl mx-auto flex-1 min-h-0 flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
                   question={{

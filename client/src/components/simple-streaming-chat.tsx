@@ -22,6 +22,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const actionBarRef = useRef<HTMLDivElement>(null);
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -34,6 +35,30 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       originalChosenAnswerRef.current = chosenAnswer;
     }
   }, [chosenAnswer]);
+
+  // Dynamically measure action bar height and update messages padding
+  useEffect(() => {
+    const updateActionBarHeight = () => {
+      if (actionBarRef.current && scrollContainerRef.current) {
+        const height = actionBarRef.current.offsetHeight;
+        scrollContainerRef.current.style.setProperty('--action-bar-h', `${height}px`);
+      }
+    };
+
+    updateActionBarHeight();
+    window.addEventListener('resize', updateActionBarHeight);
+    
+    // Also update when content changes (in case action bar height changes)
+    const observer = new ResizeObserver(updateActionBarHeight);
+    if (actionBarRef.current) {
+      observer.observe(actionBarRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateActionBarHeight);
+      observer.disconnect();
+    };
+  }, []);
 
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
@@ -327,64 +352,69 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <div className="w-full h-full bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
-      <div className="flex-1 p-3 md:p-4 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0 overflow-hidden">
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth pb-4" 
-          style={{ minHeight: "0px" }}
-        >
-          <div className="space-y-3 p-2 pt-4">
-            {/* Show placeholder when no messages */}
-            {messages.length === 0 && (
-              <div className="flex w-full justify-center items-center min-h-[200px]">
-                <div className="text-muted-foreground text-sm">
-                  Answer the question to see AI explanation
-                </div>
+    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Messages area - scrollable with dynamic padding for action bar */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto"
+        style={{ paddingBottom: 'var(--action-bar-h, 80px)' }}
+      >
+        <div className="p-4 space-y-3">
+          {/* Show placeholder when no messages */}
+          {messages.length === 0 && (
+            <div className="flex w-full justify-center items-center min-h-[200px]">
+              <div className="text-muted-foreground text-sm">
+                Answer the question to see AI explanation
               </div>
-            )}
-            {/* All conversation messages */}
-            {messages.map((message, index) => (
-              <div
-                key={message.id}
-                className={`flex w-full ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
-              >
-                <div className={message.role === "assistant" ? "w-[98%]" : "max-w-[85%]"}>
-                  <div className={`rounded-lg px-3 py-2 text-base break-words ${
-                    message.role === "assistant"
-                      ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
-                      : "bg-primary text-primary-foreground rounded-tr-none"
-                  }`}>
-                    <div className="flex items-start gap-2">
-                      {message.role === "assistant" && (
-                        <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+            </div>
+          )}
+          {/* All conversation messages */}
+          {messages.map((message, index) => (
+            <div
+              key={message.id}
+              className={`flex w-full ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
+            >
+              <div className={message.role === "assistant" ? "w-[98%]" : "max-w-[85%]"}>
+                <div className={`rounded-lg px-3 py-2 text-base break-words ${
+                  message.role === "assistant"
+                    ? "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-none"
+                    : "bg-primary text-primary-foreground rounded-tr-none"
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {message.role === "assistant" && (
+                      <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {message.role === "assistant" && !message.content && (
+                        <div className="flex items-center justify-center space-x-2 py-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        {message.role === "assistant" && !message.content && (
-                          <div className="flex items-center justify-center space-x-2 py-2">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                        )}
-                        {message.content && <HtmlLinkRenderer content={message.content} />}
-                      </div>
+                      {message.content && <HtmlLinkRenderer content={message.content} />}
                     </div>
                   </div>
-                  {/* Add feedback buttons for assistant messages with content */}
-                  {message.role === "assistant" && message.content && !isStreaming && (
-                    <FeedbackButtons 
-                      messageId={message.id} 
-                      questionVersionId={questionVersionId}
-                    />
-                  )}
                 </div>
+                {/* Add feedback buttons for assistant messages with content */}
+                {message.role === "assistant" && message.content && !isStreaming && (
+                  <FeedbackButtons 
+                    messageId={message.id} 
+                    questionVersionId={questionVersionId}
+                  />
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="flex space-x-2 flex-shrink-0">
+      {/* Action bar - sticky at bottom with composer */}
+      <div 
+        ref={actionBarRef}
+        className="sticky bottom-0 z-10 bg-white dark:bg-gray-950 border-t p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+      >
+        <div className="flex space-x-2">
           <Input
             placeholder="Ask a follow-up question..."
             value={userInput}

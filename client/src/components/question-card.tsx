@@ -155,9 +155,9 @@ export function QuestionCard({
   const showChatbot = isFlipped;
 
   return (
-    <div className="w-full h-auto md:h-full flex flex-col">
-      <div className={cn("card-flip w-full h-auto md:h-full", isFlipped && "flipped")}>
-        <div className="card-flip-inner h-auto md:h-full">
+    <div className="w-full flex-1 min-h-0 flex flex-col">
+      <div className={cn("card-flip w-full flex-1 min-h-0", isFlipped && "flipped")}>
+        <div className="card-flip-inner flex-1 min-h-0 flex flex-col">
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="w-full h-auto md:h-full bg-card border shadow-sm flex flex-col">
@@ -443,8 +443,8 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden position-relative">
-              <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+              <div className="flex-1 min-h-0 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
                     /* key forces a fresh instance when we change questions or reset all */
@@ -455,7 +455,7 @@ export function QuestionCard({
                   />
                 )}
               </div>
-              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0 mb-20 md:mb-0">
+              <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-border bg-white dark:bg-gray-950 flex-shrink-0 sticky bottom-0 z-10">
                 <Button 
                   onClick={handleReviewQuestion} 
                   variant="outline" 
@@ -475,6 +475,8 @@ export function QuestionCard({
           perspective: 1000px;
           position: relative;
           z-index: 1;
+          display: flex;
+          flex-direction: column;
         }
         .card-flip-inner {
           position: relative;
@@ -482,6 +484,8 @@ export function QuestionCard({
           text-align: left;
           transition: transform 0.6s;
           transform-style: preserve-3d;
+          display: flex;
+          flex-direction: column;
         }
         @media (min-width: 768px) {
           .card-flip-inner {
@@ -502,19 +506,24 @@ export function QuestionCard({
             transform: none;
           }
           .card-flip-front {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
           }
           .card-flip-back {
             display: none;
             position: relative;
+            flex: 1;
+            min-height: 0;
           }
           .card-flip.flipped .card-flip-front {
             display: none;
           }
           .card-flip.flipped .card-flip-back {
-            display: block;
+            display: flex;
+            flex-direction: column;
             height: calc(100vh - 200px);
-            overflow: visible;
           }
         }
         @media (min-width: 768px) {
