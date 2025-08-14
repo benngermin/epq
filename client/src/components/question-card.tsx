@@ -204,7 +204,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <TrueFalse
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
@@ -224,7 +224,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -245,7 +245,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <Matching
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -266,7 +266,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <Ordering
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -301,7 +301,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -322,7 +322,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -343,7 +343,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 520px)' }}>
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
