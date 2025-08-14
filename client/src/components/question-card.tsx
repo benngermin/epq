@@ -162,8 +162,8 @@ export function QuestionCard({
         <div className="card-flip-inner h-full">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="w-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col">
+            <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -179,7 +179,7 @@ export function QuestionCard({
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
