@@ -1391,8 +1391,9 @@ export function registerRoutes(app: Express): Server {
     });
     
     // Clean up finished streams
-    if (stream.done && !stream.error) {
+    if (stream.done) {
       // Clear chunks after sending final response
+      // Clean up both successful and error streams
       setTimeout(() => {
         cleanupStream(streamId);
       }, 2000); // Slightly longer delay to ensure client gets final response
@@ -1402,13 +1403,20 @@ export function registerRoutes(app: Express): Server {
   // Abort stream endpoint
   app.post("/api/chatbot/stream-abort/:streamId", requireAuth, async (req, res) => {
     const streamId = req.params.streamId;
+    const userId = req.user!.id;
+    
+    // Validate that the stream belongs to the current user
+    if (!streamId.startsWith(`${userId}_`)) {
+      return res.status(403).json({ error: "Unauthorized to abort this stream" });
+    }
+    
     const stream = activeStreams.get(streamId);
     
     if (stream) {
       stream.aborted = true;
       stream.done = true;
       stream.error = "Stream aborted by user";
-      console.log(`Stream ${streamId} aborted by user`);
+      console.log(`Stream ${streamId} aborted by user ${userId}`);
     }
     
     res.json({ success: true });

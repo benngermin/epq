@@ -224,6 +224,11 @@ These rules apply to all interactions and code. Deviate only if explicitly told 
 - Added database health monitoring and circuit breaker
 - Optimized database connection pooling
 - Added comprehensive logging system
+- **Bug Fixes (August 14, 2025)**:
+  - Fixed duplicate security headers in server/index.ts
+  - Fixed memory leak in stream cleanup (now cleans up error streams)
+  - Added user validation for stream abort endpoint to prevent unauthorized access
+  - Improved stream ownership validation for security
 
 ### Known Features
 - URL parameter-based course selection (course_id, assignment_name)
