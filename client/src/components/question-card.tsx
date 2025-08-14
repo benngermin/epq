@@ -157,13 +157,13 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full flex flex-col">
-      <div className={cn("card-flip w-full", isFlipped && "flipped")}>
-        <div className="card-flip-inner">
+    <div className="w-full h-full flex flex-col">
+      <div className={cn("card-flip w-full h-full", isFlipped && "flipped")}>
+        <div className="card-flip-inner h-full">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="w-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col">
+            <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -204,7 +204,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <TrueFalse
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
@@ -224,7 +224,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -245,7 +245,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <Matching
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -266,7 +266,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <Ordering
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -301,7 +301,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -322,7 +322,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -343,7 +343,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto max-h-full">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
@@ -445,7 +445,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -493,7 +493,6 @@ export function QuestionCard({
           position: absolute;
           width: 100%;
           height: 100%;
-          min-height: 400px;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
           top: 0;
