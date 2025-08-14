@@ -1501,6 +1501,15 @@ export function registerRoutes(app: Express): Server {
       
       if (courseMaterial) {
         sourceMaterial = courseMaterial.content;
+        // On mobile, also strip the URL from the course material to prevent AI from creating links
+        if (isMobile) {
+          // Remove [url=...] ... [/url] patterns from the course material
+          sourceMaterial = sourceMaterial.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
+          // Also remove [color=...] tags that often wrap URLs
+          sourceMaterial = sourceMaterial.replace(/\[color=[^\]]+\]/gi, '');
+          sourceMaterial = sourceMaterial.replace(/\[\/color\]/gi, '');
+          console.log(`📚 [Streaming] Stripped URLs from course material for mobile`);
+        }
         console.log(`📚 [Streaming] Using course material for source`);
       } else {
         console.log(`📚 [Streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
@@ -1633,6 +1642,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       if (courseMaterial) {
         sourceMaterial = courseMaterial.content;
+        // On mobile, also strip the URL from the course material to prevent AI from creating links
+        if (isMobile) {
+          // Remove [url=...] ... [/url] patterns from the course material
+          sourceMaterial = sourceMaterial.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
+          // Also remove [color=...] tags that often wrap URLs
+          sourceMaterial = sourceMaterial.replace(/\[color=[^\]]+\]/gi, '');
+          sourceMaterial = sourceMaterial.replace(/\[\/color\]/gi, '');
+          console.log(`📚 [Non-streaming] Stripped URLs from course material for mobile`);
+        }
         console.log(`📚 [Non-streaming] Using course material for source`);
       } else {
         console.log(`📚 [Non-streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
