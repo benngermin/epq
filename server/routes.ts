@@ -1449,18 +1449,20 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Helper function to strip link_handling and link_formatting sections from prompt when on mobile
-  function stripLinkHandlingSection(prompt: string, isMobile: boolean): string {
-    console.log(`📱 Stripping link sections: isMobile=${isMobile}`);
-    if (!isMobile) return prompt; // Keep the sections for desktop
+  // Helper function to clean course material URLs when on mobile
+  function cleanCourseMaterialForMobile(content: string, isMobile: boolean): string {
+    if (!isMobile) return content; // Keep everything for desktop
     
-    // Remove content between <link_handling> and </link_handling> tags
-    // AND content between <link_formatting> and </link_formatting> tags
-    let stripped = prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
-    stripped = stripped.replace(/<link_formatting>[\s\S]*?<\/link_formatting>/g, '');
+    console.log(`📱 Cleaning course material for mobile`);
     
-    console.log(`📱 Original prompt length: ${prompt.length}, Stripped length: ${stripped.length}, Difference: ${prompt.length - stripped.length}`);
-    return stripped;
+    // Remove [url=...] ... [/url] patterns from the course material
+    let cleaned = content.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
+    // Also remove [color=...] tags that often wrap URLs
+    cleaned = cleaned.replace(/\[color=[^\]]+\]/gi, '');
+    cleaned = cleaned.replace(/\[\/color\]/gi, '');
+    
+    console.log(`📱 Original content length: ${content.length}, Cleaned length: ${cleaned.length}, Difference: ${content.length - cleaned.length}`);
+    return cleaned;
   }
 
   // Background stream processing
@@ -1500,16 +1502,8 @@ export function registerRoutes(app: Express): Server {
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        sourceMaterial = courseMaterial.content;
-        // On mobile, also strip the URL from the course material to prevent AI from creating links
-        if (isMobile) {
-          // Remove [url=...] ... [/url] patterns from the course material
-          sourceMaterial = sourceMaterial.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
-          // Also remove [color=...] tags that often wrap URLs
-          sourceMaterial = sourceMaterial.replace(/\[color=[^\]]+\]/gi, '');
-          sourceMaterial = sourceMaterial.replace(/\[\/color\]/gi, '');
-          console.log(`📚 [Streaming] Stripped URLs from course material for mobile`);
-        }
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
         console.log(`📚 [Streaming] Using course material for source`);
       } else {
         console.log(`📚 [Streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
@@ -1534,9 +1528,6 @@ Relevant course material:
 ${sourceMaterial}
 
 Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
-        
-        // Strip link_handling section if on mobile for follow-up prompts
-        prompt = stripLinkHandlingSection(prompt, isMobile || false);
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1592,7 +1583,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
-        systemPrompt = stripLinkHandlingSection(systemPrompt, isMobile || false);
         
         prompt = systemPrompt;
       }
@@ -1641,16 +1631,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        sourceMaterial = courseMaterial.content;
-        // On mobile, also strip the URL from the course material to prevent AI from creating links
-        if (isMobile) {
-          // Remove [url=...] ... [/url] patterns from the course material
-          sourceMaterial = sourceMaterial.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
-          // Also remove [color=...] tags that often wrap URLs
-          sourceMaterial = sourceMaterial.replace(/\[color=[^\]]+\]/gi, '');
-          sourceMaterial = sourceMaterial.replace(/\[\/color\]/gi, '');
-          console.log(`📚 [Non-streaming] Stripped URLs from course material for mobile`);
-        }
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
         console.log(`📚 [Non-streaming] Using course material for source`);
       } else {
         console.log(`📚 [Non-streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
@@ -1674,7 +1656,6 @@ ${sourceMaterial}
 Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
         
         // Strip link_handling section if on mobile for follow-up prompts
-        prompt = stripLinkHandlingSection(prompt, isMobile || false);
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1730,7 +1711,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
-        systemPrompt = stripLinkHandlingSection(systemPrompt, isMobile || false);
         
         prompt = systemPrompt;
       }
