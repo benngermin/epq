@@ -204,7 +204,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <TrueFalse
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
@@ -224,7 +224,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -245,7 +245,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <Matching
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -266,7 +266,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <Ordering
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -301,7 +301,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -322,7 +322,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -343,7 +343,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto">
+                            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
