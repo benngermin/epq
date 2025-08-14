@@ -151,10 +151,8 @@ export function QuestionCard({
     setIsFlipped(true);
   };
 
-  // We only want to mount the chatbot *after* an answer has been captured
-  const showChatbot =
-    isFlipped &&
-    (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
+  // Show chatbot when flipped (we always have an answer at this point since Get Help only shows after answering)
+  const showChatbot = isFlipped;
 
   return (
     <div className="w-full h-auto md:h-full flex flex-col">
@@ -445,7 +443,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden position-relative">
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -457,15 +455,17 @@ export function QuestionCard({
                   />
                 )}
               </div>
-              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 mb-20 md:mb-0">
-                <Button 
-                  onClick={handleReviewQuestion} 
-                  variant="outline" 
-                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Review Question
-                </Button>
+              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0">
+                <div className="mb-16 md:mb-0">
+                  <Button 
+                    onClick={handleReviewQuestion} 
+                    variant="outline" 
+                    className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Review Question
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
@@ -508,14 +508,15 @@ export function QuestionCard({
           }
           .card-flip-back {
             display: none;
+            position: relative;
           }
           .card-flip.flipped .card-flip-front {
             display: none;
           }
           .card-flip.flipped .card-flip-back {
             display: block;
-            height: 100%;
-            overflow-y: auto;
+            height: calc(100vh - 200px);
+            overflow: visible;
           }
         }
         @media (min-width: 768px) {
