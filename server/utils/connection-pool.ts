@@ -12,9 +12,10 @@ class DatabaseCircuitBreaker {
     state: 'CLOSED'
   };
 
-  private readonly failureThreshold = 3;
-  private readonly timeoutMs = 30000; // 30 second timeout
-  private readonly resetTimeoutMs = 60000; // 1 minute reset timeout
+  // Configurable via environment variables with sensible defaults
+  private readonly failureThreshold = parseInt(process.env.DB_CIRCUIT_BREAKER_FAILURE_THRESHOLD || '3', 10);
+  private readonly timeoutMs = parseInt(process.env.DB_CIRCUIT_BREAKER_TIMEOUT_MS || '30000', 10); // Default 30 seconds
+  private readonly resetTimeoutMs = parseInt(process.env.DB_CIRCUIT_BREAKER_RESET_MS || '60000', 10); // Default 1 minute
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.state.state === 'OPEN') {

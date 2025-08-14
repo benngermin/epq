@@ -16,6 +16,7 @@ import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
 import { getTodayEST } from "./utils/logger";
+import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware/rate-limiter";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -1226,7 +1227,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Simple chatbot response (non-streaming)
-  app.post("/api/chatbot/simple-response", requireAuth, async (req, res) => {
+  app.post("/api/chatbot/simple-response", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
       const userId = req.user!.id;
@@ -1288,7 +1289,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Initialize streaming
-  app.post("/api/chatbot/stream-init", requireAuth, async (req, res) => {
+  app.post("/api/chatbot/stream-init", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
     // Initialize streaming chatbot response
     
     try {

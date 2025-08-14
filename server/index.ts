@@ -23,10 +23,11 @@ app.use((req, res, next) => {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
   
-  // Content Security Policy
+  // Content Security Policy - Improved security by removing unsafe-eval
+  // Note: unsafe-inline is still needed for React and Tailwind CSS
   res.setHeader('Content-Security-Policy', 
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "script-src 'self' 'unsafe-inline'; " +  // Removed unsafe-eval for better security
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "img-src 'self' data: https:; " +
     "connect-src 'self' https://openrouter.ai; " +

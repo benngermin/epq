@@ -51,9 +51,9 @@ function Router() {
         <ProtectedRoute path="/" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
         <ProtectedRoute path="/dashboard" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
 
-        <ProtectedRoute path="/question-set/:id" component={() => <QuestionSetPractice />} />
-        <AdminProtectedRoute path="/admin" component={() => <AdminPanel />} />
-        <ProtectedRoute path="/debug" component={() => <Debug />} />
+        <ProtectedRoute path="/question-set/:id" component={() => <DashboardErrorBoundary><QuestionSetPractice /></DashboardErrorBoundary>} />
+        <AdminProtectedRoute path="/admin" component={() => <DashboardErrorBoundary><AdminPanel /></DashboardErrorBoundary>} />
+        <ProtectedRoute path="/debug" component={() => <DashboardErrorBoundary><Debug /></DashboardErrorBoundary>} />
         <Route path="/auth" component={() => <AuthPage />} />
         <Route component={() => <NotFound />} />
       </Switch>

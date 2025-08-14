@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
+import { authRateLimiter } from "./middleware/rate-limiter";
 
 declare global {
   namespace Express {
@@ -170,7 +171,7 @@ export function setupAuth(app: Express) {
   });
 
   // Local authentication endpoints - available in development only
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", authRateLimiter.middleware(), async (req, res, next) => {
     if (process.env.NODE_ENV === 'development') {
       const userWithEmail = await storage.getUserByEmail(req.body.email);
       if (userWithEmail) {
@@ -203,7 +204,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", async (req, res, next) => {
+  app.post("/api/login", authRateLimiter.middleware(), async (req, res, next) => {
     passport.authenticate("local", async (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
