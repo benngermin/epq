@@ -363,7 +363,7 @@ export default function QuestionSetPractice() {
         />
       )}
     >
-      <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      <div className="min-h-[100dvh] md:h-[100dvh] bg-background flex flex-col md:overflow-hidden">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
@@ -500,8 +500,8 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        {/* Scrollable content area - only on mobile */}
-        <div className="flex-1 min-h-0 flex md:overflow-hidden bg-muted/40">
+        {/* Scrollable content area - allow normal scroll on mobile */}
+        <div className="flex-1 min-h-0 flex overflow-visible md:overflow-hidden bg-muted/40">
           {/* Left Sidebar - Fixed height with proper scrolling */}
           <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
@@ -631,10 +631,10 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Add bottom padding on mobile to account for fixed footer - use safe area and dynamic padding */}
-          <div className="flex-1 px-4 pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4 lg:p-4 overflow-y-auto flex flex-col">
-            <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
+        <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden">
+          {/* Remove overflow-y-auto on mobile to prevent nested scrolling */}
+          <div className="flex-1 px-4 pt-0 pb-0 md:pb-4 lg:p-4 overflow-visible md:overflow-y-auto flex flex-col">
+            <div className="w-full max-w-4xl mx-auto h-auto md:h-full flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
                   question={{

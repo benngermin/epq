@@ -157,13 +157,13 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className={cn("card-flip w-full h-full", isFlipped && "flipped")}>
-        <div className="card-flip-inner h-full">
+    <div className="w-full h-auto md:h-full flex flex-col">
+      <div className={cn("card-flip w-full h-auto md:h-full", isFlipped && "flipped")}>
+        <div className="card-flip-inner h-auto md:h-full">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full">
+            <Card className="w-full h-auto md:h-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-auto md:h-full overflow-visible md:overflow-y-auto">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -179,7 +179,7 @@ export function QuestionCard({
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto pb-20 md:pb-4">
+                <div className="flex-1 flex flex-col min-h-0">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
@@ -389,8 +389,8 @@ export function QuestionCard({
                   })()}
                 </div>
 
-                {/* Action buttons - always visible at bottom - add extra bottom padding on mobile */}
-                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 flex-shrink-0 border-t">
+                {/* Action buttons - always visible at bottom - add significant bottom padding on mobile for sticky footer clearance */}
+                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-32 md:pb-0 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
