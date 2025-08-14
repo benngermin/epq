@@ -1449,13 +1449,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Helper function to strip link_handling sections from prompt when on mobile
+  // Helper function to strip link_handling and link_formatting sections from prompt when on mobile
   function stripLinkHandlingSection(prompt: string, isMobile: boolean): string {
-    console.log(`📱 Stripping link_handling: isMobile=${isMobile}`);
-    if (!isMobile) return prompt; // Keep the section for desktop
+    console.log(`📱 Stripping link sections: isMobile=${isMobile}`);
+    if (!isMobile) return prompt; // Keep the sections for desktop
     
     // Remove content between <link_handling> and </link_handling> tags
-    const stripped = prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
+    // AND content between <link_formatting> and </link_formatting> tags
+    let stripped = prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
+    stripped = stripped.replace(/<link_formatting>[\s\S]*?<\/link_formatting>/g, '');
+    
     console.log(`📱 Original prompt length: ${prompt.length}, Stripped length: ${stripped.length}, Difference: ${prompt.length - stripped.length}`);
     return stripped;
   }
