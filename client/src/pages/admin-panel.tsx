@@ -191,17 +191,7 @@ function AISettingsSection() {
                 )}
               />
 
-              <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded border">
-                <p><strong>Model Settings:</strong></p>
-                <ul className="mt-1 space-y-1">
-                  <li>• Temperature: Always set to 0 (deterministic responses)</li>
-                  <li>• Max Tokens: Automatically configured based on model capabilities</li>
-                  <li>• Popular models:</li>
-                  <li className="ml-4">- google/gemini-2.0-flash-exp (fast, cost-effective)</li>
-                  <li className="ml-4">- openai/gpt-4o (balanced performance)</li>
-                  <li className="ml-4">- anthropic/claude-3.5-sonnet (high quality)</li>
-                </ul>
-              </div>
+
 
               <Button type="submit" disabled={updateAISettingsMutation.isPending}>
                 {updateAISettingsMutation.isPending ? "Updating..." : "Update Model Settings"}
