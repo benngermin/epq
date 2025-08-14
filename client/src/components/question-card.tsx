@@ -157,9 +157,9 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full md:h-full flex flex-col">
-      <div className={cn("card-flip w-full md:h-full", isFlipped && "flipped")}>
-        <div className="card-flip-inner md:h-full">
+    <div className="w-full h-full flex flex-col">
+      <div className={cn("card-flip w-full h-full", isFlipped && "flipped")}>
+        <div className="card-flip-inner h-full">
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="w-full bg-card border shadow-sm flex flex-col">
@@ -445,7 +445,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full md:h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
