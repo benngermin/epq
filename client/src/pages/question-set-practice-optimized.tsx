@@ -363,7 +363,7 @@ export default function QuestionSetPractice() {
         />
       )}
     >
-      <div className="min-h-[100dvh] md:h-[100dvh] bg-background flex flex-col md:overflow-hidden">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
@@ -485,7 +485,7 @@ export default function QuestionSetPractice() {
       </nav>
 
       {/* Main content area - flex-1 with min-height:0 to enable proper scrolling */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
         {/* Mobile Progress Indicator - In Grey Background Area */}
         <div className="lg:hidden bg-muted/40 px-4 py-2 flex-shrink-0">
           <Button
@@ -500,8 +500,8 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        {/* Scrollable content area - allow normal scroll on mobile */}
-        <div className="flex-1 min-h-0 flex overflow-visible md:overflow-hidden bg-muted/40">
+        {/* Scrollable content area */}
+        <div className="flex-1 min-h-0 flex bg-muted/40">
           {/* Left Sidebar - Fixed height with proper scrolling */}
           <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
@@ -631,9 +631,9 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col pb-20 md:pb-0">
           {/* Updated to use flex-1 min-h-0 for proper flex shrinking */}
-          <div className="flex-1 min-h-0 px-4 pt-0 pb-0 md:pb-4 lg:p-4 overflow-visible md:overflow-y-auto flex flex-col">
+          <div className="flex-1 min-h-0 px-4 pt-0 pb-0 md:pb-4 lg:p-4 flex flex-col">
             <div className="w-full max-w-4xl mx-auto flex-1 min-h-0 flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
@@ -668,11 +668,11 @@ export default function QuestionSetPractice() {
         </div>
       </div>
 
-      {/* Navigation Controls - Fixed footer on mobile, normal on desktop */}
+      {/* Navigation Controls - Sticky footer */}
       <div className="bg-background border-t border-border flex-shrink-0 
-        fixed bottom-0 left-0 right-0 md:static
-        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
-        z-30 md:z-auto
+        sticky bottom-0 
+        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]
+        z-30
         pointer-events-none">
         <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
           <Button

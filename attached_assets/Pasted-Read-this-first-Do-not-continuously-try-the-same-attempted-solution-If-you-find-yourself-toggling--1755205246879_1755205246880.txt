@@ -1,0 +1,197 @@
+Read this first:
+Do not continuously try the same attempted solution. If you find yourself toggling sticky / overflow / min-h-0 in the same places you already touched, stop and follow the audit + fixes below exactly.
+
+What’s broken (based on my screenshots)
+
+On mobile, the Review Question button becomes invisible/inaccessible.
+
+On mobile, the Submit Answer bar jumps up and the bottom border of the card gets hidden as the group stretches past the viewable area.
+
+Desktop behaves mostly right; mobile breaks the moment the viewport shrinks or the keyboard appears.
+
+The cause is a combination of: wrong scroll container, a sticky footer inside an ancestor with overflow/transform, missing min-height: 0 on flex children, margins below the sticky footer, and the page-level footer overlaying content.
+
+Phase 1 — One-time audit (10 minutes, no code changes yet)
+
+Identify scroll containers
+
+In DevTools, scroll the page and watch which element’s scrollTop changes. The messages list and the answers list should be the ones that scroll, not the entire card or the page.
+
+Check ancestors of sticky bars
+
+For both sticky footers (Review Question and Submit Answer), walk up the DOM and note any ancestor that has:
+
+overflow: auto|scroll|hidden
+
+transform, perspective, or will-change: transform (your card-flip-* wrappers!)
+
+fixed heights like h-full without min-h-0
+
+justify-between pushing children apart
+
+Check margins/paddings below sticky
+
+Confirm the sticky footer wrapper has no bottom margin. In my screenshot your sticky had mb-2. That must be removed everywhere.
+
+Check z-index stacking
+
+Confirm the sticky footers have a higher z-index than the page-level Prev/Next footer.
+
+Confirm page footer behavior
+
+The page-level Prev/Next footer must not cover card content. Either reserve space above it or structure the page so it sits outside the main scroll.
+
+Only after you’ve completed this audit, make the following changes.
+
+Phase 2 — Fix the structure (minimal, targeted changes)
+A) Page layout (top-level)
+
+Page should be three vertical regions:
+
+Header (sticky top)
+
+Main content area (scroll context)
+
+Page footer with Prev/Next (sticky bottom)
+
+Apply:
+
+Page wrapper: flex flex-col min-h-[100dvh]
+
+Main content area: flex-1 min-h-0 overflow-y-auto
+
+This ensures the page doesn’t trap scrolling or cover content when the mobile keyboard opens.
+
+Reserve space for the page footer: measure its height and set a CSS var on the main content area:
+
+--page-footer-h = footerEl.offsetHeight
+
+Add padding-bottom: var(--page-footer-h) to the main content area so content never hides behind the footer.
+
+B) Card wrappers (remove transform/overflow obstacles)
+
+The elements that contain sticky footers must not have an ancestor with overflow: hidden/auto/scroll or any transform/perspective.
+
+Your card-flip-inner/front/back likely uses transforms. Move the sticky footers (Review/Submit bars) outside of those transform wrappers.
+
+Keep the flip effect for the content area only.
+
+New structure inside the card:
+
+header
+
+scrollable content (messages or answers) inside the flip container if needed
+
+sticky action bar (outside the flip container; sibling, not child)
+
+C) Inside each card: split into scroll + sticky
+
+Card body wrapper: flex flex-col flex-1 min-h-0
+
+Scrollable area (messages list or answers list):
+
+flex-1 min-h-0 overflow-y-auto
+
+padding-bottom: var(--action-bar-h) (see D)
+
+Sticky action bar (composer + Review, or Submit):
+
+position: sticky; bottom: 0; z-index: 20;
+
+background: white; border-top: 1px solid var(--border);
+
+No bottom margin (mb-0)
+
+Add safe-area padding: padding-bottom: calc(12px + env(safe-area-inset-bottom))
+
+D) Measure the sticky bar height (once, robustly)
+
+Add a ResizeObserver on each sticky bar. On change, set --action-bar-h on its sibling scroll area:
+
+scrollArea.style.setProperty('--action-bar-h', actionBar.offsetHeight + 'px')
+
+This prevents the last item from hiding behind the sticky bar and keeps behavior stable on mobile when the keyboard toggles.
+
+E) Kill the bottom gap for good
+
+Remove every instance of bottom spacing on sticky wrappers and spacers after them:
+
+Delete any mb-* on sticky containers (e.g., that mb-2 you still have).
+
+Remove any spacer <div style="height: ..."> after the sticky section.
+
+Replace justify-between with gap-y-* inside the column if you need spacing above the sticky bar.
+
+F) Prev/Next footer (page-level)
+
+Keep it as a sibling to the main content (not inside any card).
+
+Give it position: sticky; bottom: 0; z-index: 30; so it’s always above page content.
+
+Because of the padding you added on the main content (padding-bottom: var(--page-footer-h)), the card borders and sticky bars will never hide under it.
+
+Phase 3 — Mobile/iOS specifics (the things that cause “jumps”)
+
+Use dynamic viewport units at page level: min-h-[100dvh] (not 100vh).
+
+Ensure the flex chain allows shrinking: any flex child that should shrink must have min-h-0.
+
+Add html, body { height: 100%; overscroll-behavior: contain; }.
+
+If any ancestor uses overflow-hidden just to clip rounded corners/shadows, wrap: keep clipping on the outer card, but put the sticky + scroll area in an inner wrapper without overflow.
+
+Verify no ancestor of the sticky bars has transform, perspective, or backface-visibility: hidden. If you must keep transforms for flip animations, the sticky bar must live outside that transformed subtree.
+
+Phase 4 — Acceptance checks (don’t stop until all are green)
+
+On mobile:
+
+Review Question is visible and tappable at all times after answering.
+
+Submit Answer stays pinned to the bottom of the card; the list above it scrolls.
+
+The bottom border of the card is always visible; no content or borders are hidden by the page footer.
+
+Opening the keyboard does not cover the sticky bar; it re-measures and stays above the safe area.
+
+On desktop:
+
+Behavior matches current good state; no extra space appears below sticky bars.
+
+DevTools verification:
+
+The sticky wrappers show no computed margin-bottom.
+
+The scroll containers show padding-bottom: var(--action-bar-h) with a non-zero value.
+
+The page main content shows padding-bottom: var(--page-footer-h) with a non-zero value.
+
+The sticky wrappers are not inside any element with overflow or transform.
+
+z-index: sticky bars ≥ 20, page footer ≥ 30.
+
+What not to do
+
+Do not set fixed heights on cards or scroll areas.
+
+Do not leave sticky bars inside transformed flip containers.
+
+Do not add spacer divs or bottom margins to “make room.”
+
+Do not keep tweaking the same classes without auditing the ancestor chain as described.
+
+Minimal hints (Tailwind, apply where appropriate — keep code small)
+
+Page wrapper: flex flex-col min-h-[100dvh]
+
+Main area: flex-1 min-h-0 overflow-y-auto pb-[var(--page-footer-h)]
+
+Card body: flex flex-col flex-1 min-h-0
+
+Scroll area: flex-1 min-h-0 overflow-y-auto pb-[var(--action-bar-h)]
+
+Sticky bar: sticky bottom-0 z-20 bg-white border-t p-3 md:p-4 mb-0
+
+Page footer: sticky bottom-0 z-30
+
+If you hit a wall, don’t re-apply the same patch. Re-run the audit, confirm the scroll container, check for transform/overflow ancestors, and fix the structure exactly as above.
