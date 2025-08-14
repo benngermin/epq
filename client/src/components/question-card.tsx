@@ -157,7 +157,7 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full flex flex-col max-h-[calc(100vh-240px)] lg:h-full">
       <div className={cn("card-flip w-full h-full", isFlipped && "flipped")}>
         <div className="card-flip-inner h-full">
           {/* Question Front */}

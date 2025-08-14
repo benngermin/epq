@@ -629,9 +629,9 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 px-4 pt-0 pb-2 lg:pb-4 lg:p-4 flex items-center justify-center min-h-0 overflow-hidden">
-            <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <div className="flex-1 px-4 pt-0 pb-2 lg:pb-4 lg:p-4 flex items-center justify-center overflow-y-auto">
+            <div className="w-full max-w-4xl mx-auto">
               {currentQuestion ? (
                 <QuestionCard
                   question={{
@@ -663,9 +663,10 @@ export default function QuestionSetPractice() {
 
         </div>
         </div>
-        
-        {/* Navigation Controls at Bottom - Full Width - INSIDE main container */}
-        <div className="bg-background border-t border-border p-4 flex-shrink-0">
+      </div>
+      
+      {/* Navigation Controls at Bottom - Full Width - INSIDE main container */}
+      <div className="bg-background border-t border-border p-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex justify-between">
           <Button
             variant="outline"
@@ -740,7 +741,6 @@ export default function QuestionSetPractice() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
     </ErrorBoundary>
   );
 }
