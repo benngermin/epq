@@ -443,20 +443,18 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
-              {/* Ensure the card is a flex column with proper min-height handling */}
-              <div className="flex-1 min-h-0 flex flex-col">
-                {showChatbot && (
-                  <SimpleStreamingChat
-                    /* key forces a fresh instance when we change questions or reset all */
-                    key={`${question.id}-${chatResetTimestamp || 0}`}
-                    questionVersionId={question.latestVersion?.id || question.id}
-                    chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
-                    correctAnswer={question.latestVersion?.correctAnswer || ""}
-                    onReviewQuestion={handleReviewQuestion}
-                  />
-                )}
-              </div>
+            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm">
+              {/* Remove overflow-hidden from Card to allow proper flex behavior */}
+              {showChatbot && (
+                <SimpleStreamingChat
+                  /* key forces a fresh instance when we change questions or reset all */
+                  key={`${question.id}-${chatResetTimestamp || 0}`}
+                  questionVersionId={question.latestVersion?.id || question.id}
+                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
+                  correctAnswer={question.latestVersion?.correctAnswer || ""}
+                  onReviewQuestion={handleReviewQuestion}
+                />
+              )}
             </Card>
           </div>
         </div>
@@ -515,7 +513,9 @@ export function QuestionCard({
           .card-flip.flipped .card-flip-back {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 200px);
+            flex: 1;
+            min-height: 0;
+            height: 100%;
           }
         }
         @media (min-width: 768px) {

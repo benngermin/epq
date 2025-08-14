@@ -23,7 +23,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const actionBarRef = useRef<HTMLDivElement>(null);
   const currentQuestionKey = useRef<string>("");
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -37,30 +36,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [chosenAnswer]);
 
-  // Dynamically measure action bar height and update messages padding
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    const updateActionBarHeight = () => {
-      if (actionBarRef.current && scrollContainerRef.current) {
-        const height = actionBarRef.current.offsetHeight;
-        // Set padding bottom dynamically based on actual footer height
-        scrollContainerRef.current.style.paddingBottom = `${height}px`;
-      }
-    };
-
-    updateActionBarHeight();
-    window.addEventListener('resize', updateActionBarHeight);
-    
-    // Also update when content changes (in case action bar height changes)
-    const observer = new ResizeObserver(updateActionBarHeight);
-    if (actionBarRef.current) {
-      observer.observe(actionBarRef.current);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-
-    return () => {
-      window.removeEventListener('resize', updateActionBarHeight);
-      observer.disconnect();
-    };
-  }, [onReviewQuestion]); // Add onReviewQuestion to deps since it affects footer height
+  }, [messages]);
 
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
@@ -354,13 +335,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 relative">
-      {/* Messages area - scrollable with dynamic padding for footer */}
+    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Messages area - scrollable with padding for footer */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-3 pb-[160px]">
           {/* Show placeholder when no messages */}
           {messages.length === 0 && (
             <div className="flex w-full justify-center items-center min-h-[200px]">
@@ -410,11 +391,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         </div>
       </div>
 
-      {/* Fixed footer with composer and Review Question button */}
-      <div 
-        ref={actionBarRef}
-        className="sticky bottom-0 z-20 bg-white dark:bg-gray-950 border-t"
-      >
+      {/* Footer with composer and Review Question button */}
+      <div className="flex-shrink-0 bg-white dark:bg-gray-950 border-t">
         <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
           <div className="flex space-x-2">
             <Input
