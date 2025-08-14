@@ -371,8 +371,8 @@ export default function QuestionSetPractice() {
             {/* Left - Course Name - Fixed width with truncation */}
             <div className="w-[35%] md:w-[40%] pr-4 overflow-hidden">
               <h1 
-                className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight truncate" 
-                style={{ fontFamily: '"Open Sans", sans-serif' }}
+                className="text-lg md:text-xl lg:text-[28px] font-semibold leading-normal truncate" 
+                style={{ fontFamily: '"Open Sans", sans-serif', lineHeight: '1.3' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
                 {course ? (
