@@ -288,9 +288,9 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-4 md:px-6">
-          <div className="grid grid-cols-3 items-center gap-3 py-4 md:py-3 lg:py-4">
-            {/* Left: Course Name - Truncates with ellipsis */}
-            <div className="min-w-0">
+          <div className="relative flex items-center py-4 md:py-3 lg:py-4">
+            {/* Left: Course Name - Truncates with ellipsis, max width to prevent logo overlap */}
+            <div className="min-w-0 max-w-[40%] pr-4">
               <h1 
                 className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight
                            truncate whitespace-nowrap" 
@@ -304,8 +304,8 @@ export default function QuestionSetPractice() {
               </h1>
             </div>
             
-            {/* Center: Logo - Always centered */}
-            <div className="flex justify-center px-2">
+            {/* Center: Logo - Absolutely centered */}
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
@@ -313,8 +313,8 @@ export default function QuestionSetPractice() {
               />
             </div>
             
-            {/* Right: Question Set Dropdown */}
-            <div className="flex justify-end">
+            {/* Right: Question Set Dropdown - max width to prevent logo overlap */}
+            <div className="ml-auto max-w-[40%] pl-4">
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => setLocation(`/question-set/${value}`)}
