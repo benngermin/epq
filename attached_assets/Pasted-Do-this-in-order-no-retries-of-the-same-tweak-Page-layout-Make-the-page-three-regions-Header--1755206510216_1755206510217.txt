@@ -1,0 +1,95 @@
+Do this in order (no retries of the same tweak)
+
+Page layout
+
+Make the page three regions: Header / Main / Footer.
+
+Footer (Prev/Next) = position: sticky; bottom: 0; z-index: 50.
+
+Main = not the scroll container. Allow overflow to be visible.
+
+Measure footer height once and set --page-footer-h on Main and the left sidebar; add padding-bottom: var(--page-footer-h) to both so the footer never covers content.
+
+Left sidebar
+
+Remove any z-index that can overlay the footer.
+
+Keep padding-bottom: var(--page-footer-h) so the last items aren’t hidden.
+
+QuestionCard (answers view)
+
+Card body = two children only:
+
+Scroll area with the stem + answer options.
+
+Sticky Submit bar as a sibling below it.
+
+The sticky bar must be outside any flip/transform wrappers.
+
+Scroll area: flex:1 min-height:0 overflow-y:auto padding-bottom: var(--submit-bar-h).
+
+Sticky bar: position: sticky; bottom:0; z-index:20; background:#fff; border-top:1px solid currentColor; margin-bottom:0; padding-bottom: calc(12px + env(safe-area-inset-bottom)).
+
+Assistant/Review card (chat view)
+
+Same pattern as above: messages scroll, action bar (composer + Review Question) is sticky at the bottom and not inside any transform/flip wrapper.
+
+Messages: flex:1 min-height:0 overflow-y:auto padding-bottom: var(--review-bar-h).
+
+Sticky bar: same sticky styles as Submit; no bottom margin.
+
+Kill the footguns
+
+Delete every spacer div below sticky bars.
+
+Remove all mb-* on sticky wrappers.
+
+Replace any parent justify-between with flex-col and a gap-*.
+
+Ensure every flex child that must shrink uses min-height:0.
+
+No ancestor of a sticky bar may have overflow: auto|hidden|scroll or any transform/perspective/will-change.
+
+Measurements
+
+Add a ResizeObserver for each sticky bar:
+
+Set --submit-bar-h on the QuestionCard scroll area.
+
+Set --review-bar-h on the chat messages list.
+
+Set --page-footer-h on Main and the sidebar.
+
+These variables must update on mount and resize.
+
+Viewport sanity
+
+Page wrapper uses min-height: 100dvh (not 100vh).
+
+html, body { height:100%; overscroll-behavior: contain; }.
+
+z-index sanity
+
+Footer z = 50, card sticky bars z ≈ 20, sidebar/base content lower. No sidebar overlay on the footer.
+
+Don’t do this
+
+Don’t put sticky bars inside transform/flip containers.
+
+Don’t set fixed heights to “make it fit.”
+
+Don’t add spacer elements or bottom margins under sticky bars.
+
+Don’t make the entire page the scroll container for cards.
+
+Pass/fail checks (must all pass)
+
+Mobile: Review and Submit bars are always visible and tappable; card bottom borders remain visible; keyboard doesn’t cover bars.
+
+Desktop: Previous/Next are clickable; the sidebar never overlaps the footer.
+
+Answers are visible; only the card’s scroll area scrolls.
+
+DevTools: sticky wrappers show margin-bottom: 0; scroll areas have non-zero padding-bottom from the CSS vars; no ancestor of any sticky bar has overflow or transform.
+
+Important: Do not keep reapplying the same sticky/overflow/min-h adjustments. If anything fails, stop and re-check the structure against the eight steps above.
