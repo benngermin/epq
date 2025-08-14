@@ -481,7 +481,6 @@ export function QuestionCard({
         .card-flip-inner {
           position: relative;
           width: 100%;
-          height: 100%;
           text-align: left;
           transition: transform 0.6s;
           transform-style: preserve-3d;
@@ -495,18 +494,17 @@ export function QuestionCard({
           transform: rotateY(180deg);
         }
         .card-flip-front, .card-flip-back {
-          position: absolute;
           width: 100%;
-          height: 100%;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
-          top: 0;
-          left: 0;
         }
         @media (max-width: 767px) {
-          .card-flip-front, .card-flip-back {
-            position: static;
-            height: auto;
+          /* Mobile: Use display toggle instead of 3D flip */
+          .card-flip.flipped .card-flip-inner {
+            transform: none;
+          }
+          .card-flip-front {
+            display: block;
           }
           .card-flip-back {
             display: none;
@@ -519,6 +517,13 @@ export function QuestionCard({
           }
         }
         @media (min-width: 768px) {
+          /* Desktop: Use 3D flip with absolute positioning */
+          .card-flip-front, .card-flip-back {
+            position: absolute;
+            height: 100%;
+            top: 0;
+            left: 0;
+          }
           .card-flip-back {
             transform: rotateY(180deg);
           }
