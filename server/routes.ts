@@ -1294,6 +1294,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
       const userId = req.user!.id;
+      console.log(`📱 Stream init received: isMobile=${isMobile}, typeof=${typeof isMobile}`);
 
       // Include user ID in stream ID for better tracking and cleanup
       const streamId = `${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1450,10 +1451,13 @@ export function registerRoutes(app: Express): Server {
 
   // Helper function to strip link_handling sections from prompt when on mobile
   function stripLinkHandlingSection(prompt: string, isMobile: boolean): string {
+    console.log(`📱 Stripping link_handling: isMobile=${isMobile}`);
     if (!isMobile) return prompt; // Keep the section for desktop
     
     // Remove content between <link_handling> and </link_handling> tags
-    return prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
+    const stripped = prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
+    console.log(`📱 Original prompt length: ${prompt.length}, Stripped length: ${stripped.length}, Difference: ${prompt.length - stripped.length}`);
+    return stripped;
   }
 
   // Background stream processing

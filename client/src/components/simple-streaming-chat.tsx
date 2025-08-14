@@ -56,6 +56,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Detect if screen is mobile (less than 768px)
     const isMobile = window.innerWidth < 768;
+    console.log(`[Client] Screen width: ${window.innerWidth}px, isMobile: ${isMobile}`);
     
     try {
       // Initialize streaming
