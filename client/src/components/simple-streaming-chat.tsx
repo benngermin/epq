@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Send } from "lucide-react";
+import { Bot, Send, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HtmlLinkRenderer } from "@/components/html-link-renderer";
 import { FeedbackButtons } from "@/components/feedback-buttons";
@@ -10,9 +10,10 @@ interface SimpleStreamingChatProps {
   questionVersionId: number;
   chosenAnswer: string;
   correctAnswer: string;
+  onReviewQuestion?: () => void;
 }
 
-export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAnswer }: SimpleStreamingChatProps) {
+export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAnswer, onReviewQuestion }: SimpleStreamingChatProps) {
   // Store the original chosen answer to use for follow-up questions
   const originalChosenAnswerRef = useRef(chosenAnswer);
   const [userInput, setUserInput] = useState("");
@@ -41,7 +42,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const updateActionBarHeight = () => {
       if (actionBarRef.current && scrollContainerRef.current) {
         const height = actionBarRef.current.offsetHeight;
-        scrollContainerRef.current.style.setProperty('--action-bar-h', `${height}px`);
+        // Set padding bottom dynamically based on actual footer height
+        scrollContainerRef.current.style.paddingBottom = `${height}px`;
       }
     };
 
@@ -58,7 +60,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       window.removeEventListener('resize', updateActionBarHeight);
       observer.disconnect();
     };
-  }, []);
+  }, [onReviewQuestion]); // Add onReviewQuestion to deps since it affects footer height
 
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
@@ -352,12 +354,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Messages area - scrollable with dynamic padding for action bar */}
+    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 relative">
+      {/* Messages area - scrollable with dynamic padding for footer */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto"
-        style={{ paddingBottom: 'var(--action-bar-h, 80px)' }}
       >
         <div className="p-4 space-y-3">
           {/* Show placeholder when no messages */}
@@ -409,32 +410,44 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         </div>
       </div>
 
-      {/* Action bar - sticky at bottom with composer */}
+      {/* Fixed footer with composer and Review Question button */}
       <div 
         ref={actionBarRef}
-        className="sticky bottom-0 z-10 bg-white dark:bg-gray-950 border-t p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+        className="sticky bottom-0 z-20 bg-white dark:bg-gray-950 border-t"
       >
-        <div className="flex space-x-2">
-          <Input
-            placeholder="Ask a follow-up question..."
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            className="flex-1 text-base min-w-0 h-11 border-2 border-border hover:border-primary/50 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!userInput.trim() || isStreaming}
-            size="sm"
-            className="flex-shrink-0 h-11 px-6"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
+          <div className="flex space-x-2">
+            <Input
+              placeholder="Ask a follow-up question..."
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              className="flex-1 text-base min-w-0 h-11 border-2 border-border hover:border-primary/50 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!userInput.trim() || isStreaming}
+              size="sm"
+              className="flex-shrink-0 h-11 px-6"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          {onReviewQuestion && (
+            <Button 
+              onClick={onReviewQuestion} 
+              variant="outline" 
+              className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Review Question
+            </Button>
+          )}
         </div>
       </div>
     </div>

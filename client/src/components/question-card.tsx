@@ -444,6 +444,7 @@ export function QuestionCard({
           {/* Chatbot Back */}
           <div className="card-flip-back">
             <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+              {/* Ensure the card is a flex column with proper min-height handling */}
               <div className="flex-1 min-h-0 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -452,18 +453,9 @@ export function QuestionCard({
                     questionVersionId={question.latestVersion?.id || question.id}
                     chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
                     correctAnswer={question.latestVersion?.correctAnswer || ""}
+                    onReviewQuestion={handleReviewQuestion}
                   />
                 )}
-              </div>
-              <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-border bg-white dark:bg-gray-950 flex-shrink-0 sticky bottom-0 z-10">
-                <Button 
-                  onClick={handleReviewQuestion} 
-                  variant="outline" 
-                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Review Question
-                </Button>
               </div>
             </Card>
           </div>
