@@ -3,6 +3,13 @@
 ## Overview
 An advanced AI-powered platform for insurance professional certification exam preparation, offering intelligent, adaptive learning experiences tailored to individual student needs. The platform supports multiple certification paths including CPCU (Chartered Property Casualty Underwriter) and AIC (Associate in Claims) programs.
 
+## Recent Changes (January 2025)
+- **UI/UX Improvements**: 
+  - Widened and centered assistant message cards for better mobile readability
+  - Fixed Submit Answer button accessibility on mobile by adjusting scroll areas and z-index stacking
+  - Added proper safe area insets for iOS devices
+  - Improved sticky footer behavior to prevent content overlap
+
 ## Project Architecture
 
 ### Technology Stack

@@ -632,8 +632,8 @@ export default function QuestionSetPractice() {
 
         {/* Right Main Content - Question */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Add bottom padding on mobile to account for fixed footer */}
-          <div className="flex-1 px-4 pt-0 pb-24 md:pb-4 lg:p-4 overflow-y-auto flex flex-col">
+          {/* Add bottom padding on mobile to account for fixed footer - use safe area and dynamic padding */}
+          <div className="flex-1 px-4 pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4 lg:p-4 overflow-y-auto flex flex-col">
             <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
@@ -672,8 +672,9 @@ export default function QuestionSetPractice() {
       <div className="bg-background border-t border-border flex-shrink-0 
         fixed bottom-0 left-0 right-0 md:static
         p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
-        z-40 md:z-auto">
-        <div className="max-w-4xl mx-auto flex justify-between">
+        z-30 md:z-auto
+        pointer-events-none">
+        <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
           <Button
             variant="outline"
             onClick={handlePreviousQuestion}
@@ -683,7 +684,7 @@ export default function QuestionSetPractice() {
             <ChevronLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          <div className="hidden sm:flex text-sm text-muted-foreground items-center">
+          <div className="hidden sm:flex text-sm text-muted-foreground items-center pointer-events-none">
             Question {currentQuestionIndex + 1} of {practiceData.questions.length}
           </div>
           <Button

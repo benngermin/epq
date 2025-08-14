@@ -179,7 +179,7 @@ export function QuestionCard({
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto pb-20 md:pb-4">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
@@ -389,8 +389,8 @@ export function QuestionCard({
                   })()}
                 </div>
 
-                {/* Action buttons - always visible at bottom */}
-                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 flex-shrink-0 border-t">
+                {/* Action buttons - always visible at bottom - add extra bottom padding on mobile */}
+                <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 flex-shrink-0 border-t">
                   {hasAnswer && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
