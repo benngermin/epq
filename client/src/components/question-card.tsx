@@ -163,7 +163,7 @@ export function QuestionCard({
           {/* Question Front */}
           <div className="card-flip-front">
             <Card className="w-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
