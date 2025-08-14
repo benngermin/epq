@@ -20,10 +20,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Bind to all interfaces so Replit preview and remote hosts can connect
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: ['localhost', '127.0.0.1'] as string[],
+    host: "0.0.0.0",
   };
 
   const vite = await createViteServer({
@@ -52,7 +53,7 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
+      // always reload the index.html file from disk in case it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
