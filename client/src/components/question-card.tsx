@@ -162,8 +162,8 @@ export function QuestionCard({
         <div className="card-flip-inner md:h-full">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="w-full md:h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col md:h-full">
+            <Card className="w-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -179,7 +179,7 @@ export function QuestionCard({
                   </span>
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 flex flex-col">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
@@ -198,13 +198,13 @@ export function QuestionCard({
                         
                       case "true_false":
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <TrueFalse
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
@@ -218,13 +218,13 @@ export function QuestionCard({
                         
                       case "pick_from_list":
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -239,13 +239,13 @@ export function QuestionCard({
                         
                       case "matching":
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <Matching
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -260,13 +260,13 @@ export function QuestionCard({
                       case "ordering":
                       case "drag_and_drop": // drag_and_drop uses the same component as ordering
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <Ordering
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
@@ -295,13 +295,13 @@ export function QuestionCard({
                         
                       case "multiple_response": // Uses PickFromList with allowMultiple=true
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -316,13 +316,13 @@ export function QuestionCard({
                         
                       case "select_from_list": // Uses PickFromList with allowMultiple=false
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
@@ -337,13 +337,13 @@ export function QuestionCard({
                         
                       default: // multiple_choice
                         return (
-                          <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                               <p className="text-base text-foreground leading-relaxed text-left">
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="flex-1">
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}

@@ -631,9 +631,9 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 flex flex-col md:overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Add bottom padding on mobile to account for fixed footer */}
-          <div className="flex-1 px-4 pt-0 pb-24 md:pb-4 lg:p-4 overflow-y-auto md:overflow-hidden">
+          <div className="flex-1 px-4 pt-0 pb-24 md:pb-4 lg:p-4 overflow-y-auto">
             <div className="w-full max-w-4xl mx-auto">
               {currentQuestion ? (
                 <QuestionCard
