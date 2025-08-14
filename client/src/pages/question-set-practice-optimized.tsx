@@ -367,32 +367,36 @@ export default function QuestionSetPractice() {
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
-          <div className="flex items-center gap-3 py-4 md:py-3 lg:py-4">
-            {/* Left - Course Name - Show only course number on mobile, full title on desktop */}
-            <div className="flex-1 min-w-0">
+          <div className="relative flex items-center py-4 md:py-3 lg:py-4">
+            {/* Left - Course Name - Fixed width with truncation */}
+            <div className="w-[35%] md:w-[40%] pr-4 overflow-hidden">
               <h1 
-                className="text-lg md:text-xl lg:text-[28px] font-semibold truncate whitespace-nowrap leading-tight lg:leading-[1.2]" 
+                className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight truncate" 
                 style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                <span className="md:hidden">{course?.courseNumber || "Loading..."}</span>
-                <span className="hidden md:inline">
-                  {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
-                </span>
+                {course ? (
+                  <>
+                    <span className="md:hidden">{course.courseNumber}</span>
+                    <span className="hidden md:inline">{`${course.courseNumber}: ${course.courseTitle}`}</span>
+                  </>
+                ) : (
+                  "Loading..."
+                )}
               </h1>
             </div>
             
-            {/* Center - Logo */}
-            <div className="hidden lg:flex px-4">
+            {/* Center - Logo - Absolutely positioned */}
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
               <OptimizedImage 
                 src={institutesLogo} 
                 alt="The Institutes" 
-                className="h-10" 
+                className="h-8 md:h-10" 
               />
             </div>
             
-            {/* Right - Dropdowns */}
-            <div className="flex-shrink-0 flex items-center gap-2 lg:gap-4">
+            {/* Right - Dropdowns - Fixed width */}
+            <div className="ml-auto w-[35%] md:w-[40%] pl-4 flex justify-end items-center gap-2 lg:gap-4">
               {/* Logout Button - Admin Only */}
               {user?.isAdmin && (
                 <Button

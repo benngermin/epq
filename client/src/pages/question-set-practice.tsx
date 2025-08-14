@@ -289,22 +289,21 @@ export default function QuestionSetPractice() {
       <nav className="bg-card shadow-sm border-b">
         <div className="w-full px-4 md:px-6">
           <div className="relative flex items-center py-4 md:py-3 lg:py-4">
-            {/* Left: Course Name - Fixed width with inline styles for truncation */}
-            <div className="w-[35%] md:w-[40%] pr-4" style={{ overflow: 'hidden' }}>
+            {/* Left: Course Name - Fixed width with truncation */}
+            <div className="w-[35%] md:w-[40%] pr-4 overflow-hidden">
               <h1 
-                className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight block" 
-                style={{ 
-                  fontFamily: '"Open Sans", sans-serif',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
+                className="text-lg md:text-xl lg:text-[28px] font-semibold leading-tight truncate" 
+                style={{ fontFamily: '"Open Sans", sans-serif' }}
                 title={course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
               >
-                <span className="md:hidden">{course?.courseNumber || "Loading..."}</span>
-                <span className="hidden md:inline">
-                  {course ? `${course.courseNumber}: ${course.courseTitle}` : "Loading..."}
-                </span>
+                {course ? (
+                  <>
+                    <span className="md:hidden">{course.courseNumber}</span>
+                    <span className="hidden md:inline">{`${course.courseNumber}: ${course.courseTitle}`}</span>
+                  </>
+                ) : (
+                  "Loading..."
+                )}
               </h1>
             </div>
             
