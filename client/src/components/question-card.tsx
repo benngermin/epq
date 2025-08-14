@@ -455,17 +455,15 @@ export function QuestionCard({
                   />
                 )}
               </div>
-              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0">
-                <div className="mb-24 md:mb-0">
-                  <Button 
-                    onClick={handleReviewQuestion} 
-                    variant="outline" 
-                    className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Review Question
-                  </Button>
-                </div>
+              <div className="p-3 md:p-4 border-t border-border bg-accent flex-shrink-0 sticky bottom-0 mb-20 md:mb-0">
+                <Button 
+                  onClick={handleReviewQuestion} 
+                  variant="outline" 
+                  className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Review Question
+                </Button>
               </div>
             </Card>
           </div>
