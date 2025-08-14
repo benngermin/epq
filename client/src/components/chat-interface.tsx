@@ -337,8 +337,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
             )}
 
             {/* Show streaming content as a live message - Always render when streaming */}
-            <div className="flex w-full justify-center px-4 sm:px-6 md:px-8" style={{ display: isStreaming ? 'flex' : 'none' }}>
-              <div className="w-full max-w-[96%] rounded-lg px-3 py-2 text-base break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
+            <div className="flex w-full justify-start" style={{ display: isStreaming ? 'flex' : 'none' }}>
+              <div className="w-[96%] rounded-lg px-3 py-2 text-base break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
                 <div className="flex items-start gap-2">
                   <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-600 animate-pulse" />
                   <div className="flex-1 min-w-0">
@@ -365,14 +365,14 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                 <div
                   key={message.id || index}
                   className={cn(
-                    "flex w-full px-4 sm:px-6 md:px-8",
-                    message.role === "assistant" ? "justify-center" : "justify-end"
+                    "flex w-full",
+                    message.role === "assistant" ? "justify-start" : "justify-end"
                   )}
                 >
                   <div
                     className={cn(
                       message.role === "assistant" 
-                        ? "w-full max-w-[96%] rounded-lg px-3 py-2 text-base break-words"
+                        ? "w-[96%] rounded-lg px-3 py-2 text-base break-words"
                         : "max-w-[85%] rounded-lg px-3 py-2 text-base break-words",
                       message.role === "assistant"
                         ? "bg-muted text-foreground rounded-tl-none"
