@@ -363,7 +363,7 @@ export default function QuestionSetPractice() {
         />
       )}
     >
-      <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       {/* Navigation Header */}
       <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
@@ -484,9 +484,10 @@ export default function QuestionSetPractice() {
         </div>
       </nav>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      {/* Main content area - flex-1 with min-height:0 to enable proper scrolling */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden bg-muted/40 px-4 py-2">
+        <div className="lg:hidden bg-muted/40 px-4 py-2 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -499,7 +500,8 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden bg-muted/40">
+        {/* Scrollable content area - only on mobile */}
+        <div className="flex-1 min-h-0 flex md:overflow-hidden bg-muted/40">
           {/* Left Sidebar - Fixed height with proper scrolling */}
           <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
@@ -629,8 +631,9 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 px-4 pt-0 pb-4 lg:p-4 flex items-center justify-center min-h-0">
+        <div className="flex-1 flex flex-col overflow-y-auto md:overflow-hidden">
+          {/* Add bottom padding on mobile to account for fixed footer */}
+          <div className="flex-1 px-4 pt-0 pb-24 md:pb-4 lg:p-4 flex items-center justify-center min-h-0">
             <div className="w-full max-w-4xl mx-auto h-full">
               {currentQuestion ? (
                 <QuestionCard
@@ -665,8 +668,11 @@ export default function QuestionSetPractice() {
         </div>
       </div>
 
-      {/* Navigation Controls at Bottom - Full Width */}
-      <div className="bg-background border-t border-border p-4 flex-shrink-0">
+      {/* Navigation Controls - Fixed footer on mobile, normal on desktop */}
+      <div className="bg-background border-t border-border flex-shrink-0 
+        fixed bottom-0 left-0 right-0 md:static
+        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
+        z-40 md:z-auto">
         <div className="max-w-4xl mx-auto flex justify-between">
           <Button
             variant="outline"
