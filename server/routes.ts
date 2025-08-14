@@ -1292,7 +1292,7 @@ export function registerRoutes(app: Express): Server {
     // Initialize streaming chatbot response
     
     try {
-      const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
       const userId = req.user!.id;
 
       // Include user ID in stream ID for better tracking and cleanup
@@ -1321,8 +1321,8 @@ export function registerRoutes(app: Express): Server {
         aborted: false 
       });
       
-      // Start background processing
-      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id);
+      // Start background processing with mobile flag
+      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile);
       
       res.json({ streamId });
     } catch (error) {
@@ -1448,8 +1448,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Helper function to strip link_handling sections from prompt when on mobile
+  function stripLinkHandlingSection(prompt: string, isMobile: boolean): string {
+    if (!isMobile) return prompt; // Keep the section for desktop
+    
+    // Remove content between <link_handling> and </link_handling> tags
+    return prompt.replace(/<link_handling>[\s\S]*?<\/link_handling>/g, '');
+  }
+
   // Background stream processing
-  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number) {
+  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean) {
     const stream = activeStreams.get(streamId);
     if (!stream || stream.aborted) return;
     
@@ -1510,6 +1518,9 @@ Relevant course material:
 ${sourceMaterial}
 
 Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
+        
+        // Strip link_handling section if on mobile for follow-up prompts
+        prompt = stripLinkHandlingSection(prompt, isMobile || false);
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1564,6 +1575,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
 
         
+        // Strip link_handling section if on mobile
+        systemPrompt = stripLinkHandlingSection(systemPrompt, isMobile || false);
+        
         prompt = systemPrompt;
       }
 
@@ -1583,7 +1597,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // AI chatbot route - non-streaming (fallback)
   app.post("/api/chatbot", requireAuth, async (req, res) => {
     try {
-      const { questionVersionId, chosenAnswer, userMessage } = req.body;
+      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
       
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
       if (!questionVersion) {
@@ -1633,6 +1647,9 @@ Relevant course material:
 ${sourceMaterial}
 
 Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
+        
+        // Strip link_handling section if on mobile for follow-up prompts
+        prompt = stripLinkHandlingSection(prompt, isMobile || false);
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1686,6 +1703,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
 
+        
+        // Strip link_handling section if on mobile
+        systemPrompt = stripLinkHandlingSection(systemPrompt, isMobile || false);
         
         prompt = systemPrompt;
       }

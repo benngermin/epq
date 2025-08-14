@@ -75,6 +75,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       id: messageId
     }, ...prev]);
     
+    // Detect if screen is mobile (less than 768px)
+    const isMobile = window.innerWidth < 768;
+    
     try {
       // Use streaming endpoint
       const response = await fetch('/api/chatbot/stream-init', {
@@ -86,6 +89,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           questionVersionId,
           chosenAnswer,
           userMessage,
+          isMobile,
         }),
         credentials: 'include',
       });

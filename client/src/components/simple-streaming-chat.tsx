@@ -54,12 +54,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     setIsStreaming(true);
     
+    // Detect if screen is mobile (less than 768px)
+    const isMobile = window.innerWidth < 768;
+    
     try {
       // Initialize streaming
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage }),
+        body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage, isMobile }),
         credentials: 'include',
         signal: abortControllerRef.current.signal,
       });
