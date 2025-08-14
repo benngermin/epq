@@ -445,7 +445,7 @@ export function QuestionCard({
 
           {/* Chatbot Back */}
           <div className="card-flip-back">
-            <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
+            <Card className="w-full h-full md:h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
               <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {showChatbot && (
                   <SimpleStreamingChat
@@ -508,12 +508,15 @@ export function QuestionCard({
           }
           .card-flip-back {
             display: none;
+            height: calc(100vh - 150px);
+            max-height: calc(100vh - 150px);
           }
           .card-flip.flipped .card-flip-front {
             display: none;
           }
           .card-flip.flipped .card-flip-back {
-            display: block;
+            display: flex;
+            flex-direction: column;
           }
         }
         @media (min-width: 768px) {
