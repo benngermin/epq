@@ -362,7 +362,7 @@ export function QuestionCard({
                                       key={choiceLetter}
                                       htmlFor={choiceLetter}
                                       className={cn(
-                                        "flex items-center p-1.5 sm:p-2 md:p-3 lg:p-3.5 rounded-lg border cursor-pointer transition-all duration-200",
+                                        "flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200",
                                         "hover:border-primary hover:bg-accent",
                                         isSelected && "border-primary bg-primary/10",
                                         hasAnswer && "cursor-default"
@@ -371,7 +371,7 @@ export function QuestionCard({
                                       <RadioGroupItem
                                         value={choiceLetter}
                                         id={choiceLetter}
-                                        className="mr-2 sm:mr-3 md:mr-4 lg:mr-5 flex-shrink-0"
+                                        className="mr-3 flex-shrink-0"
                                       />
                                       <div className="flex-1 min-w-0">
                                         <span className="text-base text-foreground leading-relaxed">
