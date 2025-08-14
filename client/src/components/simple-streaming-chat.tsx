@@ -36,7 +36,29 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [chosenAnswer]);
 
-  // No longer needed - action bar height is managed by parent QuestionCard
+  // Dynamically measure action bar height and update messages padding
+  useEffect(() => {
+    const updateActionBarHeight = () => {
+      if (actionBarRef.current && scrollContainerRef.current) {
+        const height = actionBarRef.current.offsetHeight;
+        scrollContainerRef.current.style.setProperty('--action-bar-h', `${height}px`);
+      }
+    };
+
+    updateActionBarHeight();
+    window.addEventListener('resize', updateActionBarHeight);
+    
+    // Also update when content changes (in case action bar height changes)
+    const observer = new ResizeObserver(updateActionBarHeight);
+    if (actionBarRef.current) {
+      observer.observe(actionBarRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateActionBarHeight);
+      observer.disconnect();
+    };
+  }, []);
 
   const loadAiResponse = async (userMessage?: string) => {
     if (isStreaming) return;
@@ -331,10 +353,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Messages area - scrollable, no internal sticky positioning */}
+      {/* Messages area - scrollable with dynamic padding for action bar */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto"
+        style={{ paddingBottom: 'var(--action-bar-h, 80px)' }}
       >
         <div className="p-4 space-y-3">
           {/* Show placeholder when no messages */}
@@ -386,10 +409,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         </div>
       </div>
 
-      {/* Composer area - not sticky, normal flow within messages container */}
+      {/* Action bar - sticky at bottom with composer */}
       <div 
         ref={actionBarRef}
-        className="bg-white dark:bg-gray-950 border-t p-3 md:p-4"
+        className="sticky bottom-0 z-10 bg-white dark:bg-gray-950 border-t p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
       >
         <div className="flex space-x-2">
           <Input

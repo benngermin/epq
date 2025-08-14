@@ -20,7 +20,7 @@ import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCir
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { OptimizedImage } from "@/components/optimized-image";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 import { debugLog, debugError } from "@/utils/debug";
@@ -52,42 +52,6 @@ export default function QuestionSetPractice() {
   const [showBeginDialog, setShowBeginDialog] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
-  
-  // Refs for measurements
-  const footerRef = useRef<HTMLElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-
-  // Measure footer height and set CSS variable
-  useEffect(() => {
-    const updateFooterHeight = () => {
-      if (footerRef.current) {
-        const height = footerRef.current.offsetHeight;
-        const heightPx = `${height}px`;
-        
-        // Set CSS variable on main and sidebar
-        if (mainRef.current) {
-          mainRef.current.style.setProperty('--page-footer-h', heightPx);
-        }
-        if (sidebarRef.current) {
-          sidebarRef.current.style.setProperty('--page-footer-h', heightPx);
-        }
-      }
-    };
-
-    updateFooterHeight();
-    window.addEventListener('resize', updateFooterHeight);
-    
-    const observer = new ResizeObserver(updateFooterHeight);
-    if (footerRef.current) {
-      observer.observe(footerRef.current);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateFooterHeight);
-      observer.disconnect();
-    };
-  }, []);
 
   // Handle the case where route doesn't match
   if (!match || !params?.id) {
@@ -399,9 +363,9 @@ export default function QuestionSetPractice() {
         />
       )}
     >
-      <div className="min-h-[100dvh] bg-background flex flex-col">
+      <div className="min-h-[100dvh] md:h-[100dvh] bg-background flex flex-col md:overflow-hidden">
       {/* Navigation Header */}
-      <header className="bg-card shadow-sm border-b flex-shrink-0">
+      <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="w-full px-4 md:px-6">
           <div className="relative flex items-center py-4 md:py-3 lg:py-4">
             {/* Left - Course Name - Fixed width with truncation */}
@@ -518,10 +482,10 @@ export default function QuestionSetPractice() {
             </div>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main content area - not a scroll container, overflow visible */}
-      <main ref={mainRef} className="flex-1 min-h-0 flex flex-col overflow-visible" style={{ paddingBottom: 'var(--page-footer-h, 80px)' }}>
+      {/* Main content area - flex-1 with min-height:0 to enable proper scrolling */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
         <div className="lg:hidden bg-muted/40 px-4 py-2 flex-shrink-0">
           <Button
@@ -536,10 +500,10 @@ export default function QuestionSetPractice() {
           </Button>
         </div>
 
-        {/* Scrollable content area */}
-        <div className="flex-1 min-h-0 flex bg-muted/40">
+        {/* Scrollable content area - allow normal scroll on mobile */}
+        <div className="flex-1 min-h-0 flex overflow-visible md:overflow-hidden bg-muted/40">
           {/* Left Sidebar - Fixed height with proper scrolling */}
-          <div ref={sidebarRef} className={`fixed lg:relative inset-y-0 left-0 z-10 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`} style={{ paddingBottom: 'var(--page-footer-h, 80px)' }}>
+          <div className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 lg:w-72 xl:w-80 bg-background border-r transition-transform duration-300 ease-in-out lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col h-full`}>
           {/* Overlay for mobile */}
           {sidebarOpen && (
             <div 
@@ -667,9 +631,9 @@ export default function QuestionSetPractice() {
         </div>
 
         {/* Right Main Content - Question */}
-        <div className="flex-1 min-h-0 flex flex-col pb-20 md:pb-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           {/* Updated to use flex-1 min-h-0 for proper flex shrinking */}
-          <div className="flex-1 min-h-0 px-4 pt-0 pb-0 md:pb-4 lg:p-4 flex flex-col">
+          <div className="flex-1 min-h-0 px-4 pt-0 pb-0 md:pb-4 lg:p-4 overflow-visible md:overflow-y-auto flex flex-col">
             <div className="w-full max-w-4xl mx-auto flex-1 min-h-0 flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
@@ -702,13 +666,13 @@ export default function QuestionSetPractice() {
 
         </div>
         </div>
-      </main>
+      </div>
 
-      {/* Navigation Controls - Footer with proper sticky positioning */}
-      <footer ref={footerRef} className="bg-background border-t border-border flex-shrink-0 
-        sticky bottom-0 
-        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]
-        z-50
+      {/* Navigation Controls - Fixed footer on mobile, normal on desktop */}
+      <div className="bg-background border-t border-border flex-shrink-0 
+        fixed bottom-0 left-0 right-0 md:static
+        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
+        z-30 md:z-auto
         pointer-events-none">
         <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
           <Button
@@ -733,7 +697,7 @@ export default function QuestionSetPractice() {
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      </footer>
+      </div>
 
       {/* Before You Begin Dialog */}
       <Dialog open={showBeginDialog} onOpenChange={setShowBeginDialog}>
