@@ -338,7 +338,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
             {/* Show streaming content as a live message - Always render when streaming */}
             <div className="flex w-full justify-start" style={{ display: isStreaming ? 'flex' : 'none' }}>
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-base break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
+              <div className="max-w-[85%] md:max-w-[85%] sm:max-w-[92%] rounded-lg px-3 py-2 text-base break-words bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-300 text-foreground rounded-tl-none">
                 <div className="flex items-start gap-2">
                   <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-600 animate-pulse" />
                   <div className="flex-1 min-w-0">
@@ -371,7 +371,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                 >
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-lg px-3 py-2 text-base break-words",
+                      message.role === "assistant" 
+                        ? "max-w-[92%] md:max-w-[85%] rounded-lg px-3 py-2 text-base break-words"
+                        : "max-w-[85%] rounded-lg px-3 py-2 text-base break-words",
                       message.role === "assistant"
                         ? "bg-muted text-foreground rounded-tl-none"
                         : "bg-primary text-primary-foreground rounded-tr-none"
