@@ -200,7 +200,7 @@ export function QuestionCard({
           {/* q-content = stem + answers (scrolls) - No transforms, normal flow */}
           <div 
             ref={scrollAreaRef}
-            className="flex flex-col flex-1 min-h-0 overflow-y-auto"
+            className="flex flex-col flex-1 min-h-0 overflow-y-auto bg-red-50"
             style={{ paddingBottom: 'var(--submit-bar-h, 80px)' }}
           >
             <div className="p-4 sm:p-5 md:p-6">
@@ -318,16 +318,22 @@ export function QuestionCard({
                       );
                       
                     default:
-                      // Multiple choice (default)
+                      // Multiple choice (default)  
                       const choices = question.latestVersion?.choices || [];
+                      console.log('🔍 QuestionCard Debug:', { 
+                        questionType, 
+                        hasChoices: choices.length > 0, 
+                        choices: choices.slice(0, 2),
+                        questionText: question.latestVersion?.questionText?.substring(0, 50) + '...'
+                      });
                       return (
-                        <div className="flex-1 flex flex-col">
+                        <div className="flex-1 flex flex-col bg-blue-50 border border-blue-300">
                           <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                             <p className="text-base text-foreground leading-relaxed text-left">
                               {question.latestVersion?.questionText}
                             </p>
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 bg-green-50 border border-green-300">
                             <RadioGroup
                               value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                               onValueChange={setSelectedAnswerState}
