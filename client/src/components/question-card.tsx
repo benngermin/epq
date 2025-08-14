@@ -157,13 +157,13 @@ export function QuestionCard({
     (question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer);
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className={cn("card-flip w-full flex-1", isFlipped && "flipped")}>
+    <div className="w-full flex flex-col">
+      <div className={cn("card-flip w-full", isFlipped && "flipped")}>
         <div className="card-flip-inner">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col h-full">
+            <Card className="w-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-2 sm:p-3 md:p-5 lg:p-6 xl:p-7 flex flex-col">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
