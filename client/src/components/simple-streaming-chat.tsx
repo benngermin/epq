@@ -331,7 +331,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       <div className="flex-1 p-3 md:p-4 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0 overflow-hidden">
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth" 
+          className="flex-1 overflow-y-auto mb-3 bg-transparent scroll-smooth pb-4" 
           style={{ minHeight: "0px" }}
         >
           <div className="space-y-3 p-2 pt-4">
