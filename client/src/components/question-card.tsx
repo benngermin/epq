@@ -73,7 +73,9 @@ export function QuestionCard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const reviewBarRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesAreaRef = useRef<HTMLDivElement>(null);
 
   const hasAnswer = !!question?.userAnswer;
   const isCorrect = question?.userAnswer?.isCorrect;
@@ -92,25 +94,35 @@ export function QuestionCard({
     onFlipChange?.(isFlipped);
   }, [isFlipped, onFlipChange]);
 
-  // Dynamically measure action bar height
+  // Dynamically measure bar heights
   useEffect(() => {
-    const updateActionBarHeight = () => {
+    const updateBarHeights = () => {
+      // Submit bar height for question view
       if (actionBarRef.current && scrollAreaRef.current) {
         const height = actionBarRef.current.offsetHeight;
-        scrollAreaRef.current.style.setProperty('--action-bar-h', `${height}px`);
+        scrollAreaRef.current.style.setProperty('--submit-bar-h', `${height}px`);
+      }
+      
+      // Review bar height for chat view
+      if (reviewBarRef.current && messagesAreaRef.current) {
+        const height = reviewBarRef.current.offsetHeight;
+        messagesAreaRef.current.style.setProperty('--review-bar-h', `${height}px`);
       }
     };
 
-    updateActionBarHeight();
-    window.addEventListener('resize', updateActionBarHeight);
+    updateBarHeights();
+    window.addEventListener('resize', updateBarHeights);
     
-    const observer = new ResizeObserver(updateActionBarHeight);
+    const observer = new ResizeObserver(updateBarHeights);
     if (actionBarRef.current) {
       observer.observe(actionBarRef.current);
     }
+    if (reviewBarRef.current) {
+      observer.observe(reviewBarRef.current);
+    }
 
     return () => {
-      window.removeEventListener('resize', updateActionBarHeight);
+      window.removeEventListener('resize', updateBarHeights);
       observer.disconnect();
     };
   }, [isFlipped]); // Re-measure when flipped state changes
@@ -183,13 +195,13 @@ export function QuestionCard({
   return (
     <div className="w-full flex-1 min-h-0 flex flex-col">
       {!isFlipped ? (
-        /* Question View */
-        <Card className="w-full flex-1 min-h-0 bg-card border shadow-sm flex flex-col overflow-hidden">
-          {/* Scrollable content area */}
+        /* Question View - Card body has exactly two children: q-content + q-submit */
+        <Card className="w-full flex-1 min-h-0 bg-card border shadow-sm flex flex-col">
+          {/* q-content = stem + answers (scrolls) - No transforms, normal flow */}
           <div 
             ref={scrollAreaRef}
-            className="flex-1 min-h-0 overflow-y-auto"
-            style={{ paddingBottom: 'var(--action-bar-h, 80px)' }}
+            className="flex flex-col flex-1 min-h-0 overflow-y-auto"
+            style={{ paddingBottom: 'var(--submit-bar-h, 80px)' }}
           >
             <div className="p-4 sm:p-5 md:p-6">
               <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
@@ -360,10 +372,10 @@ export function QuestionCard({
             </div>
           </div>
 
-          {/* Sticky action bar - outside scroll area */}
+          {/* q-submit = Submit bar (sticky) - outside any flip/transform wrappers */}
           <div 
             ref={actionBarRef}
-            className="sticky bottom-0 z-20 bg-white dark:bg-gray-950 border-t p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+            className="sticky bottom-0 z-20 bg-white dark:bg-gray-950 border-t border-current p-3 md:p-4 pb-[calc(12px+env(safe-area-inset-bottom))]"
           >
             {hasAnswer && isCorrect && (
               <div className="space-y-3">
@@ -415,9 +427,14 @@ export function QuestionCard({
           </div>
         </Card>
       ) : (
-        /* Chatbot View */
-        <Card className="w-full flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 border shadow-sm flex flex-col overflow-hidden">
-          <div className="flex-1 min-h-0 flex flex-col">
+        /* Chatbot View - Card body has exactly two children: messages + action bar */
+        <Card className="w-full flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 border shadow-sm flex flex-col">
+          {/* Messages area (scrolls) - No transforms, normal flow */}
+          <div 
+            ref={messagesAreaRef}
+            className="flex-1 min-h-0 flex flex-col" 
+            style={{ paddingBottom: 'var(--review-bar-h, 80px)' }}
+          >
             {showChatbot && (
               <SimpleStreamingChat
                 /* key forces a fresh instance when we change questions or reset all */
@@ -428,7 +445,12 @@ export function QuestionCard({
               />
             )}
           </div>
-          <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-border bg-white dark:bg-gray-950 flex-shrink-0 sticky bottom-0 z-20">
+          
+          {/* Review action bar (sticky) - outside any transform */}
+          <div 
+            ref={reviewBarRef}
+            className="sticky bottom-0 z-20 bg-white dark:bg-gray-950 border-t border-current p-3 md:p-4 pb-[calc(12px+env(safe-area-inset-bottom))]"
+          >
             <Button 
               onClick={handleReviewQuestion} 
               variant="outline" 
