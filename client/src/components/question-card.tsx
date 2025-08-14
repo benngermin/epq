@@ -348,7 +348,7 @@ export function QuestionCard({
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
                                 disabled={hasAnswer || isSubmitting}
-                                className="h-full flex flex-col justify-start gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3"
+                                className="flex flex-col justify-start gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3"
                               >
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
