@@ -21,6 +21,7 @@ import { OptimizedImage } from "@/components/optimized-image";
 
 import { useState } from "react";
 import { QuestionCard } from "@/components/question-card";
+import "@/styles/sidebar-breakpoint.css";
 
 export default function QuestionSetPractice() {
   const { user, logoutMutation } = useAuth();
@@ -327,7 +328,7 @@ export default function QuestionSetPractice() {
 
       <div className="flex-1 overflow-hidden flex flex-col">
         {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="custom:hidden bg-muted/40 px-4 py-2">
+        <div className="sidebar-mobile-toggle bg-muted/40 px-4 py-2">
           <Button
             variant="outline"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -343,18 +344,18 @@ export default function QuestionSetPractice() {
         <div className="h-full w-full flex flex-col bg-muted/40">
           <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-1 relative h-full">
           {/* Left Sidebar - Collapsible Progress Bar */}
-          <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transition-transform duration-300 ease-in-out custom:relative custom:z-auto custom:w-72 lg:w-80 custom:transform-none custom:border-0 custom:h-full ${sidebarOpen ? 'translate-x-0' : '-translate-x-full custom:translate-x-0'}`}>
+          <div className={`sidebar-desktop-visible ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
             {/* Overlay for mobile */}
             {sidebarOpen && (
               <div 
-                className="fixed inset-0 bg-black/50 z-40 custom:hidden"
+                className="sidebar-mobile-overlay fixed inset-0 bg-black/50 z-40"
                 onClick={() => setSidebarOpen(false)}
               />
             )}
             
-            <Card className="h-full flex flex-col relative z-50 custom:z-auto">
+            <Card className="h-full flex flex-col relative z-50">
               {/* Close Button for Mobile */}
-              <div className="custom:hidden absolute top-4 right-4 z-10">
+              <div className="sidebar-mobile-toggle absolute top-4 right-4 z-10">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -366,7 +367,7 @@ export default function QuestionSetPractice() {
               </div>
 
               {/* Desktop Header */}
-              <CardHeader className="pb-3 sm:pb-6 flex-shrink-0 hidden custom:block">
+              <CardHeader className="sidebar-desktop-header pb-3 sm:pb-6 flex-shrink-0 hidden">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
                 <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
@@ -398,7 +399,7 @@ export default function QuestionSetPractice() {
               </CardHeader>
               
               {/* Mobile/Tablet Header */}
-              <CardHeader className="p-4 flex-shrink-0 custom:hidden">
+              <CardHeader className="sidebar-mobile-header p-4 flex-shrink-0">
                 <CardTitle className="text-lg font-semibold">Practice Summary</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">Track your progress through this question set</CardDescription>
                 <div className="mt-3">

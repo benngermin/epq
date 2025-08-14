@@ -1,0 +1,61 @@
+/* Custom breakpoint for sidebar collapse at 832px */
+@media (min-width: 832px) {
+  .sidebar-desktop-visible {
+    position: relative !important;
+    z-index: auto !important;
+    width: 20rem !important;
+    transform: none !important;
+    border: 0 !important;
+    height: 100% !important;
+  }
+  
+  .sidebar-mobile-toggle {
+    display: none !important;
+  }
+  
+  .sidebar-mobile-overlay {
+    display: none !important;
+  }
+  
+  .sidebar-desktop-header {
+    display: block !important;
+  }
+  
+  .sidebar-mobile-header {
+    display: none !important;
+  }
+}
+
+@media (max-width: 831px) {
+  .sidebar-desktop-visible {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    width: 20rem !important;
+    background: var(--background) !important;
+    border-right: 1px solid var(--border) !important;
+    transition: transform 0.3s ease-in-out !important;
+  }
+  
+  .sidebar-closed {
+    transform: translateX(-100%) !important;
+  }
+  
+  .sidebar-open {
+    transform: translateX(0) !important;
+  }
+  
+  .sidebar-mobile-toggle {
+    display: flex !important;
+  }
+  
+  .sidebar-desktop-header {
+    display: none !important;
+  }
+  
+  .sidebar-mobile-header {
+    display: block !important;
+  }
+}
