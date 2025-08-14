@@ -663,10 +663,9 @@ export default function QuestionSetPractice() {
 
         </div>
         </div>
-      </div>
-
-      {/* Navigation Controls at Bottom - Full Width */}
-      <div className="bg-background border-t border-border p-4 flex-shrink-0">
+        
+        {/* Navigation Controls at Bottom - Full Width - INSIDE main container */}
+        <div className="bg-background border-t border-border p-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex justify-between">
           <Button
             variant="outline"
@@ -690,6 +689,7 @@ export default function QuestionSetPractice() {
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
+      </div>
       </div>
 
       {/* Before You Begin Dialog */}
