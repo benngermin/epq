@@ -1765,8 +1765,8 @@ export class DatabaseStorage implements IStorage {
     // 1. Active Users (DAU/WAU/MAU) with active rate
     const activeUsersQuery = await db.select({
       userId: userTestRuns.userId,
-      sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`.as('session_count'),
-      totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})`.as('total_questions')
+      sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})::integer`.as('session_count'),
+      totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})::integer`.as('total_questions')
     })
     .from(userTestRuns)
     .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
@@ -1786,9 +1786,13 @@ export class DatabaseStorage implements IStorage {
     const activeRate = totalUsers > 0 ? (activeUserCount / totalUsers) * 100 : 0;
 
     // 2. Sessions per Active User & Median Session Length
-    const sessionCounts = activeUsersQuery.map(u => u.sessionCount || 0);
-    const avgSessionsPerUser = activeUserCount > 0 
-      ? sessionCounts.reduce((a, b) => a + b, 0) / activeUserCount 
+    const sessionCounts = activeUsersQuery.map(u => {
+      const count = Number(u.sessionCount) || 0;
+      return isNaN(count) || !isFinite(count) ? 0 : count;
+    });
+    const totalSessionCount = sessionCounts.reduce((a, b) => a + b, 0);
+    const avgSessionsPerUser = activeUserCount > 0 && isFinite(totalSessionCount)
+      ? totalSessionCount / activeUserCount 
       : 0;
 
     // Get session durations for median calculation
@@ -1803,7 +1807,10 @@ export class DatabaseStorage implements IStorage {
     ));
 
     const durations = sessionDurations
-      .map(s => Number(s.duration))
+      .map(s => {
+        const dur = Number(s.duration);
+        return isNaN(dur) || !isFinite(dur) ? 0 : dur;
+      })
       .filter(d => d > 0 && d < 7200) // Filter out invalid durations (> 2 hours)
       .sort((a, b) => a - b);
     
@@ -1812,14 +1819,16 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 3. Questions per Active User
-    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => sum + (u.totalQuestions || 0), 0);
-    const avgQuestionsPerUser = activeUserCount > 0 
+    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => {
+      const questions = Number(u.totalQuestions) || 0;
+      return sum + (isNaN(questions) || !isFinite(questions) ? 0 : questions);
+    }, 0);
+    const avgQuestionsPerUser = activeUserCount > 0 && isFinite(totalQuestionsAnswered)
       ? totalQuestionsAnswered / activeUserCount 
       : 0;
     
-    const totalSessions = sessionCounts.reduce((a, b) => a + b, 0);
-    const questionsPerSession = totalSessions > 0 
-      ? totalQuestionsAnswered / totalSessions 
+    const questionsPerSession = totalSessionCount > 0 && isFinite(totalQuestionsAnswered)
+      ? totalQuestionsAnswered / totalSessionCount 
       : 0;
 
     // 4. Set Completion Rate (within 7 days)
@@ -1931,24 +1940,36 @@ export class DatabaseStorage implements IStorage {
         : 0;
     }
 
+    // Ensure all values are valid numbers
+    const sanitizeNumber = (value: number): number => {
+      if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+        return 0;
+      }
+      // Prevent extremely large numbers
+      if (Math.abs(value) > 1e10) {
+        return 0;
+      }
+      return value;
+    };
+
     return {
       activeUsers: {
-        count: activeUserCount || 0,
-        rate: isNaN(activeRate) ? 0 : activeRate,
-        total: totalUsers || 0
+        count: sanitizeNumber(activeUserCount),
+        rate: sanitizeNumber(activeRate),
+        total: sanitizeNumber(totalUsers)
       },
       sessionsPerUser: {
-        average: isNaN(avgSessionsPerUser) ? 0 : avgSessionsPerUser,
-        median: isNaN(medianSessionLength) ? 0 : medianSessionLength
+        average: sanitizeNumber(avgSessionsPerUser),
+        median: sanitizeNumber(medianSessionLength)
       },
       questionsPerUser: {
-        average: isNaN(avgQuestionsPerUser) ? 0 : avgQuestionsPerUser,
-        perSession: isNaN(questionsPerSession) ? 0 : questionsPerSession
+        average: sanitizeNumber(avgQuestionsPerUser),
+        perSession: sanitizeNumber(questionsPerSession)
       },
-      completionRate: isNaN(completionRate) ? 0 : completionRate,
-      firstAttemptAccuracy: isNaN(firstAttemptAccuracy) ? 0 : firstAttemptAccuracy,
-      medianTimePerQuestion: isNaN(medianTimePerQuestion) ? 0 : medianTimePerQuestion,
-      retentionRate: isNaN(retentionRate) ? 0 : retentionRate
+      completionRate: sanitizeNumber(completionRate),
+      firstAttemptAccuracy: sanitizeNumber(firstAttemptAccuracy),
+      medianTimePerQuestion: sanitizeNumber(medianTimePerQuestion),
+      retentionRate: sanitizeNumber(retentionRate)
     };
   }
 }
