@@ -1796,20 +1796,32 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // Get session durations for median calculation
+    // We calculate based on the last answer time if no completedAt is set
     const sessionDurations = await db.select({
-      duration: sql<number>`EXTRACT(EPOCH FROM (${userTestRuns.completedAt} - ${userTestRuns.startedAt}))`.as('duration')
+      startedAt: userTestRuns.startedAt,
+      completedAt: userTestRuns.completedAt,
+      lastAnswerTime: sql<Date>`MAX(${userAnswers.answeredAt})`.as('last_answer_time'),
+      firstAnswerTime: sql<Date>`MIN(${userAnswers.answeredAt})`.as('first_answer_time')
     })
     .from(userTestRuns)
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
     .where(and(
       gte(userTestRuns.startedAt, startDate),
-      lte(userTestRuns.startedAt, endDate),
-      isNotNull(userTestRuns.completedAt)
-    ));
+      lte(userTestRuns.startedAt, endDate)
+    ))
+    .groupBy(userTestRuns.id, userTestRuns.startedAt, userTestRuns.completedAt);
 
     const durations = sessionDurations
       .map(s => {
-        const dur = Number(s.duration);
-        return isNaN(dur) || !isFinite(dur) ? 0 : dur;
+        // Use completedAt if available, otherwise use last answer time
+        const endTime = s.completedAt || s.lastAnswerTime;
+        const startTime = s.startedAt;
+        if (!endTime || !startTime) return 0;
+        
+        const durationMs = new Date(endTime).getTime() - new Date(startTime).getTime();
+        const durationSec = durationMs / 1000;
+        
+        return isNaN(durationSec) || !isFinite(durationSec) || durationSec < 0 ? 0 : durationSec;
       })
       .filter(d => d > 0 && d < 7200) // Filter out invalid durations (> 2 hours)
       .sort((a, b) => a - b);
@@ -1832,22 +1844,42 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 4. Set Completion Rate (within 7 days)
-    const setsStarted = await db.select({
-      id: userTestRuns.id,
-      questionSetId: userTestRuns.questionSetId,
-      startedAt: userTestRuns.startedAt,
-      completedAt: userTestRuns.completedAt
-    })
-    .from(userTestRuns)
-    .where(and(
-      gte(userTestRuns.startedAt, startDate),
-      lte(userTestRuns.startedAt, endDate)
-    ));
+    // Consider a set "completed" if all questions were answered or explicitly marked complete
+    const setsWithProgress = await db.execute(sql`
+      WITH set_stats AS (
+        SELECT 
+          utr.id,
+          utr.question_set_id,
+          utr.started_at,
+          utr.completed_at,
+          qs.question_count as total_questions,
+          COUNT(DISTINCT ua.question_version_id) as answered_questions,
+          MAX(ua.answered_at) as last_answer_time
+        FROM user_test_runs utr
+        INNER JOIN question_sets qs ON utr.question_set_id = qs.id
+        LEFT JOIN user_answers ua ON ua.user_test_run_id = utr.id
+        WHERE utr.started_at >= ${startDate}
+          AND utr.started_at <= ${endDate}
+        GROUP BY utr.id, utr.question_set_id, utr.started_at, utr.completed_at, qs.question_count
+      )
+      SELECT * FROM set_stats
+    `);
 
-    const setsCompleted = setsStarted.filter(s => {
-      if (!s.completedAt) return false;
-      const daysDiff = (s.completedAt.getTime() - s.startedAt.getTime()) / (1000 * 60 * 60 * 24);
-      return daysDiff <= 7;
+    const setsStarted = setsWithProgress.rows.filter((s: any) => Number(s.answered_questions) > 0);
+    
+    const setsCompleted = setsStarted.filter((s: any) => {
+      // Consider completed if:
+      // 1. Has completedAt timestamp within 7 days
+      // 2. OR answered most questions (>= 80%) within 7 days
+      
+      const isMarkedComplete = s.completed_at && 
+        (new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
+      
+      const answeredMost = Number(s.answered_questions) >= Number(s.total_questions) * 0.8;
+      const lastAnswerWithin7Days = s.last_answer_time && 
+        (new Date(s.last_answer_time).getTime() - new Date(s.started_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
+      
+      return isMarkedComplete || (answeredMost && lastAnswerWithin7Days);
     });
 
     const completionRate = setsStarted.length > 0 
@@ -1885,19 +1917,36 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 6. Median Time per Question
-    const questionTimes = await db.select({
-      timeSpent: sql<number>`EXTRACT(EPOCH FROM (${userAnswers.answeredAt} - LAG(${userAnswers.answeredAt}) OVER (PARTITION BY ${userAnswers.userTestRunId} ORDER BY ${userAnswers.answeredAt})))`.as('time_spent')
-    })
-    .from(userAnswers)
-    .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
-    .where(and(
-      gte(userAnswers.answeredAt, startDate),
-      lte(userAnswers.answeredAt, endDate)
-    ));
+    // Calculate time between consecutive answers in the same session
+    // Also include time from session start to first answer
+    const questionTimings = await db.execute(sql`
+      WITH answer_times AS (
+        SELECT 
+          ua.user_test_run_id,
+          ua.answered_at,
+          utr.started_at,
+          ROW_NUMBER() OVER (PARTITION BY ua.user_test_run_id ORDER BY ua.answered_at) as answer_order,
+          LAG(ua.answered_at) OVER (PARTITION BY ua.user_test_run_id ORDER BY ua.answered_at) as prev_answer_time
+        FROM user_answers ua
+        INNER JOIN user_test_runs utr ON ua.user_test_run_id = utr.id
+        WHERE ua.answered_at >= ${startDate}
+          AND ua.answered_at <= ${endDate}
+      )
+      SELECT 
+        CASE 
+          WHEN answer_order = 1 THEN EXTRACT(EPOCH FROM (answered_at - started_at))
+          ELSE EXTRACT(EPOCH FROM (answered_at - prev_answer_time))
+        END as time_spent
+      FROM answer_times
+      WHERE CASE 
+          WHEN answer_order = 1 THEN answered_at > started_at
+          ELSE prev_answer_time IS NOT NULL
+        END
+    `);
 
-    const validTimes = questionTimes
-      .map(t => Number(t.timeSpent))
-      .filter(t => t > 0 && t < 300) // Filter reasonable times (0-5 minutes)
+    const validTimes = questionTimings.rows
+      .map(t => Number(t.time_spent))
+      .filter(t => !isNaN(t) && isFinite(t) && t > 0 && t < 300) // Filter reasonable times (0-5 minutes)
       .sort((a, b) => a - b);
 
     const medianTimePerQuestion = validTimes.length > 0
@@ -1949,8 +1998,17 @@ export class DatabaseStorage implements IStorage {
       if (Math.abs(value) > 1e10) {
         return 0;
       }
-      return value;
+      // Round to 2 decimal places for cleaner display
+      return Math.round(value * 100) / 100;
     };
+
+    // Log metrics for debugging
+    console.log(`[Engagement Metrics] Period: ${period}`);
+    console.log(`[Engagement Metrics] Active Users: ${activeUserCount}/${totalUsers} (${activeRate.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] Session Durations: ${durations.length} valid sessions, median: ${medianSessionLength}s`);
+    console.log(`[Engagement Metrics] Completion Rate: ${setsCompleted.length}/${setsStarted.length} (${completionRate.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] First Attempt Accuracy: ${correctFirstAttempts}/${firstAttemptValues.length} (${firstAttemptAccuracy.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] Question Times: ${validTimes.length} valid timings, median: ${medianTimePerQuestion}s`);
 
     return {
       activeUsers: {

@@ -909,7 +909,7 @@ export function AppLogsSection() {
                   Median: {formatTime(engagementMetrics.sessionsPerUser?.median || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Median session length
+                  Median session duration
                 </div>
               </div>
 
@@ -933,7 +933,7 @@ export function AppLogsSection() {
                 </div>
                 <div className="text-2xl font-bold">{(engagementMetrics.completionRate || 0).toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">
-                  Within 7 days
+                  Completed 80%+ within 7 days
                 </div>
               </div>
 
@@ -957,7 +957,7 @@ export function AppLogsSection() {
                 </div>
                 <div className="text-2xl font-bold">{formatTime(engagementMetrics.medianTimePerQuestion || 0)}</div>
                 <div className="text-sm text-muted-foreground">
-                  From view to submission
+                  Time between answers
                 </div>
               </div>
 
