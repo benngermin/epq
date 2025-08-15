@@ -1786,7 +1786,7 @@ export class DatabaseStorage implements IStorage {
     const activeRate = totalUsers > 0 ? (activeUserCount / totalUsers) * 100 : 0;
 
     // 2. Sessions per Active User & Median Session Length
-    const sessionCounts = activeUsersQuery.map(u => u.sessionCount);
+    const sessionCounts = activeUsersQuery.map(u => u.sessionCount || 0);
     const avgSessionsPerUser = activeUserCount > 0 
       ? sessionCounts.reduce((a, b) => a + b, 0) / activeUserCount 
       : 0;
@@ -1812,7 +1812,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 3. Questions per Active User
-    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => sum + u.totalQuestions, 0);
+    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => sum + (u.totalQuestions || 0), 0);
     const avgQuestionsPerUser = activeUserCount > 0 
       ? totalQuestionsAnswered / activeUserCount 
       : 0;
@@ -1933,22 +1933,22 @@ export class DatabaseStorage implements IStorage {
 
     return {
       activeUsers: {
-        count: activeUserCount,
-        rate: activeRate,
-        total: totalUsers
+        count: activeUserCount || 0,
+        rate: isNaN(activeRate) ? 0 : activeRate,
+        total: totalUsers || 0
       },
       sessionsPerUser: {
-        average: avgSessionsPerUser,
-        median: medianSessionLength
+        average: isNaN(avgSessionsPerUser) ? 0 : avgSessionsPerUser,
+        median: isNaN(medianSessionLength) ? 0 : medianSessionLength
       },
       questionsPerUser: {
-        average: avgQuestionsPerUser,
-        perSession: questionsPerSession
+        average: isNaN(avgQuestionsPerUser) ? 0 : avgQuestionsPerUser,
+        perSession: isNaN(questionsPerSession) ? 0 : questionsPerSession
       },
-      completionRate,
-      firstAttemptAccuracy,
-      medianTimePerQuestion,
-      retentionRate
+      completionRate: isNaN(completionRate) ? 0 : completionRate,
+      firstAttemptAccuracy: isNaN(firstAttemptAccuracy) ? 0 : firstAttemptAccuracy,
+      medianTimePerQuestion: isNaN(medianTimePerQuestion) ? 0 : medianTimePerQuestion,
+      retentionRate: isNaN(retentionRate) ? 0 : retentionRate
     };
   }
 }

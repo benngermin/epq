@@ -476,12 +476,12 @@ export function AppLogsSection() {
                   <UserCheck className="h-4 w-4 text-blue-500" />
                   <h4 className="text-sm font-medium">Active Users</h4>
                 </div>
-                <div className="text-2xl font-bold">{formatNumber(engagementMetrics.activeUsers.count)}</div>
+                <div className="text-2xl font-bold">{formatNumber(engagementMetrics.activeUsers?.count || 0)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {engagementMetrics.activeUsers.rate.toFixed(1)}% active rate
+                  {(engagementMetrics.activeUsers?.rate || 0).toFixed(1)}% active rate
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(engagementMetrics.activeUsers.total)} total users
+                  {formatNumber(engagementMetrics.activeUsers?.total || 0)} total users
                 </div>
               </div>
 
@@ -491,9 +491,9 @@ export function AppLogsSection() {
                   <Activity className="h-4 w-4 text-orange-500" />
                   <h4 className="text-sm font-medium">Sessions per Active User</h4>
                 </div>
-                <div className="text-2xl font-bold">{engagementMetrics.sessionsPerUser.average.toFixed(1)}</div>
+                <div className="text-2xl font-bold">{(engagementMetrics.sessionsPerUser?.average || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
-                  Median: {formatTime(engagementMetrics.sessionsPerUser.median)}
+                  Median: {formatTime(engagementMetrics.sessionsPerUser?.median || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   Median session length
@@ -506,9 +506,9 @@ export function AppLogsSection() {
                   <FileQuestion className="h-4 w-4 text-green-500" />
                   <h4 className="text-sm font-medium">Questions per Active User</h4>
                 </div>
-                <div className="text-2xl font-bold">{engagementMetrics.questionsPerUser.average.toFixed(1)}</div>
+                <div className="text-2xl font-bold">{(engagementMetrics.questionsPerUser?.average || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {engagementMetrics.questionsPerUser.perSession.toFixed(1)} per session
+                  {(engagementMetrics.questionsPerUser?.perSession || 0).toFixed(1)} per session
                 </div>
               </div>
 
@@ -518,7 +518,7 @@ export function AppLogsSection() {
                   <Target className="h-4 w-4 text-purple-500" />
                   <h4 className="text-sm font-medium">Set Completion Rate</h4>
                 </div>
-                <div className="text-2xl font-bold">{engagementMetrics.completionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold">{(engagementMetrics.completionRate || 0).toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">
                   Within 7 days
                 </div>
@@ -530,7 +530,7 @@ export function AppLogsSection() {
                   <Award className="h-4 w-4 text-yellow-500" />
                   <h4 className="text-sm font-medium">First-Attempt Accuracy</h4>
                 </div>
-                <div className="text-2xl font-bold">{engagementMetrics.firstAttemptAccuracy.toFixed(1)}%</div>
+                <div className="text-2xl font-bold">{(engagementMetrics.firstAttemptAccuracy || 0).toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">
                   Questions correct on first try
                 </div>
@@ -542,7 +542,7 @@ export function AppLogsSection() {
                   <Clock className="h-4 w-4 text-indigo-500" />
                   <h4 className="text-sm font-medium">Median Time per Question</h4>
                 </div>
-                <div className="text-2xl font-bold">{formatTime(engagementMetrics.medianTimePerQuestion)}</div>
+                <div className="text-2xl font-bold">{formatTime(engagementMetrics.medianTimePerQuestion || 0)}</div>
                 <div className="text-sm text-muted-foreground">
                   From view to submission
                 </div>
@@ -555,7 +555,7 @@ export function AppLogsSection() {
                     <TrendingUp className="h-4 w-4 text-teal-500" />
                     <h4 className="text-sm font-medium">7-Day Retention</h4>
                   </div>
-                  <div className="text-2xl font-bold">{engagementMetrics.retentionRate.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold">{(engagementMetrics.retentionRate || 0).toFixed(1)}%</div>
                   <div className="text-sm text-muted-foreground">
                     Active this week who were active last week
                   </div>
