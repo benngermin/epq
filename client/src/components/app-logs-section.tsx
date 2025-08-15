@@ -152,9 +152,22 @@ interface UsageData {
   count: number;
 }
 
+interface EngagementMetrics {
+  activeUsers: { count: number; rate: number; total: number };
+  sessionsPerUser: { average: number; median: number };
+  questionsPerUser: { average: number; perSession: number };
+  completionRate: number;
+  firstAttemptAccuracy: number;
+  medianTimePerQuestion: number;
+  retentionRate: number;
+}
+
 export function AppLogsSection() {
   // State for time scale filter
   const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month' | 'all'>('day');
+  
+  // State for engagement metrics period filter
+  const [engagementPeriod, setEngagementPeriod] = useState<'today' | '7days' | '28days'>('7days');
   
   // State for conversation viewer modal
   const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
@@ -183,6 +196,16 @@ export function AppLogsSection() {
 
   const { data: feedbackData, isLoading: feedbackLoading } = useQuery<FeedbackData[]>({
     queryKey: ["/api/admin/logs/feedback"],
+  });
+
+  const { data: engagementMetrics, isLoading: engagementLoading } = useQuery<EngagementMetrics>({
+    queryKey: ["/api/admin/logs/engagement-metrics", engagementPeriod],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/engagement-metrics?period=${engagementPeriod}`);
+      if (!response.ok) throw new Error('Failed to fetch engagement metrics');
+      return response.json();
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // State for chart controls
@@ -384,6 +407,13 @@ export function AppLogsSection() {
   // Check if we have any data
   const hasData = overallStats && (overallStats.totalTestRuns > 0 || overallStats.totalAnswers > 0);
 
+  // Format time for display
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
+  };
+
   return (
     <div className="space-y-6">
       {/* No Data Alert */}
@@ -401,6 +431,144 @@ export function AppLogsSection() {
           </CardHeader>
         </Card>
       )}
+
+      {/* Engagement Metrics Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Engagement Metrics
+              </CardTitle>
+              <CardDescription>
+                Key performance indicators and user engagement metrics
+              </CardDescription>
+            </div>
+            <Select value={engagementPeriod} onValueChange={(value: 'today' | '7days' | '28days') => setEngagementPeriod(value)}>
+              <SelectTrigger className="w-[150px] border-2 border-primary/20 hover:border-primary/40 transition-colors">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7days">Last 7 Days</SelectItem>
+                <SelectItem value="28days">Last 28 Days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {engagementLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(7)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              ))}
+            </div>
+          ) : engagementMetrics ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Active Users */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="h-4 w-4 text-blue-500" />
+                  <h4 className="text-sm font-medium">Active Users</h4>
+                </div>
+                <div className="text-2xl font-bold">{formatNumber(engagementMetrics.activeUsers.count)}</div>
+                <div className="text-sm text-muted-foreground">
+                  {engagementMetrics.activeUsers.rate.toFixed(1)}% active rate
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {formatNumber(engagementMetrics.activeUsers.total)} total users
+                </div>
+              </div>
+
+              {/* Sessions per User */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="h-4 w-4 text-orange-500" />
+                  <h4 className="text-sm font-medium">Sessions per Active User</h4>
+                </div>
+                <div className="text-2xl font-bold">{engagementMetrics.sessionsPerUser.average.toFixed(1)}</div>
+                <div className="text-sm text-muted-foreground">
+                  Median: {formatTime(engagementMetrics.sessionsPerUser.median)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Median session length
+                </div>
+              </div>
+
+              {/* Questions per User */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileQuestion className="h-4 w-4 text-green-500" />
+                  <h4 className="text-sm font-medium">Questions per Active User</h4>
+                </div>
+                <div className="text-2xl font-bold">{engagementMetrics.questionsPerUser.average.toFixed(1)}</div>
+                <div className="text-sm text-muted-foreground">
+                  {engagementMetrics.questionsPerUser.perSession.toFixed(1)} per session
+                </div>
+              </div>
+
+              {/* Completion Rate */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="h-4 w-4 text-purple-500" />
+                  <h4 className="text-sm font-medium">Set Completion Rate</h4>
+                </div>
+                <div className="text-2xl font-bold">{engagementMetrics.completionRate.toFixed(1)}%</div>
+                <div className="text-sm text-muted-foreground">
+                  Within 7 days
+                </div>
+              </div>
+
+              {/* First Attempt Accuracy */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="h-4 w-4 text-yellow-500" />
+                  <h4 className="text-sm font-medium">First-Attempt Accuracy</h4>
+                </div>
+                <div className="text-2xl font-bold">{engagementMetrics.firstAttemptAccuracy.toFixed(1)}%</div>
+                <div className="text-sm text-muted-foreground">
+                  Questions correct on first try
+                </div>
+              </div>
+
+              {/* Median Time per Question */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-indigo-500" />
+                  <h4 className="text-sm font-medium">Median Time per Question</h4>
+                </div>
+                <div className="text-2xl font-bold">{formatTime(engagementMetrics.medianTimePerQuestion)}</div>
+                <div className="text-sm text-muted-foreground">
+                  From view to submission
+                </div>
+              </div>
+
+              {/* 7-Day Retention */}
+              {engagementPeriod !== 'today' && (
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-4 w-4 text-teal-500" />
+                    <h4 className="text-sm font-medium">7-Day Retention</h4>
+                  </div>
+                  <div className="text-2xl font-bold">{engagementMetrics.retentionRate.toFixed(1)}%</div>
+                  <div className="text-sm text-muted-foreground">
+                    Active this week who were active last week
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No engagement data available for the selected period
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Time Scale Dropdown */}
       <div className="flex justify-end mb-4">

@@ -14,7 +14,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
@@ -113,6 +113,15 @@ export interface IStorage {
   getUserTestProgress(userId: number, testId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }>;
   
   // Statistics methods for logs page
+  getEngagementMetrics(period: 'today' | '7days' | '28days'): Promise<{
+    activeUsers: { count: number; rate: number; total: number };
+    sessionsPerUser: { average: number; median: number };
+    questionsPerUser: { average: number; perSession: number };
+    completionRate: number;
+    firstAttemptAccuracy: number;
+    medianTimePerQuestion: number;
+    retentionRate: number;
+  }>;
   getOverallStats(timeScale?: string): Promise<{
     totalUsers: number;
     totalCourses: number;
@@ -1721,6 +1730,226 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return summary?.questionsAnswered || 0;
+  }
+
+  // New engagement metrics methods
+  async getEngagementMetrics(period: 'today' | '7days' | '28days'): Promise<{
+    activeUsers: { count: number; rate: number; total: number };
+    sessionsPerUser: { average: number; median: number };
+    questionsPerUser: { average: number; perSession: number };
+    completionRate: number;
+    firstAttemptAccuracy: number;
+    medianTimePerQuestion: number;
+    retentionRate: number;
+  }> {
+    const now = new Date();
+    const todayStart = getDateAtMidnightEST(now);
+    const endDate = now;
+    let startDate: Date;
+    
+    // Set date range based on period
+    switch(period) {
+      case 'today':
+        startDate = todayStart;
+        break;
+      case '7days':
+        startDate = new Date(todayStart);
+        startDate.setDate(startDate.getDate() - 6);
+        break;
+      case '28days':
+        startDate = new Date(todayStart);
+        startDate.setDate(startDate.getDate() - 27);
+        break;
+    }
+
+    // 1. Active Users (DAU/WAU/MAU) with active rate
+    const activeUsersQuery = await db.select({
+      userId: userTestRuns.userId,
+      sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`.as('session_count'),
+      totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})`.as('total_questions')
+    })
+    .from(userTestRuns)
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userTestRuns.startedAt, startDate),
+      lte(userTestRuns.startedAt, endDate)
+    ))
+    .groupBy(userTestRuns.userId);
+
+    // Get total users with access (all registered users)
+    const [totalUsersResult] = await db.select({ 
+      count: sql<number>`COUNT(*)`.as('count') 
+    }).from(users);
+    const totalUsers = Number(totalUsersResult?.count || 0);
+
+    const activeUserCount = activeUsersQuery.length;
+    const activeRate = totalUsers > 0 ? (activeUserCount / totalUsers) * 100 : 0;
+
+    // 2. Sessions per Active User & Median Session Length
+    const sessionCounts = activeUsersQuery.map(u => u.sessionCount);
+    const avgSessionsPerUser = activeUserCount > 0 
+      ? sessionCounts.reduce((a, b) => a + b, 0) / activeUserCount 
+      : 0;
+
+    // Get session durations for median calculation
+    const sessionDurations = await db.select({
+      duration: sql<number>`EXTRACT(EPOCH FROM (${userTestRuns.completedAt} - ${userTestRuns.startedAt}))`.as('duration')
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDate),
+      lte(userTestRuns.startedAt, endDate),
+      isNotNull(userTestRuns.completedAt)
+    ));
+
+    const durations = sessionDurations
+      .map(s => Number(s.duration))
+      .filter(d => d > 0 && d < 7200) // Filter out invalid durations (> 2 hours)
+      .sort((a, b) => a - b);
+    
+    const medianSessionLength = durations.length > 0
+      ? durations[Math.floor(durations.length / 2)]
+      : 0;
+
+    // 3. Questions per Active User
+    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => sum + u.totalQuestions, 0);
+    const avgQuestionsPerUser = activeUserCount > 0 
+      ? totalQuestionsAnswered / activeUserCount 
+      : 0;
+    
+    const totalSessions = sessionCounts.reduce((a, b) => a + b, 0);
+    const questionsPerSession = totalSessions > 0 
+      ? totalQuestionsAnswered / totalSessions 
+      : 0;
+
+    // 4. Set Completion Rate (within 7 days)
+    const setsStarted = await db.select({
+      id: userTestRuns.id,
+      questionSetId: userTestRuns.questionSetId,
+      startedAt: userTestRuns.startedAt,
+      completedAt: userTestRuns.completedAt
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDate),
+      lte(userTestRuns.startedAt, endDate)
+    ));
+
+    const setsCompleted = setsStarted.filter(s => {
+      if (!s.completedAt) return false;
+      const daysDiff = (s.completedAt.getTime() - s.startedAt.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 7;
+    });
+
+    const completionRate = setsStarted.length > 0 
+      ? (setsCompleted.length / setsStarted.length) * 100 
+      : 0;
+
+    // 5. First-Attempt Accuracy
+    const firstAttempts = await db.select({
+      questionVersionId: userAnswers.questionVersionId,
+      isCorrect: userAnswers.isCorrect,
+      userId: userTestRuns.userId,
+      answeredAt: userAnswers.answeredAt
+    })
+    .from(userAnswers)
+    .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userAnswers.answeredAt, startDate),
+      lte(userAnswers.answeredAt, endDate)
+    ))
+    .orderBy(asc(userAnswers.answeredAt));
+
+    // Group by user and question to find first attempts
+    const firstAttemptMap = new Map<string, boolean>();
+    firstAttempts.forEach(attempt => {
+      const key = `${attempt.userId}-${attempt.questionVersionId}`;
+      if (!firstAttemptMap.has(key)) {
+        firstAttemptMap.set(key, attempt.isCorrect);
+      }
+    });
+
+    const firstAttemptValues = Array.from(firstAttemptMap.values());
+    const correctFirstAttempts = firstAttemptValues.filter(v => v).length;
+    const firstAttemptAccuracy = firstAttemptValues.length > 0
+      ? (correctFirstAttempts / firstAttemptValues.length) * 100
+      : 0;
+
+    // 6. Median Time per Question
+    const questionTimes = await db.select({
+      timeSpent: sql<number>`EXTRACT(EPOCH FROM (${userAnswers.answeredAt} - LAG(${userAnswers.answeredAt}) OVER (PARTITION BY ${userAnswers.userTestRunId} ORDER BY ${userAnswers.answeredAt})))`.as('time_spent')
+    })
+    .from(userAnswers)
+    .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userAnswers.answeredAt, startDate),
+      lte(userAnswers.answeredAt, endDate)
+    ));
+
+    const validTimes = questionTimes
+      .map(t => Number(t.timeSpent))
+      .filter(t => t > 0 && t < 300) // Filter reasonable times (0-5 minutes)
+      .sort((a, b) => a - b);
+
+    const medianTimePerQuestion = validTimes.length > 0
+      ? validTimes[Math.floor(validTimes.length / 2)]
+      : 0;
+
+    // 7. 7-Day Retention Rate
+    let retentionRate = 0;
+    if (period === '7days' || period === '28days') {
+      // Users active in current week
+      const currentWeekStart = new Date(todayStart);
+      currentWeekStart.setDate(currentWeekStart.getDate() - 6);
+      
+      const currentWeekUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+        .from(userTestRuns)
+        .where(and(
+          gte(userTestRuns.startedAt, currentWeekStart),
+          lte(userTestRuns.startedAt, endDate)
+        ));
+
+      // Users active in previous week
+      const prevWeekStart = new Date(currentWeekStart);
+      prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+      const prevWeekEnd = new Date(currentWeekStart);
+      prevWeekEnd.setDate(prevWeekEnd.getDate() - 1);
+
+      const prevWeekUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+        .from(userTestRuns)
+        .where(and(
+          gte(userTestRuns.startedAt, prevWeekStart),
+          lte(userTestRuns.startedAt, prevWeekEnd)
+        ));
+
+      const currentWeekUserIds = new Set(currentWeekUsers.map(u => u.userId));
+      const prevWeekUserIds = prevWeekUsers.map(u => u.userId);
+      const retainedUsers = prevWeekUserIds.filter(id => currentWeekUserIds.has(id));
+      
+      retentionRate = prevWeekUserIds.length > 0
+        ? (retainedUsers.length / prevWeekUserIds.length) * 100
+        : 0;
+    }
+
+    return {
+      activeUsers: {
+        count: activeUserCount,
+        rate: activeRate,
+        total: totalUsers
+      },
+      sessionsPerUser: {
+        average: avgSessionsPerUser,
+        median: medianSessionLength
+      },
+      questionsPerUser: {
+        average: avgQuestionsPerUser,
+        perSession: questionsPerSession
+      },
+      completionRate,
+      firstAttemptAccuracy,
+      medianTimePerQuestion,
+      retentionRate
+    };
   }
 }
 

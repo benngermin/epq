@@ -2170,6 +2170,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  app.get("/api/admin/logs/engagement-metrics", requireAdmin, async (req, res) => {
+    try {
+      const { period = '7days' } = req.query;
+      
+      // Validate period parameter
+      if (!['today', '7days', '28days'].includes(period as string)) {
+        return res.status(400).json({ message: "Invalid period. Must be 'today', '7days', or '28days'" });
+      }
+      
+      // Add no-cache headers to ensure fresh data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
+      const metrics = await storage.getEngagementMetrics(period as 'today' | '7days' | '28days');
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching engagement metrics:", error);
+      res.status(500).json({ message: "Failed to fetch engagement metrics" });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {
