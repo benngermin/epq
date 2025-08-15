@@ -971,24 +971,13 @@ export function AppLogsSection() {
                               <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedFeedback({id: feedback.id, messageId: feedback.messageId})}
-                              className="flex items-center gap-1"
-                            >
-                              <Eye className="h-3 w-3" />
-                              View Conversation
-                            </Button>
-                            <div className="text-right">
-                              <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
-                                {feedback.feedbackType}
-                              </Badge>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
-                              </p>
-                            </div>
+                          <div className="text-right">
+                            <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
+                              {feedback.feedbackType}
+                            </Badge>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
+                            </p>
                           </div>
                         </div>
                         
@@ -998,6 +987,18 @@ export function AppLogsSection() {
                             <p className="text-sm">{feedback.feedbackMessage}</p>
                           </div>
                         )}
+                        
+                        <div className="flex justify-end pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedFeedback({id: feedback.id, messageId: feedback.messageId})}
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View Conversation
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
