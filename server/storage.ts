@@ -784,6 +784,7 @@ export class DatabaseStorage implements IStorage {
     feedbackType: string;
     feedbackMessage: string | null;
     assistantMessage: string | null;
+    conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
     createdAt: Date;
   }>> {
     const result = await db.select({
@@ -794,19 +795,71 @@ export class DatabaseStorage implements IStorage {
       messageId: chatbotFeedback.messageId,
       feedbackType: chatbotFeedback.feedbackType,
       feedbackMessage: chatbotFeedback.feedbackMessage,
+      conversation: chatbotFeedback.conversation,
       createdAt: chatbotFeedback.createdAt,
     })
     .from(chatbotFeedback)
     .leftJoin(users, eq(chatbotFeedback.userId, users.id))
     .orderBy(desc(chatbotFeedback.createdAt));
 
-    // Map the result to handle null users
-    return result.map(item => ({
+    // Map the result to handle null users and extract assistant message from conversation
+    return result.map(item => {
+      let assistantMessage = null;
+      
+      // Try to find the assistant message from the conversation
+      if (item.conversation && Array.isArray(item.conversation)) {
+        const message = item.conversation.find((msg: any) => msg.id === item.messageId && msg.role === 'assistant');
+        if (message) {
+          assistantMessage = message.content;
+        }
+      }
+      
+      return {
+        ...item,
+        userName: item.userName || 'Anonymous User',
+        userEmail: item.userEmail || 'N/A',
+        assistantMessage,
+        conversation: item.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
+      };
+    });
+  }
+
+  async getChatbotFeedbackById(feedbackId: number): Promise<{
+    id: number;
+    userId: number | null;
+    userName: string;
+    userEmail: string;
+    messageId: string;
+    feedbackType: string;
+    feedbackMessage: string | null;
+    conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
+    createdAt: Date;
+  } | null> {
+    const result = await db.select({
+      id: chatbotFeedback.id,
+      userId: chatbotFeedback.userId,
+      userName: users.name,
+      userEmail: users.email,
+      messageId: chatbotFeedback.messageId,
+      feedbackType: chatbotFeedback.feedbackType,
+      feedbackMessage: chatbotFeedback.feedbackMessage,
+      conversation: chatbotFeedback.conversation,
+      createdAt: chatbotFeedback.createdAt,
+    })
+    .from(chatbotFeedback)
+    .leftJoin(users, eq(chatbotFeedback.userId, users.id))
+    .where(eq(chatbotFeedback.id, feedbackId))
+    .limit(1);
+
+    if (result.length === 0) return null;
+    
+    const item = result[0];
+    return {
       ...item,
       userName: item.userName || 'Anonymous User',
       userEmail: item.userEmail || 'N/A',
-      assistantMessage: null, // For now, we'll leave this null as matching message IDs is complex
-    }));
+      conversation: item.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
+    };
   }
 
   async getOverallStats(timeScale?: string): Promise<{

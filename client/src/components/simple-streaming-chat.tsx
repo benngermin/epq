@@ -383,6 +383,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                   <FeedbackButtons 
                     messageId={message.id} 
                     questionVersionId={questionVersionId}
+                    conversation={messages}
                   />
                 )}
               </div>

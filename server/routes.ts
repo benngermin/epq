@@ -1433,6 +1433,11 @@ export function registerRoutes(app: Express): Server {
         message: z.string().optional(),
         messageId: z.string(),
         questionVersionId: z.number().optional(),
+        conversation: z.array(z.object({
+          id: z.string(),
+          content: z.string(),
+          role: z.enum(["user", "assistant"]),
+        })).optional(),
         timestamp: z.string(),
       });
 
@@ -1444,6 +1449,7 @@ export function registerRoutes(app: Express): Server {
         feedbackType: parsed.type,
         feedbackMessage: parsed.message || null,
         questionVersionId: parsed.questionVersionId || null,
+        conversation: parsed.conversation || null,
       });
 
       console.log(`📝 Feedback received from user ${req.user.id}: ${parsed.type} for message ${parsed.messageId}`);
@@ -2079,6 +2085,25 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error fetching feedback data:", error);
       res.status(500).json({ message: "Failed to fetch feedback data" });
+    }
+  });
+
+  app.get("/api/admin/logs/feedback/:id", requireAdmin, async (req, res) => {
+    try {
+      const feedbackId = parseInt(req.params.id);
+      if (isNaN(feedbackId)) {
+        return res.status(400).json({ message: "Invalid feedback ID" });
+      }
+      
+      const feedback = await storage.getChatbotFeedbackById(feedbackId);
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+      
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error fetching feedback by ID:", error);
+      res.status(500).json({ message: "Failed to fetch feedback" });
     }
   });
 

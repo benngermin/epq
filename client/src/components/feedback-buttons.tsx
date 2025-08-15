@@ -6,10 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 interface FeedbackButtonsProps {
   messageId: string;
   questionVersionId?: number;
+  conversation?: Array<{id: string, content: string, role: "user" | "assistant"}>;
   onFeedbackSubmitted?: () => void;
 }
 
-export function FeedbackButtons({ messageId, questionVersionId, onFeedbackSubmitted }: FeedbackButtonsProps) {
+export function FeedbackButtons({ messageId, questionVersionId, conversation, onFeedbackSubmitted }: FeedbackButtonsProps) {
   const [feedbackState, setFeedbackState] = useState<"positive" | "negative" | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"positive" | "negative">("positive");
@@ -28,6 +29,7 @@ export function FeedbackButtons({ messageId, questionVersionId, onFeedbackSubmit
           message: message || "",
           messageId,
           questionVersionId,
+          conversation,
           timestamp: new Date().toISOString(),
         }),
       });

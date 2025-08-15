@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, jsonb, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -127,6 +127,7 @@ export const chatbotFeedback = pgTable("chatbot_feedback", {
   feedbackType: text("feedback_type").notNull(), // 'positive' or 'negative'
   feedbackMessage: text("feedback_message"),
   questionVersionId: integer("question_version_id").references(() => questionVersions.id),
+  conversation: jsonb("conversation").$type<Array<{id: string, content: string, role: "user" | "assistant"}>>(), // Store full conversation
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

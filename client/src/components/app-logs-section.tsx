@@ -43,6 +43,7 @@ import {
   MessageSquare,
   ThumbsUp,
   ThumbsDown,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { 
@@ -64,6 +65,7 @@ import {
   LabelList,
 } from "recharts";
 import { CourseHierarchyLogs } from "./course-hierarchy-logs";
+import { ConversationViewerModal } from "./conversation-viewer-modal";
 
 // Utility function to format numbers with commas
 const formatNumber = (num: number): string => {
@@ -108,6 +110,7 @@ interface FeedbackData {
   feedbackType: string;
   feedbackMessage: string | null;
   assistantMessage: string | null;
+  conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
   createdAt: string;
 }
 
@@ -152,6 +155,9 @@ interface UsageData {
 export function AppLogsSection() {
   // State for time scale filter
   const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month' | 'all'>('day');
+  
+  // State for conversation viewer modal
+  const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
 
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview", timeScale],
@@ -965,13 +971,24 @@ export function AppLogsSection() {
                               <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
-                              {feedback.feedbackType}
-                            </Badge>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedFeedback({id: feedback.id, messageId: feedback.messageId})}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="h-3 w-3" />
+                              View Conversation
+                            </Button>
+                            <div className="text-right">
+                              <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
+                                {feedback.feedbackType}
+                              </Badge>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
+                              </p>
+                            </div>
                           </div>
                         </div>
                         
@@ -1001,6 +1018,16 @@ export function AppLogsSection() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Conversation Viewer Modal */}
+      {selectedFeedback && (
+        <ConversationViewerModal
+          isOpen={!!selectedFeedback}
+          onClose={() => setSelectedFeedback(null)}
+          feedbackId={selectedFeedback.id}
+          messageId={selectedFeedback.messageId}
+        />
+      )}
     </div>
   );
 }
