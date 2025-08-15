@@ -63,12 +63,60 @@ export function ConversationViewerModal({
   };
 
   const renderMessageContent = (content: string) => {
-    // Simple HTML-like link rendering if needed
-    return content.split('\n').map((line, i) => (
-      <div key={i} className="mb-1">
-        {line || '\u00A0'}
+    // Process HTML tags and convert to React elements
+    // Handle basic HTML tags like <ul>, <li>, <b>, <i>, etc.
+    const processHtml = (text: string) => {
+      // Replace HTML entities
+      text = text
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      
+      // Simple HTML to JSX conversion
+      // Handle nested tags by replacing them with markdown-like syntax first
+      text = text
+        .replace(/<b>(.*?)<\/b>/g, '**$1**')
+        .replace(/<i>(.*?)<\/i>/g, '*$1*')
+        .replace(/<ul>/g, '\n')
+        .replace(/<\/ul>/g, '')
+        .replace(/<li>/g, '• ')
+        .replace(/<\/li>/g, '\n')
+        .replace(/<br\s*\/?>/g, '\n')
+        .replace(/<p>/g, '')
+        .replace(/<\/p>/g, '\n\n');
+      
+      return text;
+    };
+    
+    const processed = processHtml(content);
+    
+    return (
+      <div className="whitespace-pre-wrap break-words">
+        {processed.split('\n').map((line, i) => {
+          // Handle bold text
+          const parts = line.split(/\*\*(.*?)\*\*/g);
+          return (
+            <div key={i} className="mb-1">
+              {parts.map((part, j) => {
+                if (j % 2 === 1) {
+                  return <strong key={j}>{part}</strong>;
+                }
+                // Handle italic text
+                const italicParts = part.split(/\*(.*?)\*/g);
+                return italicParts.map((italicPart, k) => {
+                  if (k % 2 === 1) {
+                    return <em key={`${j}-${k}`}>{italicPart}</em>;
+                  }
+                  return <span key={`${j}-${k}`}>{italicPart || '\u00A0'}</span>;
+                });
+              })}
+            </div>
+          );
+        })}
       </div>
-    ));
+    );
   };
 
   return (
@@ -123,8 +171,8 @@ export function ConversationViewerModal({
             </div>
 
             {/* Conversation */}
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-3">
+            <ScrollArea className="flex-1 max-h-[500px]">
+              <div className="space-y-3 pr-4">
                 {feedback.conversation && feedback.conversation.length > 0 ? (
                   feedback.conversation.map((message) => {
                     const isFlagged = message.id === messageId;
@@ -133,15 +181,11 @@ export function ConversationViewerModal({
                         key={message.id}
                         className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
                       >
-                        <div className={`max-w-[85%] ${isFlagged ? "ring-2 ring-offset-2" : ""} ${
-                          isFlagged && feedback.feedbackType === "positive" 
-                            ? "ring-green-500" 
-                            : isFlagged 
-                            ? "ring-red-500" 
-                            : ""
-                        }`}>
+                        <div className="max-w-[85%]">
                           <div className={`rounded-lg px-4 py-3 ${
-                            message.role === "assistant"
+                            isFlagged 
+                              ? "bg-yellow-100 dark:bg-yellow-900/30"
+                              : message.role === "assistant"
                               ? "bg-muted"
                               : "bg-primary text-primary-foreground"
                           }`}>
@@ -152,7 +196,7 @@ export function ConversationViewerModal({
                               {message.role === "user" && (
                                 <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               )}
-                              <div className="flex-1 text-sm">
+                              <div className="flex-1 text-sm overflow-hidden">
                                 {renderMessageContent(message.content)}
                               </div>
                             </div>

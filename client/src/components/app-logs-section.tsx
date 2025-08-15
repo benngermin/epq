@@ -998,17 +998,6 @@ export function AppLogsSection() {
                             <p className="text-sm">{feedback.feedbackMessage}</p>
                           </div>
                         )}
-                        
-                        {feedback.assistantMessage && (
-                          <div className="bg-muted/30 rounded-lg p-3">
-                            <p className="text-sm font-medium mb-1">Assistant Message:</p>
-                            <p className="text-sm line-clamp-3">{feedback.assistantMessage}</p>
-                          </div>
-                        )}
-                        
-                        <div className="text-xs text-muted-foreground">
-                          Message ID: {feedback.messageId}
-                        </div>
                       </div>
                     ))}
                   </div>
