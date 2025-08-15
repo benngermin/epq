@@ -121,21 +121,21 @@ export function ConversationViewerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle>
             <span>Conversation View</span>
-            {feedback && (
-              <div className="flex items-center gap-2">
-                <Badge variant={feedback.feedbackType === "positive" ? "default" : "destructive"}>
-                  {feedback.feedbackType}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(feedback.createdAt), "MMM dd, yyyy h:mm a")}
-                </span>
-              </div>
-            )}
           </DialogTitle>
+          {feedback && (
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={feedback.feedbackType === "positive" ? "default" : "destructive"}>
+                {feedback.feedbackType}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {format(new Date(feedback.createdAt), "MMM dd, yyyy h:mm a")}
+              </span>
+            </div>
+          )}
         </DialogHeader>
 
         {loading && (
@@ -154,9 +154,9 @@ export function ConversationViewerModal({
         )}
 
         {feedback && !loading && (
-          <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+          <div className="flex flex-col gap-4 flex-1 min-h-0">
             {/* User Info */}
-            <div className="bg-muted/50 rounded-lg p-3">
+            <div className="bg-muted/50 rounded-lg p-3 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{feedback.userName}</span>
@@ -171,8 +171,8 @@ export function ConversationViewerModal({
             </div>
 
             {/* Conversation */}
-            <ScrollArea className="flex-1 max-h-[500px]">
-              <div className="space-y-3 pr-4">
+            <ScrollArea className="flex-1 overflow-auto">
+              <div className="space-y-3 pr-4 pb-4">
                 {feedback.conversation && feedback.conversation.length > 0 ? (
                   feedback.conversation.map((message) => {
                     const isFlagged = message.id === messageId;
