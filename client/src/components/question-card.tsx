@@ -160,8 +160,8 @@ export function QuestionCard({
         <div className="card-flip-inner flex-1 min-h-0 flex flex-col">
           {/* Question Front */}
           <div className="card-flip-front">
-            <Card className="w-full h-auto md:h-full bg-card border shadow-sm flex flex-col">
-              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-auto md:h-full overflow-visible md:overflow-y-auto">
+            <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
+              <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full overflow-hidden">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
                   <Badge 
                     variant="secondary" 
@@ -177,7 +177,7 @@ export function QuestionCard({
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
@@ -341,7 +341,7 @@ export function QuestionCard({
                                 {question.latestVersion?.questionText}
                               </p>
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 overflow-y-auto max-h-[400px] pr-2">
                               <RadioGroup
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
