@@ -64,7 +64,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Detect if screen is mobile (less than 768px)
     const isMobile = window.innerWidth < 768;
-    console.log(`[Client] Screen width: ${window.innerWidth}px, isMobile: ${isMobile}`);
     
     try {
       // Initialize streaming
@@ -104,7 +103,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           if (!chunkResponse.ok) {
             if (chunkResponse.status === 404) {
               // Stream not found - likely cleaned up
-              console.log('Stream not found, stopping polling');
               break;
             }
             // For other errors, retry with backoff
@@ -122,14 +120,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           const chunkData = await chunkResponse.json();
           
           if (chunkData.done) {
-            // Log what we received when done
-            console.log('Final chunk received:', {
-              contentLength: chunkData.content?.length,
-              accumulatedLength: accumulatedContent.length,
-              done: chunkData.done,
-              last100Chars: chunkData.content?.slice(-100)
-            });
-            
             // Make sure to update with final content before marking as done
             if (chunkData.content && chunkData.content.length > accumulatedContent.length) {
               accumulatedContent = chunkData.content;
@@ -217,7 +207,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     } catch (error: any) {
       // Don't show error toast for aborted requests
       if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        console.log('Request aborted:', error.message);
         return;
       }
       
