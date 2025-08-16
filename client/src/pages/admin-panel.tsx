@@ -775,7 +775,7 @@ export default function AdminPanel() {
             <div className="flex items-center space-x-4">
               <img src={institutesLogo} alt="The Institutes" className="h-8" />
               <div className="border-l h-6"></div>
-              <h1 className="text-xl font-semibold">CPCU 500 Learning Platform</h1>
+              <h1 className="text-xl font-semibold">Exam Practice Questions</h1>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -808,10 +808,6 @@ export default function AdminPanel() {
         </div>
       </header>
       <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
-          <p className="text-muted-foreground mt-2">Manage courses, questions, and system settings</p>
-        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
