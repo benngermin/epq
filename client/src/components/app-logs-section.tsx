@@ -929,7 +929,7 @@ export function AppLogsSection() {
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="h-4 w-4 text-purple-500" />
-                  <h4 className="text-sm font-medium">Set Completion Rate</h4>
+                  <h4 className="text-sm font-medium">Question Set Completion Rate</h4>
                 </div>
                 <div className="text-2xl font-bold">{(engagementMetrics.completionRate || 0).toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">
