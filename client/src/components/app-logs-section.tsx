@@ -158,7 +158,7 @@ interface EngagementMetrics {
   questionsPerUser: { average: number; perSession: number };
   completionRate: number;
   firstAttemptAccuracy: number;
-  medianTimePerQuestion: number;
+  questionSetsPerUser: number;
   retentionRate: number;
 }
 
