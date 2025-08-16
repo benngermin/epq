@@ -44,11 +44,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   }, [messages]);
 
   const loadAiResponse = async (userMessage?: string) => {
-    if (isStreaming) return;
+    // Prevent concurrent requests
+    if (isStreaming) {
+      console.log('Request already in progress, skipping');
+      return;
+    }
     
     // Cancel any ongoing requests with a reason
-    if (abortControllerRef.current) {
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
       abortControllerRef.current.abort(new DOMException('Starting new request', 'AbortError'));
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Create new abort controller for this request
@@ -205,6 +211,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       
     } catch (error: any) {
+      // Clean up abort controller reference
+      if (abortControllerRef.current?.signal.aborted) {
+        abortControllerRef.current = null;
+      }
+      
       // Don't show error toast for aborted requests
       if (error.name === 'AbortError' || error.message?.includes('aborted')) {
         return;
@@ -230,6 +241,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     } finally {
       setIsStreaming(false);
       currentStreamIdRef.current = "";
+      // Ensure abort controller is cleaned up
+      if (abortControllerRef.current?.signal.aborted) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
@@ -293,7 +308,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   const handleSendMessage = () => {
     const msg = userInput.trim();
-    if (!msg || isStreaming) return;
+    if (!msg) return;
+    
+    // Double check streaming state to prevent race conditions
+    if (isStreaming) {
+      console.log('Cannot send message while streaming');
+      return;
+    }
     
     setUserInput("");
 

@@ -258,13 +258,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    } catch (error) {
+      console.error('Error fetching user by id:', error);
+      throw error;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user || undefined;
+    } catch (error) {
+      console.error('Error fetching user by email:', error);
+      throw error;
+    }
   }
 
   async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
@@ -273,8 +283,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    try {
+      const [user] = await db.insert(users).values(insertUser).returning();
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   async getAllCourses(): Promise<Course[]> {
@@ -488,8 +503,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserAnswer(answer: InsertUserAnswer & { isCorrect: boolean }): Promise<UserAnswer> {
-    const [newAnswer] = await db.insert(userAnswers).values(answer).returning();
-    return newAnswer;
+    try {
+      const [newAnswer] = await db.insert(userAnswers).values(answer).returning();
+      return newAnswer;
+    } catch (error) {
+      console.error('Error creating user answer:', error);
+      throw error;
+    }
   }
 
   async getUserAnswer(testRunId: number, questionVersionId: number): Promise<UserAnswer | undefined> {
@@ -568,36 +588,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
-    for (const questionData of questionsData) {
-      // Check if question already exists
-      let question = await this.getQuestionByOriginalNumber(questionSetId, questionData.question_number);
-      
-      if (!question) {
-        question = await this.createQuestion({
-          questionSetId,
-          originalQuestionNumber: questionData.question_number,
-          loid: questionData.loid,
-        });
-      }
+    // Use transaction to ensure atomic operation
+    await db.transaction(async (tx) => {
+      try {
+        for (const questionData of questionsData) {
+          // Check if question already exists within transaction
+          const existingQuestions = await tx.select()
+            .from(questions)
+            .where(and(
+              eq(questions.questionSetId, questionSetId),
+              eq(questions.originalQuestionNumber, questionData.question_number)
+            ))
+            .limit(1);
+          
+          let question = existingQuestions[0];
+          
+          if (!question) {
+            const [newQuestion] = await tx.insert(questions).values({
+              questionSetId,
+              originalQuestionNumber: questionData.question_number,
+              loid: questionData.loid,
+            }).returning();
+            question = newQuestion;
+          }
 
-      // Create question versions
-      for (const versionData of questionData.versions) {
-        await this.createQuestionVersion({
-          questionId: question.id,
-          versionNumber: versionData.version_number,
-          topicFocus: versionData.topic_focus,
-          questionText: versionData.question_text,
-          questionType: versionData.question_type || questionData.type || "multiple_choice",
-          answerChoices: versionData.answer_choices as any,
-          correctAnswer: versionData.correct_answer,
-          acceptableAnswers: versionData.acceptable_answers,
-          caseSensitive: versionData.case_sensitive,
-          allowMultiple: versionData.allow_multiple,
-          matchingPairs: versionData.matching_pairs,
-          correctOrder: versionData.correct_order,
-        });
+          // Create question versions
+          for (const versionData of questionData.versions) {
+            await tx.insert(questionVersions).values({
+              questionId: question.id,
+              versionNumber: versionData.version_number,
+              topicFocus: versionData.topic_focus,
+              questionText: versionData.question_text,
+              questionType: versionData.question_type || questionData.type || "multiple_choice",
+              answerChoices: versionData.answer_choices as any,
+              correctAnswer: versionData.correct_answer,
+              acceptableAnswers: versionData.acceptable_answers,
+              caseSensitive: versionData.case_sensitive,
+              allowMultiple: versionData.allow_multiple,
+              matchingPairs: versionData.matching_pairs,
+              correctOrder: versionData.correct_order,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error importing questions:', error);
+        throw error; // This will rollback the transaction
       }
-    }
+    });
   }
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {
@@ -723,15 +760,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void> {
-    // Clear existing course materials
-    await db.delete(courseMaterials);
-    
-    // Insert new materials in batches
-    const batchSize = 100;
-    for (let i = 0; i < materials.length; i += batchSize) {
-      const batch = materials.slice(i, i + batchSize);
-      await db.insert(courseMaterials).values(batch);
-    }
+    // Use transaction to ensure atomic operation
+    await db.transaction(async (tx) => {
+      try {
+        // Clear existing course materials
+        await tx.delete(courseMaterials);
+        
+        // Insert new materials in batches
+        const batchSize = 100;
+        for (let i = 0; i < materials.length; i += batchSize) {
+          const batch = materials.slice(i, i + batchSize);
+          await tx.insert(courseMaterials).values(batch);
+        }
+      } catch (error) {
+        console.error('Error importing course materials:', error);
+        throw error; // This will rollback the transaction
+      }
+    });
   }
 
   async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {

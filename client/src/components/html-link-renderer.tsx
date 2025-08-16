@@ -74,9 +74,17 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
           // Add double line break for paragraph/div/li endings
           htmlParts.push('\n\n');
         } else if (tagName?.toLowerCase() === 'a') {
-          // Extract href from attributes
+          // Extract href from attributes with security validation
           const hrefMatch = attributes.match(/href="([^"]*)"/);
-          const href = hrefMatch ? hrefMatch[1] : '#';
+          let href = hrefMatch ? hrefMatch[1] : '#';
+          
+          // Prevent javascript: URLs and other potentially dangerous protocols
+          const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+          const lowerHref = href.toLowerCase().trim();
+          if (dangerousProtocols.some(protocol => lowerHref.startsWith(protocol))) {
+            href = '#'; // Replace dangerous URLs with safe fallback
+            console.warn('Blocked potentially dangerous URL:', hrefMatch?.[1]);
+          }
           
           htmlParts.push(
             <a
@@ -198,21 +206,44 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
             </ins>
           );
         } else if (tagName?.toLowerCase() === 'span') {
-          // Handle span with style attribute
+          // Handle span with style attribute (with security validation)
           const styleMatch = attributes.match(/style="([^"]*)"/);
           if (styleMatch) {
-            const styleStr = styleMatch[1];
+            let styleStr = styleMatch[1];
+            
+            // Sanitize styles to prevent XSS
+            const dangerousPatterns = [
+              /javascript:/gi,
+              /expression\s*\(/gi,
+              /import\s+/gi,
+              /@import/gi,
+              /behavior:/gi,
+              /-moz-binding:/gi,
+              /url\s*\([^)]*javascript:/gi
+            ];
+            
+            let isSafe = true;
+            for (const pattern of dangerousPatterns) {
+              if (pattern.test(styleStr)) {
+                isSafe = false;
+                console.warn('Blocked potentially dangerous style:', styleMatch[1]);
+                break;
+              }
+            }
+            
             const styleObj: React.CSSProperties = {};
             
-            // Parse simple CSS properties
-            styleStr.split(';').forEach(style => {
-              const [property, value] = style.split(':').map(s => s.trim());
-              if (property && value) {
-                // Convert CSS property to camelCase
-                const camelProperty = property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                (styleObj as any)[camelProperty] = value;
-              }
-            });
+            if (isSafe) {
+              // Parse simple CSS properties
+              styleStr.split(';').forEach(style => {
+                const [property, value] = style.split(':').map(s => s.trim());
+                if (property && value) {
+                  // Convert CSS property to camelCase
+                  const camelProperty = property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                  (styleObj as any)[camelProperty] = value;
+                }
+              });
+            }
             
             htmlParts.push(
               <span key={`span-${keyCounter}`} style={styleObj}>

@@ -23,9 +23,18 @@ export default function AuthPage() {
     console.log("Features: SSO + Admin Login buttons");
   }, []);
   
-  // Parse error from URL params
+  // Parse and validate URL params
   const urlParams = new URLSearchParams(searchParams);
-  const error = urlParams.get('error');
+  
+  // Validate error parameter - only allow specific known error codes
+  const rawError = urlParams.get('error');
+  const validErrors = ['state_mismatch', 'cognito_failed', 'session_save_failed', 'authentication_failed'];
+  const error = rawError && validErrors.includes(rawError) ? rawError : null;
+  
+  // Log invalid error attempts for security monitoring
+  if (rawError && !validErrors.includes(rawError)) {
+    console.warn('Invalid error parameter attempted:', rawError);
+  }
 
   // Redirect if already logged in
   useEffect(() => {
@@ -44,18 +53,23 @@ export default function AuthPage() {
     });
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
-      // Preserve URL parameters when redirecting to SSO
+      // Preserve and validate URL parameters when redirecting to SSO
       const courseId = urlParams.get('courseId');
       const assignmentName = urlParams.get('assignmentName');
+      
+      // Validate courseId (should be numeric)
+      const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+      // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
+      const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
       
       let ssoUrl = authConfig.cognitoLoginUrl;
       const ssoParams = new URLSearchParams();
       
-      if (courseId) {
-        ssoParams.append('courseId', courseId);
+      if (validCourseId) {
+        ssoParams.append('courseId', validCourseId);
       }
-      if (assignmentName) {
-        ssoParams.append('assignmentName', assignmentName);
+      if (validAssignmentName) {
+        ssoParams.append('assignmentName', validAssignmentName);
       }
       
       if (ssoParams.toString()) {
@@ -119,18 +133,22 @@ export default function AuthPage() {
           {authConfig?.hasCognitoSSO && (
             <Button 
               onClick={() => {
-                // Preserve URL parameters when clicking SSO button
+                // Preserve and validate URL parameters when clicking SSO button
                 const courseId = urlParams.get('courseId');
                 const assignmentName = urlParams.get('assignmentName');
+                
+                // Validate parameters
+                const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+                const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
                 
                 let ssoUrl = authConfig.cognitoLoginUrl!;
                 const ssoParams = new URLSearchParams();
                 
-                if (courseId) {
-                  ssoParams.append('courseId', courseId);
+                if (validCourseId) {
+                  ssoParams.append('courseId', validCourseId);
                 }
-                if (assignmentName) {
-                  ssoParams.append('assignmentName', assignmentName);
+                if (validAssignmentName) {
+                  ssoParams.append('assignmentName', validAssignmentName);
                 }
                 
                 if (ssoParams.toString()) {
