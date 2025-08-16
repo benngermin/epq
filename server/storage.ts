@@ -119,7 +119,7 @@ export interface IStorage {
     questionsPerUser: { average: number; perSession: number };
     completionRate: number;
     firstAttemptAccuracy: number;
-    medianTimePerQuestion: number;
+    questionSetsPerUser: number;
     retentionRate: number;
   }>;
   getOverallStats(timeScale?: string): Promise<{
@@ -1739,7 +1739,7 @@ export class DatabaseStorage implements IStorage {
     questionsPerUser: { average: number; perSession: number };
     completionRate: number;
     firstAttemptAccuracy: number;
-    medianTimePerQuestion: number;
+    questionSetsPerUser: number;
     retentionRate: number;
   }> {
     const now = new Date();
@@ -1916,41 +1916,26 @@ export class DatabaseStorage implements IStorage {
       ? (correctFirstAttempts / firstAttemptValues.length) * 100
       : 0;
 
-    // 6. Median Time per Question
-    // Calculate time between consecutive answers in the same session
-    // Also include time from session start to first answer
-    const questionTimings = await db.execute(sql`
-      WITH answer_times AS (
-        SELECT 
-          ua.user_test_run_id,
-          ua.answered_at,
-          utr.started_at,
-          ROW_NUMBER() OVER (PARTITION BY ua.user_test_run_id ORDER BY ua.answered_at) as answer_order,
-          LAG(ua.answered_at) OVER (PARTITION BY ua.user_test_run_id ORDER BY ua.answered_at) as prev_answer_time
-        FROM user_answers ua
-        INNER JOIN user_test_runs utr ON ua.user_test_run_id = utr.id
-        WHERE ua.answered_at >= ${startDate}
-          AND ua.answered_at <= ${endDate}
-      )
-      SELECT 
-        CASE 
-          WHEN answer_order = 1 THEN EXTRACT(EPOCH FROM (answered_at - started_at))
-          ELSE EXTRACT(EPOCH FROM (answered_at - prev_answer_time))
-        END as time_spent
-      FROM answer_times
-      WHERE CASE 
-          WHEN answer_order = 1 THEN answered_at > started_at
-          ELSE prev_answer_time IS NOT NULL
-        END
-    `);
+    // 6. Question Sets per Active User
+    // Calculate the average number of unique question sets accessed by active users
+    const userQuestionSets = await db.select({
+      userId: userTestRuns.userId,
+      uniqueQuestionSets: sql<number>`COUNT(DISTINCT ${userTestRuns.questionSetId})`.as('unique_question_sets')
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDate),
+      lte(userTestRuns.startedAt, endDate)
+    ))
+    .groupBy(userTestRuns.userId);
 
-    const validTimes = questionTimings.rows
-      .map(t => Number(t.time_spent))
-      .filter(t => !isNaN(t) && isFinite(t) && t > 0 && t < 300) // Filter reasonable times (0-5 minutes)
-      .sort((a, b) => a - b);
+    const totalUniqueQuestionSets = userQuestionSets.reduce((sum, u) => {
+      const sets = Number(u.uniqueQuestionSets) || 0;
+      return sum + (isNaN(sets) || !isFinite(sets) ? 0 : sets);
+    }, 0);
 
-    const medianTimePerQuestion = validTimes.length > 0
-      ? validTimes[Math.floor(validTimes.length / 2)]
+    const questionSetsPerUser = activeUserCount > 0 && isFinite(totalUniqueQuestionSets)
+      ? totalUniqueQuestionSets / activeUserCount
       : 0;
 
     // 7. 7-Day Retention Rate
@@ -2008,7 +1993,7 @@ export class DatabaseStorage implements IStorage {
     console.log(`[Engagement Metrics] Session Durations: ${durations.length} valid sessions, median: ${medianSessionLength}s`);
     console.log(`[Engagement Metrics] Completion Rate: ${setsCompleted.length}/${setsStarted.length} (${completionRate.toFixed(1)}%)`);
     console.log(`[Engagement Metrics] First Attempt Accuracy: ${correctFirstAttempts}/${firstAttemptValues.length} (${firstAttemptAccuracy.toFixed(1)}%)`);
-    console.log(`[Engagement Metrics] Question Times: ${validTimes.length} valid timings, median: ${medianTimePerQuestion}s`);
+    console.log(`[Engagement Metrics] Question Sets Per User: ${questionSetsPerUser.toFixed(1)} sets/user`);
 
     return {
       activeUsers: {
@@ -2026,7 +2011,7 @@ export class DatabaseStorage implements IStorage {
       },
       completionRate: sanitizeNumber(completionRate),
       firstAttemptAccuracy: sanitizeNumber(firstAttemptAccuracy),
-      medianTimePerQuestion: sanitizeNumber(medianTimePerQuestion),
+      questionSetsPerUser: sanitizeNumber(questionSetsPerUser),
       retentionRate: sanitizeNumber(retentionRate)
     };
   }

@@ -949,15 +949,15 @@ export function AppLogsSection() {
                 </div>
               </div>
 
-              {/* Median Time per Question */}
+              {/* Question Sets Per Active User */}
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-indigo-500" />
-                  <h4 className="text-sm font-medium">Median Time per Question</h4>
+                  <h4 className="text-sm font-medium">Question Sets Per Active User</h4>
                 </div>
-                <div className="text-2xl font-bold">{formatTime(engagementMetrics.medianTimePerQuestion || 0)}</div>
+                <div className="text-2xl font-bold">{(engagementMetrics.questionSetsPerUser || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
-                  Time between answers
+                  Average sets accessed per user
                 </div>
               </div>
 
