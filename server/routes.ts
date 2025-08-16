@@ -189,7 +189,6 @@ function cleanupStream(streamId: string) {
       stream.error = undefined;
       // Then delete the stream
       activeStreams.delete(streamId);
-      console.log(`Stream ${streamId} cleaned up successfully. Active streams: ${activeStreams.size}`);
     }
   } catch (error) {
     console.error(`Error cleaning up stream ${streamId}:`, error);
@@ -213,7 +212,6 @@ setInterval(() => {
     
     // Clean up completed/aborted streams after 5 minutes
     if ((stream.done || stream.aborted) && (now - stream.lastActivity) > oldStreamAge) {
-      console.log(`Cleaning up old stream: ${streamId}`);
       cleanupStream(streamId);
     }
     // Force clean up any stream older than 10 minutes regardless of state
@@ -329,7 +327,6 @@ async function streamOpenRouterToBuffer(
       while (true) {
         // Check if stream was aborted
         if (stream.aborted) {
-          console.log(`Stream ${streamId} aborted during processing`);
           await reader.cancel();
           break;
         }
@@ -380,7 +377,6 @@ async function streamOpenRouterToBuffer(
             // Check for finish reason which might indicate premature end
             const finishReason = parsed.choices?.[0]?.finish_reason;
             if (finishReason) {
-              console.log(`Stream ${streamId} finished with reason: ${finishReason}`);
               if (finishReason === 'length') {
                 console.warn(`Stream ${streamId} hit max token limit`);
               }
@@ -433,13 +429,7 @@ async function streamOpenRouterToBuffer(
 
     const responseTime = Date.now() - startTime;
     
-    // Log stream completion details
-    console.log(`Stream ${streamId} completed:`, {
-      responseLength: fullResponse.length,
-      responseTime: `${responseTime}ms`,
-      modelName,
-      lastChars: fullResponse.slice(-50), // Last 50 chars to see if it was cut off
-    });
+    // Stream completion details removed
 
     // Log the complete interaction
     try {
@@ -458,7 +448,6 @@ async function streamOpenRouterToBuffer(
     }
     
     // Mark stream as done after successful completion
-    console.log(`Stream ${streamId} marking as done with full response length: ${fullResponse.length}`);
     stream.done = true;
     stream.chunks = [fullResponse]; // Ensure final content is set
 
@@ -604,16 +593,13 @@ export function registerRoutes(app: Express): Server {
       // Sanitize the external ID to prevent injection attacks
       const sanitizedExternalId = externalId.trim();
       
-      console.log(`📚 Looking up course by external ID: ${sanitizedExternalId}`);
       
       const course = await storage.getCourseByExternalId(sanitizedExternalId);
       
       if (!course) {
-        console.log(`❌ Course not found for external ID: ${externalId}`);
         return res.status(404).json({ message: "Course not found" });
       }
       
-      console.log(`✅ Found course: ${course.courseNumber} (ID: ${course.id}, is_ai: ${course.isAi})`);
       res.json(course);
     } catch (error) {
       console.error("Error fetching course by external ID:", error);
@@ -878,8 +864,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question set not found" });
       }
       
-      // Log that user is viewing this question set
-      console.log(`[Practice Log] User ${userId} viewing question set ${id} - ${questionSet.title}`);
+      // User is viewing this question set
       
       // Update daily activity to track unique users
       const today = getTodayEST();
@@ -902,7 +887,6 @@ export function registerRoutes(app: Express): Server {
 
   // Handle optimized endpoint by redirecting to regular endpoints
   app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
-    console.log(`Handling optimized endpoint request for question set ${req.params.id}`);
     const questionSetId = parseInt(req.params.id);
     
     try {
@@ -1163,7 +1147,6 @@ export function registerRoutes(app: Express): Server {
       
       if (!testRun) {
         // Create a new test run for this practice session
-        console.log(`[Practice Log] User ${userId} starting practice for question set ${questionSetId}`);
         
         // Use the optimized batch query to get all question versions at once
         const questionsWithVersions = await withCircuitBreaker(() => 
@@ -1195,7 +1178,6 @@ export function registerRoutes(app: Express): Server {
           answeredAt: new Date(),
         });
         
-        console.log(`[Practice Log] User ${userId} answered question ${questionVersionId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
 
         // Update daily activity summary
         const today = getTodayEST();
@@ -1241,13 +1223,10 @@ export function registerRoutes(app: Express): Server {
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      console.log(`📚 [Simple Response] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
       
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        console.log(`📚 [Simple Response] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
         if (courseMaterial) {
-          console.log(`📚 [Simple Response] Course material content length: ${courseMaterial.content.length} characters`);
         }
       }
 
@@ -1295,7 +1274,6 @@ export function registerRoutes(app: Express): Server {
     try {
       const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
       const userId = req.user!.id;
-      console.log(`📱 Stream init received: isMobile=${isMobile}, typeof=${typeof isMobile}`);
 
       // Include user ID in stream ID for better tracking and cleanup
       const streamId = `${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1372,16 +1350,7 @@ export function registerRoutes(app: Express): Server {
       'X-Content-Type-Options': 'nosniff'
     });
     
-    // Log details about what we're sending
-    if (stream.done && fullContent.length > 0) {
-      console.log(`Sending final chunk for stream ${streamId}:`, {
-        totalLength: fullContent.length,
-        done: stream.done,
-        last100Chars: fullContent.slice(-100),
-        cursor: cursor,
-        newCursor: fullContent.length
-      });
-    }
+    // Final chunk details removed
     
     res.json({
       content: fullContent, // Still send full content for compatibility
@@ -1417,7 +1386,6 @@ export function registerRoutes(app: Express): Server {
       stream.aborted = true;
       stream.done = true;
       stream.error = "Stream aborted by user";
-      console.log(`Stream ${streamId} aborted by user ${userId}`);
     }
     
     res.json({ success: true });
@@ -1452,7 +1420,6 @@ export function registerRoutes(app: Express): Server {
         conversation: parsed.conversation || null,
       });
 
-      console.log(`📝 Feedback received from user ${req.user.id}: ${parsed.type} for message ${parsed.messageId}`);
       
       res.json({ success: true });
     } catch (error) {
@@ -1468,7 +1435,6 @@ export function registerRoutes(app: Express): Server {
   function cleanCourseMaterialForMobile(content: string, isMobile: boolean): string {
     if (!isMobile) return content; // Keep everything for desktop
     
-    console.log(`📱 Cleaning course material for mobile`);
     
     // Remove [url=...] ... [/url] patterns from the course material
     let cleaned = content.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
@@ -1476,7 +1442,6 @@ export function registerRoutes(app: Express): Server {
     cleaned = cleaned.replace(/\[color=[^\]]+\]/gi, '');
     cleaned = cleaned.replace(/\[\/color\]/gi, '');
     
-    console.log(`📱 Original content length: ${content.length}, Cleaned length: ${cleaned.length}, Difference: ${content.length - cleaned.length}`);
     return cleaned;
   }
 
@@ -1500,13 +1465,10 @@ export function registerRoutes(app: Express): Server {
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      console.log(`📚 [Streaming] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
       
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        console.log(`📚 [Streaming] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
         if (courseMaterial) {
-          console.log(`📚 [Streaming] Course material content length: ${courseMaterial.content.length} characters`);
         }
       }
 
@@ -1519,17 +1481,13 @@ export function registerRoutes(app: Express): Server {
       if (courseMaterial) {
         // Clean course material for mobile (removes URLs)
         sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
-        console.log(`📚 [Streaming] Using course material for source`);
       } else {
-        console.log(`📚 [Streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
       }
       
       let prompt;
       if (userMessage) {
         // Follow-up question with course material context and selected answer
         const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        console.log("🔄 STREAMING FOLLOW-UP - User message:", JSON.stringify(userMessage));
-        console.log("🔄 STREAMING FOLLOW-UP - Selected answer:", JSON.stringify(selectedAnswerText));
         
         prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
 
@@ -1629,13 +1587,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      console.log(`📚 [Non-streaming] Question ID: ${questionVersion.questionId}, LOID: ${baseQuestion?.loid}`);
       
       if (baseQuestion?.loid) {
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        console.log(`📚 [Non-streaming] Course material found: ${courseMaterial ? 'YES' : 'NO'}`);
         if (courseMaterial) {
-          console.log(`📚 [Non-streaming] Course material content length: ${courseMaterial.content.length} characters`);
         }
       }
 
@@ -1648,16 +1603,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
       if (courseMaterial) {
         // Clean course material for mobile (removes URLs)
         sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
-        console.log(`📚 [Non-streaming] Using course material for source`);
       } else {
-        console.log(`📚 [Non-streaming] No course material found, using topic focus: ${questionVersion.topicFocus}`);
       }
       
       let prompt;
       if (userMessage) {
         // Follow-up question with course material context and selected answer
         const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        console.log("🔄 NON-STREAMING FOLLOW-UP - Selected answer:", JSON.stringify(selectedAnswerText));
         
         prompt = `${userMessage}
 
@@ -2224,18 +2176,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Filter by course number if provided
       if (courseNumber) {
-        console.log("Filtering by course number:", courseNumber);
         
-        // Debug: log the first question set structure
-        if (questionSets.length > 0) {
-          console.log("Sample question set structure:", JSON.stringify({
-            _id: questionSets[0]._id,
-            title: questionSets[0].title,
-            learning_object: questionSets[0].learning_object,
-            course: questionSets[0].course,
-            course_custom_course: questionSets[0].course_custom_course
-          }, null, 2));
-        }
         
         questionSets = questionSets.filter((qs: any) => {
           // Try multiple ways to find the course number
@@ -2248,7 +2189,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
           
           return qsCourseNumber === courseNumber;
         });
-        console.log(`Found ${questionSets.length} question sets for course ${courseNumber}`);
       }
       
       // Return the same structure as the Bubble API
@@ -2357,10 +2297,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     
     try {
       // Debug environment variables
-      console.log("🔍 Checking for BUBBLE_API_KEY...");
-      console.log("Environment variables containing 'BUBBLE':", 
-        Object.keys(process.env).filter(key => key.includes('BUBBLE'))
-      );
       
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
@@ -2371,7 +2307,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
-      console.log("✅ Bubble API key found");
 
       // Fetch all question sets from Bubble
       const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
@@ -2380,7 +2315,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         "Content-Type": "application/json"
       };
 
-      console.log("📡 Fetching question sets from Bubble API...");
       const response = await fetch(baseUrl, { headers });
       
       if (!response.ok) {
@@ -2390,7 +2324,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       const data = await response.json();
       const bubbleQuestionSets = data.response?.results || [];
-      console.log(`✅ Fetched ${bubbleQuestionSets.length} question sets from Bubble`);
 
       const updateResults = {
         created: 0,
@@ -2400,7 +2333,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       };
 
       // Process each question set
-      console.log("📋 Processing question sets...");
       for (let i = 0; i < bubbleQuestionSets.length; i++) {
         const bubbleQuestionSet = bubbleQuestionSets[i];
         try {
@@ -2414,15 +2346,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
             continue;
           }
           
-          console.log(`\n[${i + 1}/${bubbleQuestionSets.length}] Processing question set: ${bubbleQuestionSet.title || bubbleId}`);
-          console.log(`  - Bubble ID: ${bubbleId}`);
-          console.log(`  - Course Bubble ID: ${courseBubbleId}`);
-          console.log(`  - Course Number: ${qsCourseNumber}`);
-          console.log(`  - Has content field: ${!!bubbleQuestionSet.content}`);
           
           // Skip if no course association
           if (!courseBubbleId) {
-            console.log(`  ⚠️ Skipping - no course association`);
             updateResults.failed++;
             updateResults.errors.push(`No course for question set: ${bubbleQuestionSet.title || bubbleId}`);
             continue;
@@ -2431,28 +2357,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
           // Find course by Bubble ID
           let course = await storage.getCourseByBubbleId(courseBubbleId);
           if (!course) {
-            console.log(`  ❌ Course with Bubble ID ${courseBubbleId} not found in database`);
             updateResults.failed++;
             updateResults.errors.push(`Course not found for question set: ${bubbleQuestionSet.title || bubbleId}`);
             continue;
           }
           
-          console.log(`  ✓ Found existing course: ${course.courseNumber} - ${course.courseTitle} (ID: ${course.id})`);
           
           // Parse content field to get questions
           let parsedQuestions: any[] = [];
           if (bubbleQuestionSet.content) {
             try {
-              console.log(`  📄 Parsing content field...`);
               const contentJson = JSON.parse(bubbleQuestionSet.content);
               if (contentJson.questions && Array.isArray(contentJson.questions)) {
                 parsedQuestions = contentJson.questions;
-                console.log(`  ✓ Found ${parsedQuestions.length} questions in content`);
               } else {
-                console.log(`  ⚠️ No questions array found in parsed content`);
               }
             } catch (parseError) {
-              console.log(`  ❌ Failed to parse content field:`, parseError);
             }
           }
 
@@ -2460,7 +2380,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
           let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
           
           if (questionSet) {
-            console.log(`  🔄 Updating existing question set (ID: ${questionSet.id})`);
             // Update existing question set
             await storage.updateQuestionSet(questionSet.id, {
               courseId: course.id,
@@ -2469,7 +2388,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
             });
             
             // Delete existing questions to replace with updated ones
-            console.log(`  🗑️ Removing old questions for question set ${questionSet.id}`);
             await db.delete(questionVersions)
               .where(inArray(questionVersions.questionId, 
                 db.select({ id: questions.id })
@@ -2480,7 +2398,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             updateResults.updated++;
           } else {
-            console.log(`  ➕ Creating new question set`);
             // Create new question set
             questionSet = await storage.createQuestionSet({
               courseId: course.id,
@@ -2493,7 +2410,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Import questions from parsed content
           if (parsedQuestions.length > 0) {
-            console.log(`  📝 Importing ${parsedQuestions.length} questions...`);
             const questionImports = parsedQuestions.map((q: any, index: number) => ({
               question_number: q.question_number || q.originalQuestionNumber || (index + 1),
               type: q.type || "multiple_choice",
@@ -2515,9 +2431,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
             await storage.importQuestions(questionSet.id, questionImports);
             await storage.updateQuestionSetCount(questionSet.id);
-            console.log(`  ✅ Successfully imported ${parsedQuestions.length} questions`);
           } else {
-            console.log(`  ⚠️ No questions found in this question set`);
           }
           
         } catch (error) {
@@ -2532,22 +2446,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
       
-      console.log("\n📊 Update Summary:");
-      console.log(`  - Total processed: ${bubbleQuestionSets.length}`);
-      console.log(`  - Created: ${updateResults.created}`);
-      console.log(`  - Updated: ${updateResults.updated}`);
-      console.log(`  - Failed: ${updateResults.failed}`);
-      console.log(`  - Duration: ${duration} seconds`);
       
       if (updateResults.errors.length > 0) {
-        console.log("\n❌ Errors encountered:");
-        updateResults.errors.forEach((error, index) => {
-          console.log(`  ${index + 1}. ${error}`);
-        });
       }
 
       const message = `Update completed in ${duration}s. Created: ${updateResults.created}, Updated: ${updateResults.updated}, Failed: ${updateResults.failed}`;
-      console.log(`\n✅ ${message}`);
       
       res.json({
         message,
@@ -2569,7 +2472,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
-      console.log("📡 Fetching all learning objects from Bubble API...");
       
       const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/learning_object";
       const headers = {
@@ -2597,16 +2499,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         if (results.length > 0) {
           allLearningObjects = allLearningObjects.concat(results);
           cursor += results.length;
-          console.log(`✅ Fetched ${results.length} learning objects (total: ${allLearningObjects.length})`);
         }
         
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
 
-      console.log(`✅ Total learning objects fetched: ${allLearningObjects.length}`);
       
       // Fetch course mapping from Bubble
-      console.log("📡 Fetching course mappings from Bubble...");
+
       const courseMap = new Map();
       const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
       const courseResponse = await fetch(courseUrl, { headers });
@@ -2621,7 +2521,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             courseMap.set(course._id, course["course number"]);
           }
         }
-        console.log(`✅ Loaded ${courseMap.size} course mappings`);
+
       }
       
       // Transform the learning objects to match our course materials schema
@@ -2660,7 +2560,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
-      console.log("🔄 Starting import of all learning objects from Bubble...");
       const startTime = Date.now();
       
       // First fetch all learning objects
@@ -2694,10 +2593,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
 
-      console.log(`✅ Fetched ${allLearningObjects.length} learning objects from Bubble`);
       
       // Fetch course mapping from Bubble
-      console.log("📡 Fetching course mappings from Bubble...");
+
       const courseMap = new Map();
       const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
       const courseResponse = await fetch(courseUrl, { headers });
@@ -2712,7 +2610,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             courseMap.set(course._id, course["course number"]);
           }
         }
-        console.log(`✅ Loaded ${courseMap.size} course mappings`);
+
       }
       
       // Transform and import the materials
@@ -2737,7 +2635,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       const message = `Successfully imported ${materials.length} learning objects in ${duration}s`;
       
-      console.log(`✅ ${message}`);
       res.json({ 
         message,
         count: materials.length,
@@ -2758,7 +2655,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ message: "Materials must be an array" });
       }
 
-      console.log(`Importing ${materials.length} course materials...`);
       await storage.importCourseMaterials(materials);
       
       res.json({ 
