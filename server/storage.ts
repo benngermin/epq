@@ -14,7 +14,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte, lt } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
