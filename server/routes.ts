@@ -2263,10 +2263,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
               }]
             }));
 
-            await storage.importQuestions(questionSet.id, questionImports);
-            
-            // Update question count
-            await storage.updateQuestionSetCount(questionSet.id);
+            // Wrap bulk operations in try-catch for better error handling
+            try {
+              await storage.importQuestions(questionSet.id, questionImports);
+              
+              // Update question count
+              await storage.updateQuestionSetCount(questionSet.id);
+            } catch (importError) {
+              console.error(`Error during bulk import for question set ${questionSet.id}:`, importError);
+              // Re-throw to trigger rollback handling in parent catch
+              throw importError;
+            }
           }
 
           importResults.imported++;
@@ -2427,8 +2434,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
               }]
             }));
 
-            await storage.importQuestions(questionSet.id, questionImports);
-            await storage.updateQuestionSetCount(questionSet.id);
+            // Wrap bulk operations in try-catch for better error handling
+            try {
+              await storage.importQuestions(questionSet.id, questionImports);
+              await storage.updateQuestionSetCount(questionSet.id);
+            } catch (importError) {
+              console.error(`Error during bulk import for question set ${questionSet.id}:`, importError);
+              // Re-throw to trigger rollback handling in parent catch
+              throw importError;
+            }
           } else {
           }
           

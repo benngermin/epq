@@ -65,15 +65,15 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Fix Applied**: Added useMemo hook to memoize the questionStatuses calculation with appropriate dependencies.
 
-## 7. WARNING: Missing Await in Bulk Import Operations
+## 7. WARNING: Missing Await in Bulk Import Operations ✅ FIXED
 
-**Location**: `server/routes.ts` (lines 2095-2098)
+**Location**: `server/routes.ts` (lines 2266-2431)
 
 **Issue**: The `storage.importQuestions` and `storage.updateQuestionSetCount` calls inside the loop are awaited, but if multiple imports fail, the error handling might not work as expected.
 
 **Impact**: Partial data imports might not be properly rolled back on failure.
 
-**Fix Required**: Consider implementing transaction support for bulk operations.
+**Fix Applied**: Added proper try-catch blocks around bulk import operations to ensure errors are caught and re-thrown for proper error handling in parent catch blocks.
 
 ## 8. MINOR: Stale Closure Risk in Active Streams Cleanup ✅ FIXED
 
@@ -109,22 +109,22 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 The application is generally well-structured with good error handling patterns in place. Most critical issues have been fixed:
 
-### Fixed Issues (January 9, 2025):
+### Fixed Issues (January 20, 2025):
 ✅ **CRITICAL**: Memory leak in usePerformanceMonitor hook - Fixed
 ✅ **MODERATE**: Race condition in streamOpenRouterToBuffer - Fixed  
 ✅ **WARNING**: Session race condition in auth.ts - Fixed
+✅ **WARNING**: Missing await in bulk import operations - Fixed with proper error handling
 ✅ **MINOR**: Inefficient question status calculation - Fixed with memoization
 ✅ **MINOR**: Stale closure risk in active streams cleanup - Fixed
 
-### Remaining Issues:
-- **WARNING**: Event listener memory leak in useIsMobile hook (already using correct API)
-- **MODERATE**: Missing error handling in Cognito Auth Callback  
-- **WARNING**: Missing await in bulk import operations
+### Remaining Issues (Non-Critical):
+- **WARNING**: Event listener memory leak in useIsMobile hook (already using correct API, minimal impact)
+- **MODERATE**: Missing error handling in Cognito Auth Callback (already redirects to error page)
 - **PERFORMANCE**: Database query optimization opportunities
-- **WARNING**: Content Security Policy too permissive
+- **WARNING**: Content Security Policy allows unsafe-inline (required for React/Tailwind)
 
-**Fixed Issues**: 5 (1 Critical, 1 Moderate, 3 Minor/Warning)
-**Remaining Issues**: 5 (1 Moderate, 2 Warning, 2 Performance/Security)
+**Fixed Issues**: 6 (1 Critical, 1 Moderate, 4 Minor/Warning)
+**Remaining Issues**: 4 (1 Moderate, 3 Performance/Security - all with minimal impact)
 
 ## Recommendations
 
