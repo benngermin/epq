@@ -81,7 +81,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         <button
           onClick={handleThumbsUp}
           disabled={!!feedbackState || isSubmitting}
-          className={`p-1.5 rounded-md transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
             feedbackState === "positive"
               ? "bg-blue-100 dark:bg-blue-900"
               : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -95,11 +95,12 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
                 : "stroke-[#4a90e2]"
             }`}
           />
+          <span className="text-sm text-[#4a90e2] font-medium">Feedback</span>
         </button>
         <button
           onClick={handleThumbsDown}
           disabled={!!feedbackState || isSubmitting}
-          className={`p-1.5 rounded-md transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
             feedbackState === "negative"
               ? "bg-blue-100 dark:bg-blue-900"
               : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -113,6 +114,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
                 : "stroke-[#4a90e2]"
             }`}
           />
+          <span className="text-sm text-[#4a90e2] font-medium">Feedback</span>
         </button>
       </div>
 
