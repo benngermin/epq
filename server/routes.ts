@@ -1489,6 +1489,11 @@ export function registerRoutes(app: Express): Server {
         // Follow-up question with course material context and selected answer
         const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
         
+        let followUpInstructions = '';
+        if (isMobile) {
+          followUpInstructions = '\n\nIMPORTANT: Do NOT include any URLs, links, or references to external resources in your response. Focus only on explaining the content.';
+        }
+        
         prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
 
 Previous context:
@@ -1500,7 +1505,7 @@ Previous context:
 Relevant course material:
 ${sourceMaterial}
 
-Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
+Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.${followUpInstructions}`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
@@ -1556,12 +1561,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
-        if (isMobile) {
-          // Remove the entire Link Handling section from the prompt for mobile users
-          systemPrompt = systemPrompt.replace(/\*\*Link Handling:\*\*[\s\S]*?(?=---\n\nDetermine if the student's answer|$)/g, '');
-          // Also remove any remaining link-related instructions from the answer formats
-          systemPrompt = systemPrompt.replace(/\[If a link is present.*?Otherwise, omit this line entirely\.\]/g, '');
-        }
         
         prompt = systemPrompt;
       }
@@ -1684,12 +1683,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
-        if (isMobile) {
-          // Remove the entire Link Handling section from the prompt for mobile users
-          systemPrompt = systemPrompt.replace(/\*\*Link Handling:\*\*[\s\S]*?(?=---\n\nDetermine if the student's answer|$)/g, '');
-          // Also remove any remaining link-related instructions from the answer formats
-          systemPrompt = systemPrompt.replace(/\[If a link is present.*?Otherwise, omit this line entirely\.\]/g, '');
-        }
         
         prompt = systemPrompt;
       }
