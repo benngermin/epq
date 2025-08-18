@@ -1489,11 +1489,6 @@ export function registerRoutes(app: Express): Server {
         // Follow-up question with course material context and selected answer
         const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
         
-        let followUpInstructions = '';
-        if (isMobile) {
-          followUpInstructions = '\n\nIMPORTANT: Do NOT include any URLs, links, or references to external resources in your response. Focus only on explaining the content.';
-        }
-        
         prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
 
 Previous context:
@@ -1505,7 +1500,7 @@ Previous context:
 Relevant course material:
 ${sourceMaterial}
 
-Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.${followUpInstructions}`;
+Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
       } else {
         // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
