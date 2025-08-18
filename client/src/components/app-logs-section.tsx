@@ -956,18 +956,18 @@ export function AppLogsSection() {
             </div>
           ) : engagementMetrics ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Active Users */}
+              {/* Unique Users */}
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <UserCheck className="h-4 w-4 text-blue-500" />
-                  <h4 className="text-sm font-medium">Active Users</h4>
+                  <h4 className="text-sm font-medium">Unique Users</h4>
                 </div>
                 <div className="text-2xl font-bold">{formatNumber(engagementMetrics.activeUsers?.count || 0)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {(engagementMetrics.activeUsers?.rate || 0).toFixed(1)}% active rate
+                  {(engagementMetrics.activeUsers?.rate || 0).toFixed(1)}% of total users
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(engagementMetrics.activeUsers?.total || 0)} total users
+                  {formatNumber(engagementMetrics.activeUsers?.total || 0)} total registered
                 </div>
               </div>
 
@@ -975,7 +975,7 @@ export function AppLogsSection() {
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Activity className="h-4 w-4 text-orange-500" />
-                  <h4 className="text-sm font-medium">Sessions per Active User</h4>
+                  <h4 className="text-sm font-medium">Sessions per Unique User</h4>
                 </div>
                 <div className="text-2xl font-bold">{(engagementMetrics.sessionsPerUser?.average || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
@@ -990,7 +990,7 @@ export function AppLogsSection() {
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <FileQuestion className="h-4 w-4 text-green-500" />
-                  <h4 className="text-sm font-medium">Questions per Active User</h4>
+                  <h4 className="text-sm font-medium">Questions per Unique User</h4>
                 </div>
                 <div className="text-2xl font-bold">{(engagementMetrics.questionsPerUser?.average || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
@@ -1026,7 +1026,7 @@ export function AppLogsSection() {
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-indigo-500" />
-                  <h4 className="text-sm font-medium">Question Sets Per Active User</h4>
+                  <h4 className="text-sm font-medium">Question Sets Per Unique User</h4>
                 </div>
                 <div className="text-2xl font-bold">{(engagementMetrics.questionSetsPerUser || 0).toFixed(1)}</div>
                 <div className="text-sm text-muted-foreground">
