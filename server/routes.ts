@@ -291,6 +291,23 @@ async function streamOpenRouterToBuffer(
       messages.push({ role: "user", content: prompt });
     }
 
+    // Log the complete API request for debugging
+    console.log('\n=== OPENROUTER API CALL ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Model:', modelName);
+    console.log('Temperature:', temperature);
+    console.log('Max Tokens:', maxTokens);
+    console.log('Messages being sent:');
+    messages.forEach((msg, index) => {
+      console.log(`Message ${index + 1} (${msg.role}):`);
+      console.log('Content length:', msg.content.length, 'characters');
+      if (msg.content.length < 500) {
+        console.log('Full content:', msg.content);
+      } else {
+        console.log('Content preview (first 500 chars):', msg.content.substring(0, 500) + '...');
+      }
+    });
+    console.log('=========================\n');
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
