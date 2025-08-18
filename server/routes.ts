@@ -1556,6 +1556,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
+        if (isMobile) {
+          // Remove the entire Link Handling section from the prompt for mobile users
+          systemPrompt = systemPrompt.replace(/\*\*Link Handling:\*\*[\s\S]*?(?=---\n\nDetermine if the student's answer|$)/g, '');
+          // Also remove any remaining link-related instructions from the answer formats
+          systemPrompt = systemPrompt.replace(/\[If a link is present.*?Otherwise, omit this line entirely\.\]/g, '');
+        }
         
         prompt = systemPrompt;
       }
@@ -1678,6 +1684,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         
         // Strip link_handling section if on mobile
+        if (isMobile) {
+          // Remove the entire Link Handling section from the prompt for mobile users
+          systemPrompt = systemPrompt.replace(/\*\*Link Handling:\*\*[\s\S]*?(?=---\n\nDetermine if the student's answer|$)/g, '');
+          // Also remove any remaining link-related instructions from the answer formats
+          systemPrompt = systemPrompt.replace(/\[If a link is present.*?Otherwise, omit this line entirely\.\]/g, '');
+        }
         
         prompt = systemPrompt;
       }
