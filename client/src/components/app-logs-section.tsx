@@ -32,7 +32,6 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Calendar,
   Clock,
   BarChart3,
   UserCheck,
@@ -44,8 +43,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Eye,
+  CalendarIcon,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { 
   BarChart, 
   Bar, 
@@ -66,6 +66,10 @@ import {
 } from "recharts";
 import { CourseHierarchyLogs } from "./course-hierarchy-logs";
 import { ConversationViewerModal } from "./conversation-viewer-modal";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 // Utility function to format numbers with commas
 const formatNumber = (num: number): string => {
@@ -166,8 +170,11 @@ export function AppLogsSection() {
   // State for time scale filter
   const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month' | 'all'>('day');
   
-  // State for engagement metrics period filter
-  const [engagementPeriod, setEngagementPeriod] = useState<'today' | '7days' | '28days'>('7days');
+  // State for engagement metrics date range filter
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
   
   // State for conversation viewer modal
   const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
@@ -199,9 +206,16 @@ export function AppLogsSection() {
   });
 
   const { data: engagementMetrics, isLoading: engagementLoading } = useQuery<EngagementMetrics>({
-    queryKey: ["/api/admin/logs/engagement-metrics", engagementPeriod],
+    queryKey: ["/api/admin/logs/engagement-metrics", dateRange],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/logs/engagement-metrics?period=${engagementPeriod}`);
+      const params = new URLSearchParams();
+      if (dateRange?.from) {
+        params.append('startDate', format(startOfDay(dateRange.from), 'yyyy-MM-dd'));
+      }
+      if (dateRange?.to) {
+        params.append('endDate', format(endOfDay(dateRange.to), 'yyyy-MM-dd'));
+      }
+      const response = await fetch(`/api/admin/logs/engagement-metrics?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch engagement metrics');
       return response.json();
     },
@@ -858,16 +872,75 @@ export function AppLogsSection() {
                 Key performance indicators and user engagement metrics
               </CardDescription>
             </div>
-            <Select value={engagementPeriod} onValueChange={(value: 'today' | '7days' | '28days') => setEngagementPeriod(value)}>
-              <SelectTrigger className="w-[150px] border-2 border-primary/20 hover:border-primary/40 transition-colors">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="7days">Last 7 Days</SelectItem>
-                <SelectItem value="28days">Last 28 Days</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[280px] justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+                <div className="p-3 border-t flex justify-between items-center">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDateRange({
+                        from: new Date(),
+                        to: new Date()
+                      })}
+                    >
+                      Today
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDateRange({
+                        from: addDays(new Date(), -7),
+                        to: new Date()
+                      })}
+                    >
+                      Last 7 Days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDateRange({
+                        from: addDays(new Date(), -28),
+                        to: new Date()
+                      })}
+                    >
+                      Last 28 Days
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>
@@ -962,7 +1035,8 @@ export function AppLogsSection() {
               </div>
 
               {/* 7-Day Retention */}
-              {engagementPeriod !== 'today' && (
+              {dateRange && dateRange.from && dateRange.to && 
+               (dateRange.to.getTime() - dateRange.from.getTime()) > (24 * 60 * 60 * 1000) && (
                 <div className="p-4 border rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="h-4 w-4 text-teal-500" />

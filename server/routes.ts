@@ -2122,19 +2122,41 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.get("/api/admin/logs/engagement-metrics", requireAdmin, async (req, res) => {
     try {
-      const { period = '7days' } = req.query;
-      
-      // Validate period parameter
-      if (!['today', '7days', '28days'].includes(period as string)) {
-        return res.status(400).json({ message: "Invalid period. Must be 'today', '7days', or '28days'" });
-      }
+      const { period, startDate, endDate } = req.query;
       
       // Add no-cache headers to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       
-      const metrics = await storage.getEngagementMetrics(period as 'today' | '7days' | '28days');
+      let metrics;
+      
+      // Check if date range is provided
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        
+        // Validate dates
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+        
+        if (start > end) {
+          return res.status(400).json({ message: "Start date must be before end date" });
+        }
+        
+        metrics = await storage.getEngagementMetricsByDateRange(start, end);
+      } else if (period) {
+        // Legacy support for period parameter
+        if (!['today', '7days', '28days'].includes(period as string)) {
+          return res.status(400).json({ message: "Invalid period. Must be 'today', '7days', or '28days'" });
+        }
+        metrics = await storage.getEngagementMetrics(period as 'today' | '7days' | '28days');
+      } else {
+        // Default to last 7 days
+        metrics = await storage.getEngagementMetrics('7days');
+      }
+      
       res.json(metrics);
     } catch (error) {
       console.error("Error fetching engagement metrics:", error);

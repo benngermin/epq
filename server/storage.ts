@@ -122,6 +122,15 @@ export interface IStorage {
     questionSetsPerUser: number;
     retentionRate: number;
   }>;
+  getEngagementMetricsByDateRange(startDate: Date, endDate: Date): Promise<{
+    activeUsers: { count: number; rate: number; total: number };
+    sessionsPerUser: { average: number; median: number };
+    questionsPerUser: { average: number; perSession: number };
+    completionRate: number;
+    firstAttemptAccuracy: number;
+    questionSetsPerUser: number;
+    retentionRate: number;
+  }>;
   getOverallStats(timeScale?: string): Promise<{
     totalUsers: number;
     totalCourses: number;
@@ -2034,6 +2043,264 @@ export class DatabaseStorage implements IStorage {
 
     // Log metrics for debugging
     console.log(`[Engagement Metrics] Period: ${period}`);
+    console.log(`[Engagement Metrics] Active Users: ${activeUserCount}/${totalUsers} (${activeRate.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] Session Durations: ${durations.length} valid sessions, median: ${medianSessionLength}s`);
+    console.log(`[Engagement Metrics] Completion Rate: ${setsCompleted.length}/${setsStarted.length} (${completionRate.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] First Attempt Accuracy: ${correctFirstAttempts}/${firstAttemptValues.length} (${firstAttemptAccuracy.toFixed(1)}%)`);
+    console.log(`[Engagement Metrics] Question Sets Per User: ${questionSetsPerUser.toFixed(1)} sets/user`);
+
+    return {
+      activeUsers: {
+        count: sanitizeNumber(activeUserCount),
+        rate: sanitizeNumber(activeRate),
+        total: sanitizeNumber(totalUsers)
+      },
+      sessionsPerUser: {
+        average: sanitizeNumber(avgSessionsPerUser),
+        median: sanitizeNumber(medianSessionLength)
+      },
+      questionsPerUser: {
+        average: sanitizeNumber(avgQuestionsPerUser),
+        perSession: sanitizeNumber(questionsPerSession)
+      },
+      completionRate: sanitizeNumber(completionRate),
+      firstAttemptAccuracy: sanitizeNumber(firstAttemptAccuracy),
+      questionSetsPerUser: sanitizeNumber(questionSetsPerUser),
+      retentionRate: sanitizeNumber(retentionRate)
+    };
+  }
+
+  async getEngagementMetricsByDateRange(startDate: Date, endDate: Date): Promise<{
+    activeUsers: { count: number; rate: number; total: number };
+    sessionsPerUser: { average: number; median: number };
+    questionsPerUser: { average: number; perSession: number };
+    completionRate: number;
+    firstAttemptAccuracy: number;
+    questionSetsPerUser: number;
+    retentionRate: number;
+  }> {
+    // Ensure dates are at the correct time boundaries
+    const startDateClean = new Date(startDate);
+    startDateClean.setHours(0, 0, 0, 0);
+    
+    const endDateClean = new Date(endDate);
+    endDateClean.setHours(23, 59, 59, 999);
+
+    // 1. Active Users (DAU/WAU/MAU) with active rate
+    const activeUsersQuery = await db.select({
+      userId: userTestRuns.userId,
+      sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})::integer`.as('session_count'),
+      totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})::integer`.as('total_questions')
+    })
+    .from(userTestRuns)
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ))
+    .groupBy(userTestRuns.userId);
+
+    // Get total users with access (all registered users)
+    const [totalUsersResult] = await db.select({ 
+      count: sql<number>`COUNT(*)`.as('count') 
+    }).from(users);
+    const totalUsers = Number(totalUsersResult?.count || 0);
+
+    const activeUserCount = activeUsersQuery.length;
+    const activeRate = totalUsers > 0 ? (activeUserCount / totalUsers) * 100 : 0;
+
+    // 2. Sessions per Active User & Median Session Length
+    const sessionCounts = activeUsersQuery.map(u => {
+      const count = Number(u.sessionCount) || 0;
+      return isNaN(count) || !isFinite(count) ? 0 : count;
+    });
+    const totalSessionCount = sessionCounts.reduce((a, b) => a + b, 0);
+    const avgSessionsPerUser = activeUserCount > 0 && isFinite(totalSessionCount)
+      ? totalSessionCount / activeUserCount 
+      : 0;
+
+    // Get session durations for median calculation
+    const sessionDurations = await db.select({
+      startedAt: userTestRuns.startedAt,
+      completedAt: userTestRuns.completedAt,
+      lastAnswerTime: sql<Date>`MAX(${userAnswers.answeredAt})`.as('last_answer_time'),
+      firstAnswerTime: sql<Date>`MIN(${userAnswers.answeredAt})`.as('first_answer_time')
+    })
+    .from(userTestRuns)
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ))
+    .groupBy(userTestRuns.id, userTestRuns.startedAt, userTestRuns.completedAt);
+
+    const durations = sessionDurations
+      .map(s => {
+        const endTime = s.completedAt || s.lastAnswerTime;
+        const startTime = s.startedAt;
+        if (!endTime || !startTime) return 0;
+        
+        const durationMs = new Date(endTime).getTime() - new Date(startTime).getTime();
+        const durationSec = durationMs / 1000;
+        
+        return isNaN(durationSec) || !isFinite(durationSec) || durationSec < 0 ? 0 : durationSec;
+      })
+      .filter(d => d > 0 && d < 7200) // Filter out invalid durations (> 2 hours)
+      .sort((a, b) => a - b);
+    
+    const medianSessionLength = durations.length > 0
+      ? durations[Math.floor(durations.length / 2)]
+      : 0;
+
+    // 3. Questions per Active User
+    const totalQuestionsAnswered = activeUsersQuery.reduce((sum, u) => {
+      const questions = Number(u.totalQuestions) || 0;
+      return sum + (isNaN(questions) || !isFinite(questions) ? 0 : questions);
+    }, 0);
+    const avgQuestionsPerUser = activeUserCount > 0 && isFinite(totalQuestionsAnswered)
+      ? totalQuestionsAnswered / activeUserCount 
+      : 0;
+    
+    const questionsPerSession = totalSessionCount > 0 && isFinite(totalQuestionsAnswered)
+      ? totalQuestionsAnswered / totalSessionCount 
+      : 0;
+
+    // 4. Set Completion Rate
+    const setsWithProgress = await db.execute(sql`
+      WITH set_stats AS (
+        SELECT 
+          utr.id,
+          utr.question_set_id,
+          utr.started_at,
+          utr.completed_at,
+          qs.question_count as total_questions,
+          COUNT(DISTINCT ua.question_version_id) as answered_questions,
+          MAX(ua.answered_at) as last_answer_time
+        FROM user_test_runs utr
+        INNER JOIN question_sets qs ON utr.question_set_id = qs.id
+        LEFT JOIN user_answers ua ON ua.user_test_run_id = utr.id
+        WHERE utr.started_at >= ${startDateClean}
+          AND utr.started_at <= ${endDateClean}
+        GROUP BY utr.id, utr.question_set_id, utr.started_at, utr.completed_at, qs.question_count
+      )
+      SELECT * FROM set_stats
+    `);
+
+    const setsStarted = setsWithProgress.rows.filter((s: any) => Number(s.answered_questions) > 0);
+    
+    const setsCompleted = setsStarted.filter((s: any) => {
+      const isMarkedComplete = s.completed_at && 
+        (new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
+      
+      const answeredMost = Number(s.answered_questions) >= Number(s.total_questions) * 0.8;
+      const lastAnswerWithin7Days = s.last_answer_time && 
+        (new Date(s.last_answer_time).getTime() - new Date(s.started_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
+      
+      return isMarkedComplete || (answeredMost && lastAnswerWithin7Days);
+    });
+
+    const completionRate = setsStarted.length > 0 
+      ? (setsCompleted.length / setsStarted.length) * 100 
+      : 0;
+
+    // 5. First-Attempt Accuracy
+    const firstAttempts = await db.select({
+      questionVersionId: userAnswers.questionVersionId,
+      isCorrect: userAnswers.isCorrect,
+      userId: userTestRuns.userId,
+      answeredAt: userAnswers.answeredAt
+    })
+    .from(userAnswers)
+    .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+    .where(and(
+      gte(userAnswers.answeredAt, startDateClean),
+      lte(userAnswers.answeredAt, endDateClean)
+    ))
+    .orderBy(asc(userAnswers.answeredAt));
+
+    // Group by user and question to find first attempts
+    const firstAttemptMap = new Map<string, boolean>();
+    firstAttempts.forEach(attempt => {
+      const key = `${attempt.userId}-${attempt.questionVersionId}`;
+      if (!firstAttemptMap.has(key)) {
+        firstAttemptMap.set(key, attempt.isCorrect);
+      }
+    });
+
+    const firstAttemptValues = Array.from(firstAttemptMap.values());
+    const correctFirstAttempts = firstAttemptValues.filter(v => v).length;
+    const firstAttemptAccuracy = firstAttemptValues.length > 0
+      ? (correctFirstAttempts / firstAttemptValues.length) * 100
+      : 0;
+
+    // 6. Question Sets per Active User
+    const userQuestionSets = await db.select({
+      userId: userTestRuns.userId,
+      uniqueQuestionSets: sql<number>`COUNT(DISTINCT ${userTestRuns.questionSetId})`.as('unique_question_sets')
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ))
+    .groupBy(userTestRuns.userId);
+
+    const totalUniqueQuestionSets = userQuestionSets.reduce((sum, u) => {
+      const sets = Number(u.uniqueQuestionSets) || 0;
+      return sum + (isNaN(sets) || !isFinite(sets) ? 0 : sets);
+    }, 0);
+
+    const questionSetsPerUser = activeUserCount > 0 && isFinite(totalUniqueQuestionSets)
+      ? totalUniqueQuestionSets / activeUserCount
+      : 0;
+
+    // 7. 7-Day Retention Rate (if date range is at least 7 days)
+    let retentionRate = 0;
+    const daysDiff = (endDateClean.getTime() - startDateClean.getTime()) / (1000 * 60 * 60 * 24);
+    
+    if (daysDiff >= 7) {
+      // Calculate midpoint to split the range
+      const midDate = new Date(startDateClean);
+      midDate.setDate(midDate.getDate() + Math.floor(daysDiff / 2));
+      
+      // Users active in second half
+      const secondHalfUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+        .from(userTestRuns)
+        .where(and(
+          gte(userTestRuns.startedAt, midDate),
+          lte(userTestRuns.startedAt, endDateClean)
+        ));
+
+      // Users active in first half
+      const firstHalfUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+        .from(userTestRuns)
+        .where(and(
+          gte(userTestRuns.startedAt, startDateClean),
+          lt(userTestRuns.startedAt, midDate)
+        ));
+
+      const secondHalfUserIds = new Set(secondHalfUsers.map(u => u.userId));
+      const firstHalfUserIds = firstHalfUsers.map(u => u.userId);
+      const retainedUsers = firstHalfUserIds.filter(id => secondHalfUserIds.has(id));
+      
+      retentionRate = firstHalfUserIds.length > 0
+        ? (retainedUsers.length / firstHalfUserIds.length) * 100
+        : 0;
+    }
+
+    // Ensure all values are valid numbers
+    const sanitizeNumber = (value: number): number => {
+      if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+        return 0;
+      }
+      if (Math.abs(value) > 1e10) {
+        return 0;
+      }
+      return Math.round(value * 100) / 100;
+    };
+
+    // Log metrics for debugging
+    console.log(`[Engagement Metrics] Date Range: ${startDateClean.toISOString()} to ${endDateClean.toISOString()}`);
     console.log(`[Engagement Metrics] Active Users: ${activeUserCount}/${totalUsers} (${activeRate.toFixed(1)}%)`);
     console.log(`[Engagement Metrics] Session Durations: ${durations.length} valid sessions, median: ${medianSessionLength}s`);
     console.log(`[Engagement Metrics] Completion Rate: ${setsCompleted.length}/${setsStarted.length} (${completionRate.toFixed(1)}%)`);
