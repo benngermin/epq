@@ -157,7 +157,8 @@ const activeStreams = new Map<string, {
   done: boolean, 
   error?: string,
   lastActivity: number,
-  aborted?: boolean 
+  aborted?: boolean,
+  conversationHistory?: Array<{ role: string, content: string }> // Store full conversation
 }>();
 
 // Heartbeat interval to detect stalled streams
@@ -231,11 +232,10 @@ setInterval(() => {
 
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(
-  prompt: string, 
+  messages: Array<{ role: string, content: string }>, // Changed to accept full message history
   settings: any, 
   streamId: string, 
-  userId?: number, 
-  systemMessage?: string
+  userId?: number
 ) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
@@ -274,11 +274,6 @@ async function streamOpenRouterToBuffer(
   // For any other model, the default of 8192 will be used
 
   try {
-    const messages = [];
-    if (systemMessage) {
-      messages.push({ role: "system", content: systemMessage });
-    }
-    messages.push({ role: "user", content: prompt });
 
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -290,7 +285,7 @@ async function streamOpenRouterToBuffer(
       },
       body: JSON.stringify({
         model: modelName,
-        messages,
+        messages, // Now using the full conversation history
         temperature,
         max_tokens: maxTokens,
         stream: true,
@@ -433,11 +428,15 @@ async function streamOpenRouterToBuffer(
 
     // Log the complete interaction
     try {
+      // Extract system message and user message from messages array
+      const systemMsg = messages.find(m => m.role === "system")?.content || "";
+      const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content || "";
+      
       await storage.createChatbotLog({
         userId,
         modelName,
-        systemMessage,
-        userMessage: prompt,
+        systemMessage: systemMsg,
+        userMessage: lastUserMsg,
         aiResponse: fullResponse,
         temperature: 0,
         maxTokens,
@@ -460,11 +459,15 @@ async function streamOpenRouterToBuffer(
     
     // Log the error interaction
     try {
+      // Extract system message and user message from messages array
+      const systemMsg = messages.find(m => m.role === "system")?.content || "";
+      const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content || "";
+      
       await storage.createChatbotLog({
         userId,
         modelName,
-        systemMessage,
-        userMessage: prompt,
+        systemMessage: systemMsg,
+        userMessage: lastUserMsg,
         aiResponse: errorResponse,
         temperature: 0,
         maxTokens,
@@ -1272,7 +1275,7 @@ export function registerRoutes(app: Express): Server {
     // Initialize streaming chatbot response
     
     try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
 
       // Include user ID in stream ID for better tracking and cleanup
@@ -1293,16 +1296,17 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Initialize stream with timestamp
+      // Initialize stream with timestamp and conversation history
       activeStreams.set(streamId, { 
         chunks: [], 
         done: false, 
         lastActivity: Date.now(),
-        aborted: false 
+        aborted: false,
+        conversationHistory: conversationHistory || []
       });
       
-      // Start background processing with mobile flag
-      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile);
+      // Start background processing with mobile flag and conversation history
+      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile, conversationHistory);
       
       res.json({ streamId });
     } catch (error) {
@@ -1357,7 +1361,11 @@ export function registerRoutes(app: Express): Server {
       newContent, // New incremental content
       cursor: fullContent.length, // New cursor position
       done: stream.done,
-      error: stream.error
+      error: stream.error,
+      // Include updated conversation history when stream is done
+      conversationHistory: stream.done && stream.conversationHistory ? 
+        [...stream.conversationHistory, { role: "assistant", content: fullContent }] : 
+        undefined
     });
     
     // Clean up finished streams
@@ -1446,7 +1454,7 @@ export function registerRoutes(app: Express): Server {
   }
 
   // Background stream processing
-  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean) {
+  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean, previousMessages?: Array<{ role: string, content: string }>) {
     const stream = activeStreams.get(streamId);
     if (!stream || stream.aborted) return;
     
@@ -1484,25 +1492,14 @@ export function registerRoutes(app: Express): Server {
       } else {
       }
       
-      let prompt;
-      if (userMessage) {
-        // Follow-up question with course material context and selected answer
-        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        
-        prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
-
-Previous context:
-- Question: "${questionVersion.questionText}"
-- Answer choices: ${questionVersion.answerChoices.join(', ')}
-- Student selected: ${selectedAnswerText}
-- Correct answer: ${questionVersion.correctAnswer}
-
-Relevant course material:
-${sourceMaterial}
-
-Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
+      let messages: Array<{ role: string, content: string }> = [];
+      
+      if (userMessage && previousMessages && previousMessages.length > 0) {
+        // Follow-up: Use existing conversation thread and append new user message
+        messages = [...previousMessages];
+        messages.push({ role: "user", content: userMessage });
       } else {
-        // Initial explanation with variable substitution
+        // Initial conversation: Create system prompt and first user message
         let systemPrompt = activePrompt?.promptText || 
           `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
 
@@ -1553,15 +1550,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
-
-        
-        // Strip link_handling section if on mobile
-        
-        prompt = systemPrompt;
+        // Create initial conversation with system prompt
+        messages = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Please provide feedback on my answer." }
+        ];
       }
 
+      // Store conversation history in the stream
+      stream.conversationHistory = messages;
+
       // Call OpenRouter with streaming
-      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, activePrompt?.promptText);
+      await streamOpenRouterToBuffer(messages, aiSettings, streamId, userId);
       
     } catch (error) {
       console.error("Background processing error:", error);
