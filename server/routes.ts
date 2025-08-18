@@ -48,24 +48,8 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
   const temperature = 0; // Always use deterministic output
   
-  // Set max tokens based on model - more flexible approach for any OpenRouter model
-  let maxTokens = 8192; // Default to a reasonable max for most models
-  
-  // Common model patterns and their typical max tokens
-  if (modelName.includes('claude')) {
-    maxTokens = 4096; // Most Claude models use 4096
-  } else if (modelName.includes('gpt-3.5')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('gpt-4')) {
-    maxTokens = 8192;
-  } else if (modelName.includes('gemini')) {
-    maxTokens = 8192; // Gemini models typically support 8192
-  } else if (modelName.includes('mixtral') || modelName.includes('mistral')) {
-    maxTokens = 8192; // Mistral/Mixtral models
-  } else if (modelName.includes('llama')) {
-    maxTokens = 4096; // LLaMA models typically use 4096
-  }
-  // For any other model, the default of 8192 will be used
+  // Set max tokens to 32000 for all models as requested
+  let maxTokens = 32000; // Use 32000 tokens for all API calls
 
   try {
     const messages = [];
@@ -256,24 +240,8 @@ async function streamOpenRouterToBuffer(
   const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
   const temperature = 0;
   
-  // Set max tokens based on model - more flexible approach for any OpenRouter model
-  let maxTokens = 8192; // Default to a reasonable max for most models
-  
-  // Common model patterns and their typical max tokens
-  if (modelName.includes('claude')) {
-    maxTokens = 4096; // Most Claude models use 4096
-  } else if (modelName.includes('gpt-3.5')) {
-    maxTokens = 4096;
-  } else if (modelName.includes('gpt-4')) {
-    maxTokens = 8192;
-  } else if (modelName.includes('gemini')) {
-    maxTokens = 8192; // Gemini models typically support 8192
-  } else if (modelName.includes('mixtral') || modelName.includes('mistral')) {
-    maxTokens = 8192; // Mistral/Mixtral models
-  } else if (modelName.includes('llama')) {
-    maxTokens = 4096; // LLaMA models typically use 4096
-  }
-  // For any other model, the default of 8192 will be used
+  // Set max tokens to 32000 for all models as requested
+  let maxTokens = 32000; // Use 32000 tokens for all API calls
 
   try {
     let messages = [];
@@ -301,11 +269,7 @@ async function streamOpenRouterToBuffer(
     messages.forEach((msg, index) => {
       console.log(`Message ${index + 1} (${msg.role}):`);
       console.log('Content length:', msg.content.length, 'characters');
-      if (msg.content.length < 500) {
-        console.log('Full content:', msg.content);
-      } else {
-        console.log('Content preview (first 500 chars):', msg.content.substring(0, 500) + '...');
-      }
+      console.log('Full content:', msg.content);
     });
     console.log('=========================\n');
 
