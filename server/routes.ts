@@ -157,8 +157,7 @@ const activeStreams = new Map<string, {
   done: boolean, 
   error?: string,
   lastActivity: number,
-  aborted?: boolean,
-  conversationHistory?: Array<{ role: string, content: string }> // Store full conversation
+  aborted?: boolean 
 }>();
 
 // Heartbeat interval to detect stalled streams
@@ -232,10 +231,11 @@ setInterval(() => {
 
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(
-  messages: Array<{ role: string, content: string }>, // Changed to accept full message history
+  prompt: string, 
   settings: any, 
   streamId: string, 
-  userId?: number
+  userId?: number, 
+  systemMessage?: string
 ) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
@@ -274,6 +274,11 @@ async function streamOpenRouterToBuffer(
   // For any other model, the default of 8192 will be used
 
   try {
+    const messages = [];
+    if (systemMessage) {
+      messages.push({ role: "system", content: systemMessage });
+    }
+    messages.push({ role: "user", content: prompt });
 
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -285,7 +290,7 @@ async function streamOpenRouterToBuffer(
       },
       body: JSON.stringify({
         model: modelName,
-        messages, // Now using the full conversation history
+        messages,
         temperature,
         max_tokens: maxTokens,
         stream: true,
@@ -428,15 +433,11 @@ async function streamOpenRouterToBuffer(
 
     // Log the complete interaction
     try {
-      // Extract system message and user message from messages array
-      const systemMsg = messages.find(m => m.role === "system")?.content || "";
-      const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content || "";
-      
       await storage.createChatbotLog({
         userId,
         modelName,
-        systemMessage: systemMsg,
-        userMessage: lastUserMsg,
+        systemMessage,
+        userMessage: prompt,
         aiResponse: fullResponse,
         temperature: 0,
         maxTokens,
@@ -459,15 +460,11 @@ async function streamOpenRouterToBuffer(
     
     // Log the error interaction
     try {
-      // Extract system message and user message from messages array
-      const systemMsg = messages.find(m => m.role === "system")?.content || "";
-      const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content || "";
-      
       await storage.createChatbotLog({
         userId,
         modelName,
-        systemMessage: systemMsg,
-        userMessage: lastUserMsg,
+        systemMessage,
+        userMessage: prompt,
         aiResponse: errorResponse,
         temperature: 0,
         maxTokens,
@@ -1275,7 +1272,7 @@ export function registerRoutes(app: Express): Server {
     // Initialize streaming chatbot response
     
     try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
       const userId = req.user!.id;
 
       // Include user ID in stream ID for better tracking and cleanup
@@ -1296,17 +1293,16 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Initialize stream with timestamp and conversation history
+      // Initialize stream with timestamp
       activeStreams.set(streamId, { 
         chunks: [], 
         done: false, 
         lastActivity: Date.now(),
-        aborted: false,
-        conversationHistory: conversationHistory || []
+        aborted: false 
       });
       
-      // Start background processing with mobile flag and conversation history
-      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile, conversationHistory);
+      // Start background processing with mobile flag
+      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile);
       
       res.json({ streamId });
     } catch (error) {
@@ -1361,11 +1357,7 @@ export function registerRoutes(app: Express): Server {
       newContent, // New incremental content
       cursor: fullContent.length, // New cursor position
       done: stream.done,
-      error: stream.error,
-      // Include updated conversation history when stream is done
-      conversationHistory: stream.done && stream.conversationHistory ? 
-        [...stream.conversationHistory, { role: "assistant", content: fullContent }] : 
-        undefined
+      error: stream.error
     });
     
     // Clean up finished streams
@@ -1439,9 +1431,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Helper function to clean course material URLs - ALWAYS remove URLs
-  function cleanCourseMaterial(content: string): string {
-    // Always remove URLs from course material regardless of device
+  // Helper function to clean course material URLs when on mobile
+  function cleanCourseMaterialForMobile(content: string, isMobile: boolean): string {
+    if (!isMobile) return content; // Keep everything for desktop
+    
+    
     // Remove [url=...] ... [/url] patterns from the course material
     let cleaned = content.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
     // Also remove [color=...] tags that often wrap URLs
@@ -1452,7 +1446,7 @@ export function registerRoutes(app: Express): Server {
   }
 
   // Background stream processing
-  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean, previousMessages?: Array<{ role: string, content: string }>) {
+  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean) {
     const stream = activeStreams.get(streamId);
     if (!stream || stream.aborted) return;
     
@@ -1485,19 +1479,30 @@ export function registerRoutes(app: Express): Server {
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        // Always clean course material to remove URLs
-        sourceMaterial = cleanCourseMaterial(courseMaterial.content);
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
       } else {
       }
       
-      let messages: Array<{ role: string, content: string }> = [];
-      
-      if (userMessage && previousMessages && previousMessages.length > 0) {
-        // Follow-up: Use existing conversation thread and append new user message
-        messages = [...previousMessages];
-        messages.push({ role: "user", content: userMessage });
+      let prompt;
+      if (userMessage) {
+        // Follow-up question with course material context and selected answer
+        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+        
+        prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
+
+Previous context:
+- Question: "${questionVersion.questionText}"
+- Answer choices: ${questionVersion.answerChoices.join(', ')}
+- Student selected: ${selectedAnswerText}
+- Correct answer: ${questionVersion.correctAnswer}
+
+Relevant course material:
+${sourceMaterial}
+
+Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
       } else {
-        // Initial conversation: Create system prompt and first user message
+        // Initial explanation with variable substitution
         let systemPrompt = activePrompt?.promptText || 
           `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
 
@@ -1548,18 +1553,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
-        // Create initial conversation with system prompt
-        messages = [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: "Please provide feedback on my answer." }
-        ];
+
+        
+        // Strip link_handling section if on mobile
+        
+        prompt = systemPrompt;
       }
 
-      // Store conversation history in the stream
-      stream.conversationHistory = messages;
-
       // Call OpenRouter with streaming
-      await streamOpenRouterToBuffer(messages, aiSettings, streamId, userId);
+      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, activePrompt?.promptText);
       
     } catch (error) {
       console.error("Background processing error:", error);
@@ -1599,8 +1601,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        // Always clean course material to remove URLs
-        sourceMaterial = cleanCourseMaterial(courseMaterial.content);
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
       } else {
       }
       

@@ -1,41 +1,14 @@
-# Custom Global Preferences
-
-These rules apply to all interactions and code. Deviate only if explicitly told to.
-
-### 1) Change Control
-- **Never modify any prompts without explicit user approval.**
-- **Never change LLMs or model settings without confirmation.**
-- **Never edit, delete, or write data (DBs, files, inputs) without approval in this conversation.**
-
-### 2) Communication (Plan → Clarify → Close)
-- **Plan:** Briefly state what you’ll do, why, and potential impacts; for non-trivial work, outline numbered steps and wait for the go-ahead.
-- **Clarify:** Ask immediately if anything is unclear or conflicting.
-- **Close:** Summarize what you did and suggest next steps.
-
-### 3) Coding Standards
-- Write readable code: descriptive names, comments only for non-obvious logic, DRY.
-- Keep it modular: small, reusable functions/components.
-- Consistent formatting: 4-space indent; keep lines ~≤80 chars where practical; avoid needless complexity.
-- Robust errors: handle exceptions, log meaningfully, return user-friendly messages.
-- Performance & security: validate inputs, avoid inefficient loops, never hard-code secrets.
-
-### 4) Data Handling & Safety
-- Use anonymized or mock data for sensitive scenarios whenever possible.
-- Back up affected code/data before risky changes and explain how to roll back.
-
-### 5) Testing & Version Control
-- Add unit tests for new functions/features; target ≥80% coverage on critical paths.
-- Run tests and report any failures before finalizing.
-
-### 6) Dependencies, Research & Response Style
-- Use latest stable libraries after confirming stack compatibility.
-- If you research externally, cite sources and briefly state why they’re relevant.
-- Keep responses focused and concise; include code snippets/examples when helpful.
-
 # Exam Practice Questions
 
 ## Overview
 An advanced AI-powered platform for insurance professional certification exam preparation, offering intelligent, adaptive learning experiences tailored to individual student needs. The platform supports multiple certification paths including CPCU (Chartered Property Casualty Underwriter) and AIC (Associate in Claims) programs.
+
+## Recent Changes (January 2025)
+- **UI/UX Improvements**: 
+  - Widened and centered assistant message cards for better mobile readability
+  - Fixed Submit Answer button accessibility on mobile by adjusting scroll areas and z-index stacking
+  - Added proper safe area insets for iOS devices
+  - Improved sticky footer behavior to prevent content overlap
 
 ## Project Architecture
 
@@ -72,8 +45,6 @@ An advanced AI-powered platform for insurance professional certification exam pr
 
 4. **AI-Powered Tutoring**
    - Context-aware chatbot for question explanations
-   - **Conversation threading**: Maintains single system prompt per conversation thread
-   - Multi-turn conversation support with full context preservation
    - Configurable AI models
    - Prompt versioning system
    - Response logging for quality monitoring
@@ -138,10 +109,7 @@ An advanced AI-powered platform for insurance professional certification exam pr
 - `GET /api/test-runs/:id/results` - Get test results
 
 ### AI Chatbot
-- `POST /api/chatbot/stream-init` - Initialize streaming AI response
-- `GET /api/chatbot/stream-chunk/:streamId` - Get streaming chunks
-- `POST /api/chatbot/stream-abort/:streamId` - Abort active stream
-- `POST /api/feedback` - Submit user feedback
+- `POST /api/chatbot/stream` - Stream AI responses
 - `GET /api/admin/chatbot-logs` - View interaction logs
 
 ### Admin APIs
@@ -219,6 +187,86 @@ An advanced AI-powered platform for insurance professional certification exam pr
 └── package.json       # Dependencies
 ```
 
+# Custom Global Preferences
+
+These rules apply to all interactions and code. Deviate only if explicitly told to.
+
+### 1) Change Control
+- **Never modify any prompts without explicit user approval.**
+- **Never change LLMs or model settings without confirmation.**
+- **Never edit, delete, or write data (DBs, files, inputs) without approval in this conversation.**
+
+### 2) Communication (Plan → Clarify → Close)
+- **Plan:** Briefly state what you’ll do, why, and potential impacts; for non-trivial work, outline numbered steps and wait for the go-ahead.
+- **Clarify:** Ask immediately if anything is unclear or conflicting.
+- **Close:** Summarize what you did and suggest next steps.
+
+### 3) Coding Standards
+- Write readable code: descriptive names, comments only for non-obvious logic, DRY.
+- Keep it modular: small, reusable functions/components.
+- Consistent formatting: 4-space indent; keep lines ~≤80 chars where practical; avoid needless complexity.
+- Robust errors: handle exceptions, log meaningfully, return user-friendly messages.
+- Performance & security: validate inputs, avoid inefficient loops, never hard-code secrets.
+
+### 4) Data Handling & Safety
+- Use anonymized or mock data for sensitive scenarios whenever possible.
+- Back up affected code/data before risky changes and explain how to roll back.
+
+### 5) Testing & Version Control
+- Add unit tests for new functions/features; target ≥80% coverage on critical paths.
+- Run tests and report any failures before finalizing.
+
+### 6) Dependencies, Research & Response Style
+- Use latest stable libraries after confirming stack compatibility.
+- If you research externally, cite sources and briefly state why they’re relevant.
+- Keep responses focused and concise; include code snippets/examples when helpful.
+
+## Recent Changes & Updates
+
+### Latest Updates (August 2025)
+- Implemented comprehensive question type support (multiple choice, fill-in-blank, numerical, etc.)
+- Added Bubble.io integration for content import
+- Enhanced admin dashboard with detailed analytics
+- Implemented course external ID mapping system
+- Added database health monitoring and circuit breaker
+- Optimized database connection pooling
+- Added comprehensive logging system
+- **Bug Fixes (August 14, 2025)**:
+  - Fixed duplicate security headers in server/index.ts
+  - Fixed memory leak in stream cleanup (now cleans up error streams)
+  - Added user validation for stream abort endpoint to prevent unauthorized access
+  - Improved stream ownership validation for security
+
+### Known Features
+- URL parameter-based course selection (course_id, assignment_name)
+- Question versioning for content updates
+- Real-time AI tutoring with streaming responses
+- Comprehensive test analytics and reporting
+- Bulk import/export capabilities
+- Session persistence across page refreshes
+
+## User Preferences
+
+### Communication Style
+- Technical documentation should be comprehensive
+- Code should follow TypeScript best practices
+- Use clear, descriptive variable names
+- Implement proper error handling throughout
+
+### Development Practices
+- Always use the storage interface for database operations
+- Validate all input data with Zod schemas
+- Use React Query for all data fetching
+- Implement loading states for async operations
+- Handle errors gracefully with user-friendly messages
+
+### Testing & Quality
+- Test with both SSO and local authentication
+- Verify course loading with URL parameters
+- Check question navigation and answer submission
+- Validate AI chatbot responses
+- Monitor database connection stability
+
 ## Deployment Configuration
 
 ### Replit Setup
@@ -290,21 +338,7 @@ An advanced AI-powered platform for insurance professional certification exam pr
 - Check memory usage patterns
 - Analyze user engagement metrics
 
-## Recent Changes
-
-### January 2025 - Chatbot Conversation Threading Update
-- **Modified chatbot architecture**: Removed follow-up prompt injection system
-- **Implemented proper conversation threading**: Single system prompt per conversation thread
-- **Backend changes**: 
-  - Updated `streamOpenRouterToBuffer` to accept full message history
-  - Modified streaming endpoints to maintain conversation state
-  - Added conversation history tracking in active streams
-- **Frontend changes**:
-  - Updated both chat components to send conversation history with follow-up messages
-  - Messages are appended to existing thread rather than creating new prompts
-- **Expected behavior**: Follow-up messages now maintain context without additional system prompts
-
 ---
 
-*Last Updated: January 2025*
-*Version: 3.1*
+*Last Updated: August 2025*
+*Version: 3.0*

@@ -79,12 +79,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     const isMobile = window.innerWidth < 768;
     
     try {
-      // Build conversation history for API (excluding current streaming message)
-      const conversationHistory = userMessage ? messages
-        .filter(msg => !msg.isStreaming && msg.content)
-        .map(msg => ({ role: msg.role, content: msg.content }))
-        .reverse() : []; // Reverse because messages are stored newest first
-      
       // Use streaming endpoint
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
@@ -96,7 +90,6 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           chosenAnswer,
           userMessage,
           isMobile,
-          conversationHistory,
         }),
         credentials: 'include',
       });
