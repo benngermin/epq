@@ -72,11 +72,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isMobile = window.innerWidth < 768;
     
     try {
-      // Initialize streaming
+      // Initialize streaming - pass conversation history for follow-up messages
       const response = await fetch('/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionVersionId, chosenAnswer: finalChosenAnswer, userMessage, isMobile }),
+        body: JSON.stringify({ 
+          questionVersionId, 
+          chosenAnswer: finalChosenAnswer, 
+          userMessage, 
+          isMobile,
+          conversationHistory: userMessage ? messages : undefined // Pass history only for follow-ups
+        }),
         credentials: 'include',
         signal: abortControllerRef.current.signal,
       });

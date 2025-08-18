@@ -157,7 +157,8 @@ const activeStreams = new Map<string, {
   done: boolean, 
   error?: string,
   lastActivity: number,
-  aborted?: boolean 
+  aborted?: boolean,
+  conversationHistory?: Array<{ role: string, content: string }> // Store conversation history
 }>();
 
 // Heartbeat interval to detect stalled streams
@@ -235,7 +236,8 @@ async function streamOpenRouterToBuffer(
   settings: any, 
   streamId: string, 
   userId?: number, 
-  systemMessage?: string
+  systemMessage?: string,
+  conversationHistory?: Array<{ role: string, content: string }>
 ) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
@@ -274,11 +276,20 @@ async function streamOpenRouterToBuffer(
   // For any other model, the default of 8192 will be used
 
   try {
-    const messages = [];
-    if (systemMessage) {
-      messages.push({ role: "system", content: systemMessage });
+    let messages = [];
+    
+    // If we have conversation history, use it instead of creating a new conversation
+    if (conversationHistory && conversationHistory.length > 0) {
+      messages = [...conversationHistory];
+      // Add the new user message to the existing conversation
+      messages.push({ role: "user", content: prompt });
+    } else {
+      // Initial conversation - use system message if provided
+      if (systemMessage) {
+        messages.push({ role: "system", content: systemMessage });
+      }
+      messages.push({ role: "user", content: prompt });
     }
-    messages.push({ role: "user", content: prompt });
 
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -1272,7 +1283,7 @@ export function registerRoutes(app: Express): Server {
     // Initialize streaming chatbot response
     
     try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
 
       // Include user ID in stream ID for better tracking and cleanup
@@ -1293,12 +1304,13 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Initialize stream with timestamp
+      // Initialize stream with timestamp - use provided conversation history if available
       activeStreams.set(streamId, { 
         chunks: [], 
         done: false, 
         lastActivity: Date.now(),
-        aborted: false 
+        aborted: false,
+        conversationHistory: conversationHistory || [] // Use provided history or initialize empty
       });
       
       // Start background processing with mobile flag
@@ -1485,25 +1497,15 @@ export function registerRoutes(app: Express): Server {
       }
       
       let prompt;
+      let systemMessage = undefined;
+      
       if (userMessage) {
-        // Follow-up question with course material context and selected answer
-        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        
-        prompt = `You are an AI tutor helping a student who just completed a practice question. The student has sent you this message: "${userMessage}"
-
-Previous context:
-- Question: "${questionVersion.questionText}"
-- Answer choices: ${questionVersion.answerChoices.join(', ')}
-- Student selected: ${selectedAnswerText}
-- Correct answer: ${questionVersion.correctAnswer}
-
-Relevant course material:
-${sourceMaterial}
-
-Please respond directly to the student's message in a helpful, conversational way. If they're saying thank you, acknowledge it. If they're asking a follow-up question, answer it using the course material. Keep your response natural and engaging.`;
+        // For follow-up messages, simply use the user's message as the prompt
+        // The conversation history will be maintained and passed to the API
+        prompt = userMessage;
       } else {
-        // Initial explanation with variable substitution
-        let systemPrompt = activePrompt?.promptText || 
+        // Initial explanation with variable substitution - this becomes the system message
+        systemMessage = activePrompt?.promptText || 
           `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
 
 First, carefully review the assessment content:
@@ -1546,22 +1548,37 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
 
         // Substitute variables in the prompt
-        systemPrompt = systemPrompt
+        systemMessage = systemMessage
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
-
+        // For the initial message, the prompt is empty - the system message contains everything
+        prompt = "Please provide feedback on my answer.";
         
-        // Strip link_handling section if on mobile
-        
-        prompt = systemPrompt;
+        // Store the initial system message in conversation history
+        if (stream.conversationHistory) {
+          stream.conversationHistory.push({ role: "system", content: systemMessage });
+        }
       }
 
-      // Call OpenRouter with streaming
-      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, activePrompt?.promptText);
+      // Call OpenRouter with streaming and conversation history
+      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, systemMessage, stream.conversationHistory);
+      
+      // After successful response, update conversation history
+      if (!stream.error && stream.chunks && stream.chunks.length > 0) {
+        const aiResponse = stream.chunks[stream.chunks.length - 1];
+        if (stream.conversationHistory) {
+          // Add user message to history (if not already added)
+          if (!userMessage || stream.conversationHistory[stream.conversationHistory.length - 1]?.content !== prompt) {
+            stream.conversationHistory.push({ role: "user", content: prompt });
+          }
+          // Add AI response to history
+          stream.conversationHistory.push({ role: "assistant", content: aiResponse });
+        }
+      }
       
     } catch (error) {
       console.error("Background processing error:", error);

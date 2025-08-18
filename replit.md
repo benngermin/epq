@@ -236,6 +236,11 @@ These rules apply to all interactions and code. Deviate only if explicitly told 
   - Fixed memory leak in stream cleanup (now cleans up error streams)
   - Added user validation for stream abort endpoint to prevent unauthorized access
   - Improved stream ownership validation for security
+- **Conversation History Update (August 18, 2025)**:
+  - Fixed follow-up message handling to use multi-turn conversation history
+  - Removed additional prompt injection for follow-up messages
+  - AI now maintains full conversation context naturally through message history
+  - Follow-up messages simply append to existing conversation thread
 
 ### Known Features
 - URL parameter-based course selection (course_id, assignment_name)
