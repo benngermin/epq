@@ -1439,11 +1439,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Helper function to clean course material URLs when on mobile
-  function cleanCourseMaterialForMobile(content: string, isMobile: boolean): string {
-    if (!isMobile) return content; // Keep everything for desktop
-    
-    
+  // Helper function to clean course material URLs - ALWAYS remove URLs
+  function cleanCourseMaterial(content: string): string {
+    // Always remove URLs from course material regardless of device
     // Remove [url=...] ... [/url] patterns from the course material
     let cleaned = content.replace(/\[url=[^\]]+\][^\[]*\[\/url\]/gi, '');
     // Also remove [color=...] tags that often wrap URLs
@@ -1487,8 +1485,8 @@ export function registerRoutes(app: Express): Server {
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        // Clean course material for mobile (removes URLs)
-        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
+        // Always clean course material to remove URLs
+        sourceMaterial = cleanCourseMaterial(courseMaterial.content);
       } else {
       }
       
@@ -1601,8 +1599,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
       
       if (courseMaterial) {
-        // Clean course material for mobile (removes URLs)
-        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
+        // Always clean course material to remove URLs
+        sourceMaterial = cleanCourseMaterial(courseMaterial.content);
       } else {
       }
       
