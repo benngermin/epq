@@ -96,9 +96,8 @@ export class CognitoAuth {
 
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Cognito login route hit');
-      }
+      console.log('[Cognito Auth] Login route hit with query params:', req.query);
+      console.log('[Cognito Auth] Full URL:', req.url);
 
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
@@ -131,7 +130,9 @@ export class CognitoAuth {
       
       if (courseIdParam) {
         req.session.courseId = courseIdParam;
-        console.log(`Stored courseId in session: ${courseIdParam} (from '${foundParamName}' param)`);
+        console.log(`[Cognito Auth] STORED courseId in session: ${courseIdParam} (from '${foundParamName}' param)`);
+      } else {
+        console.log('[Cognito Auth] WARNING: No course_id parameter found in request');
       }
       
       if (req.query.assignmentName) {
@@ -189,15 +190,18 @@ export class CognitoAuth {
       },
       async (req: Request, res: Response) => {
         // Successful authentication
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Authentication successful');
-        }
+        console.log('[Cognito Callback] Authentication successful');
+        console.log('[Cognito Callback] Session data:', {
+          sessionId: req.sessionID,
+          hasSession: !!req.session,
+          sessionKeys: req.session ? Object.keys(req.session) : []
+        });
 
         // Check if we have stored courseId from the initial request
         const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
 
-        console.log('Retrieved parameters from session:', {
+        console.log('[Cognito Callback] Retrieved parameters from session:', {
           externalCourseId,
           assignmentName
         });
@@ -213,7 +217,9 @@ export class CognitoAuth {
         // Always pass course_id to the dashboard if we have it
         if (externalCourseId) {
           queryParams.append('course_id', externalCourseId);
-          console.log(`Passing course_id=${externalCourseId} to dashboard`);
+          console.log(`[Cognito Callback] PASSING course_id=${externalCourseId} to dashboard`);
+        } else {
+          console.log('[Cognito Callback] WARNING: No course_id to pass to dashboard');
         }
 
         if (assignmentName) {
@@ -225,7 +231,7 @@ export class CognitoAuth {
           redirectUrl += '?' + queryParams.toString();
         }
 
-        console.log(`Final redirect URL: ${redirectUrl}`);
+        console.log(`[Cognito Callback] FINAL redirect URL: ${redirectUrl}`);
 
         // Save session before redirecting
         req.session.save((err) => {

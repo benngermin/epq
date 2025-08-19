@@ -76,6 +76,9 @@ export default function AuthPage() {
       const courseId = getCourseIdParam();
       const assignmentName = urlParams.get('assignmentName');
       
+      console.log('[Auth Page] Found course_id parameter:', courseId);
+      console.log('[Auth Page] Full URL params:', Array.from(urlParams.entries()));
+      
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
       // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
@@ -86,7 +89,11 @@ export default function AuthPage() {
       
       if (validCourseId) {
         ssoParams.append('courseId', validCourseId);
+        console.log('[Auth Page] Adding courseId to SSO URL:', validCourseId);
+      } else if (courseId) {
+        console.warn('[Auth Page] Invalid courseId format (not numeric):', courseId);
       }
+      
       if (validAssignmentName) {
         ssoParams.append('assignmentName', validAssignmentName);
       }
@@ -95,7 +102,7 @@ export default function AuthPage() {
         ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
       }
       
-      console.log('Redirecting to SSO with params:', ssoUrl);
+      console.log('[Auth Page] Final SSO redirect URL:', ssoUrl);
       window.location.href = ssoUrl;
     }
   }, [authConfig, user, urlParams]);

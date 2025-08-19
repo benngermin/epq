@@ -35,11 +35,16 @@ export default function Dashboard() {
           let courseIdParam: string | null = null;
           let assignmentName: string | null = null;
           
+          console.log('[Dashboard] Full URL:', window.location.href);
+          console.log('[Dashboard] Search params:', window.location.search);
+          console.log('[Dashboard] All URL params:', Array.from(urlParams.entries()));
+          
           // Check all parameter variations in a case-insensitive way
           urlParams.forEach((value, key) => {
             const lowerKey = key.toLowerCase();
             if ((lowerKey === 'course_id' || lowerKey === 'courseid') && !courseIdParam) {
               courseIdParam = value;
+              console.log(`[Dashboard] Found course_id: ${value} (from param: ${key})`);
             } else if ((lowerKey === 'assignment_name' || lowerKey === 'assignmentname') && !assignmentName) {
               assignmentName = value;
             }
@@ -51,7 +56,7 @@ export default function Dashboard() {
           }
         
         // Log parameter parsing
-        console.log('URL Parameters:', {
+        console.log('[Dashboard] Parsed parameters:', {
           course_id: courseIdParam,
           assignment_name: assignmentName
         });
