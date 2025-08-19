@@ -108,21 +108,24 @@ export class CognitoAuth {
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
 
-      // Create state object with random token and parameters
-      const stateData = {
-        token: Math.random().toString(36).substring(2, 15),
-        courseId: (req.query.course_id || req.query.courseId) as string | undefined,
-        assignmentName: req.query.assignmentName as string | undefined
-      };
+      // Create a simple state string that includes parameters
+      // Format: token|courseId|assignmentName
+      const token = Math.random().toString(36).substring(2, 15);
+      const courseId = (req.query.course_id || req.query.courseId) as string || '';
+      const assignmentName = req.query.assignmentName as string || '';
       
-      console.log('Creating state data:', stateData);
+      // Create simple delimited state string
+      const state = `${token}|${courseId}|${assignmentName}`;
       
-      // Encode state as base64 JSON
-      const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
-      console.log('Encoded state:', state);
+      console.log('Creating state with params:', {
+        token,
+        courseId: courseId || 'none',
+        assignmentName: assignmentName || 'none',
+        stateString: state
+      });
       
-      // Store just the token in session for validation
-      req.session.stateToken = stateData.token;
+      // Store the token in session for validation
+      req.session.stateToken = token;
       
       // Also store in session as backup (keep existing logic)
       const courseIdParam = req.query.course_id || req.query.courseId;
@@ -159,7 +162,8 @@ export class CognitoAuth {
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
         console.log('Cognito callback route hit!');
-        console.log('Callback query params:', req.query);
+        console.log('Callback query params:', JSON.stringify(req.query));
+        console.log('Callback session ID:', req.sessionID);
         console.log('Callback session data:', {
           stateToken: req.session.stateToken,
           courseId: req.session.courseId,
@@ -171,8 +175,13 @@ export class CognitoAuth {
         try {
           if (req.query.state) {
             console.log('Raw state parameter:', req.query.state);
-            const stateString = Buffer.from(req.query.state as string, 'base64').toString();
-            stateData = JSON.parse(stateString);
+            // Parse simple delimited format: token|courseId|assignmentName
+            const stateParts = (req.query.state as string).split('|');
+            stateData = {
+              token: stateParts[0] || '',
+              courseId: stateParts[1] || undefined,
+              assignmentName: stateParts[2] || undefined
+            };
             console.log('Decoded state data:', stateData);
           } else {
             console.log('No state parameter in callback');
