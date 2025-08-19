@@ -24,11 +24,14 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          // Preserve URL parameters when redirecting to auth
-          const redirectUrl = searchParams ? `/auth${searchParams}` : '/auth';
-          console.log('[ProtectedRoute] Redirecting unauthenticated user to:', redirectUrl);
-          console.log('[ProtectedRoute] Original search params:', searchParams);
-          return <Redirect to={redirectUrl} />;
+          // For debugging - log everything
+          console.log('[ProtectedRoute] Current location:', window.location.href);
+          console.log('[ProtectedRoute] Search params from wouter:', searchParams);
+          console.log('[ProtectedRoute] Path param:', path);
+          
+          // Temporarily try basic redirect first to test if auth route works
+          console.log('[ProtectedRoute] Redirecting to: /auth');
+          return <Redirect to="/auth" />;
         }
 
         return <Component />;
