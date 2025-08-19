@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
 import { authRateLimiter } from "./middleware/rate-limiter";
+import crypto from "crypto";
 
 declare global {
   namespace Express {
@@ -73,7 +74,7 @@ export function setupAuth(app: Express) {
     name: 'connect.sid', // Standard session name for better compatibility
     genid: (req) => {
       // Preserve session ID if it exists
-      return req.sessionID || require('crypto').randomBytes(16).toString('hex');
+      return req.sessionID || crypto.randomBytes(16).toString('hex');
     }
   };
 
