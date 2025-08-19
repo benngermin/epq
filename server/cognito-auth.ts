@@ -184,6 +184,15 @@ export class CognitoAuth {
 
         // Determine redirect URL based on external course ID
         let redirectUrl = '/';
+        
+        // Build query parameters to preserve through the redirect
+        const queryParams = new URLSearchParams();
+        if (externalCourseId) {
+          queryParams.append('course_id', externalCourseId);
+        }
+        if (assignmentName) {
+          queryParams.append('assignmentName', assignmentName);
+        }
 
         if (externalCourseId) {
           try {
@@ -209,6 +218,12 @@ export class CognitoAuth {
             console.error('Error looking up course:', error);
           }
         }
+        
+        // Append query parameters to the redirect URL if they exist
+        const queryString = queryParams.toString();
+        if (queryString) {
+          redirectUrl += redirectUrl.includes('?') ? `&${queryString}` : `?${queryString}`;
+        }
 
         // Save session before redirecting
         req.session.save((err) => {
@@ -216,6 +231,7 @@ export class CognitoAuth {
             console.error('Failed to save session after login:', err);
           }
 
+          console.log(`Redirecting to: ${redirectUrl}`);
           res.redirect(redirectUrl);
         });
       }
