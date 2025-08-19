@@ -206,33 +206,26 @@ export class CognitoAuth {
         delete req.session.courseId;
         delete req.session.assignmentName;
 
-        // Determine redirect URL based on external course ID
+        // Build redirect URL with parameters
         let redirectUrl = '/';
+        const queryParams = new URLSearchParams();
 
+        // Always pass course_id to the dashboard if we have it
         if (externalCourseId) {
-          try {
-            // Import storage to look up course
-            const { storage } = await import('./storage.js');
-            const course = await storage.getCourseByExternalId(externalCourseId);
-
-            if (course) {
-              // Get the first question set for this course
-              const questionSets = await storage.getQuestionSetsByCourse(course.id);
-
-              if (questionSets.length > 0) {
-                // Redirect to the first question set of the course
-                redirectUrl = `/question-set/${questionSets[0].id}`;
-                console.log(`Redirecting to question set ${questionSets[0].id} for course ${course.courseTitle}`);
-              } else {
-                console.warn(`No question sets found for course ${course.courseTitle}`);
-              }
-            } else {
-              console.warn(`No course found with external ID: ${externalCourseId}`);
-            }
-          } catch (error) {
-            console.error('Error looking up course:', error);
-          }
+          queryParams.append('course_id', externalCourseId);
+          console.log(`Passing course_id=${externalCourseId} to dashboard`);
         }
+
+        if (assignmentName) {
+          queryParams.append('assignment_name', assignmentName);
+        }
+
+        // Add query parameters to redirect URL
+        if (queryParams.toString()) {
+          redirectUrl += '?' + queryParams.toString();
+        }
+
+        console.log(`Final redirect URL: ${redirectUrl}`);
 
         // Save session before redirecting
         req.session.save((err) => {
