@@ -104,12 +104,36 @@ export class CognitoAuth {
       req.session.state = state;
 
       // Capture URL parameters to preserve them through the OAuth flow
-      // Support both course_id (with underscore) and courseId (camelCase)
-      const courseIdParam = req.query.course_id || req.query.courseId;
-      if (courseIdParam) {
-        req.session.courseId = courseIdParam as string;
-        console.log(`Stored courseId in session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
+      // Support all case variations of course_id
+      let courseIdParam: string | undefined;
+      let foundParamName: string | undefined;
+      
+      // Check all common variations of course_id
+      const variations = ['course_id', 'Course_ID', 'Course_id', 'courseId', 'CourseId', 'courseid', 'COURSE_ID'];
+      for (const variation of variations) {
+        if (req.query[variation]) {
+          courseIdParam = req.query[variation] as string;
+          foundParamName = variation;
+          break;
+        }
       }
+      
+      // If not found in common variations, check all query params case-insensitively
+      if (!courseIdParam) {
+        for (const [key, value] of Object.entries(req.query)) {
+          if (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') {
+            courseIdParam = value as string;
+            foundParamName = key;
+            break;
+          }
+        }
+      }
+      
+      if (courseIdParam) {
+        req.session.courseId = courseIdParam;
+        console.log(`Stored courseId in session: ${courseIdParam} (from '${foundParamName}' param)`);
+      }
+      
       if (req.query.assignmentName) {
         req.session.assignmentName = req.query.assignmentName as string;
       }

@@ -26,6 +26,24 @@ export default function AuthPage() {
   // Parse and validate URL params
   const urlParams = new URLSearchParams(searchParams);
   
+  // Helper function to get course_id parameter (case-insensitive)
+  const getCourseIdParam = (): string | null => {
+    // Check all possible variations of course_id parameter
+    const variations = ['course_id', 'Course_ID', 'Course_id', 'courseId', 'CourseId', 'courseid', 'COURSE_ID'];
+    for (const variation of variations) {
+      const value = urlParams.get(variation);
+      if (value) return value;
+    }
+    // Also check all params for any case variation of course_id or courseId
+    const entries = Array.from(urlParams.entries());
+    for (const [key, value] of entries) {
+      if (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') {
+        return value;
+      }
+    }
+    return null;
+  };
+  
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
   const validErrors = ['state_mismatch', 'cognito_failed', 'session_save_failed', 'authentication_failed'];
@@ -54,8 +72,8 @@ export default function AuthPage() {
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
-      // Support both course_id (with underscore) and courseId (camelCase)
-      const courseId = urlParams.get('course_id') || urlParams.get('courseId');
+      // Support all case variations of course_id
+      const courseId = getCourseIdParam();
       const assignmentName = urlParams.get('assignmentName');
       
       // Validate courseId (should be numeric)
@@ -135,8 +153,8 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
-                // Support both course_id (with underscore) and courseId (camelCase)
-                const courseId = urlParams.get('course_id') || urlParams.get('courseId');
+                // Support all case variations of course_id
+                const courseId = getCourseIdParam();
                 const assignmentName = urlParams.get('assignmentName');
                 
                 // Validate parameters
