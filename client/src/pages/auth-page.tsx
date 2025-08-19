@@ -67,7 +67,8 @@ export default function AuthPage() {
       const ssoParams = new URLSearchParams();
       
       if (validCourseId) {
-        ssoParams.append('courseId', validCourseId);
+        // Use course_id with underscore to match what the server expects
+        ssoParams.append('course_id', validCourseId);
       }
       if (validAssignmentName) {
         ssoParams.append('assignmentName', validAssignmentName);
@@ -147,7 +148,8 @@ export default function AuthPage() {
                 const ssoParams = new URLSearchParams();
                 
                 if (validCourseId) {
-                  ssoParams.append('courseId', validCourseId);
+                  // Use course_id with underscore to match what the server expects
+                  ssoParams.append('course_id', validCourseId);
                 }
                 if (validAssignmentName) {
                   ssoParams.append('assignmentName', validAssignmentName);
