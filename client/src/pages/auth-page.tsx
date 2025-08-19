@@ -79,8 +79,8 @@ export default function AuthPage() {
       console.log('[Auth Page] Found course_id parameter:', courseId);
       console.log('[Auth Page] Full URL params:', Array.from(urlParams.entries()));
       
-      // Validate courseId (should be numeric)
-      const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+      // Validate courseId (alphanumeric, spaces, dashes, underscores only)
+      const validCourseId = courseId && /^[a-zA-Z0-9\s\-_]+$/.test(courseId) ? courseId : null;
       // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
       const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
       
@@ -88,10 +88,10 @@ export default function AuthPage() {
       const ssoParams = new URLSearchParams();
       
       if (validCourseId) {
-        ssoParams.append('courseId', validCourseId);
+        ssoParams.append('course_id', validCourseId);
         console.log('[Auth Page] Adding courseId to SSO URL:', validCourseId);
       } else if (courseId) {
-        console.warn('[Auth Page] Invalid courseId format (not numeric):', courseId);
+        console.warn('[Auth Page] Invalid courseId format:', courseId);
       }
       
       if (validAssignmentName) {
@@ -165,14 +165,14 @@ export default function AuthPage() {
                 const assignmentName = urlParams.get('assignmentName');
                 
                 // Validate parameters
-                const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+                const validCourseId = courseId && /^[a-zA-Z0-9\s\-_]+$/.test(courseId) ? courseId : null;
                 const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
                 
                 let ssoUrl = authConfig.cognitoLoginUrl!;
                 const ssoParams = new URLSearchParams();
                 
                 if (validCourseId) {
-                  ssoParams.append('courseId', validCourseId);
+                  ssoParams.append('course_id', validCourseId);
                 }
                 if (validAssignmentName) {
                   ssoParams.append('assignmentName', validAssignmentName);
