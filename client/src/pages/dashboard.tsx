@@ -38,6 +38,8 @@ export default function Dashboard() {
           console.log('[Dashboard] Full URL:', window.location.href);
           console.log('[Dashboard] Search params:', window.location.search);
           console.log('[Dashboard] All URL params:', Array.from(urlParams.entries()));
+          console.log('[Dashboard] Raw search string:', window.location.search);
+          console.log('[Dashboard] Parsed params object:', Object.fromEntries(urlParams));
           
           // Check all parameter variations in a case-insensitive way
           urlParams.forEach((value, key) => {
@@ -113,15 +115,19 @@ export default function Dashboard() {
           }
         } else {
           // No course_id parameter, default to CPCU 500
+          console.log('[Dashboard] WARNING: No course_id parameter found in URL');
+          console.log('[Dashboard] URL at time of check:', window.location.href);
+          console.log('[Dashboard] Search params at time of check:', window.location.search);
+          
           const cpcu500 = courses.find(course => course.courseNumber === 'CPCU 500');
           
           if (cpcu500) {
             targetCourse = cpcu500;
-            console.log('No course_id parameter, defaulting to CPCU 500');
+            console.log('[Dashboard] No course_id parameter, defaulting to CPCU 500');
           } else {
             // Fallback to first course if CPCU 500 not found
             targetCourse = courses[0];
-            console.log('CPCU 500 not found, using first course');
+            console.log('[Dashboard] CPCU 500 not found, using first course');
           }
         }
       

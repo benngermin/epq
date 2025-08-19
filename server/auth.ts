@@ -59,23 +59,20 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: true, // Changed to true to ensure session persists during OAuth flow
-    saveUninitialized: true, // Changed to true to save session before OAuth redirect
+    resave: true, // Ensure session persists during OAuth flow
+    saveUninitialized: true, // Save session before OAuth redirect
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // Use 'none' in production for cross-origin
+      sameSite: process.env.NODE_ENV === "production" ? 'lax' : 'lax', // Use 'lax' for better compatibility
       path: '/', // Explicitly set path to ensure cookie is sent with all requests
       domain: undefined // Let the browser handle domain automatically
     },
     rolling: true, // Reset expiration on each request
-    name: 'connect.sid', // Standard session name for better compatibility
-    genid: (req) => {
-      // Preserve session ID if it exists
-      return req.sessionID || crypto.randomBytes(16).toString('hex');
-    }
+    name: 'institutes.sid' // Unique session name to avoid conflicts
+    // Removed genid function - let express-session handle ID generation
   };
 
   app.set("trust proxy", 1);

@@ -98,6 +98,8 @@ export class CognitoAuth {
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('[Cognito Auth] Login route hit with query params:', req.query);
       console.log('[Cognito Auth] Full URL:', req.url);
+      console.log('[Cognito Auth] Session ID at login:', req.sessionID);
+      console.log('[Cognito Auth] Session cookie:', req.headers.cookie);
 
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
@@ -131,8 +133,11 @@ export class CognitoAuth {
       if (courseIdParam) {
         req.session.courseId = courseIdParam;
         console.log(`[Cognito Auth] STORED courseId in session: ${courseIdParam} (from '${foundParamName}' param)`);
+        console.log('[Cognito Auth] Session ID after storing courseId:', req.sessionID);
+        console.log('[Cognito Auth] Full session object:', JSON.stringify(req.session));
       } else {
         console.log('[Cognito Auth] WARNING: No course_id parameter found in request');
+        console.log('[Cognito Auth] Available query params:', Object.keys(req.query));
       }
       
       if (req.query.assignmentName) {
@@ -154,10 +159,14 @@ export class CognitoAuth {
           assignmentName: req.session.assignmentName
         });
 
-        // Also encode the courseId in the state parameter as a backup
+        // Also encode the courseId and assignmentName in the state parameter as a backup
         let enhancedState = state;
         if (courseIdParam) {
           enhancedState = `${state}:${courseIdParam}`;
+          if (req.query.assignmentName) {
+            enhancedState += `:${req.query.assignmentName}`;
+          }
+          console.log('[Cognito Auth] Enhanced state with parameters:', enhancedState);
         }
 
         passport.authenticate('cognito', {
@@ -171,6 +180,8 @@ export class CognitoAuth {
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
         console.log('[Cognito Callback] Route hit! Session ID:', req.sessionID);
+        console.log('[Cognito Callback] Session cookie:', req.headers.cookie);
+        console.log('[Cognito Callback] Full session object:', JSON.stringify(req.session));
         console.log('[Cognito Callback] Session contents before auth:', {
           hasSession: !!req.session,
           state: req.session?.state,
@@ -181,13 +192,19 @@ export class CognitoAuth {
         // Extract courseId from state parameter if session lost it
         const stateParam = req.query.state as string;
         let extractedCourseId: string | undefined;
+        let extractedAssignmentName: string | undefined;
         let cleanState: string = stateParam;
         
         if (stateParam && stateParam.includes(':')) {
-          const [statePart, courseIdPart] = stateParam.split(':');
-          cleanState = statePart;
-          extractedCourseId = courseIdPart;
-          console.log('[Cognito Callback] Extracted courseId from state:', extractedCourseId);
+          const parts = stateParam.split(':');
+          cleanState = parts[0];
+          extractedCourseId = parts[1];
+          extractedAssignmentName = parts[2]; // Optional assignment name
+          console.log('[Cognito Callback] Extracted from state:', {
+            courseId: extractedCourseId,
+            assignmentName: extractedAssignmentName,
+            fullState: stateParam
+          });
         }
 
         // In development, we might have session issues - be more lenient
@@ -203,7 +220,14 @@ export class CognitoAuth {
         // If we lost the courseId in session but have it in state, restore it
         if (!req.session.courseId && extractedCourseId) {
           req.session.courseId = extractedCourseId;
-          console.log('[Cognito Callback] Restored courseId to session from state:', extractedCourseId);
+          console.log('[Cognito Callback] CRITICAL: Session lost courseId! Restored from state:', extractedCourseId);
+          console.log('[Cognito Callback] This indicates a session persistence issue');
+        }
+        
+        // Also restore assignment name if needed
+        if (!req.session.assignmentName && extractedAssignmentName) {
+          req.session.assignmentName = extractedAssignmentName;
+          console.log('[Cognito Callback] Restored assignmentName from state:', extractedAssignmentName);
         }
 
         // Clear the state from session
@@ -229,7 +253,9 @@ export class CognitoAuth {
 
         console.log('[Cognito Callback] Retrieved parameters from session:', {
           externalCourseId,
-          assignmentName
+          assignmentName,
+          sessionId: req.sessionID,
+          fullSession: JSON.stringify(req.session)
         });
 
         // Clear the stored parameters from session
