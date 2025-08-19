@@ -154,8 +154,14 @@ export class CognitoAuth {
           assignmentName: req.session.assignmentName
         });
 
+        // Also encode the courseId in the state parameter as a backup
+        let enhancedState = state;
+        if (courseIdParam) {
+          enhancedState = `${state}:${courseIdParam}`;
+        }
+
         passport.authenticate('cognito', {
-          state,
+          state: enhancedState,
           scope: 'openid email profile',
         })(req, res, next);
       });
@@ -172,14 +178,32 @@ export class CognitoAuth {
           assignmentName: req.session?.assignmentName
         });
 
+        // Extract courseId from state parameter if session lost it
+        const stateParam = req.query.state as string;
+        let extractedCourseId: string | undefined;
+        let cleanState: string = stateParam;
+        
+        if (stateParam && stateParam.includes(':')) {
+          const [statePart, courseIdPart] = stateParam.split(':');
+          cleanState = statePart;
+          extractedCourseId = courseIdPart;
+          console.log('[Cognito Callback] Extracted courseId from state:', extractedCourseId);
+        }
+
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
         // Verify state parameter (skip in development if session is missing)
-        if (!isDevelopment && req.query.state !== req.session.state) {
+        if (!isDevelopment && cleanState !== req.session.state && !cleanState.startsWith(req.session.state || '')) {
           console.log('[Cognito Callback] State mismatch detected');
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
+        }
+
+        // If we lost the courseId in session but have it in state, restore it
+        if (!req.session.courseId && extractedCourseId) {
+          req.session.courseId = extractedCourseId;
+          console.log('[Cognito Callback] Restored courseId to session from state:', extractedCourseId);
         }
 
         // Clear the state from session

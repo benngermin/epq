@@ -58,8 +58,8 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: false, // Prevent unnecessary session writes
-    saveUninitialized: false, // Don't save empty sessions
+    resave: true, // Changed to true to ensure session persists during OAuth flow
+    saveUninitialized: true, // Changed to true to save session before OAuth redirect
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
@@ -71,6 +71,10 @@ export function setupAuth(app: Express) {
     },
     rolling: true, // Reset expiration on each request
     name: 'connect.sid', // Standard session name for better compatibility
+    genid: (req) => {
+      // Preserve session ID if it exists
+      return req.sessionID || require('crypto').randomBytes(16).toString('hex');
+    }
   };
 
   app.set("trust proxy", 1);
