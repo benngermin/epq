@@ -104,8 +104,11 @@ export class CognitoAuth {
       req.session.state = state;
 
       // Capture URL parameters to preserve them through the OAuth flow
-      if (req.query.courseId) {
-        req.session.courseId = req.query.courseId as string;
+      // Support both course_id (with underscore) and courseId (camelCase)
+      const courseIdParam = req.query.course_id || req.query.courseId;
+      if (courseIdParam) {
+        req.session.courseId = courseIdParam as string;
+        console.log(`Stored courseId in session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
       }
       if (req.query.assignmentName) {
         req.session.assignmentName = req.query.assignmentName as string;
@@ -170,7 +173,10 @@ export class CognitoAuth {
         const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
 
-        console.log('Retrieved parameters from session');
+        console.log('Retrieved parameters from session:', {
+          externalCourseId,
+          assignmentName
+        });
 
         // Clear the stored parameters from session
         delete req.session.courseId;

@@ -54,7 +54,8 @@ export default function AuthPage() {
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
-      const courseId = urlParams.get('courseId');
+      // Support both course_id (with underscore) and courseId (camelCase)
+      const courseId = urlParams.get('course_id') || urlParams.get('courseId');
       const assignmentName = urlParams.get('assignmentName');
       
       // Validate courseId (should be numeric)
@@ -134,7 +135,8 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
-                const courseId = urlParams.get('courseId');
+                // Support both course_id (with underscore) and courseId (camelCase)
+                const courseId = urlParams.get('course_id') || urlParams.get('courseId');
                 const assignmentName = urlParams.get('assignmentName');
                 
                 // Validate parameters
