@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route, useSearch } from "wouter";
+import { Redirect, Route } from "wouter";
 
 export function ProtectedRoute({
   path,
@@ -10,7 +10,6 @@ export function ProtectedRoute({
   component: () => React.JSX.Element;
 }) {
   const { user, isLoading } = useAuth();
-  const searchParams = useSearch();
 
   return (
     <Route path={path}>
@@ -24,13 +23,6 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          // For debugging - log everything
-          console.log('[ProtectedRoute] Current location:', window.location.href);
-          console.log('[ProtectedRoute] Search params from wouter:', searchParams);
-          console.log('[ProtectedRoute] Path param:', path);
-          
-          // Temporarily try basic redirect first to test if auth route works
-          console.log('[ProtectedRoute] Redirecting to: /auth');
           return <Redirect to="/auth" />;
         }
 

@@ -88,12 +88,8 @@ export default function AuthPage() {
       const ssoParams = new URLSearchParams();
       
       if (validCourseId) {
-        // Preserve the original parameter name that was passed
-        const originalParamName = Array.from(urlParams.entries()).find(
-          ([key, value]) => (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') && value === courseId
-        )?.[0] || 'course_id';
-        ssoParams.append(originalParamName, validCourseId);
-        console.log(`[Auth Page] Adding ${originalParamName}=${validCourseId} to SSO URL`);
+        ssoParams.append('course_id', validCourseId);  // Use course_id to match external app
+        console.log('[Auth Page] Adding course_id to SSO URL:', validCourseId);
       } else if (courseId) {
         console.warn('[Auth Page] Invalid courseId format (not numeric):', courseId);
       }
@@ -176,11 +172,7 @@ export default function AuthPage() {
                 const ssoParams = new URLSearchParams();
                 
                 if (validCourseId) {
-                  // Preserve the original parameter name that was passed
-                  const originalParamName = Array.from(urlParams.entries()).find(
-                    ([key, value]) => (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') && value === courseId
-                  )?.[0] || 'course_id';
-                  ssoParams.append(originalParamName, validCourseId);
+                  ssoParams.append('course_id', validCourseId);  // Use course_id to match external app
                 }
                 if (validAssignmentName) {
                   ssoParams.append('assignmentName', validAssignmentName);
