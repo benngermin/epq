@@ -267,64 +267,6 @@ export class CognitoAuth {
         redirectUri: this.redirectUri,
       });
     });
-
-    // Diagnostic endpoint to test session and parameter handling
-    app.get('/auth/cognito/test-session', (req: Request, res: Response) => {
-      const testCourseId = req.query.course_id || req.query.courseId || '999';
-      
-      // Test 1: Store in session
-      req.session.courseId = testCourseId as string;
-      
-      // Test 2: Force save session
-      req.session.save((err) => {
-        if (err) {
-          res.json({
-            success: false,
-            error: 'Failed to save session',
-            details: err.message,
-            sessionId: req.sessionID,
-            sessionData: req.session,
-          });
-          return;
-        }
-        
-        // Test 3: Read back from session
-        const storedValue = req.session.courseId;
-        
-        res.json({
-          success: true,
-          test: 'Session persistence test',
-          stored: testCourseId,
-          retrieved: storedValue,
-          matches: testCourseId === storedValue,
-          sessionId: req.sessionID,
-          sessionCookie: req.headers.cookie,
-          redirectUrl: `/?course_id=${storedValue}`,
-          instructions: [
-            '1. This endpoint tests if sessions persist across requests',
-            '2. Visit this URL with ?course_id=XXX to test storing a value',
-            '3. Then visit /auth/cognito/test-retrieve to see if it persists',
-            '4. If "matches" is false, sessions are not persisting properly'
-          ]
-        });
-      });
-    });
-
-    // Companion endpoint to test session retrieval
-    app.get('/auth/cognito/test-retrieve', (req: Request, res: Response) => {
-      const storedCourseId = req.session.courseId;
-      
-      res.json({
-        success: !!storedCourseId,
-        retrieved: storedCourseId || 'NO VALUE FOUND',
-        sessionId: req.sessionID,
-        sessionCookie: req.headers.cookie,
-        sessionData: req.session,
-        conclusion: storedCourseId 
-          ? '✓ Session is persisting correctly' 
-          : '✗ Session is NOT persisting - this is the problem!'
-      });
-    });
   }
 
   getAuthUrl(): string {
