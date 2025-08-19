@@ -20,6 +20,20 @@ interface CognitoTokenPayload {
 declare module 'express-session' {
   interface SessionData {
     state?: string;
+    stateToken?: string;
+    courseId?: string;
+    assignmentName?: string;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      stateParams?: {
+        courseId?: string;
+        assignmentName?: string;
+      };
+    }
   }
 }
 
@@ -100,15 +114,24 @@ export class CognitoAuth {
         console.log('Cognito login route hit');
       }
 
-      const state = Math.random().toString(36).substring(2, 15);
-      req.session.state = state;
-
-      // Capture URL parameters to preserve them through the OAuth flow
-      // Support both course_id (with underscore) and courseId (camelCase)
+      // Create state object with random token and parameters
+      const stateData = {
+        token: Math.random().toString(36).substring(2, 15),
+        courseId: (req.query.course_id || req.query.courseId) as string | undefined,
+        assignmentName: req.query.assignmentName as string | undefined
+      };
+      
+      // Encode state as base64 JSON
+      const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+      
+      // Store just the token in session for validation
+      req.session.stateToken = stateData.token;
+      
+      // Also store in session as backup (keep existing logic)
       const courseIdParam = req.query.course_id || req.query.courseId;
       if (courseIdParam) {
         req.session.courseId = courseIdParam as string;
-        console.log(`Stored courseId in session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
+        console.log(`Stored courseId in state and session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
       }
       if (req.query.assignmentName) {
         req.session.assignmentName = req.query.assignmentName as string;
@@ -140,21 +163,38 @@ export class CognitoAuth {
           console.log('Cognito callback route hit!');
         }
 
+        // Decode state parameter to extract course information
+        let stateData: any = {};
+        try {
+          if (req.query.state) {
+            const stateString = Buffer.from(req.query.state as string, 'base64').toString();
+            stateData = JSON.parse(stateString);
+          }
+        } catch (error) {
+          console.error('Failed to decode state parameter:', error);
+        }
+
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
-        // Verify state parameter (skip in development if session is missing)
-        if (!isDevelopment && req.query.state !== req.session.state) {
+        // Verify state token (skip in development if session is missing)
+        if (!isDevelopment && stateData.token !== req.session.stateToken) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('State mismatch detected');
+            console.log('State token mismatch detected');
           }
 
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
         }
 
-        // Clear the state from session
-        delete req.session.state;
+        // Store the parameters from state in request for later use
+        req.stateParams = {
+          courseId: stateData.courseId,
+          assignmentName: stateData.assignmentName
+        };
+
+        // Clear the state token from session
+        delete req.session.stateToken;
 
         if (process.env.NODE_ENV === 'development') {
           console.log('State verified or skipped, authenticating with Cognito...');
@@ -169,13 +209,15 @@ export class CognitoAuth {
           console.log('Authentication successful');
         }
 
-        // Check if we have stored courseId from the initial request
-        const externalCourseId = req.session.courseId;
-        const assignmentName = req.session.assignmentName;
+        // Check for courseId from state parameter first, then fall back to session
+        const externalCourseId = (req as any).stateParams?.courseId || req.session.courseId;
+        const assignmentName = (req as any).stateParams?.assignmentName || req.session.assignmentName;
 
-        console.log('Retrieved parameters from session:', {
+        console.log('Retrieved parameters from state/session:', {
           externalCourseId,
-          assignmentName
+          assignmentName,
+          fromState: !!(req as any).stateParams?.courseId,
+          fromSession: !!req.session.courseId
         });
 
         // Clear the stored parameters from session
