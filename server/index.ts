@@ -81,6 +81,13 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    // Skip logging for chatbot streaming endpoints to reduce noise
+    if (path.includes("/api/chatbot/stream-chunk/") || 
+        path.includes("/api/chatbot/stream-init") ||
+        path.includes("/api/chatbot/stream-abort/")) {
+      return;
+    }
+    
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
