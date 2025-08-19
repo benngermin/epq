@@ -142,14 +142,17 @@ export class CognitoAuth {
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
-          console.error('Failed to save session:', err);
+          console.error('[Cognito Auth] Failed to save session:', err);
           // Redirect to auth page with error instead of returning JSON
           return res.redirect('/auth?error=session_save_failed');
         }
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Session saved successfully');
-        }
+        console.log('[Cognito Auth] Session saved successfully. Session ID:', req.sessionID);
+        console.log('[Cognito Auth] Session contents:', {
+          state: req.session.state,
+          courseId: req.session.courseId,
+          assignmentName: req.session.assignmentName
+        });
 
         passport.authenticate('cognito', {
           state,
@@ -161,19 +164,20 @@ export class CognitoAuth {
     // Callback route
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Cognito callback route hit!');
-        }
+        console.log('[Cognito Callback] Route hit! Session ID:', req.sessionID);
+        console.log('[Cognito Callback] Session contents before auth:', {
+          hasSession: !!req.session,
+          state: req.session?.state,
+          courseId: req.session?.courseId,
+          assignmentName: req.session?.assignmentName
+        });
 
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
         // Verify state parameter (skip in development if session is missing)
         if (!isDevelopment && req.query.state !== req.session.state) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('State mismatch detected');
-          }
-
+          console.log('[Cognito Callback] State mismatch detected');
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
         }
@@ -181,9 +185,7 @@ export class CognitoAuth {
         // Clear the state from session
         delete req.session.state;
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('State verified or skipped, authenticating with Cognito...');
-        }
+        console.log('[Cognito Callback] State verified, authenticating with Cognito...');
         passport.authenticate('cognito', {
           failureRedirect: '/auth?error=cognito_failed',
         })(req, res, next);
