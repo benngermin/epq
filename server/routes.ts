@@ -75,14 +75,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`OpenRouter API error details (non-streaming):`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries()),
-        apiKeyPresent: !!apiKey,
-        apiKeyLength: apiKey?.length || 0
-      });
+      // OpenRouter API error (non-streaming)
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -95,41 +88,13 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
     const aiResponse = data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
     const responseTime = Date.now() - startTime;
 
-    // Log the interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse,
-        temperature: 0, // Always deterministic
-        maxTokens,
-        responseTime,
-      });
-    } catch (logError) {
-      console.error("Failed to log chatbot interaction:", logError);
-    }
+    // Chatbot logging removed
     
     return aiResponse;
   } catch (error) {
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
-    // Log the error interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse: errorResponse,
-        temperature: 0,
-        maxTokens,
-        responseTime: Date.now() - startTime,
-      });
-    } catch (logError) {
-      console.error("Failed to log chatbot error:", logError);
-    }
+    // Error logging removed
     
     return errorResponse;
   }
@@ -157,7 +122,7 @@ setInterval(() => {
   
   streamEntries.forEach(([streamId, stream]) => {
     if (!stream.done && !stream.aborted && (now - stream.lastActivity) > STREAM_TIMEOUT) {
-      console.warn(`Stream ${streamId} timed out - marking as done`);
+      // Stream timed out - marking as done
       stream.error = "Stream timed out. Please try again.";
       stream.done = true;
     }
@@ -176,7 +141,7 @@ function cleanupStream(streamId: string) {
       activeStreams.delete(streamId);
     }
   } catch (error) {
-    console.error(`Error cleaning up stream ${streamId}:`, error);
+    // Error cleaning up stream
     // Force delete even if there was an error
     activeStreams.delete(streamId);
   }
@@ -201,17 +166,14 @@ setInterval(() => {
     }
     // Force clean up any stream older than 10 minutes regardless of state
     else if ((now - stream.lastActivity) > staleStreamAge) {
-      console.warn(`Force cleaning stale stream: ${streamId}`);
+      // Force cleaning stale stream
       stream.done = true;
       stream.error = "Stream expired";
       cleanupStream(streamId);
     }
   });
   
-  // Also log current stream count for monitoring
-  if (activeStreams.size > 10) {
-    console.warn(`High number of active streams: ${activeStreams.size}`);
-  }
+  // Stream count monitoring removed
 }, 60000); // Run every minute
 
 // Streaming OpenRouter integration for buffer approach
@@ -259,19 +221,7 @@ async function streamOpenRouterToBuffer(
       messages.push({ role: "user", content: prompt });
     }
 
-    // Log the complete API request for debugging
-    console.log('\n=== OPENROUTER API CALL ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Model:', modelName);
-    console.log('Temperature:', temperature);
-    console.log('Max Tokens:', maxTokens);
-    console.log('Messages being sent:');
-    messages.forEach((msg, index) => {
-      console.log(`Message ${index + 1} (${msg.role}):`);
-      console.log('Content length:', msg.content.length, 'characters');
-      console.log('Full content:', msg.content);
-    });
-    console.log('=========================\n');
+    // API request logging removed
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -291,14 +241,7 @@ async function streamOpenRouterToBuffer(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`OpenRouter API error details:`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries()),
-        apiKeyPresent: !!apiKey,
-        apiKeyLength: apiKey?.length || 0
-      });
+      // OpenRouter API error
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -325,7 +268,7 @@ async function streamOpenRouterToBuffer(
         
         // Check if stream has been running too long
         if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
-          console.warn(`Stream ${streamId} exceeded max duration of ${STREAM_MAX_DURATION}ms`);
+          // Stream exceeded max duration
           stream.error = "Response took too long. Please try again.";
           await reader.cancel();
           break;
@@ -370,17 +313,14 @@ async function streamOpenRouterToBuffer(
             const finishReason = parsed.choices?.[0]?.finish_reason;
             if (finishReason) {
               if (finishReason === 'length') {
-                console.warn(`Stream ${streamId} hit max token limit`);
+                // Stream hit max token limit
               }
               // Mark as done when we receive a finish reason
               isDone = true;
               break;
             }
           } catch (e) {
-            // Log parsing errors for debugging
-            if (data && data !== '') {
-              console.warn(`Failed to parse streaming chunk: ${(e as Error).message}, data: ${data.substring(0, 100)}`);
-            }
+            // Parsing error ignored
           }
         }
       }
@@ -402,12 +342,12 @@ async function streamOpenRouterToBuffer(
             stream.chunks = [fullResponse];
           }
         } catch (e) {
-          console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
+          // Failed to parse final buffer
         }
       }
     }
     } catch (error) {
-      console.error(`Stream ${streamId} processing error:`, error);
+      // Stream processing error
       stream.error = error instanceof Error ? error.message : 'Stream processing failed';
       throw error;
     } finally {
@@ -423,48 +363,20 @@ async function streamOpenRouterToBuffer(
     
     // Stream completion details removed
 
-    // Log the complete interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse: fullResponse,
-        temperature: 0,
-        maxTokens,
-        responseTime,
-      });
-    } catch (logError) {
-      console.error("Failed to log chatbot interaction:", logError);
-    }
+    // Chatbot logging removed
     
     // Mark stream as done after successful completion
     stream.done = true;
     stream.chunks = [fullResponse]; // Ensure final content is set
 
   } catch (error) {
-    console.error("OpenRouter streaming error:", error);
+    // OpenRouter streaming error
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
     stream.error = errorResponse;
     stream.done = true;
     
-    // Log the error interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse: errorResponse,
-        temperature: 0,
-        maxTokens,
-        responseTime: Date.now() - startTime,
-      });
-    } catch (logError) {
-      console.error("Failed to log chatbot error:", logError);
-    }
+    // Error logging removed
   }
 
   
@@ -489,14 +401,7 @@ export function registerRoutes(app: Express): Server {
 
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
-      // Only log errors for non-user endpoint requests to reduce noise
-      if (req.path !== '/api/user') {
-        console.error(`Authentication failed for ${req.method} ${req.path}:`, {
-          isAuthenticated: req.isAuthenticated(),
-          hasUser: !!req.user,
-          isChatbotEndpoint: req.path.includes('/chatbot')
-        });
-      }
+      // Authentication check without logging
       return res.status(401).json({ message: "Authentication required" });
     }
     next();
@@ -1254,7 +1159,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ response });
     } catch (error) {
-      console.error("Simple chatbot error:", error);
+      // Simple chatbot error
       res.status(500).json({ error: "Failed to get AI response" });
     }
   });
@@ -1299,7 +1204,7 @@ export function registerRoutes(app: Express): Server {
       
       res.json({ streamId });
     } catch (error) {
-      console.error("Error initializing stream:", error);
+      // Error initializing stream
       res.status(500).json({ error: "Failed to initialize stream" });
     }
   });
@@ -1416,7 +1321,7 @@ export function registerRoutes(app: Express): Server {
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving feedback:", error);
+      // Error saving feedback
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
       }
@@ -1562,7 +1467,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
     } catch (error) {
-      console.error("Background processing error:", error);
+      // Background processing error
       const stream = activeStreams.get(streamId);
       if (stream) {
         stream.error = "Failed to process request";
@@ -1683,7 +1588,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const response = await callOpenRouter(prompt, aiSettings, req.user!.id, activePrompt?.promptText);
       res.json({ response });
     } catch (error) {
-      console.error("Error calling chatbot:", error);
+      // Error calling chatbot
       res.status(500).json({ message: "Failed to get AI response" });
     }
   });
@@ -1969,7 +1874,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const logs = await storage.getChatbotLogs();
       res.json(logs);
     } catch (error) {
-      console.error("Error fetching chatbot logs:", error);
+      // Error fetching chatbot logs
       res.status(500).json({ message: "Failed to fetch chatbot logs" });
     }
   });
