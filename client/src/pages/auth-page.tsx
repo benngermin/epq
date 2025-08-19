@@ -79,8 +79,8 @@ export default function AuthPage() {
       console.log('[Auth Page] Found course_id parameter:', courseId);
       console.log('[Auth Page] Full URL params:', Array.from(urlParams.entries()));
       
-      // Validate courseId (should be numeric)
-      const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+      // Validate courseId (alphanumeric with possible underscores/dashes)
+      const validCourseId = courseId && /^[a-zA-Z0-9\-_]+$/.test(courseId) ? courseId : null;
       // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
       const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
       
@@ -164,8 +164,8 @@ export default function AuthPage() {
                 const courseId = getCourseIdParam();
                 const assignmentName = urlParams.get('assignmentName');
                 
-                // Validate parameters
-                const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+                // Validate parameters (alphanumeric with possible underscores/dashes)
+                const validCourseId = courseId && /^[a-zA-Z0-9\-_]+$/.test(courseId) ? courseId : null;
                 const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
                 
                 let ssoUrl = authConfig.cognitoLoginUrl!;
