@@ -26,24 +26,6 @@ export default function AuthPage() {
   // Parse and validate URL params
   const urlParams = new URLSearchParams(searchParams);
   
-  // Helper function to get course_id parameter (case-insensitive)
-  const getCourseIdParam = (): string | null => {
-    // Check all possible variations of course_id parameter
-    const variations = ['course_id', 'Course_ID', 'Course_id', 'courseId', 'CourseId', 'courseid', 'COURSE_ID'];
-    for (const variation of variations) {
-      const value = urlParams.get(variation);
-      if (value) return value;
-    }
-    // Also check all params for any case variation of course_id or courseId
-    const entries = Array.from(urlParams.entries());
-    for (const [key, value] of entries) {
-      if (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') {
-        return value;
-      }
-    }
-    return null;
-  };
-  
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
   const validErrors = ['state_mismatch', 'cognito_failed', 'session_save_failed', 'authentication_failed'];
@@ -72,12 +54,9 @@ export default function AuthPage() {
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
-      // Support all case variations of course_id
-      const courseId = getCourseIdParam();
+      // Support both course_id (with underscore) and courseId (camelCase)
+      const courseId = urlParams.get('course_id') || urlParams.get('courseId');
       const assignmentName = urlParams.get('assignmentName');
-      
-      console.log('[Auth Page] Found course_id parameter:', courseId);
-      console.log('[Auth Page] Full URL params:', Array.from(urlParams.entries()));
       
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
@@ -88,12 +67,8 @@ export default function AuthPage() {
       const ssoParams = new URLSearchParams();
       
       if (validCourseId) {
-        ssoParams.append('course_id', validCourseId);  // Use course_id to match external app
-        console.log('[Auth Page] Adding course_id to SSO URL:', validCourseId);
-      } else if (courseId) {
-        console.warn('[Auth Page] Invalid courseId format (not numeric):', courseId);
+        ssoParams.append('courseId', validCourseId);
       }
-      
       if (validAssignmentName) {
         ssoParams.append('assignmentName', validAssignmentName);
       }
@@ -102,7 +77,7 @@ export default function AuthPage() {
         ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
       }
       
-      console.log('[Auth Page] Final SSO redirect URL:', ssoUrl);
+      console.log('Redirecting to SSO with params:', ssoUrl);
       window.location.href = ssoUrl;
     }
   }, [authConfig, user, urlParams]);
@@ -160,8 +135,8 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
-                // Support all case variations of course_id
-                const courseId = getCourseIdParam();
+                // Support both course_id (with underscore) and courseId (camelCase)
+                const courseId = urlParams.get('course_id') || urlParams.get('courseId');
                 const assignmentName = urlParams.get('assignmentName');
                 
                 // Validate parameters
@@ -172,7 +147,7 @@ export default function AuthPage() {
                 const ssoParams = new URLSearchParams();
                 
                 if (validCourseId) {
-                  ssoParams.append('course_id', validCourseId);  // Use course_id to match external app
+                  ssoParams.append('courseId', validCourseId);
                 }
                 if (validAssignmentName) {
                   ssoParams.append('assignmentName', validAssignmentName);

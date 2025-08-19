@@ -11,37 +11,6 @@ dotenv.config();
 
 const app = express();
 
-// Add dedicated health check endpoints FIRST - before any middleware that could slow down responses
-app.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
-// Also handle root path health checks
-app.get("/", (req, res, next) => {
-  // If this is a health check request (typically from load balancers)
-  const userAgent = req.get('User-Agent') || '';
-  const isHealthCheck = userAgent.includes('ELB-HealthChecker') || 
-                       userAgent.includes('HealthChecker') ||
-                       userAgent.includes('ALB-HealthChecker') ||
-                       req.get('X-Health-Check') === 'true' ||
-                       req.query.health === 'check';
-  
-  if (isHealthCheck) {
-    return res.status(200).json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
-  }
-  
-  // Otherwise, continue to static file serving or Vite
-  next();
-});
-
 // Security headers
 app.use((req, res, next) => {
   // Prevent XSS attacks
@@ -131,16 +100,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  let server;
+  // Initialize database indexes for performance
+  await createDatabaseIndexes();
   
-  try {
-    server = await registerRoutes(app);
-  } catch (error) {
-    console.error('Failed to register routes:', error);
-    // Continue with a basic server setup for health checks
-    const { createServer } = await import("http");
-    server = createServer(app);
-  }
+  const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -183,18 +146,6 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    
-    // Initialize database indexes after server is running to avoid blocking health checks
-    setTimeout(async () => {
-      try {
-        log('Initializing database indexes...');
-        await createDatabaseIndexes();
-        log('Database indexes initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize database indexes:', error);
-        // Don't exit the process - the server should continue running
-      }
-    }, 1000); // Wait 1 second after server starts
   });
 
   // Graceful shutdown handlers

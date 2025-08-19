@@ -96,50 +96,20 @@ export class CognitoAuth {
 
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
-      console.log('[Cognito Auth] Login route hit with query params:', req.query);
-      console.log('[Cognito Auth] Full URL:', req.url);
-      console.log('[Cognito Auth] Session ID at login:', req.sessionID);
-      console.log('[Cognito Auth] Session cookie:', req.headers.cookie);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cognito login route hit');
+      }
 
       const state = Math.random().toString(36).substring(2, 15);
       req.session.state = state;
 
       // Capture URL parameters to preserve them through the OAuth flow
-      // Support all case variations of course_id
-      let courseIdParam: string | undefined;
-      let foundParamName: string | undefined;
-      
-      // Check all common variations of course_id
-      const variations = ['course_id', 'Course_ID', 'Course_id', 'courseId', 'CourseId', 'courseid', 'COURSE_ID'];
-      for (const variation of variations) {
-        if (req.query[variation]) {
-          courseIdParam = req.query[variation] as string;
-          foundParamName = variation;
-          break;
-        }
-      }
-      
-      // If not found in common variations, check all query params case-insensitively
-      if (!courseIdParam) {
-        for (const [key, value] of Object.entries(req.query)) {
-          if (key.toLowerCase() === 'course_id' || key.toLowerCase() === 'courseid') {
-            courseIdParam = value as string;
-            foundParamName = key;
-            break;
-          }
-        }
-      }
-      
+      // Support both course_id (with underscore) and courseId (camelCase)
+      const courseIdParam = req.query.course_id || req.query.courseId;
       if (courseIdParam) {
-        req.session.courseId = courseIdParam;
-        console.log(`[Cognito Auth] STORED courseId in session: ${courseIdParam} (from '${foundParamName}' param)`);
-        console.log('[Cognito Auth] Session ID after storing courseId:', req.sessionID);
-        console.log('[Cognito Auth] Full session object:', JSON.stringify(req.session));
-      } else {
-        console.log('[Cognito Auth] WARNING: No course_id parameter found in request');
-        console.log('[Cognito Auth] Available query params:', Object.keys(req.query));
+        req.session.courseId = courseIdParam as string;
+        console.log(`Stored courseId in session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
       }
-      
       if (req.query.assignmentName) {
         req.session.assignmentName = req.query.assignmentName as string;
       }
@@ -147,30 +117,17 @@ export class CognitoAuth {
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
-          console.error('[Cognito Auth] Failed to save session:', err);
+          console.error('Failed to save session:', err);
           // Redirect to auth page with error instead of returning JSON
           return res.redirect('/auth?error=session_save_failed');
         }
 
-        console.log('[Cognito Auth] Session saved successfully. Session ID:', req.sessionID);
-        console.log('[Cognito Auth] Session contents:', {
-          state: req.session.state,
-          courseId: req.session.courseId,
-          assignmentName: req.session.assignmentName
-        });
-
-        // Also encode the courseId and assignmentName in the state parameter as a backup
-        let enhancedState = state;
-        if (courseIdParam) {
-          enhancedState = `${state}:${courseIdParam}`;
-          if (req.query.assignmentName) {
-            enhancedState += `:${req.query.assignmentName}`;
-          }
-          console.log('[Cognito Auth] Enhanced state with parameters:', enhancedState);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Session saved successfully');
         }
 
         passport.authenticate('cognito', {
-          state: enhancedState,
+          state,
           scope: 'openid email profile',
         })(req, res, next);
       });
@@ -179,111 +136,79 @@ export class CognitoAuth {
     // Callback route
     app.get('/auth/cognito/callback', 
       (req: Request, res: Response, next: NextFunction) => {
-        console.log('[Cognito Callback] Route hit! Session ID:', req.sessionID);
-        console.log('[Cognito Callback] Session cookie:', req.headers.cookie);
-        console.log('[Cognito Callback] Full session object:', JSON.stringify(req.session));
-        console.log('[Cognito Callback] Session contents before auth:', {
-          hasSession: !!req.session,
-          state: req.session?.state,
-          courseId: req.session?.courseId,
-          assignmentName: req.session?.assignmentName
-        });
-
-        // Extract courseId from state parameter if session lost it
-        const stateParam = req.query.state as string;
-        let extractedCourseId: string | undefined;
-        let extractedAssignmentName: string | undefined;
-        let cleanState: string = stateParam;
-        
-        if (stateParam && stateParam.includes(':')) {
-          const parts = stateParam.split(':');
-          cleanState = parts[0];
-          extractedCourseId = parts[1];
-          extractedAssignmentName = parts[2]; // Optional assignment name
-          console.log('[Cognito Callback] Extracted from state:', {
-            courseId: extractedCourseId,
-            assignmentName: extractedAssignmentName,
-            fullState: stateParam
-          });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Cognito callback route hit!');
         }
 
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
         // Verify state parameter (skip in development if session is missing)
-        if (!isDevelopment && cleanState !== req.session.state && !cleanState.startsWith(req.session.state || '')) {
-          console.log('[Cognito Callback] State mismatch detected');
+        if (!isDevelopment && req.query.state !== req.session.state) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('State mismatch detected');
+          }
+
           // Instead of returning JSON error, redirect to auth page with error
           return res.redirect('/auth?error=state_mismatch');
-        }
-
-        // If we lost the courseId in session but have it in state, restore it
-        if (!req.session.courseId && extractedCourseId) {
-          req.session.courseId = extractedCourseId;
-          console.log('[Cognito Callback] CRITICAL: Session lost courseId! Restored from state:', extractedCourseId);
-          console.log('[Cognito Callback] This indicates a session persistence issue');
-        }
-        
-        // Also restore assignment name if needed
-        if (!req.session.assignmentName && extractedAssignmentName) {
-          req.session.assignmentName = extractedAssignmentName;
-          console.log('[Cognito Callback] Restored assignmentName from state:', extractedAssignmentName);
         }
 
         // Clear the state from session
         delete req.session.state;
 
-        console.log('[Cognito Callback] State verified, authenticating with Cognito...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('State verified or skipped, authenticating with Cognito...');
+        }
         passport.authenticate('cognito', {
           failureRedirect: '/auth?error=cognito_failed',
         })(req, res, next);
       },
       async (req: Request, res: Response) => {
         // Successful authentication
-        console.log('[Cognito Callback] Authentication successful');
-        console.log('[Cognito Callback] Session data:', {
-          sessionId: req.sessionID,
-          hasSession: !!req.session,
-          sessionKeys: req.session ? Object.keys(req.session) : []
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Authentication successful');
+        }
 
         // Check if we have stored courseId from the initial request
         const externalCourseId = req.session.courseId;
         const assignmentName = req.session.assignmentName;
 
-        console.log('[Cognito Callback] Retrieved parameters from session:', {
+        console.log('Retrieved parameters from session:', {
           externalCourseId,
-          assignmentName,
-          sessionId: req.sessionID,
-          fullSession: JSON.stringify(req.session)
+          assignmentName
         });
 
         // Clear the stored parameters from session
         delete req.session.courseId;
         delete req.session.assignmentName;
 
-        // Build redirect URL with parameters
+        // Determine redirect URL based on external course ID
         let redirectUrl = '/';
-        const queryParams = new URLSearchParams();
 
-        // Always pass course_id to the dashboard if we have it
         if (externalCourseId) {
-          queryParams.append('course_id', externalCourseId);
-          console.log(`[Cognito Callback] PASSING course_id=${externalCourseId} to dashboard`);
-        } else {
-          console.log('[Cognito Callback] WARNING: No course_id to pass to dashboard');
-        }
+          try {
+            // Import storage to look up course
+            const { storage } = await import('./storage.js');
+            const course = await storage.getCourseByExternalId(externalCourseId);
 
-        if (assignmentName) {
-          queryParams.append('assignment_name', assignmentName);
-        }
+            if (course) {
+              // Get the first question set for this course
+              const questionSets = await storage.getQuestionSetsByCourse(course.id);
 
-        // Add query parameters to redirect URL
-        if (queryParams.toString()) {
-          redirectUrl += '?' + queryParams.toString();
+              if (questionSets.length > 0) {
+                // Redirect to the first question set of the course
+                redirectUrl = `/question-set/${questionSets[0].id}`;
+                console.log(`Redirecting to question set ${questionSets[0].id} for course ${course.courseTitle}`);
+              } else {
+                console.warn(`No question sets found for course ${course.courseTitle}`);
+              }
+            } else {
+              console.warn(`No course found with external ID: ${externalCourseId}`);
+            }
+          } catch (error) {
+            console.error('Error looking up course:', error);
+          }
         }
-
-        console.log(`[Cognito Callback] FINAL redirect URL: ${redirectUrl}`);
 
         // Save session before redirecting
         req.session.save((err) => {

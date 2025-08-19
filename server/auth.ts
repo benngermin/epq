@@ -8,7 +8,6 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
 import { authRateLimiter } from "./middleware/rate-limiter";
-import crypto from "crypto";
 
 declare global {
   namespace Express {
@@ -59,20 +58,19 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: true, // Ensure session persists during OAuth flow
-    saveUninitialized: true, // Save session before OAuth redirect
+    resave: false, // Prevent unnecessary session writes
+    saveUninitialized: false, // Don't save empty sessions
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: process.env.NODE_ENV === "production" ? 'lax' : 'lax', // Use 'lax' for better compatibility
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // Use 'none' in production for cross-origin
       path: '/', // Explicitly set path to ensure cookie is sent with all requests
       domain: undefined // Let the browser handle domain automatically
     },
     rolling: true, // Reset expiration on each request
-    name: 'institutes.sid' // Unique session name to avoid conflicts
-    // Removed genid function - let express-session handle ID generation
+    name: 'connect.sid', // Standard session name for better compatibility
   };
 
   app.set("trust proxy", 1);
