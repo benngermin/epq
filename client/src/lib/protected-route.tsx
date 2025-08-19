@@ -23,7 +23,8 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          return <Redirect to="/auth" />;
+          // Preserve URL parameters when redirecting to auth
+          return <Redirect to={`/auth${window.location.search}`} />;
         }
 
         return <Component />;
