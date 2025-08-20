@@ -107,6 +107,8 @@ export class CognitoAuth {
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
+      console.log('Query parameters received:', req.query);
+      console.log('Full URL:', req.url);
 
       // Create a state object that includes CSRF token and parameters
       const stateData = {
@@ -114,6 +116,8 @@ export class CognitoAuth {
         courseId: req.query.course_id || req.query.courseId || undefined,
         assignmentName: req.query.assignmentName || undefined
       };
+
+      console.log('State data to be encoded:', stateData);
 
       // Encode the state data as base64 JSON
       const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');

@@ -49,7 +49,10 @@ export default function AuthPage() {
       authConfig,
       ssoRequired: authConfig?.ssoRequired,
       cognitoLoginUrl: authConfig?.cognitoLoginUrl,
-      hasUser: !!user
+      hasUser: !!user,
+      currentUrl: window.location.href,
+      searchParams: window.location.search,
+      urlParamsEntries: Array.from(urlParams.entries())
     });
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
@@ -57,6 +60,13 @@ export default function AuthPage() {
       // Support both course_id (with underscore) and courseId (camelCase)
       const courseId = urlParams.get('course_id') || urlParams.get('courseId');
       const assignmentName = urlParams.get('assignmentName');
+      
+      console.log('SSO auto-redirect - Found parameters:', {
+        courseId,
+        assignmentName,
+        allParams: Array.from(urlParams.entries()),
+        rawSearch: window.location.search
+      });
       
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
@@ -78,7 +88,7 @@ export default function AuthPage() {
         ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
       }
       
-      console.log('Redirecting to SSO with params:', ssoUrl);
+      console.log('SSO auto-redirect - Final URL:', ssoUrl);
       window.location.href = ssoUrl;
     }
   }, [authConfig, user, urlParams]);
@@ -140,6 +150,14 @@ export default function AuthPage() {
                 const courseId = urlParams.get('course_id') || urlParams.get('courseId');
                 const assignmentName = urlParams.get('assignmentName');
                 
+                console.log('SSO button clicked - Found parameters:', {
+                  courseId,
+                  assignmentName,
+                  allParams: Array.from(urlParams.entries()),
+                  rawSearch: window.location.search,
+                  currentUrl: window.location.href
+                });
+                
                 // Validate parameters
                 const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
                 const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
@@ -159,6 +177,7 @@ export default function AuthPage() {
                   ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
                 }
                 
+                console.log('SSO button - Redirecting to:', ssoUrl);
                 window.location.href = ssoUrl;
               }}
               variant="default"
