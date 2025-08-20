@@ -71,9 +71,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     // Detect if screen is mobile (less than 768px)
     const isMobile = window.innerWidth < 768;
     
+    // Check if we're in demo mode
+    const isDemo = window.location.pathname.startsWith('/demo');
+    
     try {
       // Initialize streaming - pass conversation history for follow-up messages
-      const response = await fetch('/api/chatbot/stream-init', {
+      const response = await fetch(isDemo ? '/api/demo/chatbot/stream-init' : '/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -107,7 +110,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
         try {
-          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
+          const chunkResponse = await fetch(isDemo ? `/api/demo/chatbot/stream-chunk/${streamId}?cursor=${cursor}` : `/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
             signal: abortControllerRef.current?.signal,
           });
@@ -302,7 +305,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       if (currentStreamIdRef.current) {
         const streamId = currentStreamIdRef.current;
         currentStreamIdRef.current = "";
-        fetch(`/api/chatbot/stream-abort/${streamId}`, {
+        const isDemo = window.location.pathname.startsWith('/demo');
+        fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
           method: 'POST',
           credentials: 'include',
         }).catch(() => {

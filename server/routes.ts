@@ -3002,6 +3002,190 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Demo chatbot endpoints - No authentication required
+  // Initialize streaming for demo
+  app.post("/api/demo/chatbot/stream-init", aiRateLimiter.middleware(), async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      
+      // Use a demo user ID
+      const userId = -1; // Demo user ID
+      
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+      
+      const settings = await storage.getAiSettings();
+      
+      // Generate a stream ID for this session
+      const streamId = `demo_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Initialize stream storage with correct structure
+      activeStreams.set(streamId, {
+        chunks: [],
+        done: false,
+        lastActivity: Date.now(),
+        aborted: false,
+        conversationHistory: conversationHistory || []
+      });
+      
+      // Start async processing
+      (async () => {
+        const stream = activeStreams.get(streamId);
+        if (!stream || stream.aborted) return;
+        
+        try {
+          const aiSettings = await storage.getAiSettings();
+          const activePrompt = await storage.getActivePromptVersion();
+          
+          let prompt;
+          let systemMessage = undefined;
+          
+          if (userMessage) {
+            // For follow-up messages, simply use the user's message as the prompt
+            prompt = userMessage;
+          } else {
+            // Initial explanation with variable substitution
+            systemMessage = activePrompt?.promptText || 
+              `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive.`;
+            
+            // Format answer choices as a list
+            const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
+            
+            // Ensure chosenAnswer is not empty or undefined
+            const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+            
+            // Substitute variables in the prompt
+            systemMessage = systemMessage
+              .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+              .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+              .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+              .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+              .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+            
+            // For the initial message, the prompt is empty - the system message contains everything
+            prompt = "Please provide feedback on my answer.";
+          }
+          
+          // For mobile, add instruction to be concise
+          if (isMobile) {
+            systemMessage = (systemMessage || "") + "\n\nIMPORTANT: The user is on a mobile device. Keep your response concise and well-formatted for mobile viewing. Use short paragraphs and clear structure.";
+          }
+          
+          // Call OpenRouter
+          const aiResponse = await callOpenRouter(prompt, aiSettings, userId, systemMessage);
+          
+          // Update stream with final content
+          if (stream && !stream.aborted) {
+            stream.chunks.push(aiResponse);
+            stream.done = true;
+            stream.lastActivity = Date.now();
+          }
+          
+        } catch (error) {
+          console.error("Error in demo chatbot stream processing:", error);
+          if (stream) {
+            stream.error = error instanceof Error ? error.message : "Unknown error occurred";
+            stream.done = true;
+            stream.lastActivity = Date.now();
+          }
+        }
+      })();
+      
+      res.json({ streamId });
+    } catch (error) {
+      console.error("Error initializing demo chatbot stream:", error);
+      res.status(500).json({ message: "Failed to initialize chat stream" });
+    }
+  });
+
+  // Get stream chunk for demo
+  app.get("/api/demo/chatbot/stream-chunk/:streamId", async (req, res) => {
+    const streamId = req.params.streamId;
+    const cursor = parseInt(req.query.cursor as string) || 0;
+    const stream = activeStreams.get(streamId);
+    
+    if (!stream) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
+    
+    // Check if stream was aborted
+    if (stream.aborted) {
+      return res.json({
+        content: "",
+        newContent: "",
+        cursor: 0,
+        done: true,
+        error: "Stream was aborted"
+      });
+    }
+    
+    // Update activity timestamp for active streams
+    if (!stream.done) {
+      stream.lastActivity = Date.now();
+    }
+    
+    // Get full accumulated content
+    const fullContent = stream.chunks.join('');
+    
+    // Return only new content since cursor position
+    const newContent = cursor < fullContent.length ? fullContent.slice(cursor) : '';
+    
+    res.json({
+      content: fullContent, // Still send full content for compatibility
+      newContent, // New incremental content
+      cursor: fullContent.length, // New cursor position
+      done: stream.done,
+      error: stream.error
+    });
+    
+    // Clean up finished streams
+    if (stream.done) {
+      setTimeout(() => {
+        activeStreams.delete(streamId);
+      }, 2000);
+    }
+  });
+
+  // Abort stream for demo
+  app.post("/api/demo/chatbot/stream-abort/:streamId", async (req, res) => {
+    const streamId = req.params.streamId;
+    
+    // Clean up the stream
+    const stream = activeStreams.get(streamId);
+    if (stream) {
+      stream.done = true;
+      stream.error = "Stream aborted by user";
+      // Clean up after a delay
+      setTimeout(() => {
+        activeStreams.delete(streamId);
+      }, 5000);
+    }
+    
+    res.json({ success: true });
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ 

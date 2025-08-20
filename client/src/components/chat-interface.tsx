@@ -78,9 +78,12 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     // Detect if screen is mobile (less than 768px)
     const isMobile = window.innerWidth < 768;
     
+    // Check if we're in demo mode
+    const isDemo = window.location.pathname.startsWith('/demo');
+    
     try {
       // Use streaming endpoint
-      const response = await fetch('/api/chatbot/stream-init', {
+      const response = await fetch(isDemo ? '/api/demo/chatbot/stream-init' : '/api/chatbot/stream-init', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +115,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
         let chunkData: any = null;
         
         try {
-          const chunkResponse = await fetch(`/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
+          const chunkResponse = await fetch(isDemo ? `/api/demo/chatbot/stream-chunk/${streamId}?cursor=${cursor}` : `/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
             signal: AbortSignal.timeout(10000), // 10 second timeout per request
           });
@@ -272,7 +275,8 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
       // Abort server-side stream if active
       if (currentStreamIdRef.current) {
         const streamId = currentStreamIdRef.current;
-        fetch(`/api/chatbot/stream-abort/${streamId}`, {
+        const isDemo = window.location.pathname.startsWith('/demo');
+        fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
           method: 'POST',
           credentials: 'include',
         }).catch(() => {
