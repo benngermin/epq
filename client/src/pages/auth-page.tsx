@@ -19,20 +19,30 @@ export default function AuthPage() {
   
   // Version indicator to verify new code is loaded
   useEffect(() => {
-    console.log("Auth Page Version: 2.1 - Updated with dual parameter support");
-    console.log("Features: SSO + Admin Login buttons + dual parameter support");
+    console.log('\n=== CLIENT AUTH PAGE LOADED ===');
+    console.log('Version: 2.2 - With enhanced authentication flow debugging');
     
     // Enhanced parameter logging for debugging
     const params = new URLSearchParams(searchParams);
-    console.log('Auth Page Parameter Debug:', {
-      fullUrl: window.location.href,
-      search: window.location.search,
-      courseId: params.get('courseId'),
-      course_id: params.get('course_id'),
-      assignmentName: params.get('assignmentName'),
-      assignment_name: params.get('assignment_name'),
-      timestamp: new Date().toISOString()
-    });
+    console.log('\nURL Parameters Received:');
+    console.log('  Full URL:', window.location.href);
+    console.log('  Search params:', window.location.search);
+    console.log('  courseId (camelCase):', params.get('courseId') || 'NOT PRESENT');
+    console.log('  course_id (underscore):', params.get('course_id') || 'NOT PRESENT');
+    console.log('  assignmentName (camelCase):', params.get('assignmentName') || 'NOT PRESENT');
+    console.log('  assignment_name (underscore):', params.get('assignment_name') || 'NOT PRESENT');
+    
+    if (params.get('course_id')) {
+      console.log('  ✓ Found course_id parameter:', params.get('course_id'));
+      console.log('  ℹ️ This will be preserved through SSO flow');
+    }
+    if (params.get('courseId')) {
+      console.log('  ✓ Found courseId parameter:', params.get('courseId'));
+      console.log('  ℹ️ This will be preserved through SSO flow');
+    }
+    if (!params.get('course_id') && !params.get('courseId')) {
+      console.log('  ⚠️ No course parameter found - will use default course');
+    }
   }, [searchParams]);
   
   // Parse and validate URL params
@@ -89,7 +99,10 @@ export default function AuthPage() {
         ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
       }
       
-      console.log('Redirecting to SSO with params:', ssoUrl);
+      console.log('\n🔄 AUTO-REDIRECTING TO SSO');
+      console.log('  SSO URL:', ssoUrl);
+      console.log('  With courseId:', validCourseId || 'NONE');
+      console.log('  With assignmentName:', validAssignmentName || 'NONE');
       window.location.href = ssoUrl;
     }
   }, [authConfig, user, urlParams]);
@@ -169,6 +182,10 @@ export default function AuthPage() {
                   ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
                 }
                 
+                console.log('\n🔐 SSO BUTTON CLICKED');
+                console.log('  Redirecting to:', ssoUrl);
+                console.log('  With courseId:', validCourseId || 'NONE');
+                console.log('  With assignmentName:', validAssignmentName || 'NONE');
                 window.location.href = ssoUrl;
               }}
               variant="default"

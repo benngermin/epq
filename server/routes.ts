@@ -75,14 +75,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`OpenRouter API error details (non-streaming):`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries()),
-        apiKeyPresent: !!apiKey,
-        apiKeyLength: apiKey?.length || 0
-      });
+      // Removed OpenRouter error logging
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -108,7 +101,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         responseTime,
       });
     } catch (logError) {
-      console.error("Failed to log chatbot interaction:", logError);
+      // Removed chatbot interaction logging
     }
     
     return aiResponse;
@@ -128,7 +121,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         responseTime: Date.now() - startTime,
       });
     } catch (logError) {
-      console.error("Failed to log chatbot error:", logError);
+      // Removed chatbot error logging
     }
     
     return errorResponse;
@@ -157,7 +150,7 @@ setInterval(() => {
   
   streamEntries.forEach(([streamId, stream]) => {
     if (!stream.done && !stream.aborted && (now - stream.lastActivity) > STREAM_TIMEOUT) {
-      console.warn(`Stream ${streamId} timed out - marking as done`);
+      // Stream timeout - marking as done
       stream.error = "Stream timed out. Please try again.";
       stream.done = true;
     }
@@ -176,7 +169,7 @@ function cleanupStream(streamId: string) {
       activeStreams.delete(streamId);
     }
   } catch (error) {
-    console.error(`Error cleaning up stream ${streamId}:`, error);
+    // Error cleaning up stream
     // Force delete even if there was an error
     activeStreams.delete(streamId);
   }
@@ -201,7 +194,7 @@ setInterval(() => {
     }
     // Force clean up any stream older than 10 minutes regardless of state
     else if ((now - stream.lastActivity) > staleStreamAge) {
-      console.warn(`Force cleaning stale stream: ${streamId}`);
+      // Force cleaning stale stream
       stream.done = true;
       stream.error = "Stream expired";
       cleanupStream(streamId);
@@ -210,7 +203,7 @@ setInterval(() => {
   
   // Also log current stream count for monitoring
   if (activeStreams.size > 10) {
-    console.warn(`High number of active streams: ${activeStreams.size}`);
+    // High number of active streams
   }
 }, 60000); // Run every minute
 
@@ -260,7 +253,7 @@ async function streamOpenRouterToBuffer(
     }
 
     // Log the complete API request for debugging
-    console.log('\n=== OPENROUTER API CALL ===');
+    // OpenRouter API call
     console.log('Timestamp:', new Date().toISOString());
     console.log('Model:', modelName);
     console.log('Temperature:', temperature);
@@ -291,14 +284,7 @@ async function streamOpenRouterToBuffer(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`OpenRouter API error details:`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries()),
-        apiKeyPresent: !!apiKey,
-        apiKeyLength: apiKey?.length || 0
-      });
+      // OpenRouter API error
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -325,7 +311,7 @@ async function streamOpenRouterToBuffer(
         
         // Check if stream has been running too long
         if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
-          console.warn(`Stream ${streamId} exceeded max duration of ${STREAM_MAX_DURATION}ms`);
+          // Stream exceeded max duration
           stream.error = "Response took too long. Please try again.";
           await reader.cancel();
           break;
@@ -370,7 +356,7 @@ async function streamOpenRouterToBuffer(
             const finishReason = parsed.choices?.[0]?.finish_reason;
             if (finishReason) {
               if (finishReason === 'length') {
-                console.warn(`Stream ${streamId} hit max token limit`);
+                // Stream hit max token limit
               }
               // Mark as done when we receive a finish reason
               isDone = true;
@@ -379,7 +365,7 @@ async function streamOpenRouterToBuffer(
           } catch (e) {
             // Log parsing errors for debugging
             if (data && data !== '') {
-              console.warn(`Failed to parse streaming chunk: ${(e as Error).message}, data: ${data.substring(0, 100)}`);
+              // Failed to parse streaming chunk
             }
           }
         }
@@ -407,7 +393,7 @@ async function streamOpenRouterToBuffer(
       }
     }
     } catch (error) {
-      console.error(`Stream ${streamId} processing error:`, error);
+      // Stream processing error
       stream.error = error instanceof Error ? error.message : 'Stream processing failed';
       throw error;
     } finally {
@@ -436,7 +422,7 @@ async function streamOpenRouterToBuffer(
         responseTime,
       });
     } catch (logError) {
-      console.error("Failed to log chatbot interaction:", logError);
+      // Removed chatbot interaction logging
     }
     
     // Mark stream as done after successful completion
@@ -444,7 +430,7 @@ async function streamOpenRouterToBuffer(
     stream.chunks = [fullResponse]; // Ensure final content is set
 
   } catch (error) {
-    console.error("OpenRouter streaming error:", error);
+    // OpenRouter streaming error
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
     stream.error = errorResponse;
@@ -463,7 +449,7 @@ async function streamOpenRouterToBuffer(
         responseTime: Date.now() - startTime,
       });
     } catch (logError) {
-      console.error("Failed to log chatbot error:", logError);
+      // Removed chatbot error logging
     }
   }
 
@@ -1299,7 +1285,7 @@ export function registerRoutes(app: Express): Server {
       
       res.json({ streamId });
     } catch (error) {
-      console.error("Error initializing stream:", error);
+      // Error initializing stream
       res.status(500).json({ error: "Failed to initialize stream" });
     }
   });
@@ -1562,7 +1548,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
     } catch (error) {
-      console.error("Background processing error:", error);
+      // Background processing error
       const stream = activeStreams.get(streamId);
       if (stream) {
         stream.error = "Failed to process request";
