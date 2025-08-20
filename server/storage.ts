@@ -349,35 +349,6 @@ export class DatabaseStorage implements IStorage {
       return mappedCourse || undefined;
     }
     
-    // If still not found, try matching by course number (handles "AIC 300", "CPCU 555", etc.)
-    // This supports both formats with and without spaces
-    const normalizedId = externalId.replace(/\s+/g, ' ').trim();
-    const [courseByNumber] = await db.select()
-      .from(courses)
-      .where(eq(courses.courseNumber, normalizedId))
-      .orderBy(asc(courses.isAi)) // Prefer AI version if multiple exist
-      .limit(1);
-    
-    if (courseByNumber) {
-      console.log(`✓ Found course by number match: "${normalizedId}" → Course ID ${courseByNumber.id}`);
-      return courseByNumber;
-    }
-    
-    // Also try without spaces (e.g., "AIC300" → "AIC 300")
-    const withSpace = externalId.replace(/([A-Z]+)(\d+)/, '$1 $2');
-    if (withSpace !== externalId) {
-      const [courseByNumberWithSpace] = await db.select()
-        .from(courses)
-        .where(eq(courses.courseNumber, withSpace))
-        .orderBy(asc(courses.isAi))
-        .limit(1);
-      
-      if (courseByNumberWithSpace) {
-        console.log(`✓ Found course by number match with space: "${withSpace}" → Course ID ${courseByNumberWithSpace.id}`);
-        return courseByNumberWithSpace;
-      }
-    }
-    
     return undefined;
   }
 

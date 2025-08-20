@@ -113,6 +113,13 @@ export class CognitoAuth {
       const courseId = req.query.courseId || req.query.course_id;
       const assignmentName = req.query.assignmentName || req.query.assignment_name;
       
+      // Enhanced logging for debugging course ID issues
+      console.log('\nDEBUG: Course ID Processing');
+      console.log('  Raw courseId value:', courseId);
+      console.log('  Type of courseId:', typeof courseId);
+      console.log('  Length of courseId:', courseId ? String(courseId).length : 0);
+      console.log('  First 4 chars:', courseId ? String(courseId).substring(0, 4) : 'N/A');
+      
       // Create state object with parameters
       const stateData = {
         state: baseState,
@@ -128,6 +135,7 @@ export class CognitoAuth {
       if (courseId) {
         req.session.courseId = courseId as string;
         console.log('  ✓ Stored courseId in session and state:', courseId);
+        console.log('  Session storage confirmation:', req.session.courseId === courseId);
       }
       if (assignmentName) {
         req.session.assignmentName = assignmentName as string;
@@ -209,8 +217,18 @@ export class CognitoAuth {
         let externalCourseId = req.session.courseId;
         let assignmentName = req.session.assignmentName;
         
+        // Enhanced debug logging for parameter retrieval
+        console.log('\nDEBUG: Callback Parameter Retrieval');
+        console.log('  Session courseId:', req.session.courseId);
+        console.log('  Session courseId type:', typeof req.session.courseId);
+        console.log('  Session ID:', req.sessionID);
+        
         // Fallback to state parameters if session is empty
         const stateParams = (req as any).stateParams;
+        console.log('  State params object:', stateParams);
+        console.log('  State courseId:', stateParams?.courseId);
+        console.log('  State courseId type:', typeof stateParams?.courseId);
+        
         if (!externalCourseId && stateParams?.courseId) {
           externalCourseId = stateParams.courseId;
           console.log('  ✓ Retrieved courseId from STATE parameter:', externalCourseId);
@@ -222,6 +240,7 @@ export class CognitoAuth {
 
         console.log('\nStep 4: Parameters Retrieved');
         console.log('  Final courseId:', externalCourseId || 'NOT FOUND');
+        console.log('  Final courseId type:', typeof externalCourseId);
         console.log('  Final assignmentName:', assignmentName || 'NOT FOUND');
         
         // Log parameter preservation metrics
@@ -246,11 +265,20 @@ export class CognitoAuth {
           try {
             // Import storage to look up course
             const { storage } = await import('./storage.js');
-            const course = await storage.getCourseByExternalId(externalCourseId);
+            
+            console.log('\nDEBUG: Database Lookup');
+            console.log('  Looking up external ID:', externalCourseId);
+            console.log('  External ID type:', typeof externalCourseId);
+            console.log('  External ID as string:', String(externalCourseId));
+            
+            const course = await storage.getCourseByExternalId(String(externalCourseId));
+            
+            console.log('  Course lookup result:', course ? `Found: ${course.courseNumber} (ID: ${course.id})` : 'NOT FOUND');
 
             if (course) {
               // Get the first question set for this course
               const questionSets = await storage.getQuestionSetsByCourse(course.id);
+              console.log(`  Question sets found: ${questionSets.length}`);
 
               if (questionSets.length > 0) {
                 // Redirect to the first question set of the course
@@ -262,7 +290,7 @@ export class CognitoAuth {
               }
             } else {
               console.log(`  ⚠️ No course found with external ID: ${externalCourseId}`);
-              console.log('  Available courses should have external IDs like: 6128, 8431, 8432, etc.');
+              console.log('  Available courses should have external IDs like: 6128, 8426, 8431, 8432, etc.');
             }
           } catch (error) {
             console.log('  ⚠️ Error looking up course:', error);
