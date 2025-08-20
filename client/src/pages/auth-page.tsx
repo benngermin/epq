@@ -162,49 +162,8 @@ export default function AuthPage() {
           {authConfig?.hasCognitoSSO && (
             <Button 
               onClick={() => {
-                // Always use window.location.search as the source of truth
-                const currentSearch = window.location.search;
-                const currentUrlParams = new URLSearchParams(currentSearch);
-                
-                // Support both course_id (with underscore) and courseId (camelCase)
-                const courseId = currentUrlParams.get('course_id') || currentUrlParams.get('courseId');
-                const assignmentName = currentUrlParams.get('assignmentName');
-                
-                console.log('SSO button clicked - Current state:', {
-                  fullUrl: window.location.href,
-                  pathname: window.location.pathname,
-                  search: currentSearch,
-                  courseId,
-                  assignmentName,
-                  allParams: Array.from(currentUrlParams.entries())
-                });
-                
-                // Validate parameters
-                const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
-                const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
-                
-                let ssoUrl = authConfig.cognitoLoginUrl!;
-                const ssoParams = new URLSearchParams();
-                
-                if (validCourseId) {
-                  // Use course_id with underscore to match what the server expects
-                  ssoParams.append('course_id', validCourseId);
-                  console.log('Adding course_id to SSO URL:', validCourseId);
-                }
-                if (validAssignmentName) {
-                  ssoParams.append('assignmentName', validAssignmentName);
-                  console.log('Adding assignmentName to SSO URL:', validAssignmentName);
-                }
-                
-                if (ssoParams.toString()) {
-                  ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
-                  console.log('SSO button - URL with params:', ssoUrl);
-                } else {
-                  console.log('SSO button - No params to add, URL:', ssoUrl);
-                }
-                
-                console.log('SSO button - Final redirect URL:', ssoUrl);
-                window.location.href = ssoUrl;
+                const params = new URLSearchParams(window.location.search);
+                window.location.href = `/auth/cognito${params.toString() ? '?' + params.toString() : ''}`;
               }}
               variant="default"
               className="w-full"
