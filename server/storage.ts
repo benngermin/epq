@@ -330,10 +330,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCourseByExternalId(externalId: string): Promise<Course | undefined> {
+    // Debug logging for AIC 300 issue
+    if (process.env.NODE_ENV === 'development' && (externalId === '6128' || externalId === '8426')) {
+      console.log(`\nDEBUG: Looking up AIC 300 external ID: ${externalId}`);
+    }
+    
     // First check the courses table for direct external ID match
     const [course] = await db.select().from(courses).where(eq(courses.externalId, externalId));
     
     if (course) {
+      if (process.env.NODE_ENV === 'development' && course.courseNumber === 'AIC 300') {
+        console.log(`  ✓ Found AIC 300 in courses table: ID=${course.id}, AI=${course.isAi}`);
+      }
       return course;
     }
     
@@ -346,7 +354,16 @@ export class DatabaseStorage implements IStorage {
       const [mappedCourse] = await db.select()
         .from(courses)
         .where(eq(courses.id, mapping.courseId));
+      
+      if (mappedCourse && process.env.NODE_ENV === 'development' && mappedCourse.courseNumber === 'AIC 300') {
+        console.log(`  ✓ Found AIC 300 via mapping: ID=${mappedCourse.id}, AI=${mappedCourse.isAi}`);
+      }
+      
       return mappedCourse || undefined;
+    }
+    
+    if (process.env.NODE_ENV === 'development' && (externalId === '6128' || externalId === '8426')) {
+      console.log(`  ✗ AIC 300 NOT FOUND for external ID: ${externalId}`);
     }
     
     return undefined;
@@ -373,7 +390,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
-    return await db.select().from(questionSets).where(eq(questionSets.courseId, courseId));
+    const qSets = await db.select()
+      .from(questionSets)
+      .where(eq(questionSets.courseId, courseId))
+      .orderBy(asc(questionSets.id)); // Add explicit ordering
+    
+    // Debug logging for AIC 300 issue
+    if (process.env.NODE_ENV === 'development') {
+      const course = await this.getCourse(courseId);
+      if (course?.courseNumber === 'AIC 300') {
+        console.log(`DEBUG: Getting question sets for AIC 300 (course ID: ${courseId})`);
+        console.log(`  Found ${qSets.length} question sets:`, qSets.map((qs: QuestionSet) => ({
+          id: qs.id,
+          title: qs.title,
+          questionCount: qs.questionCount
+        })));
+      }
+    }
+    
+    return qSets;
   }
 
   async getQuestionSet(id: number): Promise<QuestionSet | undefined> {
