@@ -1,0 +1,362 @@
+## Executive Summary
+
+This document provides a comprehensive analysis and solution for the course_id parameter loss issue during Cognito SSO authentication redirects in the Exam Practice Questions application. The root cause has been identified as multiple parameter naming inconsistencies and missing parameter preservation logic throughout the authentication flow. This issue affects all courses, causing users to be redirected to the default course (CPCU500) instead of their intended course when parameters are lost. This report provides specific, actionable fixes with code examples and validation steps to resolve the problem for any course_id.
+
+## Problem Statement
+
+The application currently loses course_id URL parameters during Cognito SSO authentication redirects, causing users to land on the default course (CPCU500) instead of their intended course. This issue occurs specifically in the SSO flow where users must authenticate, while the already-logged-in flow works correctly and preserves parameters properly.
+
+Based on production logs and code analysis, the issue manifests as follows: external sources send users with `?course_id=<any_course_id>` parameters (where <any_course_id> represents any valid numeric course identifier), but after the Cognito authentication round-trip, users are redirected to the default course instead of the specified course.
+
+## Root Cause Analysis
+
+### Primary Issue: Parameter Naming Inconsistency
+
+The fundamental problem lies in a parameter naming mismatch between what external sources send and what the application expects. External sources send `course_id` (underscore format) while the application consistently looks for `courseId` (camelCase format). This inconsistency occurs at multiple levels of the application stack and affects all courses.
+
+In the client-side authentication page (`client/src/pages/auth-page.tsx`), the parameter extraction logic specifically looks for `courseId`:
+
+```typescript
+const courseId = urlParams.get('courseId');
+const assignmentName = urlParams.get('assignmentName');
+```
+
+Similarly, on the server side (`server/cognito-auth.ts`), the Cognito authentication route only checks for the camelCase version:
+
+```typescript
+if (req.query.courseId) {
+  req.session.courseId = req.query.courseId as string;
+}
+if (req.query.assignmentName) {
+  req.session.assignmentName = req.query.assignmentName as string;
+}
+```
+
+This naming inconsistency means that when external sources send `?course_id=<any_course_id>`, the application fails to recognize and preserve the parameter throughout the authentication flow for any course.
+
+### Secondary Issue: Missing Parameter Preservation in Protected Routes
+
+The `ProtectedRoute` component performs redirects to the authentication page without preserving URL parameters. When unauthenticated users arrive at protected routes with course_id parameters, these parameters are lost during the redirect to `/auth`.
+
+The current implementation in `client/src/lib/protected-route.tsx` shows:
+
+```typescript
+if (!user) {
+  return <Redirect to="/auth" />;
+}
+```
+
+This redirect strips all URL parameters, meaning that even if the parameter naming were consistent, the parameters would still be lost when users are redirected from protected routes to the authentication page, affecting navigation to any intended course.
+
+### Tertiary Issue: Incomplete Parameter Support
+
+The server-side implementation only partially supports parameter preservation. While the code attempts to store parameters in the session, it doesn't account for the underscore naming convention used by external sources. Additionally, the OAuth state parameter encoding mentioned in previous attempts is not currently implemented in the codebase.
+
+### Session Management Complications
+
+The production logs indicate that parameters do reach the server in some cases and are stored in the session, but are not available after the Cognito callback. This suggests potential issues with session cookie handling during the OAuth redirect flow, particularly given the `sameSite: 'none'` configuration in production environments.
+
+## Comprehensive Solution
+
+Implement the following fixes in sequence as described in the Implementation Priority and Sequence section. Each fix includes precise code changes. After each phase, run the corresponding validation tests to ensure correctness.
+
+### Fix 1: Implement Dual Parameter Support
+
+The most critical fix is to support both `course_id` and `courseId` parameter formats throughout the application. This ensures compatibility with external sources while maintaining backward compatibility for all courses.
+
+#### Client-Side Changes (auth-page.tsx)
+
+Replace the current parameter extraction logic with dual format support:
+
+```typescript
+// Replace existing code (around lines 46-47):
+const courseId = urlParams.get('courseId') || urlParams.get('course_id');
+const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
+```
+
+Update both the auto-redirect logic (around line 60) and the SSO button click handler (around line 138) to use this dual parameter support:
+
+```typescript
+// In the auto-redirect useEffect:
+const courseId = urlParams.get('courseId') || urlParams.get('course_id');
+const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
+
+// Validate courseId (should be numeric)
+const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+// Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
+const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
+
+let ssoUrl = authConfig.cognitoLoginUrl;
+const ssoParams = new URLSearchParams();
+
+if (validCourseId) {
+  ssoParams.append('courseId', validCourseId); // Use camelCase for consistency
+}
+if (validAssignmentName) {
+  ssoParams.append('assignmentName', validAssignmentName);
+}
+```
+
+#### Server-Side Changes (cognito-auth.ts)
+
+Update the server-side parameter capture logic to support both formats:
+
+```typescript
+// Replace existing code (around lines 91-95):
+const courseId = req.query.courseId || req.query.course_id;
+const assignmentName = req.query.assignmentName || req.query.assignment_name;
+
+if (courseId) {
+  req.session.courseId = courseId as string;
+  console.log(`Stored courseId in session: ${courseId}`);
+}
+if (assignmentName) {
+  req.session.assignmentName = assignmentName as string;
+  console.log(`Stored assignmentName in session: ${assignmentName}`);
+}
+```
+
+### Fix 2: Preserve Parameters in Protected Route Redirects
+
+Modify the `ProtectedRoute` component to preserve URL parameters when redirecting to the authentication page:
+
+```typescript
+// Replace existing code in protected-route.tsx (around line 26):
+if (!user) {
+  // Preserve current URL parameters when redirecting to auth
+  const currentSearch = window.location.search;
+  const authUrl = currentSearch ? `/auth${currentSearch}` : '/auth';
+  return <Redirect to={authUrl} />;
+}
+```
+
+This ensures that users arriving at protected routes with course_id parameters will have those parameters preserved when redirected to the authentication page, allowing correct navigation to any course.
+
+### Fix 3: Implement OAuth State Parameter Encoding
+
+Add a robust parameter preservation mechanism using the OAuth state parameter as a backup to session storage:
+
+```typescript
+// In cognito-auth.ts, update the /auth/cognito route:
+app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Cognito login route hit');
+  }
+
+  // Generate base state
+  const baseState = Math.random().toString(36).substring(2, 15);
+  
+  // Capture and encode parameters
+  const courseId = req.query.courseId || req.query.course_id;
+  const assignmentName = req.query.assignmentName || req.query.assignment_name;
+  
+  // Create state object with parameters
+  const stateData = {
+    state: baseState,
+    courseId: courseId || null,
+    assignmentName: assignmentName || null
+  };
+  
+  // Encode state as base64 JSON
+  const encodedState = Buffer.from(JSON.stringify(stateData)).toString('base64');
+  req.session.state = encodedState;
+
+  // Store parameters in session as primary method
+  if (courseId) {
+    req.session.courseId = courseId as string;
+    console.log(`Stored courseId in session and state: ${courseId}`);
+  }
+  if (assignmentName) {
+    req.session.assignmentName = assignmentName as string;
+    console.log(`Stored assignmentName in session and state: ${assignmentName}`);
+  }
+
+  // Force session save before redirecting
+  req.session.save((err) => {
+    if (err) {
+      console.error('Failed to save session:', err);
+      return res.redirect('/auth?error=session_save_failed');
+    }
+
+    console.log('Session saved successfully with:', {
+      state: encodedState,
+      courseId: req.session.courseId,
+      assignmentName: req.session.assignmentName
+    });
+
+    passport.authenticate('cognito', {
+      state: encodedState, // Use encoded state with parameters
+      scope: 'openid email profile',
+    })(req, res, next);
+  });
+});
+```
+
+Update the callback handler to decode and use the state parameter as a fallback:
+
+```typescript
+// In the callback route, after state verification:
+app.get('/auth/cognito/callback', 
+  (req: Request, res: Response, next: NextFunction) => {
+    // ... existing state verification logic ...
+    
+    // Decode state to extract parameters as fallback
+    let stateParams = null;
+    try {
+      if (req.session.state) {
+        const decodedState = JSON.parse(Buffer.from(req.session.state, 'base64').toString());
+        stateParams = decodedState;
+      }
+    } catch (error) {
+      console.warn('Failed to decode state parameters:', error);
+    }
+    
+    // Clear the state from session
+    delete req.session.state;
+    
+    passport.authenticate('cognito', {
+      failureRedirect: '/auth?error=cognito_failed',
+    })(req, res, next);
+  },
+  async (req: Request, res: Response) => {
+    // Successful authentication
+    console.log('Authentication successful');
+
+    // Try to get parameters from session first, then from decoded state
+    let externalCourseId = req.session.courseId;
+    let assignmentName = req.session.assignmentName;
+    
+    // Fallback to state parameters if session is empty
+    if (!externalCourseId && stateParams?.courseId) {
+      externalCourseId = stateParams.courseId;
+      console.log('Retrieved courseId from state parameter:', externalCourseId);
+    }
+    if (!assignmentName && stateParams?.assignmentName) {
+      assignmentName = stateParams.assignmentName;
+      console.log('Retrieved assignmentName from state parameter:', assignmentName);
+    }
+
+    // ... rest of the callback logic remains the same ...
+  }
+);
+```
+
+### Fix 4: Enhanced Session Configuration
+
+Improve session reliability by adjusting the session configuration in `auth.ts`:
+
+```typescript
+// Update session settings for better reliability:
+const sessionSettings: session.SessionOptions = {
+  secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
+  resave: true, // Changed from false to ensure session persistence
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: process.env.NODE_ENV === "production" ? 'lax' : 'lax', // Changed from 'none' to 'lax'
+    path: '/',
+    domain: undefined
+  },
+  rolling: true,
+  name: 'connect.sid',
+};
+```
+
+The key changes are setting `resave: true` to ensure session persistence during the OAuth flow and changing `sameSite` from `'none'` to `'lax'` to improve cookie reliability while maintaining cross-origin compatibility.
+
+## Implementation Priority and Sequence
+
+Follow this sequence to implement the fixes. After each phase, perform the relevant validation steps before proceeding.
+
+### Phase 1: Critical Parameter Support (High Priority)
+
+Implement Fix 1 (Dual Parameter Support) first, as this addresses the primary root cause. This fix alone should resolve the majority of cases where course_id parameters are lost for any course.
+
+**Files to modify:**
+- `client/src/pages/auth-page.tsx` - Update parameter extraction logic
+- `server/cognito-auth.ts` - Update server-side parameter capture
+
+**Expected impact:** This should immediately fix cases where the course_id parameter reaches the authentication page but is not recognized due to naming inconsistency, for all courses.
+
+### Phase 2: Route-Level Parameter Preservation (Medium Priority)
+
+Implement Fix 2 (Protected Route Parameter Preservation) to ensure parameters are not lost during authentication redirects.
+
+**Files to modify:**
+- `client/src/lib/protected-route.tsx` - Update redirect logic
+
+**Expected impact:** This will fix cases where users arrive at protected routes with parameters but lose them during the redirect to authentication, ensuring correct course navigation.
+
+### Phase 3: Enhanced Reliability (Medium Priority)
+
+Implement Fix 3 (OAuth State Parameter Encoding) and Fix 4 (Enhanced Session Configuration) to provide additional reliability and fallback mechanisms.
+
+**Files to modify:**
+- `server/cognito-auth.ts` - Implement state parameter encoding
+- `server/auth.ts` - Update session configuration
+
+**Expected impact:** This provides redundancy and improves reliability in edge cases where session storage might fail, benefiting all course-related flows.
+
+
+## Monitoring and Logging Enhancements
+
+### Enhanced Logging for Debugging
+
+Add comprehensive logging throughout the authentication flow to facilitate future debugging. Implement these additions after all fixes.
+
+```typescript
+// In auth-page.tsx, add detailed parameter logging:
+useEffect(() => {
+  console.log('Auth Page Parameter Debug:', {
+    fullUrl: window.location.href,
+    search: window.location.search,
+    courseId: urlParams.get('courseId'),
+    course_id: urlParams.get('course_id'),
+    assignmentName: urlParams.get('assignmentName'),
+    assignment_name: urlParams.get('assignment_name'),
+    timestamp: new Date().toISOString()
+  });
+}, []);
+```
+
+```typescript
+// In cognito-auth.ts, add comprehensive parameter tracking:
+app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
+  console.log('Cognito Auth Debug:', {
+    fullUrl: req.url,
+    query: req.query,
+    courseId: req.query.courseId,
+    course_id: req.query.course_id,
+    sessionId: req.sessionID,
+    timestamp: new Date().toISOString()
+  });
+  
+  // ... rest of the implementation
+});
+```
+
+### Production Monitoring
+
+Implement monitoring to track parameter preservation success rates:
+
+```typescript
+// Add metrics tracking in the callback handler:
+app.get('/auth/cognito/callback', /* ... */, async (req: Request, res: Response) => {
+  const hasStoredCourseId = !!req.session.courseId;
+  const hasStateCourseId = !!stateParams?.courseId;
+  
+  // Log success/failure metrics
+  console.log('Parameter Preservation Metrics:', {
+    sessionSuccess: hasStoredCourseId,
+    stateFallbackUsed: !hasStoredCourseId && hasStateCourseId,
+    overallSuccess: hasStoredCourseId || hasStateCourseId,
+    courseId: req.session.courseId || stateParams?.courseId,
+    timestamp: new Date().toISOString()
+  });
+  
+  // ... rest of the callback logic
+});
+```
