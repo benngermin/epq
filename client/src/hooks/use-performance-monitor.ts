@@ -50,5 +50,5 @@ export function usePerformanceMonitor(componentName: string) {
         }
       }
     }
-  }); // Empty dependency array - run on every render
+  }); // No dependency array - run on every render
 }

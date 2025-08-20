@@ -142,8 +142,12 @@ const activeStreams = new Map<string, {
 const STREAM_HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const STREAM_TIMEOUT = 120000; // 2 minutes
 
+// Store interval IDs for cleanup
+let streamHeartbeatInterval: NodeJS.Timeout;
+let streamCleanupInterval: NodeJS.Timeout;
+
 // Start heartbeat monitor for streams
-setInterval(() => {
+streamHeartbeatInterval = setInterval(() => {
   const now = Date.now();
   // Create a copy of the entries to avoid modification during iteration
   const streamEntries = Array.from(activeStreams.entries());
@@ -157,8 +161,18 @@ setInterval(() => {
   });
 }, STREAM_HEARTBEAT_INTERVAL);
 
+// Track streams being cleaned up to prevent race conditions
+const cleaningStreams = new Set<string>();
+
 // Cleanup function to prevent memory leaks
 function cleanupStream(streamId: string) {
+  // Prevent concurrent cleanup of the same stream
+  if (cleaningStreams.has(streamId)) {
+    return;
+  }
+  
+  cleaningStreams.add(streamId);
+  
   try {
     const stream = activeStreams.get(streamId);
     if (stream) {
@@ -172,11 +186,13 @@ function cleanupStream(streamId: string) {
     // Error cleaning up stream
     // Force delete even if there was an error
     activeStreams.delete(streamId);
+  } finally {
+    cleaningStreams.delete(streamId);
   }
 }
 
 // Clean up old streams periodically to prevent memory buildup
-setInterval(() => {
+streamCleanupInterval = setInterval(() => {
   const now = Date.now();
   const oldStreamAge = 5 * 60 * 1000; // 5 minutes (reduced from 10)
   const staleStreamAge = 10 * 60 * 1000; // 10 minutes for stale streams
@@ -206,6 +222,29 @@ setInterval(() => {
     // High number of active streams
   }
 }, 60000); // Run every minute
+
+// Cleanup intervals on process termination
+let shutdownInProgress = false;
+
+const shutdownCleanup = () => {
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
+  
+  if (streamHeartbeatInterval) clearInterval(streamHeartbeatInterval);
+  if (streamCleanupInterval) clearInterval(streamCleanupInterval);
+  
+  // Clear all active streams
+  activeStreams.forEach((stream, streamId) => {
+    stream.done = true;
+    stream.error = 'Server shutting down';
+  });
+  activeStreams.clear();
+  cleaningStreams.clear();
+};
+
+process.on('SIGINT', shutdownCleanup);
+process.on('SIGTERM', shutdownCleanup);
+process.on('exit', shutdownCleanup);
 
 // Streaming OpenRouter integration for buffer approach
 async function streamOpenRouterToBuffer(

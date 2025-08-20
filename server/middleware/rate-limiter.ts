@@ -104,14 +104,18 @@ export const aiRateLimiter = new RateLimiter({
 });
 
 // Cleanup on process termination
-process.on('SIGINT', () => {
-  generalRateLimiter.destroy();
-  authRateLimiter.destroy();
-  aiRateLimiter.destroy();
-});
+let cleanupDone = false;
 
-process.on('SIGTERM', () => {
+const cleanup = () => {
+  if (cleanupDone) return;
+  cleanupDone = true;
+  
   generalRateLimiter.destroy();
   authRateLimiter.destroy();
   aiRateLimiter.destroy();
-});
+};
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('exit', cleanup);
+process.on('beforeExit', cleanup);

@@ -48,11 +48,19 @@ if (process.env.NODE_ENV === 'development') {
   pool.on('remove', poolRemoveHandler);
   
   // Cleanup function to remove listeners
-  process.on('exit', () => {
+  let cleanupDone = false;
+  const cleanupListeners = () => {
+    if (cleanupDone) return;
+    cleanupDone = true;
+    
     pool.off('error', poolErrorHandler);
     pool.off('connect', poolConnectHandler);
     pool.off('remove', poolRemoveHandler);
-  });
+  };
+  
+  process.on('exit', cleanupListeners);
+  process.on('SIGINT', cleanupListeners);
+  process.on('SIGTERM', cleanupListeners);
 }
 
 export const db = drizzle(pool, { schema });
