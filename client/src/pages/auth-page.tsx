@@ -26,8 +26,9 @@ export default function AuthPage() {
     console.log("window.location.href:", window.location.href);
   }, []);
   
-  // Parse and validate URL params
-  const urlParams = new URLSearchParams(searchParams);
+  // Parse and validate URL params - use window.location.search as primary source
+  // because wouter's useSearch() might not always return the correct parameters
+  const urlParams = new URLSearchParams(window.location.search || searchParams);
   
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
@@ -62,16 +63,20 @@ export default function AuthPage() {
     // Add a small delay to ensure all parameters are loaded
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       setTimeout(() => {
+        // Re-parse parameters inside setTimeout to ensure we have the latest values
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        
         // Preserve and validate URL parameters when redirecting to SSO
         // Support both course_id (with underscore) and courseId (camelCase)
-        const courseId = urlParams.get('course_id') || urlParams.get('courseId');
-        const assignmentName = urlParams.get('assignmentName');
+        const courseId = currentUrlParams.get('course_id') || currentUrlParams.get('courseId');
+        const assignmentName = currentUrlParams.get('assignmentName');
         
         console.log('SSO auto-redirect - Found parameters:', {
           courseId,
           assignmentName,
-          allParams: Array.from(urlParams.entries()),
-          rawSearch: window.location.search
+          allParams: Array.from(currentUrlParams.entries()),
+          rawSearch: window.location.search,
+          wouterSearch: searchParams
         });
         
         // Validate courseId (should be numeric)
@@ -158,14 +163,16 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
+                // Use window.location.search directly for reliability
+                const currentUrlParams = new URLSearchParams(window.location.search);
                 // Support both course_id (with underscore) and courseId (camelCase)
-                const courseId = urlParams.get('course_id') || urlParams.get('courseId');
-                const assignmentName = urlParams.get('assignmentName');
+                const courseId = currentUrlParams.get('course_id') || currentUrlParams.get('courseId');
+                const assignmentName = currentUrlParams.get('assignmentName');
                 
                 console.log('SSO button clicked - Found parameters:', {
                   courseId,
                   assignmentName,
-                  allParams: Array.from(urlParams.entries()),
+                  allParams: Array.from(currentUrlParams.entries()),
                   rawSearch: window.location.search,
                   currentUrl: window.location.href
                 });

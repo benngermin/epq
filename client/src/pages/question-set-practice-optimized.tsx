@@ -40,9 +40,15 @@ export default function QuestionSetPractice() {
     if (!authLoading && !user) {
       // Preserve URL parameters when redirecting to auth
       const currentParams = window.location.search;
-      setLocation(`/auth${currentParams}`);
+      
+      // If we're on a question-set page without explicit course_id, preserve the question set ID
+      if (!currentParams && params?.id) {
+        setLocation(`/auth?questionSetId=${params.id}`);
+      } else {
+        setLocation(`/auth${currentParams}`);
+      }
     }
-  }, [user, authLoading, setLocation]);
+  }, [user, authLoading, setLocation, params]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
