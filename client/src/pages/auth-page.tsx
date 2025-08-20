@@ -19,8 +19,11 @@ export default function AuthPage() {
   
   // Version indicator to verify new code is loaded
   useEffect(() => {
-    console.log("Auth Page Version: 2.0 - Updated July 21, 2025");
-    console.log("Features: SSO + Admin Login buttons");
+    console.log("Auth Page Version: 2.1 - Updated August 19, 2025");
+    console.log("Features: SSO + Admin Login buttons with parameter debugging");
+    console.log("useSearch() returned:", searchParams);
+    console.log("window.location.search:", window.location.search);
+    console.log("window.location.href:", window.location.href);
   }, []);
   
   // Parse and validate URL params
@@ -52,44 +55,53 @@ export default function AuthPage() {
       hasUser: !!user,
       currentUrl: window.location.href,
       searchParams: window.location.search,
+      wouterSearchParams: searchParams,
       urlParamsEntries: Array.from(urlParams.entries())
     });
     
+    // Add a small delay to ensure all parameters are loaded
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
-      // Preserve and validate URL parameters when redirecting to SSO
-      // Support both course_id (with underscore) and courseId (camelCase)
-      const courseId = urlParams.get('course_id') || urlParams.get('courseId');
-      const assignmentName = urlParams.get('assignmentName');
-      
-      console.log('SSO auto-redirect - Found parameters:', {
-        courseId,
-        assignmentName,
-        allParams: Array.from(urlParams.entries()),
-        rawSearch: window.location.search
-      });
-      
-      // Validate courseId (should be numeric)
-      const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
-      // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
-      const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
-      
-      let ssoUrl = authConfig.cognitoLoginUrl;
-      const ssoParams = new URLSearchParams();
-      
-      if (validCourseId) {
-        // Use course_id with underscore to match what the server expects
-        ssoParams.append('course_id', validCourseId);
-      }
-      if (validAssignmentName) {
-        ssoParams.append('assignmentName', validAssignmentName);
-      }
-      
-      if (ssoParams.toString()) {
-        ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
-      }
-      
-      console.log('SSO auto-redirect - Final URL:', ssoUrl);
-      window.location.href = ssoUrl;
+      setTimeout(() => {
+        // Preserve and validate URL parameters when redirecting to SSO
+        // Support both course_id (with underscore) and courseId (camelCase)
+        const courseId = urlParams.get('course_id') || urlParams.get('courseId');
+        const assignmentName = urlParams.get('assignmentName');
+        
+        console.log('SSO auto-redirect - Found parameters:', {
+          courseId,
+          assignmentName,
+          allParams: Array.from(urlParams.entries()),
+          rawSearch: window.location.search
+        });
+        
+        // Validate courseId (should be numeric)
+        const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
+        // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
+        const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
+        
+        let ssoUrl = authConfig.cognitoLoginUrl;
+        if (!ssoUrl) {
+          console.error('SSO URL not configured');
+          return;
+        }
+        
+        const ssoParams = new URLSearchParams();
+        
+        if (validCourseId) {
+          // Use course_id with underscore to match what the server expects
+          ssoParams.append('course_id', validCourseId);
+        }
+        if (validAssignmentName) {
+          ssoParams.append('assignmentName', validAssignmentName);
+        }
+        
+        if (ssoParams.toString()) {
+          ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
+        }
+        
+        console.log('SSO auto-redirect - Final URL:', ssoUrl);
+        window.location.href = ssoUrl;
+      }, 100); // Small delay to ensure parameters are loaded
     }
   }, [authConfig, user, urlParams]);
 

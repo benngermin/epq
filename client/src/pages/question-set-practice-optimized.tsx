@@ -38,7 +38,9 @@ export default function QuestionSetPractice() {
     // Only redirect when we're sure the user is not authenticated (not during loading)
     // Also handle error states where the user query failed
     if (!authLoading && !user) {
-      setLocation("/auth");
+      // Preserve URL parameters when redirecting to auth
+      const currentParams = window.location.search;
+      setLocation(`/auth${currentParams}`);
     }
   }, [user, authLoading, setLocation]);
 
