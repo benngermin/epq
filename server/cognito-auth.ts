@@ -108,41 +108,27 @@ export class CognitoAuth {
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
       console.log('Cognito login route hit');
 
-      // Create a simple random state token for CSRF protection
-      const state = Math.random().toString(36).substring(2, 15);
-      
-      console.log('Query params received at /auth/cognito:', {
-        course_id: req.query.course_id,
-        courseId: req.query.courseId,
-        assignmentName: req.query.assignmentName
-      });
-      
-      // Store the state token in session for validation
-      req.session.state = state;
-      
-      // Also store in session as backup (keep existing logic)
-      const courseIdParam = req.query.course_id || req.query.courseId;
-      if (courseIdParam) {
-        req.session.courseId = courseIdParam as string;
-        console.log(`Stored courseId in state and session: ${courseIdParam} (from ${req.query.course_id ? 'course_id' : 'courseId'} param)`);
-      }
-      if (req.query.assignmentName) {
-        req.session.assignmentName = req.query.assignmentName as string;
-      }
+      // Create a state object that includes CSRF token and parameters
+      const stateData = {
+        csrf: Math.random().toString(36).substring(2, 15),
+        courseId: req.query.course_id || req.query.courseId || undefined,
+        assignmentName: req.query.assignmentName || undefined
+      };
 
-      // Force session save before redirecting
+      // Encode the state data as base64 JSON
+      const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
+
+      // Store just the CSRF token in session for validation
+      req.session.state = stateData.csrf;
+
+      // Save session and redirect
       req.session.save((err) => {
         if (err) {
           console.error('Failed to save session:', err);
-          // Redirect to auth page with error instead of returning JSON
           return res.redirect('/auth?error=session_save_failed');
         }
 
-        console.log('Session saved successfully with:', {
-          state: req.session.state,
-          courseId: req.session.courseId,
-          assignmentName: req.session.assignmentName
-        });
+        console.log('State parameter being sent:', state);
 
         passport.authenticate('cognito', {
           state,
@@ -156,38 +142,39 @@ export class CognitoAuth {
       (req: Request, res: Response, next: NextFunction) => {
         console.log('Cognito callback route hit!');
         console.log('Callback query params:', JSON.stringify(req.query));
-        console.log('Callback session ID:', req.sessionID);
-        console.log('Callback session data:', {
-          state: req.session.state,
-          courseId: req.session.courseId,
-          assignmentName: req.session.assignmentName
-        });
 
-        // Just use state for CSRF validation, get params from session
         const stateFromQuery = req.query.state as string;
-        console.log('State parameter from callback:', stateFromQuery);
 
-        // In development, we might have session issues - be more lenient
-        const isDevelopment = process.env.NODE_ENV === 'development';
+        try {
+          // Decode the state parameter
+          const stateData = JSON.parse(Buffer.from(stateFromQuery, 'base64url').toString());
+          console.log('Decoded state data:', stateData);
 
-        // Verify state token (skip in development if session is missing)
-        if (!isDevelopment && stateFromQuery !== req.session.state) {
-          console.log('State mismatch detected:', {
-            queryState: stateFromQuery,
-            sessionState: req.session.state
-          });
+          // Verify CSRF token
+          if (stateData.csrf !== req.session.state) {
+            console.log('State mismatch detected');
+            return res.redirect('/auth?error=state_mismatch');
+          }
 
-          // Instead of returning JSON error, redirect to auth page with error
-          return res.redirect('/auth?error=state_mismatch');
+          // Store the parameters in session for the next handler
+          if (stateData.courseId) {
+            req.session.courseId = stateData.courseId;
+          }
+          if (stateData.assignmentName) {
+            req.session.assignmentName = stateData.assignmentName;
+          }
+
+          // Clear the CSRF token
+          delete req.session.state;
+
+          console.log('State verified, authenticating with Cognito...');
+          passport.authenticate('cognito', {
+            failureRedirect: '/auth?error=cognito_failed',
+          })(req, res, next);
+        } catch (error) {
+          console.error('Failed to decode state:', error);
+          return res.redirect('/auth?error=invalid_state');
         }
-
-        // Clear the state from session
-        delete req.session.state;
-
-        console.log('State verified or skipped, authenticating with Cognito...');
-        passport.authenticate('cognito', {
-          failureRedirect: '/auth?error=cognito_failed',
-        })(req, res, next);
       },
       async (req: Request, res: Response) => {
         // Successful authentication
