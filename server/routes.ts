@@ -87,14 +87,10 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
     
     const aiResponse = data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
     const responseTime = Date.now() - startTime;
-
-    // Chatbot logging removed
     
     return aiResponse;
   } catch (error) {
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
-    
-    // Error logging removed
     
     return errorResponse;
   }
@@ -173,7 +169,6 @@ setInterval(() => {
     }
   });
   
-  // Stream count monitoring removed
 }, 60000); // Run every minute
 
 // Streaming OpenRouter integration for buffer approach
@@ -220,8 +215,6 @@ async function streamOpenRouterToBuffer(
       }
       messages.push({ role: "user", content: prompt });
     }
-
-    // API request logging removed
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -347,7 +340,6 @@ async function streamOpenRouterToBuffer(
       }
     }
     } catch (error) {
-      // Stream processing error
       stream.error = error instanceof Error ? error.message : 'Stream processing failed';
       throw error;
     } finally {
@@ -361,10 +353,6 @@ async function streamOpenRouterToBuffer(
 
     const responseTime = Date.now() - startTime;
     
-    // Stream completion details removed
-
-    // Chatbot logging removed
-    
     // Mark stream as done after successful completion
     stream.done = true;
     stream.chunks = [fullResponse]; // Ensure final content is set
@@ -375,8 +363,6 @@ async function streamOpenRouterToBuffer(
     
     stream.error = errorResponse;
     stream.done = true;
-    
-    // Error logging removed
   }
 
   
@@ -1105,7 +1091,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Simple chatbot response (non-streaming)
   app.post("/api/chatbot/simple-response", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
     try {
       const { questionVersionId, chosenAnswer, userMessage } = req.body;
@@ -1166,8 +1151,6 @@ export function registerRoutes(app: Express): Server {
 
   // Initialize streaming
   app.post("/api/chatbot/stream-init", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
-    // Initialize streaming chatbot response
-    
     try {
       const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
@@ -1289,7 +1272,6 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
-  // Feedback endpoint for chatbot responses
   app.post("/api/feedback", requireAuth, async (req, res) => {
     try {
       assertAuthenticated(req);
@@ -1588,7 +1570,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const response = await callOpenRouter(prompt, aiSettings, req.user!.id, activePrompt?.promptText);
       res.json({ response });
     } catch (error) {
-      // Error calling chatbot
       res.status(500).json({ message: "Failed to get AI response" });
     }
   });
