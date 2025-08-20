@@ -19,9 +19,21 @@ export default function AuthPage() {
   
   // Version indicator to verify new code is loaded
   useEffect(() => {
-    console.log("Auth Page Version: 2.0 - Updated July 21, 2025");
-    console.log("Features: SSO + Admin Login buttons");
-  }, []);
+    console.log("Auth Page Version: 2.1 - Updated with dual parameter support");
+    console.log("Features: SSO + Admin Login buttons + dual parameter support");
+    
+    // Enhanced parameter logging for debugging
+    const params = new URLSearchParams(searchParams);
+    console.log('Auth Page Parameter Debug:', {
+      fullUrl: window.location.href,
+      search: window.location.search,
+      courseId: params.get('courseId'),
+      course_id: params.get('course_id'),
+      assignmentName: params.get('assignmentName'),
+      assignment_name: params.get('assignment_name'),
+      timestamp: new Date().toISOString()
+    });
+  }, [searchParams]);
   
   // Parse and validate URL params
   const urlParams = new URLSearchParams(searchParams);
@@ -54,8 +66,9 @@ export default function AuthPage() {
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
-      const courseId = urlParams.get('courseId');
-      const assignmentName = urlParams.get('assignmentName');
+      // Support both course_id and courseId formats
+      const courseId = urlParams.get('courseId') || urlParams.get('course_id');
+      const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
       
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
@@ -134,8 +147,9 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
-                const courseId = urlParams.get('courseId');
-                const assignmentName = urlParams.get('assignmentName');
+                // Support both course_id and courseId formats
+                const courseId = urlParams.get('courseId') || urlParams.get('course_id');
+                const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
                 
                 // Validate parameters
                 const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;

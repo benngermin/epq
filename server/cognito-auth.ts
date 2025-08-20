@@ -96,35 +96,59 @@ export class CognitoAuth {
 
     // Route to initiate login
     app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Cognito login route hit');
-      }
+      // Comprehensive parameter tracking
+      console.log('Cognito Auth Debug:', {
+        fullUrl: req.url,
+        query: req.query,
+        courseId: req.query.courseId,
+        course_id: req.query.course_id,
+        sessionId: req.sessionID,
+        timestamp: new Date().toISOString()
+      });
 
-      const state = Math.random().toString(36).substring(2, 15);
-      req.session.state = state;
+      // Generate base state
+      const baseState = Math.random().toString(36).substring(2, 15);
+      
+      // Capture and encode parameters
+      const courseId = req.query.courseId || req.query.course_id;
+      const assignmentName = req.query.assignmentName || req.query.assignment_name;
+      
+      // Create state object with parameters
+      const stateData = {
+        state: baseState,
+        courseId: courseId || null,
+        assignmentName: assignmentName || null
+      };
+      
+      // Encode state as base64 JSON
+      const encodedState = Buffer.from(JSON.stringify(stateData)).toString('base64');
+      req.session.state = encodedState;
 
-      // Capture URL parameters to preserve them through the OAuth flow
-      if (req.query.courseId) {
-        req.session.courseId = req.query.courseId as string;
+      // Store parameters in session as primary method
+      if (courseId) {
+        req.session.courseId = courseId as string;
+        console.log(`Stored courseId in session and state: ${courseId}`);
       }
-      if (req.query.assignmentName) {
-        req.session.assignmentName = req.query.assignmentName as string;
+      if (assignmentName) {
+        req.session.assignmentName = assignmentName as string;
+        console.log(`Stored assignmentName in session and state: ${assignmentName}`);
       }
 
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
           console.error('Failed to save session:', err);
-          // Redirect to auth page with error instead of returning JSON
           return res.redirect('/auth?error=session_save_failed');
         }
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Session saved successfully');
-        }
+        console.log('Session saved successfully with:', {
+          state: encodedState,
+          courseId: req.session.courseId,
+          assignmentName: req.session.assignmentName
+        });
 
         passport.authenticate('cognito', {
-          state,
+          state: encodedState, // Use encoded state with parameters
           scope: 'openid email profile',
         })(req, res, next);
       });
@@ -140,15 +164,29 @@ export class CognitoAuth {
         // In development, we might have session issues - be more lenient
         const isDevelopment = process.env.NODE_ENV === 'development';
 
-        // Verify state parameter (skip in development if session is missing)
-        if (!isDevelopment && req.query.state !== req.session.state) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('State mismatch detected');
+        // Decode state to extract parameters as fallback
+        let stateParams: any = null;
+        try {
+          if (req.query.state) {
+            const decodedState = JSON.parse(Buffer.from(req.query.state as string, 'base64').toString());
+            stateParams = decodedState;
+            
+            // Verify the state matches
+            if (!isDevelopment && decodedState.state !== JSON.parse(Buffer.from(req.session.state || '', 'base64').toString()).state) {
+              console.log('State mismatch detected');
+              return res.redirect('/auth?error=state_mismatch');
+            }
           }
-
-          // Instead of returning JSON error, redirect to auth page with error
-          return res.redirect('/auth?error=state_mismatch');
+        } catch (error) {
+          console.warn('Failed to decode state parameters:', error);
+          // Fall back to original state verification
+          if (!isDevelopment && req.query.state !== req.session.state) {
+            return res.redirect('/auth?error=state_mismatch');
+          }
         }
+        
+        // Store decoded state params in request for later use
+        (req as any).stateParams = stateParams;
 
         // Clear the state from session
         delete req.session.state;
@@ -166,11 +204,34 @@ export class CognitoAuth {
           console.log('Authentication successful');
         }
 
-        // Check if we have stored courseId from the initial request
-        const externalCourseId = req.session.courseId;
-        const assignmentName = req.session.assignmentName;
+        // Try to get parameters from session first, then from decoded state
+        let externalCourseId = req.session.courseId;
+        let assignmentName = req.session.assignmentName;
+        
+        // Fallback to state parameters if session is empty
+        const stateParams = (req as any).stateParams;
+        if (!externalCourseId && stateParams?.courseId) {
+          externalCourseId = stateParams.courseId;
+          console.log('Retrieved courseId from state parameter:', externalCourseId);
+        }
+        if (!assignmentName && stateParams?.assignmentName) {
+          assignmentName = stateParams.assignmentName;
+          console.log('Retrieved assignmentName from state parameter:', assignmentName);
+        }
 
-        console.log('Retrieved parameters from session');
+        console.log('Retrieved parameters:', { externalCourseId, assignmentName });
+        
+        // Log parameter preservation metrics
+        const hasStoredCourseId = !!req.session.courseId;
+        const hasStateCourseId = !!stateParams?.courseId;
+        
+        console.log('Parameter Preservation Metrics:', {
+          sessionSuccess: hasStoredCourseId,
+          stateFallbackUsed: !hasStoredCourseId && hasStateCourseId,
+          overallSuccess: hasStoredCourseId || hasStateCourseId,
+          courseId: externalCourseId,
+          timestamp: new Date().toISOString()
+        });
 
         // Clear the stored parameters from session
         delete req.session.courseId;
