@@ -10,6 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 export default function AuthPage() {
+  // IMMEDIATE URL CHECK - Before any other logic
+  console.log('🚀 AUTH PAGE LOADED v3.0 - IMMEDIATE URL CHECK:', {
+    href: window.location.href,
+    search: window.location.search,
+    pathname: window.location.pathname,
+    timestamp: new Date().toISOString()
+  });
+  
   const { user, authConfig, loginMutation } = useAuth();
   const [, setLocation] = useLocation();
   const searchParams = useSearch();
@@ -45,19 +53,53 @@ export default function AuthPage() {
     }
   }, [searchParams]);
   
-  // Parse and validate URL params
+  // Parse and validate URL params - try both methods
   const urlParams = new URLSearchParams(searchParams);
+  const directUrlParams = new URLSearchParams(window.location.search);
   
   // Critical debugging - log the raw URL and all parameters
-  console.log('\n🚨 CRITICAL URL PARAMETER DEBUGGING');
+  console.log('\n🚨 CRITICAL URL PARAMETER DEBUGGING v3.0');
   console.log('  Current window.location.href:', window.location.href);
   console.log('  Current window.location.search:', window.location.search);
-  console.log('  searchParams string:', searchParams);
+  console.log('  searchParams from useSearch():', searchParams);
   console.log('  urlParams.toString():', urlParams.toString());
-  console.log('  All URL parameters:');
-  Array.from(urlParams.entries()).forEach(([key, value]) => {
-    console.log(`    ${key}: ${value}`);
-  });
+  console.log('  directUrlParams.toString():', directUrlParams.toString());
+  
+  // Test all parameter extraction methods
+  console.log('\n📊 PARAMETER EXTRACTION METHODS:');
+  console.log('  Method 1 - useSearch() + URLSearchParams:');
+  console.log('    courseId:', urlParams.get('courseId'));
+  console.log('    course_id:', urlParams.get('course_id'));
+  
+  console.log('  Method 2 - window.location.search + URLSearchParams:');
+  console.log('    courseId:', directUrlParams.get('courseId'));
+  console.log('    course_id:', directUrlParams.get('course_id'));
+  
+  // Manual parsing as ultimate fallback
+  const manualParams: Record<string, string> = {};
+  if (window.location.search) {
+    const pairs = window.location.search.substring(1).split('&');
+    pairs.forEach(pair => {
+      const [key, value] = pair.split('=');
+      if (key) manualParams[decodeURIComponent(key)] = decodeURIComponent(value || '');
+    });
+  }
+  console.log('  Method 3 - Manual parsing:');
+  console.log('    All params:', manualParams);
+  console.log('    courseId:', manualParams.courseId);
+  console.log('    course_id:', manualParams.course_id);
+  
+  // Determine which method works
+  const workingCourseId = urlParams.get('courseId') || urlParams.get('course_id') || 
+                          directUrlParams.get('courseId') || directUrlParams.get('course_id') ||
+                          manualParams.courseId || manualParams.course_id;
+  console.log('\n✅ FINAL RESULT:');
+  console.log('  Working courseId found:', workingCourseId || 'NONE');
+  console.log('  Method that worked:', 
+    urlParams.get('courseId') || urlParams.get('course_id') ? 'useSearch()' :
+    directUrlParams.get('courseId') || directUrlParams.get('course_id') ? 'window.location.search' :
+    manualParams.courseId || manualParams.course_id ? 'manual parsing' : 'NONE'
+  );
   
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
@@ -87,9 +129,12 @@ export default function AuthPage() {
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
-      // Support both course_id and courseId formats
-      const courseId = urlParams.get('courseId') || urlParams.get('course_id');
-      const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
+      // Support both course_id and courseId formats - use direct window.location.search if useSearch() fails
+      const directParams = new URLSearchParams(window.location.search);
+      const courseId = urlParams.get('courseId') || urlParams.get('course_id') || 
+                      directParams.get('courseId') || directParams.get('course_id');
+      const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
+                             directParams.get('assignmentName') || directParams.get('assignment_name');
       
       console.log('\n🔍 SSO AUTO-REDIRECT - PARAMETER CHECK');
       console.log('  Raw courseId extracted:', courseId);
@@ -188,9 +233,12 @@ export default function AuthPage() {
             <Button 
               onClick={() => {
                 // Preserve and validate URL parameters when clicking SSO button
-                // Support both course_id and courseId formats
-                const courseId = urlParams.get('courseId') || urlParams.get('course_id');
-                const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
+                // Support both course_id and courseId formats - use direct window.location.search if useSearch() fails
+                const directParams = new URLSearchParams(window.location.search);
+                const courseId = urlParams.get('courseId') || urlParams.get('course_id') || 
+                                directParams.get('courseId') || directParams.get('course_id');
+                const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
+                                       directParams.get('assignmentName') || directParams.get('assignment_name');
                 
                 console.log('\n🔍 SSO BUTTON CLICK - PARAMETER CHECK');
                 console.log('  Raw courseId extracted:', courseId);

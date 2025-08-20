@@ -1,0 +1,358 @@
+Situation Analysis
+
+The dual parameter support code is confirmed to be present in the codebase:
+
+•
+Line 80-81: Auto-redirect logic with urlParams.get('courseId') || urlParams.get('course_id')
+
+•
+Line 181-182: SSO button handler with the same dual parameter support
+
+However, production logs consistently show courseId: null, indicating the parameter extraction is failing at runtime despite the code being correct.
+
+Systematic Debugging Approach
+
+Step 1: Verify Deployment Status
+
+Check if the latest code is actually deployed:
+
+1.
+Add a version indicator to the auth page:
+
+2.
+Force a deployment refresh:
+
+•
+In Replit, make sure you've saved all files
+
+•
+Restart the application completely
+
+•
+Clear any build caches if applicable
+
+
+
+3.
+Check browser console for the version log:
+
+•
+Navigate to your app with ?course_id=6171
+
+•
+Open browser console
+
+•
+Look for "Auth Page Version: 3.0" message
+
+•
+If you don't see this, the deployment hasn't updated
+
+
+
+Step 2: Debug Parameter Extraction in Real-Time
+
+Add comprehensive logging to see exactly what's happening:
+
+TypeScript
+
+
+// Add this detailed logging in both locations (auto-redirect and SSO button)
+useEffect(() => {
+  console.log('=== PARAMETER EXTRACTION DEBUG ===');
+  console.log('Full URL:', window.location.href);
+  console.log('Search string:', window.location.search);
+  console.log('URLSearchParams object:', urlParams);
+  
+  // Test all possible parameter variations
+  const courseId_camel = urlParams.get('courseId');
+  const courseId_underscore = urlParams.get('course_id');
+  const courseId_final = courseId_camel || courseId_underscore;
+  
+  console.log('Parameter extraction results:', {
+    courseId_camelCase: courseId_camel,
+    course_id_underscore: courseId_underscore,
+    finalCourseId: courseId_final,
+    parameterFound: !!courseId_final
+  });
+  
+  // Also test manual URL parsing as backup
+  const manualParams = new URLSearchParams(window.location.search);
+  console.log('Manual parameter check:', {
+    courseId: manualParams.get('courseId'),
+    course_id: manualParams.get('course_id')
+  });
+  
+  console.log('=== END PARAMETER DEBUG ===');
+}, []);
+
+
+Step 3: Check Browser Caching Issues
+
+Force browser cache refresh:
+
+1.
+Hard refresh: Ctrl+Shift+R (or Cmd+Shift+R on Mac)
+
+2.
+Clear browser cache: Go to Developer Tools > Application > Storage > Clear storage
+
+3.
+Incognito/Private browsing: Test in a private browser window
+
+4.
+Different browser: Test in a completely different browser
+
+Step 4: Verify URL Parameter Timing
+
+Check if parameters are being stripped before JavaScript runs:
+
+TypeScript
+
+
+// Add this at the very top of the auth page component, before any other logic
+console.log('IMMEDIATE URL CHECK:', {
+  href: window.location.href,
+  search: window.location.search,
+  timestamp: new Date().toISOString()
+});
+
+
+This will show if the parameters are present when the page first loads, before any other JavaScript logic runs.
+
+Advanced Debugging Scenarios
+
+Scenario A: Code is Deployed but Parameters are Lost Before JavaScript
+
+If the parameters are being stripped before the JavaScript runs, this could be due to:
+
+Server-side redirects: Check if there are any server-side redirects that strip parameters before the React app loads.
+
+Router configuration: The wouter router or other routing logic might be interfering with parameter preservation.
+
+Debug approach:
+
+TypeScript
+
+
+// Add this to the very beginning of App.tsx or main.tsx
+console.log('APP STARTUP URL CHECK:', {
+  href: window.location.href,
+  search: window.location.search,
+  pathname: window.location.pathname,
+  timestamp: new Date().toISOString()
+});
+
+
+Scenario B: URLSearchParams Object Issues
+
+Sometimes the URLSearchParams object doesn't work as expected in certain environments.
+
+Debug approach:
+
+TypeScript
+
+
+// Replace the urlParams usage with manual parsing
+const searchString = window.location.search;
+console.log('Raw search string:', searchString);
+
+// Manual parameter extraction
+const params = {};
+if (searchString) {
+  const pairs = searchString.substring(1).split('&');
+  pairs.forEach(pair => {
+    const [key, value] = pair.split('=');
+    params[decodeURIComponent(key)] = decodeURIComponent(value || '');
+  });
+}
+
+console.log('Manually parsed parameters:', params);
+const courseId = params.courseId || params.course_id;
+console.log('Final courseId from manual parsing:', courseId);
+
+
+Scenario C: React Router or Wouter Interference
+
+The wouter router might be interfering with parameter extraction.
+
+Debug approach:
+
+TypeScript
+
+
+// In auth-page.tsx, add this before using useSearch()
+import { useLocation } from "wouter";
+
+const [location] = useLocation();
+console.log('Wouter location:', location);
+console.log('Wouter search comparison:', {
+  wouterSearch: useSearch(),
+  windowSearch: window.location.search,
+  match: useSearch() === window.location.search
+});
+
+
+Scenario D: Timing Issues with useSearch Hook
+
+The wouter useSearch() hook might not be updating correctly.
+
+Debug approach:
+
+TypeScript
+
+
+// Replace useSearch() with direct window.location.search
+// Instead of:
+const searchParams = useSearch();
+const urlParams = new URLSearchParams(searchParams);
+
+// Use:
+const urlParams = new URLSearchParams(window.location.search);
+console.log('Direct window.location.search:', window.location.search);
+
+
+Production Testing Protocol
+
+Test 1: Verify Code Deployment
+
+1.
+Navigate to: https://your-app.com/?course_id=6171&test=deployment
+
+2.
+Open browser console immediately
+
+3.
+Look for version indicator and parameter logs
+
+4.
+Expected: Should see "Auth Page Version: 3.0" and parameter extraction logs
+
+Test 2: Manual Parameter Verification
+
+1.
+In browser console, manually run:
+
+2.
+Expected: Should show the course_id parameter value
+
+Test 3: Network Request Verification
+
+1.
+Open Network tab in browser dev tools
+
+2.
+Navigate to app with ?course_id=6171
+
+3.
+Click SSO button
+
+4.
+Check the request to /auth/cognito
+
+5.
+Expected: Should see ?courseId=6171 in the request URL
+
+Immediate Action Items
+
+Priority 1: Add Version Logging
+
+Add this to the auth page to confirm deployment:
+
+TypeScript
+
+
+useEffect(() => {
+  console.log('🔍 AUTH PAGE DEBUG v3.0');
+  console.log('URL:', window.location.href);
+  console.log('Search:', window.location.search);
+  console.log('Timestamp:', new Date().toISOString());
+}, []);
+
+
+Priority 2: Add Parameter Extraction Logging
+
+Add comprehensive parameter logging:
+
+TypeScript
+
+
+const courseId = urlParams.get('courseId') || urlParams.get('course_id');
+console.log('📊 PARAMETER EXTRACTION:', {
+  courseId_camel: urlParams.get('courseId'),
+  course_id_underscore: urlParams.get('course_id'),
+  final_courseId: courseId,
+  success: !!courseId
+});
+
+
+Priority 3: Test in Clean Environment
+
+1.
+Open incognito/private browser window
+
+2.
+Navigate directly to: https://your-app.com/?course_id=6171
+
+3.
+Check console logs
+
+4.
+Click SSO button and check network requests
+
+Expected Results After Fixes
+
+Once the issue is resolved, you should see:
+
+In browser console:
+
+Plain Text
+
+
+🔍 AUTH PAGE DEBUG v3.0
+URL: https://your-app.com/?course_id=6171
+📊 PARAMETER EXTRACTION: {
+  courseId_camel: null,
+  course_id_underscore: "6171",
+  final_courseId: "6171",
+  success: true
+}
+
+
+In network requests:
+
+•
+Request to /auth/cognito?courseId=6171
+
+In decoded state parameter:
+
+JSON
+
+
+{
+  "state": "...",
+  "courseId": "6171",
+  "assignmentName": null
+}
+
+
+Troubleshooting Common Issues
+
+Issue: Version logs don't appear
+
+Solution: Code isn't deployed. Force restart the application and clear caches.
+
+Issue: Parameters show as null in logs
+
+Solution: Parameters are being stripped before JavaScript runs. Check for server-side redirects.
+
+Issue: Manual parameter extraction works but urlParams doesn't
+
+Solution: Replace useSearch() with direct window.location.search.
+
+Issue: SSO button doesn't forward parameters
+
+Solution: Check if the parameter extraction is happening in the right event handler.
+
+This systematic approach will help identify exactly where the parameter loss is occurring and provide the specific fix needed for your environment.
+
