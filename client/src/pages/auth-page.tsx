@@ -80,19 +80,30 @@ export default function AuthPage() {
       const courseId = urlParams.get('courseId') || urlParams.get('course_id');
       const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
       
+      console.log('\n🔍 SSO AUTO-REDIRECT - PARAMETER CHECK');
+      console.log('  Raw courseId extracted:', courseId);
+      console.log('  Raw assignmentName extracted:', assignmentName);
+      console.log('  Course ID type:', typeof courseId);
+      console.log('  Course ID validation regex test:', courseId ? /^\d+$/.test(courseId) : 'N/A');
+      
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
       // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
       const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
+      
+      console.log('  Valid courseId after validation:', validCourseId);
+      console.log('  Valid assignmentName after validation:', validAssignmentName);
       
       let ssoUrl = authConfig.cognitoLoginUrl;
       const ssoParams = new URLSearchParams();
       
       if (validCourseId) {
         ssoParams.append('courseId', validCourseId);
+        ssoParams.append('course_id', validCourseId); // Also send underscore version
       }
       if (validAssignmentName) {
         ssoParams.append('assignmentName', validAssignmentName);
+        ssoParams.append('assignment_name', validAssignmentName); // Also send underscore version
       }
       
       if (ssoParams.toString()) {
@@ -100,10 +111,16 @@ export default function AuthPage() {
       }
       
       console.log('\n🔄 AUTO-REDIRECTING TO SSO');
-      console.log('  SSO URL:', ssoUrl);
+      console.log('  Base SSO URL:', authConfig.cognitoLoginUrl);
+      console.log('  Final SSO URL:', ssoUrl);
+      console.log('  URL params being sent:', ssoParams.toString());
       console.log('  With courseId:', validCourseId || 'NONE');
       console.log('  With assignmentName:', validAssignmentName || 'NONE');
-      window.location.href = ssoUrl;
+      
+      // Small delay to ensure logs are visible
+      setTimeout(() => {
+        window.location.href = ssoUrl;
+      }, 100);
     }
   }, [authConfig, user, urlParams]);
 
@@ -164,6 +181,10 @@ export default function AuthPage() {
                 const courseId = urlParams.get('courseId') || urlParams.get('course_id');
                 const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name');
                 
+                console.log('\n🔍 SSO BUTTON CLICK - PARAMETER CHECK');
+                console.log('  Raw courseId extracted:', courseId);
+                console.log('  Raw assignmentName extracted:', assignmentName);
+                
                 // Validate parameters
                 const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
                 const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
@@ -173,9 +194,11 @@ export default function AuthPage() {
                 
                 if (validCourseId) {
                   ssoParams.append('courseId', validCourseId);
+                  ssoParams.append('course_id', validCourseId); // Also send underscore version
                 }
                 if (validAssignmentName) {
                   ssoParams.append('assignmentName', validAssignmentName);
+                  ssoParams.append('assignment_name', validAssignmentName); // Also send underscore version  
                 }
                 
                 if (ssoParams.toString()) {
@@ -183,7 +206,9 @@ export default function AuthPage() {
                 }
                 
                 console.log('\n🔐 SSO BUTTON CLICKED');
-                console.log('  Redirecting to:', ssoUrl);
+                console.log('  Base SSO URL:', authConfig.cognitoLoginUrl);
+                console.log('  Final redirect URL:', ssoUrl);
+                console.log('  URL params being sent:', ssoParams.toString());
                 console.log('  With courseId:', validCourseId || 'NONE');
                 console.log('  With assignmentName:', validAssignmentName || 'NONE');
                 window.location.href = ssoUrl;

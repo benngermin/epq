@@ -1,0 +1,86 @@
+POST
+	https://users.login.theinstitutes.org/login?response_type=code&redirect_uri=https://exampracticequestions.theinstituteslab.org/auth/cognito/callback&scope=openid email profile&state=eyJzdGF0ZSI6Im5xa3kxOHNiZ2RsIiwiY291cnNlSWQiOm51bGwsImFzc2lnbm1lbnROYW1lIjpudWxsfQ==&client_id=6r574u9jasn360o9hg4ekht6g3
+Status
+302
+VersionHTTP/2
+Transferred3.06 kB (1.50 kB size)
+Referrer Policystrict-origin-when-cross-origin
+Request PriorityHighest
+DNS ResolutionDNS over HTTPS
+
+	
+cache-control
+	no-cache, no-store, max-age=0, must-revalidate
+content-length
+	0
+date
+	Wed, 20 Aug 2025 15:12:11 GMT
+location
+	https://exampracticequestions.theinstituteslab.org/auth/cognito/callback?code=f28a5b98-aa56-4be1-a1fa-cf84f61ba9d7&state=eyJzdGF0ZSI6Im5xa3kxOHNiZ2RsIiwiY291cnNlSWQiOm51bGwsImFzc2lnbm1lbnROYW1lIjpudWxsfQ==
+pragma
+	no-cache
+server
+	Server
+set-cookie
+	XSRF-TOKEN=""; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Path=/; Secure; HttpOnly; SameSite=Lax
+set-cookie
+	XSRF-TOKEN=f6e83ab5-b26e-4c2c-8454-0a261014f11e; Path=/; Secure; HttpOnly; SameSite=Lax
+set-cookie
+	cognito="H4sIAAAAAAAAAAHXACj//0CpokWmSSoyAf6lefwvAKi6kr89CbpSJbZcwHxyWSxUmWlWniU1+pzzsSi+6BguTxOHkpvLh1Q9ky1OXhV29VS3Kh054xeNcMVy7qoN/kpTs1uI8yioirFwRBHMerF1AZ7C4NI2cphCViHMIwMKfEsRkfwI6czSI2edQPDN9Ep7xDACmlc8Hz4hLVDwIXPGd06/E5Laknq0YZBgLocUyZvDD4YHifze06djfip0vxZ4ugiQnVOPpbOo01YF7HtI1M8Y9qoHDGRZaZUEZ2NXpaj1+NTjoCCLBc4/1wAAAA==.H4sIAAAAAAAAANtp/a8jlVf2n2rs0ju+WqdzGu1qk3IDlqS9q5q6+XpsWC4A+bgcFiAAAAA=.4"; Version=1; Domain=users.login.theinstitutes.org; Max-Age=3600; Expires=Wed, 20-Aug-2025 16:12:11 GMT; Path=/; Secure; HttpOnly; SameSite=Lax
+strict-transport-security
+	max-age=31536000 ; includeSubDomains
+via
+	1.1 b1422ccb486c8b395d3da3c4f22f7644.cloudfront.net (CloudFront)
+x-amz-cf-id
+	HRiJn5jqn6GOzOxBuY8vPjEF4X9jK8V8aqm5v7P2Soih0LOgMI-e-Q==
+x-amz-cf-pop
+	JFK50-P10
+x-amz-cognito-request-id
+	8c8f2d64-f98d-46a3-a1bc-7f594fbe1bbf
+x-cache
+	Miss from cloudfront
+x-content-type-options
+	nosniff
+X-Firefox-Spdy
+	h2
+x-frame-options
+	DENY
+x-xss-protection
+	1; mode=block
+	
+Accept
+	text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Encoding
+	gzip, deflate, br, zstd
+Accept-Language
+	en-US,en;q=0.5
+Connection
+	keep-alive
+Content-Length
+	991
+Content-Type
+	application/x-www-form-urlencoded
+Cookie
+	XSRF-TOKEN=0696a571-6a0f-4503-9a56-f41f045c733e; csrf-state=""; csrf-state-legacy=""
+Host
+	users.login.theinstitutes.org
+Origin
+	https://users.login.theinstitutes.org
+Priority
+	u=0, i
+Referer
+	https://users.login.theinstitutes.org/login?response_type=code&redirect_uri=https%3A%2F%2Fexampracticequestions.theinstituteslab.org%2Fauth%2Fcognito%2Fcallback&scope=openid%20email%20profile&state=eyJzdGF0ZSI6Im5xa3kxOHNiZ2RsIiwiY291cnNlSWQiOm51bGwsImFzc2lnbm1lbnROYW1lIjpudWxsfQ%3D%3D&client_id=6r574u9jasn360o9hg4ekht6g3
+Sec-Fetch-Dest
+	document
+Sec-Fetch-Mode
+	navigate
+Sec-Fetch-Site
+	same-origin
+Sec-Fetch-User
+	?1
+TE
+	trailers
+Upgrade-Insecure-Requests
+	1
+User-Agent
+	Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:142.0) Gecko/20100101 Firefox/142.0
