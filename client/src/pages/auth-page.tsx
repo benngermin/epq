@@ -90,9 +90,9 @@ export default function AuthPage() {
   console.log('    course_id:', manualParams.course_id);
   
   // Determine which method works
-  const workingCourseId = urlParams.get('courseId') || urlParams.get('course_id') || 
-                          directUrlParams.get('courseId') || directUrlParams.get('course_id') ||
-                          manualParams.courseId || manualParams.course_id;
+  const workingCourseId = urlParams.get('courseId') || urlParams.get('course_id') || urlParams.get('course_ID') || 
+                          directUrlParams.get('courseId') || directUrlParams.get('course_id') || directUrlParams.get('course_ID') ||
+                          manualParams.courseId || manualParams.course_id || manualParams.course_ID;
   console.log('\n✅ FINAL RESULT:');
   console.log('  Working courseId found:', workingCourseId || 'NONE');
   console.log('  Method that worked:', 
@@ -131,8 +131,8 @@ export default function AuthPage() {
       // Preserve and validate URL parameters when redirecting to SSO
       // Support both course_id and courseId formats - use direct window.location.search if useSearch() fails
       const directParams = new URLSearchParams(window.location.search);
-      const courseId = urlParams.get('courseId') || urlParams.get('course_id') || 
-                      directParams.get('courseId') || directParams.get('course_id');
+      const courseId = urlParams.get('courseId') || urlParams.get('course_id') || urlParams.get('course_ID') || 
+                      directParams.get('courseId') || directParams.get('course_id') || directParams.get('course_ID');
       const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
                              directParams.get('assignmentName') || directParams.get('assignment_name');
       
@@ -235,8 +235,8 @@ export default function AuthPage() {
                 // Preserve and validate URL parameters when clicking SSO button
                 // Support both course_id and courseId formats - use direct window.location.search if useSearch() fails
                 const directParams = new URLSearchParams(window.location.search);
-                const courseId = urlParams.get('courseId') || urlParams.get('course_id') || 
-                                directParams.get('courseId') || directParams.get('course_id');
+                const courseId = urlParams.get('courseId') || urlParams.get('course_id') || urlParams.get('course_ID') || 
+                                directParams.get('courseId') || directParams.get('course_id') || directParams.get('course_ID');
                 const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
                                        directParams.get('assignmentName') || directParams.get('assignment_name');
                 

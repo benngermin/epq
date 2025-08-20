@@ -110,7 +110,7 @@ export class CognitoAuth {
       const baseState = Math.random().toString(36).substring(2, 15);
       
       // Capture and encode parameters
-      const courseId = req.query.courseId || req.query.course_id;
+      const courseId = req.query.courseId || req.query.course_id || req.query.course_ID;
       const assignmentName = req.query.assignmentName || req.query.assignment_name;
       
       // Enhanced logging for debugging course ID issues
