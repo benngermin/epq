@@ -48,6 +48,17 @@ export default function AuthPage() {
   // Parse and validate URL params
   const urlParams = new URLSearchParams(searchParams);
   
+  // Critical debugging - log the raw URL and all parameters
+  console.log('\n🚨 CRITICAL URL PARAMETER DEBUGGING');
+  console.log('  Current window.location.href:', window.location.href);
+  console.log('  Current window.location.search:', window.location.search);
+  console.log('  searchParams string:', searchParams);
+  console.log('  urlParams.toString():', urlParams.toString());
+  console.log('  All URL parameters:');
+  Array.from(urlParams.entries()).forEach(([key, value]) => {
+    console.log(`    ${key}: ${value}`);
+  });
+  
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
   const validErrors = ['state_mismatch', 'cognito_failed', 'session_save_failed', 'authentication_failed'];
