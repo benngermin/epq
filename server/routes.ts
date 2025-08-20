@@ -3186,6 +3186,44 @@ Remember, your goal is to support student comprehension through meaningful feedb
     res.json({ success: true });
   });
 
+  // Demo feedback endpoint - allows demo users to submit feedback
+  app.post("/api/demo/feedback", async (req, res) => {
+    try {
+      const feedbackSchema = z.object({
+        type: z.enum(["positive", "negative"]),
+        message: z.string().optional(),
+        messageId: z.string(),
+        questionVersionId: z.number().optional(),
+        conversation: z.array(z.object({
+          id: z.string(),
+          content: z.string(),
+          role: z.enum(["user", "assistant"]),
+        })).optional(),
+        timestamp: z.string(),
+      });
+
+      const parsed = feedbackSchema.parse(req.body);
+      
+      // For demo mode, we store feedback with a special demo user ID (-1)
+      await storage.createChatbotFeedback({
+        userId: -1, // Demo user ID
+        messageId: parsed.messageId,
+        feedbackType: parsed.type,
+        feedbackMessage: parsed.message || null,
+        questionVersionId: parsed.questionVersionId || null,
+        conversation: parsed.conversation || null,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving demo feedback:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ 

@@ -20,7 +20,9 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/feedback", {
+      // Check if we're in demo mode
+      const isDemo = window.location.pathname.startsWith('/demo');
+      const response = await fetch(isDemo ? "/api/demo/feedback" : "/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
