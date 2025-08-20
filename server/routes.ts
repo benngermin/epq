@@ -2812,6 +2812,196 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Demo API endpoints - No authentication required
+  // These endpoints provide read-only access to course data for demo purposes
+  
+  app.get("/api/demo/courses", async (req, res) => {
+    try {
+      const allCourses = await storage.getAllCourses();
+      
+      // Return all courses without deduplication since we now use mapping table
+      const uniqueCourses = allCourses.filter(course => {
+        // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
+        const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
+                               (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
+        return hasStandardName;
+      });
+      
+      const coursesWithProgress = await Promise.all(
+        uniqueCourses.map(async (course) => {
+          // Get question sets for this course
+          const questionSets = await storage.getQuestionSetsByCourse(course.id);
+          const questionSetsWithCounts = await Promise.all(
+            questionSets.map(async (questionSet) => {
+              const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+              return {
+                ...questionSet,
+                questionCount: questions.length,
+              };
+            })
+          );
+
+          // For demo, just return 0 progress
+          return {
+            ...course,
+            progress: 0,
+            questionSets: questionSetsWithCounts,
+          };
+        })
+      );
+      
+      // Sort courses to show those with question sets first, then by course number
+      coursesWithProgress.sort((a, b) => {
+        // First priority: courses with question sets
+        const aHasQuestionSets = a.questionSets && a.questionSets.length > 0;
+        const bHasQuestionSets = b.questionSets && b.questionSets.length > 0;
+        
+        if (aHasQuestionSets && !bHasQuestionSets) return -1;
+        if (!aHasQuestionSets && bHasQuestionSets) return 1;
+        
+        // Second priority: alphabetical by course number
+        return a.courseNumber.localeCompare(b.courseNumber);
+      });
+      
+      res.json(coursesWithProgress);
+    } catch (error) {
+      console.error("Error fetching demo courses:", error);
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  app.get("/api/demo/courses/by-external-id/:externalId", async (req, res) => {
+    try {
+      const { externalId } = req.params;
+      
+      if (!externalId) {
+        return res.status(400).json({ message: "External ID is required" });
+      }
+      
+      const course = await storage.getCourseByExternalId(externalId);
+      
+      if (!course) {
+        return res.status(404).json({ message: `Course with external ID '${externalId}' not found` });
+      }
+      
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course by external ID:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  app.get("/api/demo/courses/:id", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
+      const course = await storage.getCourse(courseId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  app.get("/api/demo/courses/:courseId/question-sets", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
+      const questionSets = await storage.getQuestionSetsByCourse(courseId);
+      
+      // Add question counts to each question set
+      const questionSetsWithCounts = await Promise.all(
+        questionSets.map(async (questionSet) => {
+          const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+          return {
+            ...questionSet,
+            questionCount: questions.length,
+          };
+        })
+      );
+      
+      res.json(questionSetsWithCounts);
+    } catch (error) {
+      console.error("Error fetching question sets:", error);
+      res.status(500).json({ message: "Failed to fetch question sets" });
+    }
+  });
+
+  app.get("/api/demo/question-sets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questionSet = await storage.getQuestionSet(id);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(questionSet);
+    } catch (error) {
+      console.error("Error fetching question set:", error);
+      res.status(500).json({ message: "Failed to fetch question set" });
+    }
+  });
+
+  app.get("/api/demo/questions/:questionSetId", async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Use optimized batch query instead of N+1 queries
+      const questionsWithLatestVersions = await withCircuitBreaker(() => 
+        batchFetchQuestionsWithVersions(questionSetId)
+      );
+      
+      // Return in randomized order for demo
+      const shuffled = [...questionsWithLatestVersions].sort(() => Math.random() - 0.5);
+      
+      res.json(shuffled);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  // Demo answer submission - just returns success without storing
+  app.post("/api/demo/question-sets/:questionSetId/answer", async (req, res) => {
+    try {
+      const { questionVersionId, answer } = req.body;
+      
+      // Just return a mock success response for demo
+      res.json({
+        success: true,
+        isCorrect: Math.random() > 0.5, // Random for demo
+        chosenAnswer: answer,
+        message: "Demo mode - answers are not saved"
+      });
+    } catch (error) {
+      console.error("Error in demo answer submission:", error);
+      res.status(500).json({ message: "Failed to process answer" });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ 

@@ -9,12 +9,16 @@ export default function Dashboard() {
   const { user, isLoading: userLoading } = useAuth();
   const [, setLocation] = useLocation();
   
+  // Check if we're in demo mode
+  const isDemo = window.location.pathname.startsWith('/demo');
+  
   // Version indicator to verify new dashboard loads
   console.log("Dashboard Version: 3.0 - Direct-to-Assessment");
   console.log("Features: URL parameter based course resolution");
+  console.log("Demo mode:", isDemo);
 
   const { data: courses, isLoading: coursesLoading } = useQuery<any[]>({
-    queryKey: ["/api/courses"],
+    queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
     enabled: !!user, // Only fetch when user is authenticated
   });
 
@@ -61,7 +65,7 @@ export default function Dashboard() {
         if (courseIdParam) {
           // Fetch course by external ID using the API endpoint
           try {
-            const response = await fetch(`/api/courses/by-external-id/${courseIdParam}`, {
+            const response = await fetch(isDemo ? `/api/demo/courses/by-external-id/${courseIdParam}` : `/api/courses/by-external-id/${courseIdParam}`, {
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -78,7 +82,7 @@ export default function Dashboard() {
               if (!targetCourse) {
                 console.log(`Course ${courseData.courseNumber} (ID: ${courseData.id}) not in courses array, fetching question sets...`);
                 // Course exists but isn't in the courses array, fetch its question sets
-                const qsResponse = await fetch(`/api/courses/${courseData.id}/question-sets`, {
+                const qsResponse = await fetch(isDemo ? `/api/demo/courses/${courseData.id}/question-sets` : `/api/courses/${courseData.id}/question-sets`, {
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
                 });
@@ -146,7 +150,7 @@ export default function Dashboard() {
         console.log(`Navigating to question set: ${firstQuestionSet.title} (ID: ${firstQuestionSet.id})`);
         
         // Navigate to the question set practice page
-        setLocation(`/question-set/${firstQuestionSet.id}`);
+        setLocation(isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`);
       } else {
         console.error('No question sets available for the selected course', {
           courseId: targetCourse?.id,

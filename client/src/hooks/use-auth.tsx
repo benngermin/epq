@@ -31,18 +31,34 @@ type LoginData = Pick<InsertUser, "email" | "password">;
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
+  // Check if we're in demo mode
+  const isDemo = window.location.pathname.startsWith('/demo');
+  
   const {
     data: user,
     error,
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: isDemo 
+      ? async () => ({
+          id: -1,
+          name: "Demo User",
+          email: "demo@example.com",
+          cognitoSub: null,
+          password: null,
+          isAdmin: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as SelectUser)
+      : getQueryFn({ on401: "returnNull" }),
     staleTime: 15 * 60 * 1000, // 15 minutes - longer for user data
     gcTime: 30 * 60 * 1000, // Keep user data cached longer
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: true, // Only refetch on reconnect
+    enabled: isDemo ? true : undefined, // Always enable for demo mode
   });
 
   const { data: authConfig } = useQuery<AuthConfig>({

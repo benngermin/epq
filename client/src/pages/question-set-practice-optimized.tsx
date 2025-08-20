@@ -32,15 +32,22 @@ export default function QuestionSetPractice() {
   const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
+  const [demoMatch, demoParams] = useRoute("/demo/question-set/:id");
   
-  // Redirect to auth if not logged in
+  // Check if we're in demo mode
+  const isDemo = window.location.pathname.startsWith('/demo');
+  const actualMatch = isDemo ? demoMatch : match;
+  const actualParams = isDemo ? demoParams : params;
+  
+  // Redirect to auth if not logged in (except in demo mode)
   useEffect(() => {
     // Only redirect when we're sure the user is not authenticated (not during loading)
     // Also handle error states where the user query failed
-    if (!authLoading && !user) {
+    // Skip redirect in demo mode
+    if (!isDemo && !authLoading && !user) {
       setLocation("/auth");
     }
-  }, [user, authLoading, setLocation]);
+  }, [user, authLoading, setLocation, isDemo]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
@@ -54,7 +61,7 @@ export default function QuestionSetPractice() {
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   // Handle the case where route doesn't match
-  if (!match || !params?.id) {
+  if (!actualMatch || !actualParams?.id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -73,7 +80,7 @@ export default function QuestionSetPractice() {
     );
   }
 
-  const questionSetId = parseInt(params.id);
+  const questionSetId = parseInt(actualParams.id);
   
   // Reset state when question set changes
   useEffect(() => {
@@ -96,25 +103,27 @@ export default function QuestionSetPractice() {
 
   // Fetch all courses for admin dropdown
   const { data: courses } = useQuery<(Course & { questionSets: any[] })[]>({
-    queryKey: ["/api/courses"],
-    enabled: !!user?.isAdmin, // Only fetch if user is admin
+    queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
+    enabled: !isDemo && !!user?.isAdmin, // Only fetch if user is admin and not in demo
   });
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
-    queryKey: ["/api/practice-data", questionSetId],
+    queryKey: [isDemo ? "/api/demo/practice-data" : "/api/practice-data", questionSetId],
     queryFn: async () => {
       try {
-        // First check if we're authenticated
-        const authRes = await fetch('/api/user', { credentials: "include" });
-        if (!authRes.ok) {
-          console.error('Authentication check failed:', authRes.status);
-          throw new Error('Authentication required');
+        // First check if we're authenticated (skip in demo mode)
+        if (!isDemo) {
+          const authRes = await fetch('/api/user', { credentials: "include" });
+          if (!authRes.ok) {
+            console.error('Authentication check failed:', authRes.status);
+            throw new Error('Authentication required');
+          }
         }
 
         const [questionSetRes, questionsRes] = await Promise.all([
-          fetch(`/api/question-sets/${questionSetId}`, { credentials: "include" }),
-          fetch(`/api/questions/${questionSetId}`, { credentials: "include" })
+          fetch(isDemo ? `/api/demo/question-sets/${questionSetId}` : `/api/question-sets/${questionSetId}`, { credentials: "include" }),
+          fetch(isDemo ? `/api/demo/questions/${questionSetId}` : `/api/questions/${questionSetId}`, { credentials: "include" })
         ]);
 
         // Check if responses are JSON before parsing
@@ -136,8 +145,8 @@ export default function QuestionSetPractice() {
         const questions = await questionsRes.json();
 
         // Fetch course and question sets info
-        const courseRes = await fetch(`/api/courses/${questionSet.courseId}`, { credentials: "include" });
-        const questionSetsRes = await fetch(`/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
+        const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { credentials: "include" });
+        const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
 
         const course = courseRes.ok ? await courseRes.json() : null;
         const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
@@ -161,7 +170,7 @@ export default function QuestionSetPractice() {
         throw error;
       }
     },
-    enabled: !!questionSetId && !!user, // Only fetch when we have a user
+    enabled: !!questionSetId && (isDemo || !!user), // Only fetch when we have a user (or in demo mode)
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
@@ -172,7 +181,7 @@ export default function QuestionSetPractice() {
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
       debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
-      const res = await apiRequest("POST", `/api/question-sets/${questionSetId}/answer`, {
+      const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
         questionVersionId,
         answer,
       });
