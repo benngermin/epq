@@ -1,0 +1,87 @@
+ Root Cause
+
+  The course_id is lost because session cookies with sameSite: 'none' aren't reliably sent during cross-origin redirects to Cognito and back. The session exists when you save
+  it, but a new session is created when returning from Cognito.
+
+  The Fix
+
+  Encode the course_id directly in the OAuth state parameter as base64 JSON instead of relying on session storage.
+
+  Edit /server/cognito-auth.ts:
+
+  1. Line 108-152 - Replace the /auth/cognito route handler with:
+
+  app.get('/auth/cognito', (req: Request, res: Response, next: NextFunction) => {
+    console.log('Cognito login route hit');
+
+    // Create a state object that includes CSRF token and parameters
+    const stateData = {
+      csrf: Math.random().toString(36).substring(2, 15),
+      courseId: req.query.course_id || req.query.courseId || undefined,
+      assignmentName: req.query.assignmentName || undefined
+    };
+
+    // Encode the state data as base64 JSON
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
+
+    // Store just the CSRF token in session for validation
+    req.session.state = stateData.csrf;
+
+    // Save session and redirect
+    req.session.save((err) => {
+      if (err) {
+        console.error('Failed to save session:', err);
+        return res.redirect('/auth?error=session_save_failed');
+      }
+
+      console.log('State parameter being sent:', state);
+
+      passport.authenticate('cognito', {
+        state,
+        scope: 'openid email profile',
+      })(req, res, next);
+    });
+  });
+
+  2. Line 155-191 - Replace the callback route's first handler with:
+
+  (req: Request, res: Response, next: NextFunction) => {
+    console.log('Cognito callback route hit!');
+    console.log('Callback query params:', JSON.stringify(req.query));
+
+    const stateFromQuery = req.query.state as string;
+
+    try {
+      // Decode the state parameter
+      const stateData = JSON.parse(Buffer.from(stateFromQuery, 'base64url').toString());
+      console.log('Decoded state data:', stateData);
+
+      // Verify CSRF token
+      if (stateData.csrf !== req.session.state) {
+        console.log('State mismatch detected');
+        return res.redirect('/auth?error=state_mismatch');
+      }
+
+      // Store the parameters in session for the next handler
+      if (stateData.courseId) {
+        req.session.courseId = stateData.courseId;
+      }
+      if (stateData.assignmentName) {
+        req.session.assignmentName = stateData.assignmentName;
+      }
+
+      // Clear the CSRF token
+      delete req.session.state;
+
+      console.log('State verified, authenticating with Cognito...');
+      passport.authenticate('cognito', {
+        failureRedirect: '/auth?error=cognito_failed',
+      })(req, res, next);
+    } catch (error) {
+      console.error('Failed to decode state:', error);
+      return res.redirect('/auth?error=invalid_state');
+    }
+  },
+
+  This fix ensures the course_id travels with the OAuth flow in the state parameter, which is preserved through the entire redirect chain, rather than relying on cross-origin
+  session cookies.
