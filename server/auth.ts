@@ -65,7 +65,7 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: 'lax', // Allow cookies on top-level navigations (OAuth redirects) while maintaining CSRF protection
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // Use 'none' in production for cross-origin
       path: '/', // Explicitly set path to ensure cookie is sent with all requests
       domain: undefined // Let the browser handle domain automatically
     },

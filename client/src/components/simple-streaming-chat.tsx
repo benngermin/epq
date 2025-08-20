@@ -46,6 +46,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const loadAiResponse = async (userMessage?: string) => {
     // Prevent concurrent requests
     if (isStreaming) {
+      console.log('Request already in progress, skipping');
       return;
     }
     
@@ -317,6 +318,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Double check streaming state to prevent race conditions
     if (isStreaming) {
+      console.log('Cannot send message while streaming');
       return;
     }
     

@@ -38,17 +38,9 @@ export default function QuestionSetPractice() {
     // Only redirect when we're sure the user is not authenticated (not during loading)
     // Also handle error states where the user query failed
     if (!authLoading && !user) {
-      // Preserve URL parameters when redirecting to auth
-      const currentParams = window.location.search;
-      
-      // If we're on a question-set page without explicit course_id, preserve the question set ID
-      if (!currentParams && params?.id) {
-        setLocation(`/auth?questionSetId=${params.id}`);
-      } else {
-        setLocation(`/auth${currentParams}`);
-      }
+      setLocation("/auth");
     }
-  }, [user, authLoading, setLocation, params]);
+  }, [user, authLoading, setLocation]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
