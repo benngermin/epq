@@ -438,7 +438,9 @@ export default function QuestionSetPractice() {
                           return aNum - bNum;
                         })[0];
                       
-                      setLocation(`/question-set/${firstQuestionSet.id}`);
+                      // Preserve demo mode when switching courses
+                      const newPath = isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`;
+                      setLocation(newPath);
                     }
                   }}
                 >
@@ -466,7 +468,9 @@ export default function QuestionSetPractice() {
               <Select
                 value={questionSetId.toString()}
                 onValueChange={(value) => {
-                  setLocation(`/question-set/${value}`);
+                  // Preserve demo mode when switching question sets
+                  const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
+                  setLocation(newPath);
                 }}
               >
                 <SelectTrigger className="w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
