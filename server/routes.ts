@@ -3086,6 +3086,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             // For the initial message, the prompt is empty - the system message contains everything
             prompt = "Please provide feedback on my answer.";
+            
+            // Store the initial system message in conversation history
+            if (stream.conversationHistory) {
+              stream.conversationHistory.push({ role: "system", content: systemMessage });
+            }
           }
           
           // For mobile, add instruction to be concise
@@ -3093,14 +3098,20 @@ Remember, your goal is to support student comprehension through meaningful feedb
             systemMessage = (systemMessage || "") + "\n\nIMPORTANT: The user is on a mobile device. Keep your response concise and well-formatted for mobile viewing. Use short paragraphs and clear structure.";
           }
           
-          // Call OpenRouter
-          const aiResponse = await callOpenRouter(prompt, aiSettings, userId, systemMessage);
+          // Use the streaming function for real-time responses like authenticated users
+          await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, systemMessage, stream.conversationHistory);
           
-          // Update stream with final content
-          if (stream && !stream.aborted) {
-            stream.chunks.push(aiResponse);
-            stream.done = true;
-            stream.lastActivity = Date.now();
+          // After successful response, update conversation history
+          if (!stream.error && stream.chunks && stream.chunks.length > 0) {
+            const aiResponse = stream.chunks.join('');
+            if (stream.conversationHistory) {
+              // Add user message to history (if not already added)
+              if (!userMessage || stream.conversationHistory[stream.conversationHistory.length - 1]?.content !== prompt) {
+                stream.conversationHistory.push({ role: "user", content: prompt });
+              }
+              // Add AI response to history
+              stream.conversationHistory.push({ role: "assistant", content: aiResponse });
+            }
           }
           
         } catch (error) {
