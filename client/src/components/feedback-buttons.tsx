@@ -97,7 +97,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
                 : "stroke-[#4a90e2]"
             }`}
           />
-          <span className="text-sm text-[#4a90e2] font-medium">Feedback</span>
+
         </button>
         <button
           onClick={handleThumbsDown}
@@ -116,7 +116,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
                 : "stroke-[#4a90e2]"
             }`}
           />
-          <span className="text-sm text-[#4a90e2] font-medium">Feedback</span>
+
         </button>
       </div>
 

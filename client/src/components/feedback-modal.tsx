@@ -65,7 +65,7 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, feedbackType }: Feedb
         <div className="bg-background rounded-lg shadow-lg animate-in zoom-in-95 duration-300">
           <div className="border-b p-6 pb-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-foreground">Feedback</h2>
+              <h2 className="text-xl font-semibold text-foreground">{feedbackType === "positive" ? "Positive" : "Negative"} Feedback</h2>
               <button
                 onClick={onClose}
                 className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
