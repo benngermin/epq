@@ -1,0 +1,440 @@
+[
+  {
+    "question_number": 1,
+    "loid": "12345",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Mathematics - Algebra",
+        "question_text": "Solve for x: 3x + 7 = 22",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "5",
+        "acceptable_answers": ["5", "5.0", "5.00"]
+      }
+    ]
+  },
+  {
+    "question_number": 2,
+    "loid": "12346",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Biology - Cell Structure",
+        "question_text": "The _____ is known as the powerhouse of the cell.",
+        "question_type": "select_from_list",
+        "blanks": [
+          {
+            "blank_id": 1,
+            "answer_choices": [
+              "nucleus",
+              "mitochondrion",
+              "ribosome",
+              "endoplasmic reticulum"
+            ],
+            "correct_answer": "mitochondrion"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "question_number": 3,
+    "loid": "12347",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Chemistry - States of Matter",
+        "question_text": "Classify each substance by its state at room temperature",
+        "question_type": "drag_and_drop",
+        "answer_choices": [
+          "Water",
+          "Oxygen",
+          "Iron",
+          "Carbon dioxide"
+        ],
+        "drop_zones": [
+          {
+            "zone_id": 1,
+            "zone_label": "Solid"
+          },
+          {
+            "zone_id": 2,
+            "zone_label": "Liquid"
+          },
+          {
+            "zone_id": 3,
+            "zone_label": "Gas"
+          }
+        ],
+        "correct_answer": {
+          "zone_1": ["Iron"],
+          "zone_2": ["Water"],
+          "zone_3": ["Oxygen", "Carbon dioxide"]
+        }
+      }
+    ]
+  },
+  {
+    "question_number": 4,
+    "loid": "12348",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "History - World War II",
+        "question_text": "Did World War II end in Europe before or after it ended in the Pacific?",
+        "question_type": "either_or",
+        "answer_choices": [
+          "A) Before",
+          "B) After"
+        ],
+        "correct_answer": "A) Before"
+      }
+    ]
+  },
+  {
+    "question_number": 5,
+    "loid": "12349",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Geography - Continents",
+        "question_text": "Which of the following countries are located in South America? Select all that apply:",
+        "question_type": "multiple_response",
+        "answer_choices": [
+          "Brazil",
+          "Mexico",
+          "Argentina",
+          "Peru",
+          "Spain"
+        ],
+        "correct_answer": ["Brazil", "Argentina", "Peru"],
+        "allow_multiple": true
+      }
+    ]
+  },
+  {
+    "question_number": 6,
+    "loid": "12350",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Grammar - Parts of Speech",
+        "question_text": "In the sentence 'The quick brown fox jumps over the lazy dog,' the word 'quick' is an _____ and the word 'jumps' is a _____.",
+        "question_type": "short_answer",
+        "answer_choices": [],
+        "correct_answer": "adjective, verb",
+        "acceptable_answers": ["adjective, verb", "adj, verb", "adjective, v"],
+        "case_sensitive": false
+      }
+    ]
+  },
+  {
+    "question_number": 7,
+    "loid": "12351",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Physics - Speed Calculation",
+        "question_text": "A car travels 240 kilometers in 3 hours. What is its average speed in km/h?",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "80",
+        "acceptable_answers": ["80", "80.0", "80 km/h"]
+      }
+    ]
+  },
+  {
+    "question_number": 8,
+    "loid": "12352",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Literature - Shakespeare",
+        "question_text": "Romeo and Juliet is classified as a _____.",
+        "question_type": "select_from_list",
+        "blanks": [
+          {
+            "blank_id": 1,
+            "answer_choices": [
+              "comedy",
+              "tragedy",
+              "history",
+              "romance"
+            ],
+            "correct_answer": "tragedy"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "question_number": 9,
+    "loid": "12353",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Computer Science - Programming",
+        "question_text": "Which of the following are programming languages? Select all that apply:",
+        "question_type": "multiple_response",
+        "answer_choices": [
+          "Python",
+          "HTML",
+          "Java",
+          "CSS",
+          "C++",
+          "SQL"
+        ],
+        "correct_answer": ["Python", "Java", "C++"],
+        "allow_multiple": true
+      }
+    ]
+  },
+  {
+    "question_number": 10,
+    "loid": "12354",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Economics - Supply and Demand",
+        "question_text": "When demand increases and supply remains constant, does the price typically rise or fall?",
+        "question_type": "either_or",
+        "answer_choices": [
+          "A) Rise",
+          "B) Fall"
+        ],
+        "correct_answer": "A) Rise"
+      }
+    ]
+  },
+  {
+    "question_number": 11,
+    "loid": "12355",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Art History - Periods",
+        "question_text": "Match each artist to their art movement",
+        "question_type": "drag_and_drop",
+        "answer_choices": [
+          "Leonardo da Vinci",
+          "Pablo Picasso",
+          "Claude Monet",
+          "Andy Warhol"
+        ],
+        "drop_zones": [
+          {
+            "zone_id": 1,
+            "zone_label": "Renaissance"
+          },
+          {
+            "zone_id": 2,
+            "zone_label": "Impressionism"
+          },
+          {
+            "zone_id": 3,
+            "zone_label": "Cubism"
+          },
+          {
+            "zone_id": 4,
+            "zone_label": "Pop Art"
+          }
+        ],
+        "correct_answer": {
+          "zone_1": ["Leonardo da Vinci"],
+          "zone_2": ["Claude Monet"],
+          "zone_3": ["Pablo Picasso"],
+          "zone_4": ["Andy Warhol"]
+        }
+      }
+    ]
+  },
+  {
+    "question_number": 12,
+    "loid": "12356",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Mathematics - Percentages",
+        "question_text": "What is 15% of 200?",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "30",
+        "acceptable_answers": ["30", "30.0", "30.00"]
+      }
+    ]
+  },
+  {
+    "question_number": 13,
+    "loid": "12357",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Chemistry - Periodic Table",
+        "question_text": "The chemical symbol _____ represents gold on the periodic table.",
+        "question_type": "select_from_list",
+        "blanks": [
+          {
+            "blank_id": 1,
+            "answer_choices": [
+              "Go",
+              "Au",
+              "Gd",
+              "Ag"
+            ],
+            "correct_answer": "Au"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "question_number": 14,
+    "loid": "12358",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Astronomy - Solar System",
+        "question_text": "The largest planet in our solar system is _____ and the smallest is _____.",
+        "question_type": "short_answer",
+        "answer_choices": [],
+        "correct_answer": "Jupiter, Mercury",
+        "acceptable_answers": ["Jupiter, Mercury", "jupiter, mercury", "Jupiter, mercury"],
+        "case_sensitive": false
+      }
+    ]
+  },
+  {
+    "question_number": 15,
+    "loid": "12359",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Biology - Human Body",
+        "question_text": "Is the femur located in the upper body or lower body?",
+        "question_type": "either_or",
+        "answer_choices": [
+          "A) Upper body",
+          "B) Lower body"
+        ],
+        "correct_answer": "B) Lower body"
+      }
+    ]
+  },
+  {
+    "question_number": 16,
+    "loid": "12360",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Environmental Science - Renewable Energy",
+        "question_text": "Which of the following are renewable energy sources? Select all that apply:",
+        "question_type": "multiple_response",
+        "answer_choices": [
+          "Solar power",
+          "Natural gas",
+          "Wind power",
+          "Coal",
+          "Hydroelectric power",
+          "Nuclear power"
+        ],
+        "correct_answer": ["Solar power", "Wind power", "Hydroelectric power"],
+        "allow_multiple": true
+      }
+    ]
+  },
+  {
+    "question_number": 17,
+    "loid": "12361",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "World History - Ancient Civilizations",
+        "question_text": "Sort these ancient civilizations by geographic region",
+        "question_type": "drag_and_drop",
+        "answer_choices": [
+          "Maya",
+          "Egypt",
+          "Greece",
+          "Inca",
+          "Mesopotamia",
+          "Rome"
+        ],
+        "drop_zones": [
+          {
+            "zone_id": 1,
+            "zone_label": "Americas"
+          },
+          {
+            "zone_id": 2,
+            "zone_label": "Africa/Middle East"
+          },
+          {
+            "zone_id": 3,
+            "zone_label": "Europe"
+          }
+        ],
+        "correct_answer": {
+          "zone_1": ["Maya", "Inca"],
+          "zone_2": ["Egypt", "Mesopotamia"],
+          "zone_3": ["Greece", "Rome"]
+        }
+      }
+    ]
+  },
+  {
+    "question_number": 18,
+    "loid": "12362",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Music Theory - Time Signatures",
+        "question_text": "A waltz is typically written in _____ time.",
+        "question_type": "select_from_list",
+        "blanks": [
+          {
+            "blank_id": 1,
+            "answer_choices": [
+              "2/4",
+              "3/4",
+              "4/4",
+              "6/8"
+            ],
+            "correct_answer": "3/4"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "question_number": 19,
+    "loid": "12363",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Psychology - Memory",
+        "question_text": "The three main stages of memory are encoding, _____, and _____.",
+        "question_type": "short_answer",
+        "answer_choices": [],
+        "correct_answer": "storage, retrieval",
+        "acceptable_answers": ["storage, retrieval", "storing, retrieving", "storage, recall"],
+        "case_sensitive": false
+      }
+    ]
+  },
+  {
+    "question_number": 20,
+    "loid": "12364",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Mathematics - Geometry",
+        "question_text": "How many degrees are in the sum of all interior angles of a triangle?",
+        "question_type": "numerical_entry",
+        "answer_choices": [],
+        "correct_answer": "180",
+        "acceptable_answers": ["180", "180.0", "180 degrees"]
+      }
+    ]
+  }
+]
