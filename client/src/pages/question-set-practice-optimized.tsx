@@ -426,21 +426,28 @@ export default function QuestionSetPractice() {
                   onValueChange={(value) => {
                     // Find the selected course
                     const selectedCourse = courses?.find(c => c.id.toString() === value);
-                    if (selectedCourse && selectedCourse.questionSets && selectedCourse.questionSets.length > 0) {
+                    if (selectedCourse) {
                       // Update window.currentCourse
                       (window as any).currentCourse = selectedCourse;
                       
-                      // Navigate to the first question set of the new course
-                      const firstQuestionSet = selectedCourse.questionSets
-                        .sort((a, b) => {
-                          const aNum = parseInt(a?.title?.match(/\d+/)?.[0] || '0');
-                          const bNum = parseInt(b?.title?.match(/\d+/)?.[0] || '0');
-                          return aNum - bNum;
-                        })[0];
-                      
-                      // Preserve demo mode when switching courses
-                      const newPath = isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`;
-                      setLocation(newPath);
+                      if (selectedCourse.questionSets && selectedCourse.questionSets.length > 0) {
+                        // Navigate to the first question set of the new course
+                        const firstQuestionSet = selectedCourse.questionSets
+                          .sort((a, b) => {
+                            const aNum = parseInt(a?.title?.match(/\d+/)?.[0] || '0');
+                            const bNum = parseInt(b?.title?.match(/\d+/)?.[0] || '0');
+                            return aNum - bNum;
+                          })[0];
+                        
+                        // Preserve demo mode when switching courses
+                        const newPath = isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`;
+                        setLocation(newPath);
+                      } else {
+                        // For Test Course with no question sets, navigate to admin panel
+                        if (selectedCourse.courseNumber === 'Test Course') {
+                          setLocation('/admin');
+                        }
+                      }
                     }
                   }}
                 >
@@ -485,9 +492,20 @@ export default function QuestionSetPractice() {
                   {(() => {
                     // For admins, show question sets from the selected course in the course dropdown
                     // For non-admins, show question sets from the current course
-                    const questionSetsToShow = user?.isAdmin && courses 
-                      ? courses.find(c => c.id === course?.id)?.questionSets || courseQuestionSets
-                      : courseQuestionSets;
+                    const selectedCourse = user?.isAdmin && courses 
+                      ? courses.find(c => c.id === course?.id)
+                      : null;
+                    
+                    // If Test Course is selected and has no question sets, show a message
+                    if (selectedCourse?.courseNumber === 'Test Course' && (!selectedCourse.questionSets || selectedCourse.questionSets.length === 0)) {
+                      return (
+                        <SelectItem key="no-sets" value="no-sets" disabled>
+                          No question sets - Go to Admin to add
+                        </SelectItem>
+                      );
+                    }
+                    
+                    const questionSetsToShow = selectedCourse?.questionSets || courseQuestionSets;
                       
                     return questionSetsToShow?.map((qs: any) => (
                       <SelectItem key={qs.id} value={qs.id.toString()}>
