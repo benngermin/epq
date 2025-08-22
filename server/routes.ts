@@ -596,6 +596,16 @@ export function registerRoutes(app: Express): Server {
         return a.courseNumber.localeCompare(b.courseNumber);
       });
       
+      // Debug: Check if Test Course is in final response
+      const testCourseInFinal = coursesWithProgress.find(c => c.courseNumber === 'Test Course');
+      if (testCourseInFinal) {
+        console.log('Test Course in final response:', testCourseInFinal.id, testCourseInFinal.courseNumber);
+      } else {
+        console.log('Test Course NOT in final response');
+        console.log('Total courses in response:', coursesWithProgress.length);
+        console.log('Course numbers:', coursesWithProgress.map(c => c.courseNumber));
+      }
+      
       res.json(coursesWithProgress);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -2913,6 +2923,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Second priority: alphabetical by course number
         return a.courseNumber.localeCompare(b.courseNumber);
       });
+      
+      // Debug: Check if Test Course is in final response
+      const testCourseInFinal = coursesWithProgress.find(c => c.courseNumber === 'Test Course');
+      if (testCourseInFinal) {
+        console.log('Test Course in final response:', testCourseInFinal.id, testCourseInFinal.courseNumber);
+      } else {
+        console.log('Test Course NOT in final response');
+        console.log('Total courses in response:', coursesWithProgress.length);
+        console.log('Course numbers:', coursesWithProgress.map(c => c.courseNumber));
+      }
       
       res.json(coursesWithProgress);
     } catch (error) {
