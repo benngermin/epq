@@ -442,12 +442,9 @@ export default function QuestionSetPractice() {
                         // Preserve demo mode when switching courses
                         const newPath = isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`;
                         setLocation(newPath);
-                      } else {
-                        // For Test Course with no question sets, navigate to admin panel
-                        if (selectedCourse.courseNumber === 'Test Course') {
-                          setLocation('/admin');
-                        }
                       }
+                      // For Test Course with no question sets, just stay on current page
+                      // The question set dropdown will show "No question sets" message
                     }
                   }}
                 >
@@ -477,44 +474,55 @@ export default function QuestionSetPractice() {
               )}
 
               {/* Question Set Dropdown */}
-              <Select
-                value={questionSetId.toString()}
-                onValueChange={(value) => {
-                  // Preserve demo mode when switching question sets
-                  const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
-                  setLocation(newPath);
-                }}
-              >
-                <SelectTrigger className="w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
-                  <SelectValue placeholder="Select a question set" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(() => {
-                    // For admins, show question sets from the selected course in the course dropdown
-                    // For non-admins, show question sets from the current course
-                    const selectedCourse = user?.isAdmin && courses 
-                      ? courses.find(c => c.id === course?.id)
-                      : null;
-                    
-                    // If Test Course is selected and has no question sets, show a message
-                    if (selectedCourse?.courseNumber === 'Test Course' && (!selectedCourse.questionSets || selectedCourse.questionSets.length === 0)) {
-                      return (
-                        <SelectItem key="no-sets" value="no-sets" disabled>
-                          No question sets - Go to Admin to add
-                        </SelectItem>
-                      );
-                    }
-                    
-                    const questionSetsToShow = selectedCourse?.questionSets || courseQuestionSets;
-                      
-                    return questionSetsToShow?.map((qs: any) => (
-                      <SelectItem key={qs.id} value={qs.id.toString()}>
-                        {qs.title}
-                      </SelectItem>
-                    ));
-                  })()}
-                </SelectContent>
-              </Select>
+              {(() => {
+                // Check if Test Course is selected with no question sets
+                const selectedCourse = user?.isAdmin && courses 
+                  ? courses.find(c => c.id === course?.id)
+                  : null;
+                const isTestCourseEmpty = selectedCourse?.courseNumber === 'Test Course' && 
+                  (!selectedCourse.questionSets || selectedCourse.questionSets.length === 0);
+                
+                if (isTestCourseEmpty) {
+                  // Show disabled dropdown with message for Test Course
+                  return (
+                    <Select value="" disabled>
+                      <SelectTrigger className="w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 transition-colors opacity-50">
+                        <SelectValue placeholder="No question sets - Go to Admin to add" />
+                      </SelectTrigger>
+                      <SelectContent></SelectContent>
+                    </Select>
+                  );
+                }
+                
+                // Normal question set dropdown
+                return (
+                  <Select
+                    value={questionSetId.toString()}
+                    onValueChange={(value) => {
+                      // Preserve demo mode when switching question sets
+                      const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
+                      setLocation(newPath);
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] h-9 lg:h-11 text-sm lg:text-[16px] font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                      <SelectValue placeholder="Select a question set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        // For admins, show question sets from the selected course in the course dropdown
+                        // For non-admins, show question sets from the current course
+                        const questionSetsToShow = selectedCourse?.questionSets || courseQuestionSets;
+                          
+                        return questionSetsToShow?.map((qs: any) => (
+                          <SelectItem key={qs.id} value={qs.id.toString()}>
+                            {qs.title}
+                          </SelectItem>
+                        ));
+                      })()}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
           </div>
         </div>
