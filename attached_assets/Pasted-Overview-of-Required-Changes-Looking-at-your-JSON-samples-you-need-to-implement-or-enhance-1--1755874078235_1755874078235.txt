@@ -1,0 +1,758 @@
+Overview of Required Changes
+
+  Looking at your JSON samples, you need to implement or enhance:
+  1. numerical_entry - Already partially supported (uses fill-in-blank component)
+  2. select_from_list - NEW: Dropdown in blanks within text
+  3. drag_and_drop - Enhanced: Needs drop zones support
+  4. either_or - NEW: Binary choice question
+  5. multiple_response - Already supported but needs correct answer array handling
+  6. short_answer - Already partially supported (uses fill-in-blank component)
+
+  ---
+  1. Database Schema Updates
+
+  File: /shared/schema.ts
+
+  Line 52-66: Update questionVersions table
+
+  Add these new fields after line 65:
+  blanks: json("blanks").$type<Array<{
+    blank_id: number;
+    answer_choices: string[];
+    correct_answer: string;
+  }>>(),
+  dropZones: json("drop_zones").$type<Array<{
+    zone_id: number;
+    zone_label: string;
+  }>>(),
+
+  Line 298-308: Update questionImportSchema
+
+  Add to the versions schema after line 307:
+  blanks: z.array(z.object({
+    blank_id: z.number(),
+    answer_choices: z.array(z.string()),
+    correct_answer: z.string(),
+  })).optional(),
+  drop_zones: z.array(z.object({
+    zone_id: z.number(),
+    zone_label: z.string(),
+  })).optional(),
+
+  ---
+  2. Create New Frontend Components
+
+  File: /client/src/components/question-types/select-from-list-blank.tsx
+
+  Create new file with this content:
+
+  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+  import { Label } from "@/components/ui/label";
+
+  interface SelectFromListBlankProps {
+    questionText: string;
+    blanks?: Array<{
+      blank_id: number;
+      answer_choices: string[];
+      correct_answer: string;
+    }>;
+    value: any;
+    onChange: (value: any) => void;
+    disabled?: boolean;
+    correctAnswer?: any;
+  }
+
+  export function SelectFromListBlank({
+    questionText,
+    blanks = [],
+    value,
+    onChange,
+    disabled,
+    correctAnswer,
+  }: SelectFromListBlankProps) {
+    // Parse current values or initialize
+    const currentValues = typeof value === 'string' && value ? JSON.parse(value) : {};
+
+    const handleBlankChange = (blankId: number, newValue: string) => {
+      const updatedValues = { ...currentValues, [blankId]: newValue };
+      onChange(JSON.stringify(updatedValues));
+    };
+
+    // Replace blanks in text with dropdowns
+    const renderQuestionWithDropdowns = () => {
+      let processedText = questionText;
+      const elements: JSX.Element[] = [];
+      let lastIndex = 0;
+
+      // Find all blank positions
+      const blankRegex = /_{3,}/g;
+      let match;
+      let blankIndex = 0;
+
+      while ((match = blankRegex.exec(questionText)) !== null) {
+        // Add text before the blank
+        if (match.index > lastIndex) {
+          elements.push(
+            <span key={`text-${lastIndex}`}>
+              {questionText.substring(lastIndex, match.index)}
+            </span>
+          );
+        }
+
+        // Add dropdown for this blank
+        const blank = blanks[blankIndex];
+        if (blank) {
+          elements.push(
+            <Select
+              key={`blank-${blank.blank_id}`}
+              value={currentValues[blank.blank_id] || ""}
+              onValueChange={(val) => handleBlankChange(blank.blank_id, val)}
+              disabled={disabled}
+            >
+              <SelectTrigger className="inline-flex w-48 mx-2">
+                <SelectValue placeholder="Select an answer" />
+              </SelectTrigger>
+              <SelectContent>
+                {blank.answer_choices.map((choice, idx) => (
+                  <SelectItem key={idx} value={choice}>
+                    {choice}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        }
+
+        lastIndex = match.index + match[0].length;
+        blankIndex++;
+      }
+
+      // Add any remaining text
+      if (lastIndex < questionText.length) {
+        elements.push(
+          <span key={`text-${lastIndex}`}>
+            {questionText.substring(lastIndex)}
+          </span>
+        );
+      }
+
+      return <div className="text-base leading-relaxed">{elements}</div>;
+    };
+
+    return (
+      <div className="space-y-4">
+        {renderQuestionWithDropdowns()}
+
+        {disabled && correctAnswer && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium">Correct answers:</p>
+            {blanks.map((blank) => (
+              <p key={blank.blank_id} className="text-sm text-muted-foreground">
+                Blank {blank.blank_id}: {blank.correct_answer}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  File: /client/src/components/question-types/drag-drop-zones.tsx
+
+  Create new file with this content:
+
+  import { useState, useEffect } from "react";
+  import { Card } from "@/components/ui/card";
+  import { cn } from "@/lib/utils";
+
+  interface DragDropZonesProps {
+    answerChoices: string[];
+    dropZones?: Array<{
+      zone_id: number;
+      zone_label: string;
+    }>;
+    value: any;
+    onChange: (value: any) => void;
+    disabled?: boolean;
+    correctAnswer?: any;
+  }
+
+  export function DragDropZones({
+    answerChoices,
+    dropZones = [],
+    value,
+    onChange,
+    disabled,
+    correctAnswer,
+  }: DragDropZonesProps) {
+    const [draggingItem, setDraggingItem] = useState<string | null>(null);
+    const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
+      if (typeof value === 'string' && value) {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return {};
+        }
+      }
+      return {};
+    });
+
+    const [availableItems, setAvailableItems] = useState<string[]>(() => {
+      const used = new Set(Object.values(zoneContents).flat());
+      return answerChoices.filter(item => !used.has(item));
+    });
+
+    useEffect(() => {
+      onChange(JSON.stringify(zoneContents));
+    }, [zoneContents]);
+
+    const handleDragStart = (item: string) => {
+      if (!disabled) {
+        setDraggingItem(item);
+      }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDropToZone = (zoneId: number, e: React.DragEvent) => {
+      e.preventDefault();
+      if (!draggingItem || disabled) return;
+
+      const newZoneContents = { ...zoneContents };
+
+      // Remove item from its current location
+      Object.keys(newZoneContents).forEach(key => {
+        const zId = parseInt(key);
+        newZoneContents[zId] = (newZoneContents[zId] || []).filter(
+          item => item !== draggingItem
+        );
+      });
+
+      // Remove from available items
+      const newAvailable = availableItems.filter(item => item !== draggingItem);
+
+      // Add to new zone
+      if (!newZoneContents[zoneId]) {
+        newZoneContents[zoneId] = [];
+      }
+      newZoneContents[zoneId].push(draggingItem);
+
+      setZoneContents(newZoneContents);
+      setAvailableItems(newAvailable);
+      setDraggingItem(null);
+    };
+
+    const handleDropToAvailable = (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!draggingItem || disabled) return;
+
+      const newZoneContents = { ...zoneContents };
+
+      // Remove from all zones
+      Object.keys(newZoneContents).forEach(key => {
+        const zoneId = parseInt(key);
+        newZoneContents[zoneId] = (newZoneContents[zoneId] || []).filter(
+          item => item !== draggingItem
+        );
+      });
+
+      // Add back to available
+      if (!availableItems.includes(draggingItem)) {
+        setAvailableItems([...availableItems, draggingItem]);
+      }
+
+      setZoneContents(newZoneContents);
+      setDraggingItem(null);
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Available items */}
+        <Card 
+          className="p-4"
+          onDragOver={handleDragOver}
+          onDrop={handleDropToAvailable}
+        >
+          <h4 className="font-medium mb-2">Available Items</h4>
+          <div className="flex flex-wrap gap-2 min-h-[60px]">
+            {availableItems.map((item) => (
+              <div
+                key={item}
+                draggable={!disabled}
+                onDragStart={() => handleDragStart(item)}
+                className={cn(
+                  "px-3 py-2 bg-primary/10 rounded-md cursor-move",
+                  "hover:bg-primary/20 transition-colors",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Drop zones */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {dropZones.map((zone) => (
+            <Card
+              key={zone.zone_id}
+              className={cn(
+                "p-4",
+                draggingItem && "border-dashed border-2 border-primary/50"
+              )}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDropToZone(zone.zone_id, e)}
+            >
+              <h4 className="font-medium mb-2">{zone.zone_label}</h4>
+              <div className="flex flex-wrap gap-2 min-h-[80px] bg-muted/50 rounded p-2">
+                {(zoneContents[zone.zone_id] || []).map((item) => (
+                  <div
+                    key={item}
+                    draggable={!disabled}
+                    onDragStart={() => handleDragStart(item)}
+                    className={cn(
+                      "px-3 py-2 bg-background rounded-md cursor-move",
+                      "hover:bg-accent transition-colors",
+                      disabled && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Correct answer display */}
+        {disabled && correctAnswer && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium">Correct arrangement:</p>
+            {Object.entries(correctAnswer).map(([zone, items]) => (
+              <p key={zone} className="text-sm text-muted-foreground mt-1">
+                {zone}: {(items as string[]).join(", ")}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  File: /client/src/components/question-types/either-or.tsx
+
+  Create new file with this content:
+
+  import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+  import { Label } from "@/components/ui/label";
+  import { cn } from "@/lib/utils";
+
+  interface EitherOrProps {
+    answerChoices: string[];
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+    correctAnswer?: string;
+  }
+
+  export function EitherOr({
+    answerChoices,
+    value,
+    onChange,
+    disabled,
+    correctAnswer,
+  }: EitherOrProps) {
+    return (
+      <div className="space-y-4">
+        <RadioGroup
+          value={value}
+          onValueChange={onChange}
+          disabled={disabled}
+          className="flex flex-col gap-3"
+        >
+          {answerChoices.map((choice, index) => {
+            const isSelected = value === choice;
+            const isCorrectChoice = correctAnswer === choice;
+
+            return (
+              <Label
+                key={index}
+                htmlFor={`either-or-${index}`}
+                className={cn(
+                  "flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all",
+                  "hover:border-primary hover:bg-accent",
+                  isSelected && "border-primary bg-primary/10",
+                  disabled && "cursor-default opacity-75",
+                  disabled && isCorrectChoice && "border-green-500 bg-green-50",
+                  disabled && isSelected && !isCorrectChoice && "border-red-500 bg-red-50"
+                )}
+              >
+                <RadioGroupItem
+                  value={choice}
+                  id={`either-or-${index}`}
+                  className="mr-3"
+                />
+                <span className="text-base flex-1">{choice}</span>
+              </Label>
+            );
+          })}
+        </RadioGroup>
+
+        {disabled && correctAnswer && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium">Correct answer: {correctAnswer}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ---
+  3. Update Question Card Component
+
+  File: /client/src/components/question-card.tsx
+
+  Line 11-18: Add imports for new components
+  Add after line 17:
+  import { SelectFromListBlank } from "./question-types/select-from-list-blank";
+  import { DragDropZones } from "./question-types/drag-drop-zones";
+  import { EitherOr } from "./question-types/either-or";
+
+  Line 21-33: Update questionTypeConfig
+  Add these new types after line 32:
+  either_or: { label: "Either/Or", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
+
+  Line 108-138: Update answer checking logic
+  Replace the existing switch statement with:
+  switch (questionType) {
+    case "fill_in_blank":
+    case "numerical_entry":
+    case "short_answer":
+      const caseSensitive = question.latestVersion.caseSensitive;
+      const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer :
+  question.latestVersion.correctAnswer.toLowerCase();
+      const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
+
+      isAnswerCorrect = userAnswer === correctAnswer;
+
+      // Check acceptable answers
+      if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+        const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) =>
+          caseSensitive ? a : a.toLowerCase()
+        );
+        isAnswerCorrect = acceptableAnswers.includes(userAnswer);
+      }
+      break;
+
+    case "select_from_list":
+      // For select_from_list with blanks, compare JSON objects
+      const userBlanks = JSON.parse(answerString);
+      const correctBlanks = question.latestVersion.blanks || [];
+      isAnswerCorrect = correctBlanks.every((blank: any) =>
+        userBlanks[blank.blank_id] === blank.correct_answer
+      );
+      break;
+
+    case "drag_and_drop":
+      // Compare zone contents
+      const userZones = JSON.parse(answerString);
+      const correctZones = question.latestVersion.correctAnswer;
+      isAnswerCorrect = JSON.stringify(userZones) === JSON.stringify(correctZones);
+      break;
+
+    case "multiple_response":
+      // Handle array comparison for multiple responses
+      const userResponses = Array.isArray(answerString) ? answerString : JSON.parse(answerString);
+      const correctResponses = Array.isArray(question.latestVersion.correctAnswer)
+        ? question.latestVersion.correctAnswer
+        : [question.latestVersion.correctAnswer];
+      isAnswerCorrect = JSON.stringify(userResponses.sort()) === JSON.stringify(correctResponses.sort());
+      break;
+
+    case "either_or":
+    case "matching":
+    case "ordering":
+    case "pick_from_list":
+    default:
+      isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+  }
+
+  Line 314-335: Add select_from_list case
+  Replace the existing select_from_list case (lines 315-334) with:
+  case "select_from_list":
+    // Check if this uses the new blanks format
+    if (question.latestVersion?.blanks) {
+      return (
+        <SelectFromListBlank
+          questionText={question.latestVersion.questionText}
+          blanks={question.latestVersion.blanks}
+          value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+          onChange={setSelectedAnswerState}
+          disabled={hasAnswer || isSubmitting}
+          correctAnswer={hasAnswer ? question.latestVersion.blanks : undefined}
+        />
+      );
+    } else {
+      // Fallback to pick-from-list style
+      return (
+        <div className="flex-1 flex flex-col">
+          <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+            <p className="text-base text-foreground leading-relaxed text-left">
+              {question.latestVersion?.questionText}
+            </p>
+          </div>
+          <div className="flex-1">
+            <PickFromList
+              answerChoices={question.latestVersion?.answerChoices || []}
+              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+              onChange={setSelectedAnswerState}
+              allowMultiple={false}
+              disabled={hasAnswer || isSubmitting}
+              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+            />
+          </div>
+        </div>
+      );
+    }
+
+  Line 258-278: Update drag_and_drop case
+  Replace the existing drag_and_drop case with:
+  case "drag_and_drop":
+    // Check if this uses the new drop zones format
+    if (question.latestVersion?.dropZones) {
+      return (
+        <div className="flex-1 flex flex-col">
+          <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+            <p className="text-base text-foreground leading-relaxed text-left">
+              {question.latestVersion?.questionText}
+            </p>
+          </div>
+          <div className="flex-1">
+            <DragDropZones
+              answerChoices={question.latestVersion.answerChoices || []}
+              dropZones={question.latestVersion.dropZones}
+              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+              onChange={setSelectedAnswerState}
+              disabled={hasAnswer || isSubmitting}
+              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      // Fallback to ordering style
+      return (
+        <div className="flex-1 flex flex-col">
+          <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+            <p className="text-base text-foreground leading-relaxed text-left">
+              {question.latestVersion?.questionText}
+            </p>
+          </div>
+          <div className="flex-1">
+            <Ordering
+              answerChoices={question.latestVersion?.answerChoices || []}
+              value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+              onChange={setSelectedAnswerState}
+              disabled={hasAnswer || isSubmitting}
+              correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+              correctOrder={question.latestVersion?.correctOrder}
+            />
+          </div>
+        </div>
+      );
+    }
+
+  Add either_or case before the default case:
+  case "either_or":
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+          <p className="text-base text-foreground leading-relaxed text-left">
+            {question.latestVersion?.questionText}
+          </p>
+        </div>
+        <div className="flex-1">
+          <EitherOr
+            answerChoices={question.latestVersion?.answerChoices || []}
+            value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+            onChange={setSelectedAnswerState}
+            disabled={hasAnswer || isSubmitting}
+            correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+          />
+        </div>
+      </div>
+    );
+
+  ---
+  4. Update Server Storage Import Logic
+
+  File: /server/storage.ts
+
+  Line 680-694: Update importQuestions to handle new fields
+  Replace the questionVersions insert with:
+  await tx.insert(questionVersions).values({
+    questionId: question.id,
+    versionNumber: versionData.version_number,
+    topicFocus: versionData.topic_focus,
+    questionText: versionData.question_text,
+    questionType: versionData.question_type || questionData.type || "multiple_choice",
+    answerChoices: versionData.answer_choices as any,
+    correctAnswer: typeof versionData.correct_answer === 'object'
+      ? JSON.stringify(versionData.correct_answer)
+      : versionData.correct_answer,
+    acceptableAnswers: versionData.acceptable_answers,
+    caseSensitive: versionData.case_sensitive,
+    allowMultiple: versionData.allow_multiple,
+    matchingPairs: versionData.matching_pairs,
+    correctOrder: versionData.correct_order,
+    blanks: versionData.blanks as any,
+    dropZones: versionData.drop_zones as any,
+  });
+
+  ---
+  5. Database Migration
+
+  Create a new migration file to add the new columns:
+
+  File: Create new file in your migrations folder
+
+  ALTER TABLE question_versions
+  ADD COLUMN IF NOT EXISTS blanks JSONB,
+  ADD COLUMN IF NOT EXISTS drop_zones JSONB;
+
+  ---
+  6. Testing JSON Examples
+
+  Here are corrected JSON examples for each question type:
+
+  Numerical Entry
+
+  {
+    "question_number": 1,
+    "type": "numerical_entry",
+    "loid": "12345",
+    "versions": [{
+      "version_number": 1,
+      "topic_focus": "Mathematics",
+      "question_text": "What is 25% of 200?",
+      "question_type": "numerical_entry",
+      "answer_choices": [],
+      "correct_answer": "50",
+      "acceptable_answers": ["50.0", "fifty"],
+      "case_sensitive": false
+    }]
+  }
+
+  Select from List (with blanks)
+
+  {
+    "question_number": 2,
+    "type": "select_from_list",
+    "loid": "12346",
+    "versions": [{
+      "version_number": 1,
+      "topic_focus": "Grammar",
+      "question_text": "The cat _____ on the mat.",
+      "question_type": "select_from_list",
+      "blanks": [{
+        "blank_id": 1,
+        "answer_choices": ["sits", "sat", "sitting", "sit"],
+        "correct_answer": "sits"
+      }]
+    }]
+  }
+
+  Drag and Drop (with zones)
+
+  {
+    "question_number": 3,
+    "type": "drag_and_drop",
+    "loid": "12347",
+    "versions": [{
+      "version_number": 1,
+      "topic_focus": "Classification",
+      "question_text": "Sort the items into their correct categories.",
+      "question_type": "drag_and_drop",
+      "answer_choices": ["Apple", "Carrot", "Banana", "Broccoli"],
+      "drop_zones": [
+        {"zone_id": 1, "zone_label": "Fruits"},
+        {"zone_id": 2, "zone_label": "Vegetables"}
+      ],
+      "correct_answer": {
+        "1": ["Apple", "Banana"],
+        "2": ["Carrot", "Broccoli"]
+      }
+    }]
+  }
+
+  Either/Or
+
+  {
+    "question_number": 4,
+    "type": "either_or",
+    "loid": "12348",
+    "versions": [{
+      "version_number": 1,
+      "topic_focus": "Decision Making",
+      "question_text": "Which option is correct?",
+      "question_type": "either_or",
+      "answer_choices": [
+        "Option A: This is the first choice",
+        "Option B: This is the second choice"
+      ],
+      "correct_answer": "Option A: This is the first choice"
+    }]
+  }
+
+  Multiple Response
+
+  {
+    "question_number": 5,
+    "type": "multiple_response",
+    "loid": "12349",
+    "versions": [{
+      "version_number": 1,
+      "topic_focus": "Multiple Selection",
+      "question_text": "Select all prime numbers:",
+      "question_type": "multiple_response",
+      "answer_choices": ["2", "3", "4", "5", "6"],
+      "correct_answer": ["2", "3", "5"],
+      "allow_multiple": true
+    }]
+  }
+
+  ---
+  7. Admin Upload Instructions
+
+  To upload questions in the admin panel:
+
+  1. Navigate to Admin Panel → Content tab
+  2. Create or select a course
+  3. Create or select a question set
+  4. Click "Import Questions" button
+  5. Paste the JSON array of questions
+  6. Click "Import"
+
+  ---
+  8. Important Notes for Implementation
+
+  1. Run database migration first before deploying code changes
+  2. Test each question type individually before bulk import
+  3. Validate JSON structure matches the schema exactly
+  4. For multiple_response, ensure correct_answer is always an array
+  5. For drag_and_drop with zones, zone IDs in correct_answer must be strings
+  6. For select_from_list with blanks, blank_id must match the order of blanks in text
+
+  ---
+  9. Error Handling Considerations
+
+  Add these validations:
+  - Validate that blanks array length matches number of _____ in question text
+  - Ensure drop_zones have unique zone_ids
+  - Verify correct_answer format matches question_type requirements
+  - Add fallback rendering for legacy questions without new fields
+
+  This comprehensive guide should enable another developer to implement all the new question types successfully.
