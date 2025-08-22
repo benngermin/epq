@@ -2189,6 +2189,37 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Custom usage summary endpoint for specific date range
+  app.get("/api/admin/logs/usage-summary", requireAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date are required" });
+      }
+      
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+      
+      if (start > end) {
+        return res.status(400).json({ message: "Start date must be before end date" });
+      }
+      
+      // Get the summary data for the date range
+      const summary = await storage.getUsageSummary(start, end);
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching usage summary:", error);
+      res.status(500).json({ message: "Failed to fetch usage summary" });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {

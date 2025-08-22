@@ -224,6 +224,15 @@ export interface IStorage {
   getDailyActivitySummaries(startDate: Date, endDate: Date): Promise<DailyActivitySummary[]>;
   getDailyQuestionCount(date: Date): Promise<number>;
   
+  // Custom usage summary
+  getUsageSummary(startDate: Date, endDate: Date): Promise<{
+    totalRegisteredUsers: number;
+    totalQuestionSetsStarted: number;
+    totalUniqueUserSessions: number;
+    mostCommonCourse: { courseNumber: string; courseTitle: string; count: number } | null;
+    totalQuestionsAnswered: number;
+  }>;
+  
   sessionStore: any;
 }
 
@@ -2371,6 +2380,102 @@ export class DatabaseStorage implements IStorage {
       firstAttemptAccuracy: sanitizeNumber(firstAttemptAccuracy),
       questionSetsPerUser: sanitizeNumber(questionSetsPerUser),
       retentionRate: sanitizeNumber(retentionRate)
+    };
+  }
+
+  async getUsageSummary(startDate: Date, endDate: Date): Promise<{
+    totalRegisteredUsers: number;
+    totalQuestionSetsStarted: number;
+    totalUniqueUserSessions: number;
+    mostCommonCourse: { courseNumber: string; courseTitle: string; count: number } | null;
+    totalQuestionsAnswered: number;
+  }> {
+    // Ensure dates are at the correct time boundaries
+    const startDateClean = new Date(startDate);
+    const endDateClean = new Date(endDate);
+    
+    // 1. Total registered users in the date range
+    const registeredUsersQuery = await db.select({
+      count: sql<number>`COUNT(*)`.as('count')
+    })
+    .from(users)
+    .where(and(
+      gte(users.createdAt, startDateClean),
+      lte(users.createdAt, endDateClean)
+    ));
+    const totalRegisteredUsers = Number(registeredUsersQuery[0]?.count || 0);
+    
+    // 2. Total question sets started (test runs) in the date range
+    const questionSetsStartedQuery = await db.select({
+      count: sql<number>`COUNT(*)`.as('count')
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ));
+    const totalQuestionSetsStarted = Number(questionSetsStartedQuery[0]?.count || 0);
+    
+    // 3. Total unique user sessions (unique users who had test runs in the date range)
+    const uniqueUserSessionsQuery = await db.select({
+      count: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})`.as('count')
+    })
+    .from(userTestRuns)
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ));
+    const totalUniqueUserSessions = Number(uniqueUserSessionsQuery[0]?.count || 0);
+    
+    // 4. Most common course (by question set usage)
+    const mostCommonCourseQuery = await db.select({
+      courseNumber: courses.courseNumber,
+      courseTitle: courses.courseTitle,
+      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`.as('count')
+    })
+    .from(userTestRuns)
+    .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .where(and(
+      gte(userTestRuns.startedAt, startDateClean),
+      lte(userTestRuns.startedAt, endDateClean)
+    ))
+    .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
+    .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`))
+    .limit(1);
+    
+    const mostCommonCourse = mostCommonCourseQuery[0] 
+      ? {
+          courseNumber: mostCommonCourseQuery[0].courseNumber,
+          courseTitle: mostCommonCourseQuery[0].courseTitle,
+          count: Number(mostCommonCourseQuery[0].count)
+        }
+      : null;
+    
+    // 5. Total questions answered in the date range
+    const questionsAnsweredQuery = await db.select({
+      count: sql<number>`COUNT(*)`.as('count')
+    })
+    .from(userAnswers)
+    .where(and(
+      gte(userAnswers.answeredAt, startDateClean),
+      lte(userAnswers.answeredAt, endDateClean)
+    ));
+    const totalQuestionsAnswered = Number(questionsAnsweredQuery[0]?.count || 0);
+    
+    console.log(`[Usage Summary] Date Range: ${startDateClean.toISOString()} to ${endDateClean.toISOString()}`);
+    console.log(`[Usage Summary] Registered Users: ${totalRegisteredUsers}`);
+    console.log(`[Usage Summary] Question Sets Started: ${totalQuestionSetsStarted}`);
+    console.log(`[Usage Summary] Unique User Sessions: ${totalUniqueUserSessions}`);
+    console.log(`[Usage Summary] Most Common Course: ${mostCommonCourse ? mostCommonCourse.courseNumber : 'None'}`);
+    console.log(`[Usage Summary] Questions Answered: ${totalQuestionsAnswered}`);
+    
+    return {
+      totalRegisteredUsers,
+      totalQuestionSetsStarted,
+      totalUniqueUserSessions,
+      mostCommonCourse,
+      totalQuestionsAnswered
     };
   }
 }
