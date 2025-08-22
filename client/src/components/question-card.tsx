@@ -10,11 +10,9 @@ import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
 
 // Import question type components
-import { FillInBlank } from "./question-types/fill-in-blank";
-import { TrueFalse } from "./question-types/true-false";
-import { PickFromList } from "./question-types/pick-from-list";
-import { Matching } from "./question-types/matching";
-import { Ordering } from "./question-types/ordering";
+import { FillInBlank } from "./question-types/fill-in-blank"; // Used by numerical_entry and short_answer
+import { PickFromList } from "./question-types/pick-from-list"; // Used by multiple_response and select_from_list fallback
+import { Ordering } from "./question-types/ordering"; // Used as fallback for drag_and_drop
 import { SelectFromListBlank } from "./question-types/select-from-list-blank";
 import { DragDropZones } from "./question-types/drag-drop-zones";
 import { EitherOr } from "./question-types/either-or";
@@ -23,14 +21,9 @@ import { EitherOr } from "./question-types/either-or";
 // Multiple choice uses primary app blue, others use distinct colors
 const questionTypeConfig: Record<string, { label: string; color: string }> = {
   multiple_choice: { label: "Multiple Choice", color: "bg-primary/20 text-primary border-primary/30" },
-  fill_in_blank: { label: "Fill in Blank", color: "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" },
-  true_false: { label: "True/False", color: "bg-purple-500/20 text-purple-700 border-purple-500/30" },
-  matching: { label: "Matching", color: "bg-orange-500/20 text-orange-700 border-orange-500/30" },
-  ordering: { label: "Ordering", color: "bg-pink-500/20 text-pink-700 border-pink-500/30" },
-  drag_and_drop: { label: "Drag & Drop", color: "bg-teal-500/20 text-teal-700 border-teal-500/30" },
   numerical_entry: { label: "Numerical", color: "bg-indigo-500/20 text-indigo-700 border-indigo-500/30" },
   short_answer: { label: "Short Answer", color: "bg-red-500/20 text-red-700 border-red-500/30" },
-  pick_from_list: { label: "Pick from List", color: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30" },
+  drag_and_drop: { label: "Drag & Drop", color: "bg-teal-500/20 text-teal-700 border-teal-500/30" },
   multiple_response: { label: "Multiple Response", color: "bg-lime-500/20 text-lime-700 border-lime-500/30" },
   select_from_list: { label: "Select from List", color: "bg-violet-500/20 text-violet-700 border-violet-500/30" },
   either_or: { label: "Either/Or", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
@@ -110,7 +103,6 @@ export function QuestionCard({
       let isAnswerCorrect = false;
       
       switch (questionType) {
-        case "fill_in_blank":
         case "numerical_entry":
         case "short_answer":
           const caseSensitive = question.latestVersion.caseSensitive;
@@ -162,9 +154,6 @@ export function QuestionCard({
           break;
           
         case "either_or":
-        case "matching":
-        case "ordering":
-        case "pick_from_list":
         default:
           isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
       }
@@ -213,101 +202,6 @@ export function QuestionCard({
                   {/* Render question based on type */}
                   {(() => {
                     switch (questionType) {
-                      case "fill_in_blank":
-                        return (
-                          <FillInBlank
-                            questionText={question.latestVersion?.questionText || ""}
-                            value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                            onChange={setSelectedAnswerState}
-                            disabled={hasAnswer || isSubmitting}
-                            isCorrect={isCorrect}
-                            correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                            acceptableAnswers={hasAnswer ? question.latestVersion?.acceptableAnswers : undefined}
-                          />
-                        );
-                        
-                      case "true_false":
-                        return (
-                          <div className="flex-1 flex flex-col">
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <TrueFalse
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                                onChange={setSelectedAnswerState}
-                                disabled={hasAnswer || isSubmitting}
-                                isCorrect={isCorrect}
-                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                              />
-                            </div>
-                          </div>
-                        );
-                        
-                      case "pick_from_list":
-                        return (
-                          <div className="flex-1 flex flex-col">
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <PickFromList
-                                answerChoices={question.latestVersion?.answerChoices || []}
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                                onChange={setSelectedAnswerState}
-                                allowMultiple={question.latestVersion?.allowMultiple}
-                                disabled={hasAnswer || isSubmitting}
-                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                              />
-                            </div>
-                          </div>
-                        );
-                        
-                      case "matching":
-                        return (
-                          <div className="flex-1 flex flex-col">
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <Matching
-                                answerChoices={question.latestVersion?.answerChoices || []}
-                                value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
-                                onChange={setSelectedAnswerState}
-                                disabled={hasAnswer || isSubmitting}
-                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                              />
-                            </div>
-                          </div>
-                        );
-                        
-                      case "ordering":
-                        return (
-                          <div className="flex-1 flex flex-col">
-                            <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
-                              <p className="text-base text-foreground leading-relaxed text-left">
-                                {question.latestVersion?.questionText}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <Ordering
-                                answerChoices={question.latestVersion?.answerChoices || []}
-                                value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
-                                onChange={setSelectedAnswerState}
-                                disabled={hasAnswer || isSubmitting}
-                                correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                                correctOrder={question.latestVersion?.correctOrder}
-                              />
-                            </div>
-                          </div>
-                        );
-                        
                       case "drag_and_drop":
                         // Check if this uses the new drop zones format
                         if (question.latestVersion?.dropZones) {
