@@ -685,12 +685,16 @@ export class DatabaseStorage implements IStorage {
               questionText: versionData.question_text,
               questionType: versionData.question_type || questionData.type || "multiple_choice",
               answerChoices: versionData.answer_choices as any,
-              correctAnswer: versionData.correct_answer,
+              correctAnswer: typeof versionData.correct_answer === 'object'
+                ? JSON.stringify(versionData.correct_answer)
+                : versionData.correct_answer,
               acceptableAnswers: versionData.acceptable_answers,
               caseSensitive: versionData.case_sensitive,
               allowMultiple: versionData.allow_multiple,
               matchingPairs: versionData.matching_pairs,
               correctOrder: versionData.correct_order,
+              blanks: versionData.blanks as any,
+              dropZones: versionData.drop_zones as any,
             });
           }
         }

@@ -63,6 +63,15 @@ export const questionVersions = pgTable("question_versions", {
   allowMultiple: boolean("allow_multiple").default(false),
   matchingPairs: json("matching_pairs").$type<Array<{left: string, right: string}>>(),
   correctOrder: json("correct_order").$type<number[]>(),
+  blanks: json("blanks").$type<Array<{
+    blank_id: number;
+    answer_choices: string[];
+    correct_answer: string;
+  }>>(),
+  dropZones: json("drop_zones").$type<Array<{
+    zone_id: number;
+    zone_label: string;
+  }>>(),
 });
 
 export const userTestRuns = pgTable("user_test_runs", {
@@ -305,6 +314,15 @@ export const questionImportSchema = z.object({
     allow_multiple: z.boolean().optional().default(false), // For pick_from_list, multiple_response
     matching_pairs: z.array(z.object({ left: z.string(), right: z.string() })).optional(), // For matching
     correct_order: z.array(z.number()).optional(), // For ordering, drag_and_drop
+    blanks: z.array(z.object({
+      blank_id: z.number(),
+      answer_choices: z.array(z.string()),
+      correct_answer: z.string(),
+    })).optional(),
+    drop_zones: z.array(z.object({
+      zone_id: z.number(),
+      zone_label: z.string(),
+    })).optional(),
   })),
 });
 

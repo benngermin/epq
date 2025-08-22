@@ -15,6 +15,9 @@ import { TrueFalse } from "./question-types/true-false";
 import { PickFromList } from "./question-types/pick-from-list";
 import { Matching } from "./question-types/matching";
 import { Ordering } from "./question-types/ordering";
+import { SelectFromListBlank } from "./question-types/select-from-list-blank";
+import { DragDropZones } from "./question-types/drag-drop-zones";
+import { EitherOr } from "./question-types/either-or";
 
 // Question type configurations with diverse color palette
 // Multiple choice uses primary app blue, others use distinct colors
@@ -30,6 +33,7 @@ const questionTypeConfig: Record<string, { label: string; color: string }> = {
   pick_from_list: { label: "Pick from List", color: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30" },
   multiple_response: { label: "Multiple Response", color: "bg-lime-500/20 text-lime-700 border-lime-500/30" },
   select_from_list: { label: "Select from List", color: "bg-violet-500/20 text-violet-700 border-violet-500/30" },
+  either_or: { label: "Either/Or", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
 };
 
 interface QuestionCardProps {
@@ -124,14 +128,42 @@ export function QuestionCard({
           }
           break;
           
-        case "matching":
-        case "ordering":
-        case "drag_and_drop":
-        case "multiple_response":
-          isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+        case "select_from_list":
+          // For select_from_list with blanks, compare JSON objects
+          if (question.latestVersion.blanks) {
+            const userBlanks = JSON.parse(answerString);
+            const correctBlanks = question.latestVersion.blanks || [];
+            isAnswerCorrect = correctBlanks.every((blank: any) =>
+              userBlanks[blank.blank_id] === blank.correct_answer
+            );
+          } else {
+            isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+          }
           break;
           
-        case "select_from_list":
+        case "drag_and_drop":
+          // Compare zone contents
+          if (question.latestVersion.dropZones) {
+            const userZones = JSON.parse(answerString);
+            const correctZones = question.latestVersion.correctAnswer;
+            isAnswerCorrect = JSON.stringify(userZones) === JSON.stringify(correctZones);
+          } else {
+            isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+          }
+          break;
+          
+        case "multiple_response":
+          // Handle array comparison for multiple responses
+          const userResponses = Array.isArray(answerString) ? answerString : JSON.parse(answerString);
+          const correctResponses = Array.isArray(question.latestVersion.correctAnswer)
+            ? question.latestVersion.correctAnswer
+            : [question.latestVersion.correctAnswer];
+          isAnswerCorrect = JSON.stringify(userResponses.sort()) === JSON.stringify(correctResponses.sort());
+          break;
+          
+        case "either_or":
+        case "matching":
+        case "ordering":
         case "pick_from_list":
         default:
           isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
@@ -256,7 +288,6 @@ export function QuestionCard({
                         );
                         
                       case "ordering":
-                      case "drag_and_drop": // drag_and_drop uses the same component as ordering
                         return (
                           <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
@@ -276,6 +307,51 @@ export function QuestionCard({
                             </div>
                           </div>
                         );
+                        
+                      case "drag_and_drop":
+                        // Check if this uses the new drop zones format
+                        if (question.latestVersion?.dropZones) {
+                          return (
+                            <div className="flex-1 flex flex-col">
+                              <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+                                <p className="text-base text-foreground leading-relaxed text-left">
+                                  {question.latestVersion?.questionText}
+                                </p>
+                              </div>
+                              <div className="flex-1">
+                                <DragDropZones
+                                  answerChoices={question.latestVersion.answerChoices || []}
+                                  dropZones={question.latestVersion.dropZones}
+                                  value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                  onChange={setSelectedAnswerState}
+                                  disabled={hasAnswer || isSubmitting}
+                                  correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                />
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          // Fallback to ordering style
+                          return (
+                            <div className="flex-1 flex flex-col">
+                              <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+                                <p className="text-base text-foreground leading-relaxed text-left">
+                                  {question.latestVersion?.questionText}
+                                </p>
+                              </div>
+                              <div className="flex-1">
+                                <Ordering
+                                  answerChoices={question.latestVersion?.answerChoices || []}
+                                  value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                                  onChange={setSelectedAnswerState}
+                                  disabled={hasAnswer || isSubmitting}
+                                  correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                  correctOrder={question.latestVersion?.correctOrder}
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
                         
                       case "numerical_entry":
                       case "short_answer": // Both use fill-in-blank style input
@@ -312,7 +388,43 @@ export function QuestionCard({
                           </div>
                         );
                         
-                      case "select_from_list": // Uses PickFromList with allowMultiple=false
+                      case "select_from_list":
+                        // Check if this uses the new blanks format
+                        if (question.latestVersion?.blanks) {
+                          return (
+                            <SelectFromListBlank
+                              questionText={question.latestVersion.questionText}
+                              blanks={question.latestVersion.blanks}
+                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                              onChange={setSelectedAnswerState}
+                              disabled={hasAnswer || isSubmitting}
+                              correctAnswer={hasAnswer ? question.latestVersion.blanks : undefined}
+                            />
+                          );
+                        } else {
+                          // Fallback to pick-from-list style
+                          return (
+                            <div className="flex-1 flex flex-col">
+                              <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
+                                <p className="text-base text-foreground leading-relaxed text-left">
+                                  {question.latestVersion?.questionText}
+                                </p>
+                              </div>
+                              <div className="flex-1">
+                                <PickFromList
+                                  answerChoices={question.latestVersion?.answerChoices || []}
+                                  value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                  onChange={setSelectedAnswerState}
+                                  allowMultiple={false}
+                                  disabled={hasAnswer || isSubmitting}
+                                  correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                      case "either_or":
                         return (
                           <div className="flex-1 flex flex-col">
                             <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
@@ -321,11 +433,10 @@ export function QuestionCard({
                               </p>
                             </div>
                             <div className="flex-1">
-                              <PickFromList
+                              <EitherOr
                                 answerChoices={question.latestVersion?.answerChoices || []}
                                 value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
-                                allowMultiple={false}
                                 disabled={hasAnswer || isSubmitting}
                                 correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
                               />
