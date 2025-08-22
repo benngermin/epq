@@ -532,21 +532,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const allCourses = await storage.getAllCourses();
       
-      // Debug logging
-      const testCourse = allCourses.find(c => c.courseNumber === 'Test Course');
-      if (testCourse) {
-        console.log('Test Course found in database:', testCourse.id, testCourse.courseNumber);
-        console.log('Current user email:', req.user?.email);
-        console.log('Should show Test Course:', req.user?.email === 'benn@modia.ai');
-      }
-      
       // Return all courses without deduplication since we now use mapping table
       const uniqueCourses = allCourses.filter(course => {
         // Special case: Show Test Course only to benn@modia.ai
         if (course.courseNumber === 'Test Course') {
-          const shouldShow = req.user?.email === 'benn@modia.ai';
-          console.log('Test Course filter result:', shouldShow);
-          return shouldShow;
+          return req.user?.email === 'benn@modia.ai';
         }
         
         // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
@@ -595,16 +585,6 @@ export function registerRoutes(app: Express): Server {
         // Second priority: alphabetical by course number
         return a.courseNumber.localeCompare(b.courseNumber);
       });
-      
-      // Debug: Check if Test Course is in final response
-      const testCourseInFinal = coursesWithProgress.find(c => c.courseNumber === 'Test Course');
-      if (testCourseInFinal) {
-        console.log('Test Course in final response:', testCourseInFinal.id, testCourseInFinal.courseNumber);
-      } else {
-        console.log('Test Course NOT in final response');
-        console.log('Total courses in response:', coursesWithProgress.length);
-        console.log('Course numbers:', coursesWithProgress.map(c => c.courseNumber));
-      }
       
       res.json(coursesWithProgress);
     } catch (error) {
@@ -2923,16 +2903,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Second priority: alphabetical by course number
         return a.courseNumber.localeCompare(b.courseNumber);
       });
-      
-      // Debug: Check if Test Course is in final response
-      const testCourseInFinal = coursesWithProgress.find(c => c.courseNumber === 'Test Course');
-      if (testCourseInFinal) {
-        console.log('Test Course in final response:', testCourseInFinal.id, testCourseInFinal.courseNumber);
-      } else {
-        console.log('Test Course NOT in final response');
-        console.log('Total courses in response:', coursesWithProgress.length);
-        console.log('Course numbers:', coursesWithProgress.map(c => c.courseNumber));
-      }
       
       res.json(coursesWithProgress);
     } catch (error) {

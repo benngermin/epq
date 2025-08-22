@@ -449,7 +449,12 @@ export default function QuestionSetPractice() {
                   </SelectTrigger>
                   <SelectContent>
                     {courses
-                      ?.filter((c: any) => c.questionSets && c.questionSets.length > 0)
+                      ?.filter((c: any) => {
+                        // Show Test Course even without question sets
+                        if (c.courseNumber === 'Test Course') return true;
+                        // For other courses, only show if they have question sets
+                        return c.questionSets && c.questionSets.length > 0;
+                      })
                       ?.map((c: any) => {
                         // Use the courseNumber field directly
                         let courseNumber = c.courseNumber;
