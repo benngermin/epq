@@ -526,7 +526,7 @@ export default function AdminPanel() {
 
   const standaloneQuestionSetForm = useForm<z.infer<typeof questionSetSchema>>({
     resolver: zodResolver(questionSetSchema),
-    defaultValues: { title: "", courseId: 0 },
+    defaultValues: { title: "", courseId: undefined as any },
   });
 
   // Queries
@@ -928,6 +928,69 @@ export default function AdminPanel() {
                           <DialogFooter>
                             <Button type="submit" disabled={createCourseMutation.isPending}>
                               {createCourseMutation.isPending ? "Creating..." : "Create Course"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Question Set
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Question Set</DialogTitle>
+                        <DialogDescription>Add a new question set to a course</DialogDescription>
+                      </DialogHeader>
+                      <Form {...standaloneQuestionSetForm}>
+                        <form onSubmit={standaloneQuestionSetForm.handleSubmit(onCreateStandaloneQuestionSet)} className="space-y-4">
+                          <FormField
+                            control={standaloneQuestionSetForm.control}
+                            name="courseId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Select Course</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                                  value={field.value?.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a course" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {courses && Array.isArray(courses) && courses.map((course: any) => (
+                                      <SelectItem key={course.id} value={course.id.toString()}>
+                                        {course.courseNumber}: {course.courseTitle}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={standaloneQuestionSetForm.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Question Set Title</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., Question Set 1" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <DialogFooter>
+                            <Button type="submit" disabled={createQuestionSetMutation.isPending}>
+                              {createQuestionSetMutation.isPending ? "Creating..." : "Create Question Set"}
                             </Button>
                           </DialogFooter>
                         </form>
