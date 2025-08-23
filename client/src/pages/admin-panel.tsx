@@ -964,7 +964,7 @@ export default function AdminPanel() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {courses && Array.isArray(courses) && courses.map((course: any) => (
+                                    {courses && Array.isArray(courses) && courses.map((course) => (
                                       <SelectItem key={course.id} value={course.id.toString()}>
                                         {course.courseNumber}: {course.courseTitle}
                                       </SelectItem>
@@ -1582,27 +1582,6 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 rows={15}
                 className="font-mono text-sm"
               />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p className="font-semibold mb-1">Expected format:</p>
-              <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto">
-{`[
-  {
-    "question_number": 1,
-    "type": "multiple_choice",
-    "loid": "LO1",
-    "versions": [
-      {
-        "version_number": 1,
-        "topic_focus": "Topic Name",
-        "question_text": "Question text here?",
-        "answer_choices": ["Option A", "Option B", "Option C", "Option D"],
-        "correct_answer": "A"
-      }
-    ]
-  }
-]`}
-              </pre>
             </div>
           </div>
           <DialogFooter>
