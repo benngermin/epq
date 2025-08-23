@@ -845,6 +845,87 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Import questions to a question set
+  app.post("/api/admin/question-sets/:id/import-questions", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.id);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Check if question set exists
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      const questionsData = req.body;
+      if (!Array.isArray(questionsData)) {
+        return res.status(400).json({ message: "Data must be an array of questions" });
+      }
+      
+      let importedCount = 0;
+      const errors = [];
+      
+      for (const questionData of questionsData) {
+        try {
+          // Validate the question data structure
+          if (!questionData.question_number || !questionData.loid || !questionData.versions || !Array.isArray(questionData.versions)) {
+            errors.push(`Invalid question structure at index ${questionsData.indexOf(questionData)}`);
+            continue;
+          }
+          
+          // Create the question
+          const question = await storage.createQuestion({
+            questionSetId,
+            originalQuestionNumber: questionData.question_number,
+            loid: questionData.loid,
+          });
+          
+          // Create versions for the question
+          for (const versionData of questionData.versions) {
+            await storage.createQuestionVersion({
+              questionId: question.id,
+              versionNumber: versionData.version_number || 1,
+              topicFocus: versionData.topic_focus || '',
+              questionText: versionData.question_text || '',
+              questionType: versionData.question_type || questionData.type || 'multiple_choice',
+              answerChoices: versionData.answer_choices || [],
+              correctAnswer: versionData.correct_answer || '',
+              acceptableAnswers: versionData.acceptable_answers,
+              caseSensitive: versionData.case_sensitive,
+              allowMultiple: versionData.allow_multiple,
+              matchingPairs: versionData.matching_pairs,
+              correctOrder: versionData.correct_order,
+              blanks: versionData.blanks,
+              dropZones: versionData.drop_zones,
+            });
+          }
+          
+          importedCount++;
+        } catch (error) {
+          console.error(`Error importing question ${questionData.question_number}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          errors.push(`Failed to import question ${questionData.question_number}: ${errorMessage}`);
+        }
+      }
+      
+      // Update question count for the question set
+      await storage.updateQuestionSetCount(questionSetId);
+      
+      res.json({
+        message: `Successfully imported ${importedCount} out of ${questionsData.length} questions`,
+        importedCount,
+        totalCount: questionsData.length,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error("Error importing questions:", error);
+      res.status(500).json({ message: "Failed to import questions" });
+    }
+  });
+
   // Public endpoint for getting question sets by course ID
   app.get("/api/courses/:courseId/question-sets", requireAuth, async (req, res) => {
     try {

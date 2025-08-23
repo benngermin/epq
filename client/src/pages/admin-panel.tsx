@@ -1428,10 +1428,60 @@ function CourseMaterialsSection() {
 }
 
 function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiCourse?: boolean }) {
+  const [importModalOpen, setImportModalOpen] = useState<number | null>(null);
+  const [importJsonData, setImportJsonData] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const { data: questionSets, isLoading: questionSetsLoading } = useQuery({
     queryKey: ["/api/admin/question-sets", courseId],
     queryFn: () => fetch(`/api/admin/question-sets/${courseId}`).then(res => res.json()),
   });
+
+  const importQuestionsMutation = useMutation({
+    mutationFn: async (data: { questionSetId: number; jsonData: string }) => {
+      const parsedData = JSON.parse(data.jsonData);
+      const res = await apiRequest("POST", `/api/admin/question-sets/${data.questionSetId}/import-questions`, parsedData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Questions imported successfully" });
+      setImportModalOpen(null);
+      setImportJsonData("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to import questions",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImport = (questionSetId: number) => {
+    if (!importJsonData.trim()) {
+      toast({
+        title: "No data to import",
+        description: "Please paste your JSON data",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      importQuestionsMutation.mutate({
+        questionSetId,
+        jsonData: importJsonData,
+      });
+    } catch (error) {
+      toast({
+        title: "Invalid JSON",
+        description: "Please check your JSON format",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -1465,31 +1515,44 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 </h4>
                 <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="sm" className="ml-4">
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Questions
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      Questions in {questionSet.title}
-                      {isAiCourse !== undefined && (
-                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                          isAiCourse 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {isAiCourse ? 'AI' : 'Non-AI'}
-                        </span>
-                      )}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <QuestionsList questionSetId={questionSet.id} isAiCourse={isAiCourse} />
-                </DialogContent>
-              </Dialog>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setImportModalOpen(questionSet.id);
+                    setImportJsonData("");
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Questions
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Questions
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>
+                        Questions in {questionSet.title}
+                        {isAiCourse !== undefined && (
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                            isAiCourse 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {isAiCourse ? 'AI' : 'Non-AI'}
+                          </span>
+                        )}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <QuestionsList questionSetId={questionSet.id} isAiCourse={isAiCourse} />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           ))}
         </div>
@@ -1498,6 +1561,69 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
           <p className="text-gray-500 text-sm">No question sets found for this course.</p>
         </div>
       )}
+
+      {/* Import Questions Modal */}
+      <Dialog open={importModalOpen !== null} onOpenChange={(open) => !open && setImportModalOpen(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Import Questions</DialogTitle>
+            <DialogDescription>
+              Paste your JSON data below. The format should be an array of question objects with the structure matching the question import schema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="json-import">JSON Data</Label>
+              <Textarea
+                id="json-import"
+                placeholder='[{"question_number": 1, "type": "multiple_choice", "loid": "LO1", "versions": [...]}]'
+                value={importJsonData}
+                onChange={(e) => setImportJsonData(e.target.value)}
+                rows={15}
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p className="font-semibold mb-1">Expected format:</p>
+              <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto">
+{`[
+  {
+    "question_number": 1,
+    "type": "multiple_choice",
+    "loid": "LO1",
+    "versions": [
+      {
+        "version_number": 1,
+        "topic_focus": "Topic Name",
+        "question_text": "Question text here?",
+        "answer_choices": ["Option A", "Option B", "Option C", "Option D"],
+        "correct_answer": "A"
+      }
+    ]
+  }
+]`}
+              </pre>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setImportModalOpen(null);
+                setImportJsonData("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => importModalOpen && handleImport(importModalOpen)}
+              disabled={importQuestionsMutation.isPending}
+            >
+              {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
