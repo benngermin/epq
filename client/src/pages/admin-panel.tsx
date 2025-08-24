@@ -558,6 +558,28 @@ export default function AdminPanel() {
     },
   });
 
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/courses/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete course");
+      }
+      return res;
+    },
+    onSuccess: () => {
+      toast({ title: "Course deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete course",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const createQuestionSetMutation = useMutation({
     mutationFn: async (data: z.infer<typeof questionSetSchema>) => {
       const res = await apiRequest("POST", "/api/admin/question-sets", data);
@@ -964,7 +986,7 @@ export default function AdminPanel() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {courses && Array.isArray(courses) && courses.map((course) => (
+                                    {courses && Array.isArray(courses) && courses.map((course: any) => (
                                       <SelectItem key={course.id} value={course.id.toString()}>
                                         {course.courseNumber}: {course.courseTitle}
                                       </SelectItem>
@@ -1041,6 +1063,36 @@ export default function AdminPanel() {
                                 )}
                               </CardDescription>
                             </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{course.courseNumber}: {course.courseTitle}"? 
+                                    This will also delete all associated question sets and questions. 
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteCourseMutation.mutate(course.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
@@ -1438,6 +1490,30 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
     queryFn: () => fetch(`/api/admin/question-sets/${courseId}`).then(res => res.json()),
   });
 
+  const deleteQuestionSetMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/question-sets/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete question set");
+      }
+      return res;
+    },
+    onSuccess: () => {
+      toast({ title: "Question set deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete question set",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const importQuestionsMutation = useMutation({
     mutationFn: async (data: { questionSetId: number; jsonData: string }) => {
       const parsedData = JSON.parse(data.jsonData);
@@ -1552,6 +1628,36 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                     <QuestionsList questionSetId={questionSet.id} isAiCourse={isAiCourse} />
                   </DialogContent>
                 </Dialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Question Set</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{questionSet.title}"? 
+                        This will permanently delete all {questionSet.questionCount || 0} questions in this set. 
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => deleteQuestionSetMutation.mutate(questionSet.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}
