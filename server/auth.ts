@@ -101,11 +101,15 @@ export function setupAuth(app: Express) {
       // Use the first domain from REPLIT_DOMAINS
       const domain = replitDomains.split(',')[0];
       cognitoRedirectUri = `https://${domain}/auth/cognito/callback`;
-      console.log(`✓ Using dynamic redirect URI for development: ${cognitoRedirectUri}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✓ Using dynamic redirect URI for development: ${cognitoRedirectUri}`);
+      }
     } else {
       // Fallback to localhost for local development
       cognitoRedirectUri = `${process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`}/auth/cognito/callback`;
-      console.log(`✓ Using localhost redirect URI: ${cognitoRedirectUri}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✓ Using localhost redirect URI: ${cognitoRedirectUri}`);
+      }
     }
   }
 
@@ -116,8 +120,10 @@ export function setupAuth(app: Express) {
       cognitoAuth = createCognitoAuth(cognitoDomain, cognitoClientId, cognitoClientSecret, cognitoRedirectUri);
       cognitoAuth.initialize();
       cognitoAuth.setupRoutes(app);
-      console.log('✓ Cognito SSO authentication enabled (MANDATORY)');
-      console.log(`✓ Redirect URI: ${cognitoRedirectUri}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✓ Cognito SSO authentication enabled');
+        console.log(`✓ Redirect URI: ${cognitoRedirectUri}`);
+      }
     } catch (error) {
       console.error('❌ CRITICAL: Failed to initialize Cognito SSO - Authentication will not work!', error);
       throw new Error('Cognito SSO configuration is required but failed to initialize');
@@ -134,16 +140,15 @@ export function setupAuth(app: Express) {
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
         const normalizedEmail = normalizeEmail(email);
-        console.log('Login attempt for email:', normalizedEmail);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Login attempt received');
+        }
         const user = await storage.getUserByEmailCI(normalizedEmail);
         if (!user || !user.password) {
-          console.log('User not found or no password set');
           return done(null, false);
         }
         
-        console.log('Stored password format:', user.password.substring(0, 50) + '...');
         const isValid = await comparePasswords(password, user.password);
-        console.log('Password validation result:', isValid);
         
         if (!isValid) {
           return done(null, false);
