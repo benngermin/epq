@@ -2,6 +2,7 @@ import { Express, Request, Response, NextFunction } from "express";
 import { Strategy as OAuth2Strategy } from "passport-oauth2";
 import passport from "passport";
 import { storage } from "./storage";
+import { normalizeEmail } from "./lib/normalizeEmail";
 
 interface CognitoTokenPayload {
   sub: string;
@@ -59,18 +60,35 @@ export class CognitoAuth {
 
         const userInfo = await userInfoResponse.json();
 
-        // Check if user exists by Cognito sub
-        let user = await storage.getUserByCognitoSub(userInfo.sub);
+        // Normalize email for case-insensitive matching
+        const email = normalizeEmail(userInfo.email);
+        const sub = userInfo.sub;
+        const name = userInfo.name || userInfo.given_name || email.split('@')[0] || 'User';
 
+        console.info('Cognito login', { sub, email });
+
+        // 1) Try to find user by cognito_sub first
+        let user = await storage.getUserByCognitoSub(sub);
+
+        // 2) Fallback: try by email (case-insensitive)
         if (!user) {
-          // Create new user if doesn't exist
-          const name = userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'User';
-          user = await storage.createUser({
-            name,
-            email: userInfo.email,
-            cognitoSub: userInfo.sub,
-            // No password needed for SSO users
-          });
+          const existingUser = await storage.getUserByEmailCI(email);
+          if (existingUser) {
+            // Link existing user with Cognito sub
+            console.info('Linking existing user to Cognito', { userId: existingUser.id, email });
+            user = await storage.updateUser(existingUser.id, { 
+              cognitoSub: sub,
+              email // Update with normalized email
+            });
+          } else {
+            // 3) Truly new user - use upsert to handle race conditions
+            console.info('Creating new user via Cognito', { email });
+            user = await storage.upsertUserByEmail({ 
+              email, 
+              name, 
+              cognitoSub: sub 
+            });
+          }
         }
 
         return done(null, user);

@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { createCognitoAuth, CognitoAuth } from "./cognito-auth";
 import { authRateLimiter } from "./middleware/rate-limiter";
+import { normalizeEmail } from "./lib/normalizeEmail";
 
 declare global {
   namespace Express {
@@ -132,8 +133,9 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
-        console.log('Login attempt for email:', email);
-        const user = await storage.getUserByEmail(email);
+        const normalizedEmail = normalizeEmail(email);
+        console.log('Login attempt for email:', normalizedEmail);
+        const user = await storage.getUserByEmailCI(normalizedEmail);
         if (!user || !user.password) {
           console.log('User not found or no password set');
           return done(null, false);
@@ -173,18 +175,20 @@ export function setupAuth(app: Express) {
   // Local authentication endpoints - available in development only
   app.post("/api/register", authRateLimiter.middleware(), async (req, res, next) => {
     if (process.env.NODE_ENV === 'development') {
-      const userWithEmail = await storage.getUserByEmail(req.body.email);
+      const normalizedEmail = normalizeEmail(req.body.email);
+      const userWithEmail = await storage.getUserByEmailCI(normalizedEmail);
       if (userWithEmail) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      const userInsert = insertUserSchema.parse(req.body);
+      const userInsert = insertUserSchema.parse({...req.body, email: normalizedEmail});
       if (!userInsert.password) {
         return res.status(400).json({ message: "Password is required for local registration" });
       }
       const hashedPassword = await hashPassword(userInsert.password);
       const user = await storage.createUser({
         ...userInsert,
+        email: normalizedEmail,
         password: hashedPassword,
       });
 

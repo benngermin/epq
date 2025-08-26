@@ -24,9 +24,11 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByEmailCI(email: string): Promise<User | undefined>;
   getUserByCognitoSub(cognitoSub: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  upsertUserByEmail(user: { email: string; name?: string; cognitoSub?: string }): Promise<User>;
   
   // Course methods
   getAllCourses(): Promise<Course[]>;
@@ -296,6 +298,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getUserByEmailCI(email: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users)
+        .where(sql`lower(${users.email}) = lower(${email})`);
+      return user || undefined;
+    } catch (error) {
+      console.error('Error fetching user by email (case-insensitive):', error);
+      throw error;
+    }
+  }
+
   async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.cognitoSub, cognitoSub));
     return user || undefined;
@@ -317,6 +330,41 @@ export class DatabaseStorage implements IStorage {
       return updated || undefined;
     } catch (error) {
       console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  async upsertUserByEmail(user: { email: string; name?: string; cognitoSub?: string }): Promise<User> {
+    try {
+      // First check if user exists (case-insensitive)
+      const existingUser = await this.getUserByEmailCI(user.email);
+      
+      if (existingUser) {
+        // Update existing user
+        const updates: any = {};
+        if (user.cognitoSub) updates.cognitoSub = user.cognitoSub;
+        if (user.name) updates.name = user.name;
+        // Always update email to the normalized version
+        updates.email = user.email.trim().toLowerCase();
+        
+        const [updated] = await db.update(users)
+          .set(updates)
+          .where(eq(users.id, existingUser.id))
+          .returning();
+        return updated;
+      } else {
+        // Create new user
+        const [newUser] = await db.insert(users)
+          .values({
+            email: user.email.trim().toLowerCase(),
+            name: user.name || 'User',
+            cognitoSub: user.cognitoSub || null
+          })
+          .returning();
+        return newUser;
+      }
+    } catch (error) {
+      console.error('Error upserting user by email:', error);
       throw error;
     }
   }
