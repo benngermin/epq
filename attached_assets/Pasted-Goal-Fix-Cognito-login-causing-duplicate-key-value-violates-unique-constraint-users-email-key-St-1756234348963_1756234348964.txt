@@ -1,0 +1,166 @@
+Goal: Fix Cognito login causing duplicate key value violates unique constraint "users_email_key".
+Strategy: Normalize email, then upsert by email (link existing user → update cognito_sub) instead of always inserting. Add a case-insensitive unique index. Include tests.
+
+1) Locate the Cognito callback
+
+Search the repo for the OAuth/Cognito verify/callback code (cognito, oauth2, callback, verify, passport, etc.).
+
+The function currently does: “get by sub → if not found, create user with {email, name, sub}”. That logic must change.
+
+2) Implement email normalization utility
+
+Create (or reuse) a helper:
+
+// src/lib/normalizeEmail.ts
+export const normalizeEmail = (e?: string) =>
+  (e ?? "").trim().toLowerCase();
+
+3) Replace callback logic (prefer existing → upsert)
+
+In the Cognito verify/callback:
+
+import { normalizeEmail } from "@/lib/normalizeEmail";
+
+// extract claims
+const sub = userInfo.sub;                     // from Cognito /userinfo or JWT
+const email = normalizeEmail(userInfo.email);
+const name  = userInfo.name || userInfo.given_name || email.split("@")[0] || "User";
+
+// 1) try by cognito_sub
+let user = await storage.getUserByCognitoSub?.(sub);
+
+// 2) fallback: try by email (case-insensitive)
+if (!user) {
+  const existing = await storage.getUserByEmailCI(email); // implement below
+  if (existing) {
+    user = await storage.updateUser(existing.id, { cognito_sub: sub, email });
+  } else {
+    // 3) truly new user
+    user = await storage.upsertUserByEmail({ email, name, cognito_sub: sub });
+  }
+}
+
+return done(null, user);
+
+4) Storage layer changes (pick the variant that matches our stack)
+
+A) Raw SQL (works everywhere):
+Add these functions in your storage/db module:
+
+import { sql } from "drizzle-orm"; // or your SQL helper
+import { db } from "./db";
+
+export async function getUserByEmailCI(email: string) {
+  const rows = await db.execute(
+    sql`SELECT * FROM users WHERE lower(email) = lower(${email}) LIMIT 1;`
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateUser(id: number, updates: Record<string, unknown>) {
+  const keys = Object.keys(updates);
+  const sets = keys.map((k, i) => sql`${sql.identifier(k)} = ${updates[k]}`);
+  const row = await db.execute(
+    sql`UPDATE users SET ${sql.join(sets, sql`, `)} WHERE id = ${id} RETURNING *;`
+  );
+  return row[0];
+}
+
+// One-liner upsert by email
+export async function upsertUserByEmail(u: { email: string; name?: string; cognito_sub?: string }) {
+  const row = await db.execute(sql`
+    INSERT INTO users (email, name, cognito_sub)
+    VALUES (${u.email}, ${u.name ?? null}, ${u.cognito_sub ?? null})
+    ON CONFLICT (email) DO UPDATE
+      SET cognito_sub = EXCLUDED.cognito_sub,
+          name        = COALESCE(EXCLUDED.name, users.name),
+          updated_at  = now()
+    RETURNING *;
+  `);
+  return row[0];
+}
+
+
+B) Drizzle (Postgres) onConflict helper:
+
+export async function upsertUserByEmail(u: typeof users.$inferInsert) {
+  const [row] = await db.insert(users).values(u)
+    .onConflictDoUpdate({
+      target: users.email,
+      set: { cognitoSub: u.cognitoSub, name: u.name, updatedAt: new Date() }
+    })
+    .returning();
+  return row;
+}
+
+export async function getUserByEmailCI(email: string) {
+  const [row] = await db.select().from(users)
+    .where(sql`lower(${users.email}) = lower(${email})`).limit(1);
+  return row ?? null;
+}
+
+
+C) Prisma (if we’re using it):
+
+const email = normalizeEmail(userInfo.email);
+const user = await prisma.user.upsert({
+  where: { email },
+  update: { cognitoSub: userInfo.sub, name },
+  create: { email, name, cognitoSub: userInfo.sub },
+});
+
+5) Make uniqueness case-insensitive (migration)
+
+Add a DB migration (Postgres):
+
+-- optional: drop old case-sensitive unique if it conflicts with this policy
+-- DO THIS ONLY if we want to rely solely on the CI index:
+-- DROP INDEX IF EXISTS users_email_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_ci
+  ON users (lower(email))
+  WHERE deleted_at IS NULL;  -- keep soft-deletes out of the uniqueness check
+
+
+If your migration runner wraps in a transaction and CONCURRENTLY isn’t allowed, omit CONCURRENTLY.
+
+6) Guardrails
+
+Always call normalizeEmail() before any read/write.
+
+Ensure the callback never blindly calls createUser without checking email.
+
+7) Tests (can be manual or a quick script)
+
+Seed a user: INSERT INTO users(email,name) VALUES('Mike@Example.com','Mike');
+
+Log in via Cognito with email = 'mike@example.com'.
+
+Expected: no 500s; user row now has cognito_sub set; no duplicate error.
+
+Repeat login: should succeed and update last_login_at (if present).
+
+New email: should create a new row.
+
+8) Logging
+
+Add one line before upsert:
+
+console.info("Cognito login", { sub, email });
+
+
+and log the chosen path (by sub / by email / create).
+
+9) Commit & deploy
+
+Commit message: fix(auth): upsert by email + CI uniqueness to avoid duplicate user on Cognito login
+
+Run migrations and redeploy.
+
+Acceptance criteria
+
+Logging in with an email that already exists no longer throws users_email_key error.
+
+Existing rows gain cognito_sub on first login.
+
+Subsequent logins are idempotent.
