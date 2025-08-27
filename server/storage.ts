@@ -940,8 +940,37 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
-  async createChatbotFeedback(feedback: InsertChatbotFeedback): Promise<ChatbotFeedback> {
+  async createChatbotFeedback(feedback: InsertChatbotFeedback & { userName?: string; userEmail?: string; questionText?: string; courseName?: string }): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
+    
+    // Sync to Notion asynchronously - don't wait for it
+    if (process.env.NOTION_INTEGRATION_SECRET && process.env.NOTION_PAGE_URL) {
+      const { createFeedbackInNotion } = await import('./notion');
+      
+      // Extract assistant message from conversation if available
+      let assistantMessage = null;
+      if (feedback.conversation && Array.isArray(feedback.conversation)) {
+        const message = feedback.conversation.find((msg: any) => msg.id === feedback.messageId && msg.role === 'assistant');
+        if (message) {
+          assistantMessage = message.content;
+        }
+      }
+      
+      // Fire and forget - don't block the main flow
+      createFeedbackInNotion({
+        userName: feedback.userName || 'Anonymous User',
+        userEmail: feedback.userEmail || 'N/A',
+        feedbackType: feedback.feedbackType as 'positive' | 'negative',
+        feedbackMessage: feedback.feedbackMessage || null,
+        assistantMessage,
+        questionText: feedback.questionText || undefined,
+        courseName: feedback.courseName || undefined,
+        createdAt: newFeedback.createdAt,
+      }).catch(error => {
+        console.error('Failed to sync feedback to Notion:', error);
+      });
+    }
+    
     return newFeedback;
   }
 

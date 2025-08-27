@@ -1514,6 +1514,33 @@ export function registerRoutes(app: Express): Server {
       });
 
       const parsed = feedbackSchema.parse(req.body);
+      
+      // Get additional context for Notion sync
+      let questionText = undefined;
+      let courseName = undefined;
+      
+      if (parsed.questionVersionId) {
+        try {
+          const questionVersion = await storage.getQuestionVersion(parsed.questionVersionId);
+          if (questionVersion) {
+            questionText = questionVersion.questionText;
+            
+            // Try to get course name
+            const question = await storage.getQuestion(questionVersion.questionId);
+            if (question) {
+              const questionSet = await storage.getQuestionSet(question.questionSetId);
+              if (questionSet) {
+                const course = await storage.getCourse(questionSet.courseId);
+                if (course) {
+                  courseName = course.courseTitle;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching question context:', err);
+        }
+      }
 
       await storage.createChatbotFeedback({
         userId: req.user.id,
@@ -1522,6 +1549,10 @@ export function registerRoutes(app: Express): Server {
         feedbackMessage: parsed.message || null,
         questionVersionId: parsed.questionVersionId || null,
         conversation: parsed.conversation || null,
+        userName: req.user.name,
+        userEmail: req.user.email,
+        questionText,
+        courseName,
       });
 
       
