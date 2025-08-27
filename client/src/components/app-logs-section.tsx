@@ -178,7 +178,33 @@ export function AppLogsSection() {
   
   // State for conversation viewer modal
   const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
-  
+
+  const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
+    queryKey: ["/api/admin/logs/overview", timeScale],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/logs/overview?timeScale=${timeScale}`);
+      if (!response.ok) throw new Error('Failed to fetch overview stats');
+      return response.json();
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const { data: userStats, isLoading: usersLoading } = useQuery<UserStat[]>({
+    queryKey: ["/api/admin/logs/users"],
+  });
+
+  const { data: questionStats, isLoading: questionsLoading } = useQuery<QuestionStats>({
+    queryKey: ["/api/admin/logs/questions"],
+  });
+
+  const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
+    queryKey: ["/api/admin/logs/courses"],
+  });
+
+  const { data: feedbackData, isLoading: feedbackLoading } = useQuery<FeedbackData[]>({
+    queryKey: ["/api/admin/logs/feedback"],
+  });
+
   // Check for feedbackId in URL params to auto-open feedback
   useEffect(() => {
     // Only run when feedbackData is loaded and not empty
@@ -206,32 +232,6 @@ export function AppLogsSection() {
       }
     }
   }, [feedbackData, feedbackLoading]);
-
-  const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
-    queryKey: ["/api/admin/logs/overview", timeScale],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/logs/overview?timeScale=${timeScale}`);
-      if (!response.ok) throw new Error('Failed to fetch overview stats');
-      return response.json();
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
-
-  const { data: userStats, isLoading: usersLoading } = useQuery<UserStat[]>({
-    queryKey: ["/api/admin/logs/users"],
-  });
-
-  const { data: questionStats, isLoading: questionsLoading } = useQuery<QuestionStats>({
-    queryKey: ["/api/admin/logs/questions"],
-  });
-
-  const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
-    queryKey: ["/api/admin/logs/courses"],
-  });
-
-  const { data: feedbackData, isLoading: feedbackLoading } = useQuery<FeedbackData[]>({
-    queryKey: ["/api/admin/logs/feedback"],
-  });
 
   const { data: engagementMetrics, isLoading: engagementLoading } = useQuery<EngagementMetrics>({
     queryKey: ["/api/admin/logs/engagement-metrics", dateRange],
