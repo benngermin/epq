@@ -1226,83 +1226,95 @@ export function AppLogsSection() {
                 <ScrollArea className="h-[600px]">
                   <div className="space-y-4">
                     {feedbackData.map((feedback) => (
-                      <div key={feedback.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${
-                              feedback.feedbackType === 'positive' 
-                                ? 'bg-green-100 text-green-600' 
-                                : 'bg-red-100 text-red-600'
-                            }`}>
-                              {feedback.feedbackType === 'positive' ? (
-                                <ThumbsUp className="h-4 w-4" />
-                              ) : (
-                                <ThumbsDown className="h-4 w-4" />
-                              )}
+                      <Card key={feedback.id} className="overflow-hidden">
+                        {/* Header */}
+                        <div className="p-4 pb-3 border-b">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              {/* User Avatar */}
+                              <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white font-semibold text-lg">
+                                {feedback.userName.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-base">{feedback.userName}</p>
+                                <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{feedback.userName}</p>
-                              <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
+                            <div className="flex items-center gap-3">
+                              <Badge 
+                                variant="secondary"
+                                className={feedback.feedbackType === 'positive' 
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-100' 
+                                  : 'bg-red-100 text-red-700 hover:bg-red-100'
+                                }
+                              >
+                                {feedback.feedbackType.toUpperCase()}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                {format(new Date(feedback.createdAt), 'MMM d, yyyy h:mm a').toUpperCase()}
+                              </span>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant={feedback.feedbackType === 'positive' ? 'default' : 'destructive'}>
-                              {feedback.feedbackType}
-                            </Badge>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {format(new Date(feedback.createdAt), 'MMM dd, yyyy h:mm a')}
-                            </p>
                           </div>
                         </div>
                         
-                        {/* Context Information */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          {feedback.courseName && (
+                        {/* Context Information Grid */}
+                        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b">
+                          <div className="grid grid-cols-3 gap-6">
                             <div>
-                              <span className="font-medium text-muted-foreground">Course:</span>
-                              <span className="ml-2">{feedback.courseName}</span>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Course</p>
+                              <p className="text-sm font-medium">{feedback.courseName || '—'}</p>
                             </div>
-                          )}
-                          {feedback.questionSetTitle && (
                             <div>
-                              <span className="font-medium text-muted-foreground">Question Set:</span>
-                              <span className="ml-2">{feedback.questionSetTitle}</span>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Question Set</p>
+                              <p className="text-sm font-medium">{feedback.questionSetTitle || '—'}</p>
                             </div>
-                          )}
-                          {feedback.loid && (
                             <div>
-                              <span className="font-medium text-muted-foreground">LOID:</span>
-                              <span className="ml-2 font-mono text-xs">{feedback.loid}</span>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">LOID</p>
+                              <p className="text-sm font-medium font-mono">{feedback.loid || '—'}</p>
                             </div>
-                          )}
+                          </div>
                         </div>
                         
+                        {/* Question Section */}
                         {feedback.questionText && (
-                          <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3">
-                            <p className="text-sm font-medium mb-1 text-blue-900 dark:text-blue-100">Question:</p>
-                            <p className="text-sm text-blue-800 dark:text-blue-200">{feedback.questionText.substring(0, 200)}{feedback.questionText.length > 200 ? '...' : ''}</p>
+                          <div className="px-4 py-3 border-b">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Question</p>
+                            <div className="pl-4 border-l-4 border-blue-500">
+                              <p className="text-sm text-foreground">
+                                {feedback.questionText.substring(0, 250)}
+                                {feedback.questionText.length > 250 ? '...' : ''}
+                              </p>
+                            </div>
                           </div>
                         )}
                         
+                        {/* User Feedback Section */}
                         {feedback.feedbackMessage && (
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <p className="text-sm font-medium mb-1">User Feedback:</p>
-                            <p className="text-sm">{feedback.feedbackMessage}</p>
+                          <div className="px-4 py-3 border-b">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">User Feedback</p>
+                            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-3">
+                              <p className="text-sm text-foreground">
+                                {feedback.feedbackMessage}
+                              </p>
+                            </div>
                           </div>
                         )}
                         
-                        <div className="flex justify-end pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedFeedback({id: feedback.id, messageId: feedback.messageId})}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            View Conversation
-                          </Button>
+                        {/* Action Footer */}
+                        <div className="px-4 py-3 bg-background">
+                          <div className="flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedFeedback({id: feedback.id, messageId: feedback.messageId})}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-medium"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Conversation
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 </ScrollArea>
