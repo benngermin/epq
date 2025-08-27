@@ -1542,6 +1542,11 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
+      // Get the base URL from the request
+      const protocol = req.get('x-forwarded-proto') || req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
       await storage.createChatbotFeedback({
         userId: req.user.id,
         messageId: parsed.messageId,
@@ -1553,6 +1558,7 @@ export function registerRoutes(app: Express): Server {
         userEmail: req.user.email,
         questionText,
         courseName,
+        baseUrl,
       });
 
       
@@ -2871,6 +2877,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error importing course materials:", error);
       res.status(500).json({ message: "Failed to import course materials" });
+    }
+  });
+
+  // Route for direct feedback viewing (accessible to admins)
+  app.get("/admin/feedback/:feedbackId", requireAdmin, async (req, res) => {
+    try {
+      const feedbackId = parseInt(req.params.feedbackId);
+      
+      if (isNaN(feedbackId)) {
+        return res.status(400).send("Invalid feedback ID");
+      }
+      
+      // Redirect to the admin dashboard with the feedback ID in the query params
+      // This will open the admin dashboard and automatically show the feedback modal
+      res.redirect(`/admin?tab=logs&subtab=feedback&feedbackId=${feedbackId}`);
+    } catch (error) {
+      console.error("Error redirecting to feedback:", error);
+      res.status(500).send("Failed to load feedback");
     }
   });
 

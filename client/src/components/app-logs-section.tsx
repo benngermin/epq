@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -178,6 +178,24 @@ export function AppLogsSection() {
   
   // State for conversation viewer modal
   const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
+  
+  // Check for feedbackId in URL params to auto-open feedback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const feedbackId = params.get('feedbackId');
+    
+    if (feedbackId && feedbackData) {
+      const feedback = feedbackData.find(f => f.id === parseInt(feedbackId));
+      if (feedback) {
+        setSelectedFeedback({ id: feedback.id, messageId: feedback.messageId });
+        // Also ensure we're on the feedback tab
+        const tabElement = document.querySelector('[value="feedback"]') as HTMLButtonElement;
+        if (tabElement) {
+          tabElement.click();
+        }
+      }
+    }
+  }, [feedbackData]);
 
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview", timeScale],

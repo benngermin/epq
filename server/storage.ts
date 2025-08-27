@@ -940,7 +940,7 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
-  async createChatbotFeedback(feedback: InsertChatbotFeedback & { userName?: string; userEmail?: string; questionText?: string; courseName?: string }): Promise<ChatbotFeedback> {
+  async createChatbotFeedback(feedback: InsertChatbotFeedback & { userName?: string; userEmail?: string; questionText?: string; courseName?: string; baseUrl?: string }): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
     
     // Sync to Notion asynchronously - don't wait for it
@@ -958,6 +958,7 @@ export class DatabaseStorage implements IStorage {
       
       // Fire and forget - don't block the main flow
       createFeedbackInNotion({
+        feedbackId: newFeedback.id,
         userName: feedback.userName || 'Anonymous User',
         userEmail: feedback.userEmail || 'N/A',
         feedbackType: feedback.feedbackType as 'positive' | 'negative',
@@ -966,6 +967,8 @@ export class DatabaseStorage implements IStorage {
         questionText: feedback.questionText || undefined,
         courseName: feedback.courseName || undefined,
         createdAt: newFeedback.createdAt,
+        conversation: feedback.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
+        baseUrl: feedback.baseUrl || 'https://527b9a23-074e-4c21-9784-9dcc9ff1004c-00-4cn4oqxqndqq.janeway.replit.dev',
       }).catch(error => {
         console.error('Failed to sync feedback to Notion:', error);
       });

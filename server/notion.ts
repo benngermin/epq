@@ -21,6 +21,7 @@ export const FEEDBACK_DATABASE_ID = extractDatabaseIdFromUrl(process.env.NOTION_
 
 // Create a feedback entry in existing Notion database
 export async function createFeedbackInNotion(feedbackData: {
+    feedbackId: number;
     userName: string;
     userEmail: string;
     feedbackType: 'positive' | 'negative';
@@ -29,6 +30,8 @@ export async function createFeedbackInNotion(feedbackData: {
     questionText?: string;
     courseName?: string;
     createdAt: Date;
+    conversation?: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
+    baseUrl: string;
 }) {
     try {
         // First, let's get the database schema to understand what properties exist
@@ -168,13 +171,128 @@ export async function createFeedbackInNotion(feedbackData: {
                 select: { name: 'New' }
             };
         }
+        
+        // Channel field - set to 'EPQ'
+        const channelField = findProperty(['Channel']);
+        if (channelField && schemaProps[channelField]?.type === 'select') {
+            properties[channelField] = {
+                select: { name: 'EPQ' }
+            };
+        }
+        
+        // URL field - direct link to feedback
+        const urlField = findProperty(['URL', 'Link']);
+        if (urlField) {
+            const feedbackUrl = `${feedbackData.baseUrl}/admin/feedback/${feedbackData.feedbackId}`;
+            if (schemaProps[urlField]?.type === 'url') {
+                properties[urlField] = { url: feedbackUrl };
+            } else if (schemaProps[urlField]?.type === 'rich_text') {
+                properties[urlField] = {
+                    rich_text: [{
+                        text: { content: feedbackUrl }
+                    }]
+                };
+            }
+        }
 
-        // Create the feedback entry in the existing database
+        // Prepare the page content with feedback message and conversation
+        const children: any[] = [];
+        
+        // Add feedback message section
+        if (feedbackData.feedbackMessage) {
+            children.push(
+                {
+                    object: 'block',
+                    type: 'heading_2',
+                    heading_2: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: '📝 User Feedback' }
+                        }]
+                    }
+                },
+                {
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: feedbackData.feedbackMessage }
+                        }]
+                    }
+                },
+                {
+                    object: 'block',
+                    type: 'divider',
+                    divider: {}
+                }
+            );
+        }
+        
+        // Add conversation section
+        if (feedbackData.conversation && feedbackData.conversation.length > 0) {
+            children.push({
+                object: 'block',
+                type: 'heading_2',
+                heading_2: {
+                    rich_text: [{
+                        type: 'text',
+                        text: { content: '💬 Full Conversation' }
+                    }]
+                }
+            });
+            
+            // Add each message in the conversation
+            for (const message of feedbackData.conversation) {
+                const isUser = message.role === 'user';
+                const emoji = isUser ? '👤' : '🤖';
+                const label = isUser ? 'User' : 'Assistant';
+                
+                // Add role header
+                children.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: `${emoji} ${label}` }
+                        }]
+                    }
+                });
+                
+                // Split long messages into chunks (Notion has a 2000 character limit per block)
+                const chunks = message.content.match(/.{1,2000}/gs) || [message.content];
+                for (const chunk of chunks) {
+                    children.push({
+                        object: 'block',
+                        type: 'paragraph',
+                        paragraph: {
+                            rich_text: [{
+                                type: 'text',
+                                text: { content: chunk }
+                            }]
+                        }
+                    });
+                }
+                
+                // Add spacing between messages
+                children.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: []
+                    }
+                });
+            }
+        }
+        
+        // Create the feedback entry in the existing database with content
         const response = await notion.pages.create({
             parent: {
                 database_id: FEEDBACK_DATABASE_ID
             },
-            properties
+            properties,
+            children: children.length > 0 ? children : undefined
         });
 
         console.log("✓ Feedback synced to Notion successfully");
