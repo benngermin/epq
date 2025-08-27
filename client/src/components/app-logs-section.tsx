@@ -181,11 +181,16 @@ export function AppLogsSection() {
   
   // Check for feedbackId in URL params to auto-open feedback
   useEffect(() => {
+    // Only run when feedbackData is loaded and not empty
+    if (!feedbackData || feedbackLoading) return;
+    
     const params = new URLSearchParams(window.location.search);
     const feedbackId = params.get('feedbackId');
     
-    if (feedbackId && feedbackData && feedbackData.length > 0) {
-      const feedback = feedbackData.find(f => f.id === parseInt(feedbackId));
+    if (feedbackId) {
+      const feedbackIdNum = parseInt(feedbackId);
+      const feedback = feedbackData.find(f => f.id === feedbackIdNum);
+      
       if (feedback) {
         setSelectedFeedback({ id: feedback.id, messageId: feedback.messageId });
         // Also ensure we're on the feedback tab
@@ -195,9 +200,12 @@ export function AppLogsSection() {
             tabElement.click();
           }
         }, 100);
+      } else {
+        // If feedback ID doesn't exist in database, we can't show it
+        console.warn(`Feedback with ID ${feedbackId} not found in database`);
       }
     }
-  }, [feedbackData]);
+  }, [feedbackData, feedbackLoading]);
 
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview", timeScale],
