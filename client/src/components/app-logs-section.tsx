@@ -184,15 +184,17 @@ export function AppLogsSection() {
     const params = new URLSearchParams(window.location.search);
     const feedbackId = params.get('feedbackId');
     
-    if (feedbackId && feedbackData) {
+    if (feedbackId && feedbackData && feedbackData.length > 0) {
       const feedback = feedbackData.find(f => f.id === parseInt(feedbackId));
       if (feedback) {
         setSelectedFeedback({ id: feedback.id, messageId: feedback.messageId });
         // Also ensure we're on the feedback tab
-        const tabElement = document.querySelector('[value="feedback"]') as HTMLButtonElement;
-        if (tabElement) {
-          tabElement.click();
-        }
+        setTimeout(() => {
+          const tabElement = document.querySelector('[value="feedback"]') as HTMLButtonElement;
+          if (tabElement) {
+            tabElement.click();
+          }
+        }, 100);
       }
     }
   }, [feedbackData]);

@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense } from "react";
+import { useState, useCallback, lazy, Suspense, useEffect } from "react";
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -497,7 +497,25 @@ function BubbleImportSection() {
 export default function AdminPanel() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("content");
+  
+  // Check URL params for initial tab
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = urlParams.get('tab') || "content";
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
+  // Handle URL parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const feedbackId = params.get('feedbackId');
+    
+    // If there's a feedbackId, make sure we're on the logs tab
+    if (feedbackId) {
+      setActiveTab('logs');
+    } else if (tab) {
+      setActiveTab(tab);
+    }
+  }, []);
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [editingQuestionSet, setEditingQuestionSet] = useState<any>(null);
   const [courseMaterialsDialogOpen, setCourseMaterialsDialogOpen] = useState(false);
