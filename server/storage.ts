@@ -945,6 +945,7 @@ export class DatabaseStorage implements IStorage {
     userEmail?: string; 
     questionText?: string; 
     courseName?: string;
+    courseNumber?: string;
     questionSetTitle?: string;
     baseUrl?: string;
   }): Promise<ChatbotFeedback> {
@@ -973,6 +974,7 @@ export class DatabaseStorage implements IStorage {
         assistantMessage,
         questionText: feedback.questionText || undefined,
         courseName: feedback.courseName || undefined,
+        courseNumber: feedback.courseNumber || undefined,
         questionSetTitle: feedback.questionSetTitle || undefined,
         loid: newFeedback.loid || undefined,
         createdAt: newFeedback.createdAt,

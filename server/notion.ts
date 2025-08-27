@@ -29,6 +29,7 @@ export async function createFeedbackInNotion(feedbackData: {
     assistantMessage: string | null;
     questionText?: string;
     courseName?: string;
+    courseNumber?: string;
     questionSetTitle?: string;
     loid?: string;
     createdAt: Date;
@@ -213,9 +214,12 @@ export async function createFeedbackInNotion(feedbackData: {
         });
         
         // Add course and question set info
-        if (feedbackData.courseName || feedbackData.questionSetTitle) {
+        if (feedbackData.courseNumber || feedbackData.courseName || feedbackData.questionSetTitle) {
             const contextInfo: string[] = [];
-            if (feedbackData.courseName) {
+            // Use course number if available, otherwise fall back to course name
+            if (feedbackData.courseNumber) {
+                contextInfo.push(`📖 Course: ${feedbackData.courseNumber}`);
+            } else if (feedbackData.courseName) {
                 contextInfo.push(`📖 Course: ${feedbackData.courseName}`);
             }
             if (feedbackData.questionSetTitle) {

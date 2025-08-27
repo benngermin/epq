@@ -1518,6 +1518,7 @@ export function registerRoutes(app: Express): Server {
       // Get additional context for feedback and Notion sync
       let questionText = undefined;
       let courseName = undefined;
+      let courseNumber = undefined;
       let courseId = undefined;
       let questionSetId = undefined;
       let questionSetTitle = undefined;
@@ -1545,6 +1546,7 @@ export function registerRoutes(app: Express): Server {
                 if (course) {
                   courseId = course.id;
                   courseName = course.courseTitle;
+                  courseNumber = course.courseNumber; // Capture course number (e.g., "CPCU 500")
                 }
               }
             }
@@ -1574,6 +1576,7 @@ export function registerRoutes(app: Express): Server {
         userEmail: req.user.email,
         questionText,
         courseName,
+        courseNumber,
         questionSetTitle,
         baseUrl,
       });
