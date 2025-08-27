@@ -1515,9 +1515,14 @@ export function registerRoutes(app: Express): Server {
 
       const parsed = feedbackSchema.parse(req.body);
       
-      // Get additional context for Notion sync
+      // Get additional context for feedback and Notion sync
       let questionText = undefined;
       let courseName = undefined;
+      let courseId = undefined;
+      let questionSetId = undefined;
+      let questionSetTitle = undefined;
+      let questionId = undefined;
+      let loid = undefined;
       
       if (parsed.questionVersionId) {
         try {
@@ -1525,13 +1530,20 @@ export function registerRoutes(app: Express): Server {
           if (questionVersion) {
             questionText = questionVersion.questionText;
             
-            // Try to get course name
+            // Get the base question to access LOID and IDs
             const question = await storage.getQuestion(questionVersion.questionId);
             if (question) {
+              questionId = question.id;
+              loid = question.loid; // Capture the LOID
+              
               const questionSet = await storage.getQuestionSet(question.questionSetId);
               if (questionSet) {
+                questionSetId = questionSet.id;
+                questionSetTitle = questionSet.title;
+                
                 const course = await storage.getCourse(questionSet.courseId);
                 if (course) {
+                  courseId = course.id;
                   courseName = course.courseTitle;
                 }
               }
@@ -1554,10 +1566,15 @@ export function registerRoutes(app: Express): Server {
         feedbackMessage: parsed.message || null,
         questionVersionId: parsed.questionVersionId || null,
         conversation: parsed.conversation || null,
+        courseId,
+        questionSetId,
+        questionId,
+        loid,
         userName: req.user.name,
         userEmail: req.user.email,
         questionText,
         courseName,
+        questionSetTitle,
         baseUrl,
       });
 

@@ -137,6 +137,10 @@ export const chatbotFeedback = pgTable("chatbot_feedback", {
   feedbackMessage: text("feedback_message"),
   questionVersionId: integer("question_version_id").references(() => questionVersions.id),
   conversation: jsonb("conversation").$type<Array<{id: string, content: string, role: "user" | "assistant"}>>(), // Store full conversation
+  courseId: integer("course_id").references(() => courses.id),
+  questionSetId: integer("question_set_id").references(() => questionSets.id),
+  questionId: integer("question_id").references(() => questions.id),
+  loid: text("loid"), // Learning Objective ID from course material
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

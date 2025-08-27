@@ -940,7 +940,14 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
-  async createChatbotFeedback(feedback: InsertChatbotFeedback & { userName?: string; userEmail?: string; questionText?: string; courseName?: string; baseUrl?: string }): Promise<ChatbotFeedback> {
+  async createChatbotFeedback(feedback: InsertChatbotFeedback & { 
+    userName?: string; 
+    userEmail?: string; 
+    questionText?: string; 
+    courseName?: string;
+    questionSetTitle?: string;
+    baseUrl?: string;
+  }): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
     
     // Sync to Notion asynchronously - don't wait for it
@@ -966,6 +973,8 @@ export class DatabaseStorage implements IStorage {
         assistantMessage,
         questionText: feedback.questionText || undefined,
         courseName: feedback.courseName || undefined,
+        questionSetTitle: feedback.questionSetTitle || undefined,
+        loid: newFeedback.loid || undefined,
         createdAt: newFeedback.createdAt,
         conversation: feedback.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
         baseUrl: feedback.baseUrl || 'https://527b9a23-074e-4c21-9784-9dcc9ff1004c-00-4cn4oqxqndqq.janeway.replit.dev',
@@ -987,6 +996,10 @@ export class DatabaseStorage implements IStorage {
     feedbackMessage: string | null;
     assistantMessage: string | null;
     conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
+    courseName: string | null;
+    questionSetTitle: string | null;
+    questionText: string | null;
+    loid: string | null;
     createdAt: Date;
   }>> {
     const result = await db.select({
@@ -998,10 +1011,21 @@ export class DatabaseStorage implements IStorage {
       feedbackType: chatbotFeedback.feedbackType,
       feedbackMessage: chatbotFeedback.feedbackMessage,
       conversation: chatbotFeedback.conversation,
+      courseId: chatbotFeedback.courseId,
+      questionSetId: chatbotFeedback.questionSetId,
+      questionId: chatbotFeedback.questionId,
+      questionVersionId: chatbotFeedback.questionVersionId,
+      loid: chatbotFeedback.loid,
       createdAt: chatbotFeedback.createdAt,
+      courseName: courses.courseTitle,
+      questionSetTitle: questionSets.title,
+      questionText: questionVersions.questionText,
     })
     .from(chatbotFeedback)
     .leftJoin(users, eq(chatbotFeedback.userId, users.id))
+    .leftJoin(courses, eq(chatbotFeedback.courseId, courses.id))
+    .leftJoin(questionSets, eq(chatbotFeedback.questionSetId, questionSets.id))
+    .leftJoin(questionVersions, eq(chatbotFeedback.questionVersionId, questionVersions.id))
     .orderBy(desc(chatbotFeedback.createdAt));
 
     // Map the result to handle null users and extract assistant message from conversation
@@ -1020,6 +1044,10 @@ export class DatabaseStorage implements IStorage {
         ...item,
         userName: item.userName || 'Anonymous User',
         userEmail: item.userEmail || 'N/A',
+        courseName: item.courseName || null,
+        questionSetTitle: item.questionSetTitle || null,
+        questionText: item.questionText || null,
+        loid: item.loid || null,
         assistantMessage,
         conversation: item.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
       };

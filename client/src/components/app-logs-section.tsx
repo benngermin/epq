@@ -115,6 +115,10 @@ interface FeedbackData {
   feedbackMessage: string | null;
   assistantMessage: string | null;
   conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
+  courseName: string | null;
+  questionSetTitle: string | null;
+  questionText: string | null;
+  loid: string | null;
   createdAt: string;
 }
 
@@ -1250,6 +1254,35 @@ export function AppLogsSection() {
                             </p>
                           </div>
                         </div>
+                        
+                        {/* Context Information */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {feedback.courseName && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">Course:</span>
+                              <span className="ml-2">{feedback.courseName}</span>
+                            </div>
+                          )}
+                          {feedback.questionSetTitle && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">Question Set:</span>
+                              <span className="ml-2">{feedback.questionSetTitle}</span>
+                            </div>
+                          )}
+                          {feedback.loid && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">LOID:</span>
+                              <span className="ml-2 font-mono text-xs">{feedback.loid}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {feedback.questionText && (
+                          <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3">
+                            <p className="text-sm font-medium mb-1 text-blue-900 dark:text-blue-100">Question:</p>
+                            <p className="text-sm text-blue-800 dark:text-blue-200">{feedback.questionText.substring(0, 200)}{feedback.questionText.length > 200 ? '...' : ''}</p>
+                          </div>
+                        )}
                         
                         {feedback.feedbackMessage && (
                           <div className="bg-muted/50 rounded-lg p-3">

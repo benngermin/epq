@@ -29,6 +29,8 @@ export async function createFeedbackInNotion(feedbackData: {
     assistantMessage: string | null;
     questionText?: string;
     courseName?: string;
+    questionSetTitle?: string;
+    loid?: string;
     createdAt: Date;
     conversation?: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
     baseUrl: string;
@@ -197,6 +199,78 @@ export async function createFeedbackInNotion(feedbackData: {
 
         // Prepare the page content with feedback message and conversation
         const children: any[] = [];
+        
+        // Add context information section
+        children.push({
+            object: 'block',
+            type: 'heading_2',
+            heading_2: {
+                rich_text: [{
+                    type: 'text',
+                    text: { content: '📚 Context Information' }
+                }]
+            }
+        });
+        
+        // Add course and question set info
+        if (feedbackData.courseName || feedbackData.questionSetTitle) {
+            const contextInfo: string[] = [];
+            if (feedbackData.courseName) {
+                contextInfo.push(`📖 Course: ${feedbackData.courseName}`);
+            }
+            if (feedbackData.questionSetTitle) {
+                contextInfo.push(`📝 Question Set: ${feedbackData.questionSetTitle}`);
+            }
+            if (feedbackData.loid) {
+                contextInfo.push(`🎯 LOID: ${feedbackData.loid}`);
+            }
+            
+            for (const info of contextInfo) {
+                children.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: info }
+                        }]
+                    }
+                });
+            }
+        }
+        
+        // Add question text if available
+        if (feedbackData.questionText) {
+            children.push(
+                {
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: '❓ Question' }
+                        }]
+                    }
+                },
+                {
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: feedbackData.questionText }
+                        }]
+                    }
+                }
+            );
+        }
+        
+        // Add divider before feedback message
+        children.push({
+            object: 'block',
+            type: 'divider',
+            divider: {}
+        });
         
         // Add feedback message section
         if (feedbackData.feedbackMessage) {
