@@ -2696,6 +2696,115 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // New endpoint to update a single question set from Bubble
+  app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.id);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Get the question set to find its external ID
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      if (!questionSet.externalId) {
+        return res.status(400).json({ message: "Question set has no Bubble ID associated" });
+      }
+      
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+      
+      // Fetch the specific question set from Bubble using its ID
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+      
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
+      }
+      
+      const data = await response.json();
+      const bubbleQuestionSet = data.response;
+      
+      if (!bubbleQuestionSet) {
+        return res.status(404).json({ message: "Question set not found in Bubble" });
+      }
+      
+      // Parse the content field to get questions
+      let parsedQuestions: any[] = [];
+      if (bubbleQuestionSet.content) {
+        try {
+          const contentJson = JSON.parse(bubbleQuestionSet.content);
+          if (contentJson.questions && Array.isArray(contentJson.questions)) {
+            parsedQuestions = contentJson.questions;
+          }
+        } catch (parseError) {
+          console.error("Error parsing question content:", parseError);
+        }
+      }
+      
+      // Update the question set metadata
+      await storage.updateQuestionSet(questionSetId, {
+        title: bubbleQuestionSet.title || questionSet.title,
+        description: bubbleQuestionSet.description || questionSet.description,
+      });
+      
+      // Delete existing questions and versions to replace with updated ones
+      await db.delete(questionVersions)
+        .where(inArray(questionVersions.questionId, 
+          db.select({ id: questions.id })
+            .from(questions)
+            .where(eq(questions.questionSetId, questionSetId))
+        ));
+      await db.delete(questions).where(eq(questions.questionSetId, questionSetId));
+      
+      // Import the updated questions
+      if (parsedQuestions.length > 0) {
+        const questionImports = parsedQuestions.map((q: any, index: number) => ({
+          question_number: q.question_number || q.originalQuestionNumber || (index + 1),
+          type: q.type || "multiple_choice",
+          loid: q.loid || q.LOID || "unknown",
+          versions: [{
+            version_number: 1,
+            topic_focus: q.topic_focus || q.topicFocus || bubbleQuestionSet.title || "General",
+            question_text: q.question_text || q.questionText || "",
+            question_type: q.question_type || q.questionType || q.type || "multiple_choice",
+            answer_choices: q.answer_choices || q.answerChoices || [],
+            correct_answer: q.correct_answer || q.correctAnswer || "",
+            acceptable_answers: q.acceptable_answers || q.acceptableAnswers,
+            case_sensitive: q.case_sensitive || q.caseSensitive || false,
+            allow_multiple: q.allow_multiple || q.allowMultiple || false,
+            matching_pairs: q.matching_pairs || q.matchingPairs,
+            correct_order: q.correct_order || q.correctOrder
+          }]
+        }));
+        
+        await storage.importQuestions(questionSetId, questionImports);
+        await storage.updateQuestionSetCount(questionSetId);
+      }
+      
+      res.json({
+        message: `Successfully updated question set with ${parsedQuestions.length} questions from Bubble`,
+        questionCount: parsedQuestions.length
+      });
+      
+    } catch (error) {
+      console.error("Error updating question set from Bubble:", error);
+      res.status(500).json({ message: "Failed to update question set from Bubble" });
+    }
+  });
+
   // Admin route to fetch all learning objects from Bubble.io
   app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
     try {

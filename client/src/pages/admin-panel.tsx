@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -1500,6 +1500,7 @@ function CourseMaterialsSection() {
 function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiCourse?: boolean }) {
   const [importModalOpen, setImportModalOpen] = useState<number | null>(null);
   const [importJsonData, setImportJsonData] = useState("");
+  const [updatingQuestionSet, setUpdatingQuestionSet] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -1550,6 +1551,34 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
         description: error.message,
         variant: "destructive",
       });
+    },
+  });
+
+  const updateFromBubbleMutation = useMutation({
+    mutationFn: async (questionSetId: number) => {
+      const res = await apiRequest("POST", `/api/admin/question-sets/${questionSetId}/update-from-bubble`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update from Bubble");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Question set updated successfully",
+        description: data.message 
+      });
+      setUpdatingQuestionSet(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/questions"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update from Bubble",
+        description: error.message,
+        variant: "destructive",
+      });
+      setUpdatingQuestionSet(null);
     },
   });
 
@@ -1610,6 +1639,20 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
               </div>
               <div className="flex gap-2">
+                {questionSet.externalId && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setUpdatingQuestionSet(questionSet.id);
+                      updateFromBubbleMutation.mutate(questionSet.id);
+                    }}
+                    disabled={updatingQuestionSet === questionSet.id}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${updatingQuestionSet === questionSet.id ? 'animate-spin' : ''}`} />
+                    {updatingQuestionSet === questionSet.id ? "Updating..." : "Update"}
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm" 
