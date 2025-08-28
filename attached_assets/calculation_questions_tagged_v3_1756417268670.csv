@@ -1,0 +1,33 @@
+id,question_id,version_number,topic_focus,question_text,answer_choices,correct_answer,Corrected Answer,
+29262,29204,1,Question Set 1,"Using the financial data from Barnley Insurance Company's statutory annual statement shown below, calculate the company's liquidity ratio for the current year.
+
+Selected Financial Data (Current Year):
+• Bonds: $9,896,202,985
+• Stocks: $4,878,637,485
+• Cash and short-term investments: $59,638,273
+• Real estate: $215,472,135
+• Interest due and accrued: $295,547,215
+• Losses: $7,454,854,932
+• Loss adjustment expenses: $894,582,592
+• Unearned premiums: $405,879,251
+
+Which one of the following represents Barnley's liquidity ratio?","[""A. 1.73"",""B. 1.81"",""C. 2.05"",""D. 2.15""]",A,1.69,
+29279,29221,1,Question Set 1,"Westfork Mutual expects to pay a claim of $50,000 in three years. If the insurer can earn 4% compounded annually on its investments, how much must it set aside today to fund this future claim payment?","[""A. $44,455"",""B. $45,192"",""C. $46,154"",""D. $48,077""]",A,"$44,450 ",
+29330,29272,1,Question Set 2,"Goshen Mutual reports the following financial data for the current year:
+• Cash and short-term investments: $2,500,000
+• Bonds: $18,000,000
+• Stocks: $7,500,000
+• Real estate: $3,000,000
+• Interest due and accrued: $450,000
+• Loss reserves: $12,000,000
+• LAE reserves: $2,000,000
+• Unearned premium reserves: $4,500,000
+
+What is Goshen Mutual's liquidity ratio?","[""A. 1.53"",""B. 1.68"",""C. 1.49"",""D. 1.41""]",A,1.51,
+29332,29274,1,Question Set 2,"Westfork Mutual reports the following: cash and invested assets of $8,500,000, real estate holdings of $1,200,000, interest due and accrued of $300,000, unearned premium reserves of $3,000,000, loss reserves of $4,500,000, and LAE reserves of $1,000,000. What is Westfork Mutual's liquidity ratio?","[""A. 0.94"",""B. 1.15"",""C. 1.04"",""D. 1.28""]",C,1.00,
+29347,29289,1,Question Set 2,"Millstone Insurance invests $75,000 in a zero-coupon bond that yields 5% annually. What will be the value of this investment after four years?","[""A. $85,737"",""B. $88,163"",""C. $91,144"",""D. $93,750""]",C,"$91,163 ",
+29348,29290,1,Question Set 2,"Sofia needs $25,000 in 5 years to cover expected claim payments. If she can invest in a zero-coupon bond yielding 6% annually, how much should she invest today?","[""A. $18,682"",""B. $19,245"",""C. $20,833"",""D. $23,585""]",A,"$18,685 ",
+29401,29343,1,Question Set 3,"Goshen Mutual has a loss ratio of 75% and an expense ratio of 22%. If the company wants to achieve an underwriting profit next year while maintaining the same expense ratio, what is the maximum loss ratio it can have?","[""A. 77%"",""B. 78%"",""C. 79%"",""D. 80%""]",A,B,
+29416,29358,1,Question Set 3,"Goshen Mutual purchased a 10-year zero-coupon bond for $614,000 when interest rates were 5%. If interest rates rise to 7% after one year, what will be the approximate market value of the bond?","[""A. $508,349"",""B. $544,069"",""C. $582,743"",""D. $644,700""]",B,"$543,934 ",
+30272,30214,1,Question Set 1,"The Johnsons have a DP-3 policy with $150,000 dwelling coverage and $30,000 personal property coverage. They also purchased Coverage D (Fair Rental Value) with a limit of $18,000. Their basement apartment, which normally rents for $1,200 per month, becomes uninhabitable for 4 months due to a covered peril. What is the maximum amount the insurer will pay under Coverage D for this loss?","[""A. $4,800"",""B. $15,000"",""C. $18,000"",""D. $1,200""]",B,A,
+30473,30415,1,Question Set 2,"Sofia, an actuary at Millstone Insurance, needs to estimate workers' compensation claims for the current year. Historical data shows 180 claims distributed uniformly over the previous 12-month period. Through the end of August, 135 claims have been reported. What is the estimated total number of workers' compensation claims for the full year using the loss development method?","[""A. 162"",""B. 180"",""C. 202"",""D. 216""]",A,203,
