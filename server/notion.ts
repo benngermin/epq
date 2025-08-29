@@ -119,6 +119,16 @@ export async function createFeedbackInNotion(feedbackData: {
             };
         }
         
+        // Sentiment field (single select with Positive/Negative)
+        const sentimentField = findProperty(['Sentiment']);
+        if (sentimentField && schemaProps[sentimentField]?.type === 'select') {
+            properties[sentimentField] = {
+                select: {
+                    name: feedbackData.feedbackType === 'positive' ? 'Positive' : 'Negative'
+                }
+            };
+        }
+        
         // Feedback Message
         const messageField = findProperty(['FeedbackMessage', 'Message', 'Feedback', 'Feedback Message', 'Comment']);
         if (messageField && feedbackData.feedbackMessage && schemaProps[messageField]?.type === 'rich_text') {
