@@ -77,8 +77,9 @@ export class UsageMetricsAggregator {
   async getUserEngagementMetrics(): Promise<UserEngagementMetrics> {
     // Total active users
     const activeUsersResult = await db
-      .select({ count: sql<number>`COUNT(DISTINCT ${userAnswers.userId})` })
+      .select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})` })
       .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
@@ -92,9 +93,10 @@ export class UsageMetricsAggregator {
     const dailyActiveUsersResult = await db
       .select({
         date: sql<string>`DATE(${userAnswers.answeredAt})`,
-        count: sql<number>`COUNT(DISTINCT ${userAnswers.userId})`
+        count: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})`
       })
       .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
@@ -107,17 +109,18 @@ export class UsageMetricsAggregator {
     // Average questions per user
     const questionsPerUserResult = await db
       .select({
-        userId: userAnswers.userId,
+        userId: userTestRuns.userId,
         questionCount: sql<number>`COUNT(*)`
       })
       .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
           lte(userAnswers.answeredAt, this.dateRange.endDate)
         )
       )
-      .groupBy(userAnswers.userId);
+      .groupBy(userTestRuns.userId);
 
     const totalQuestions = questionsPerUserResult.reduce((sum, u) => sum + Number(u.questionCount), 0);
     const averageQuestionsPerUser = totalActiveUsers > 0 ? totalQuestions / totalActiveUsers : 0;
@@ -236,7 +239,7 @@ export class UsageMetricsAggregator {
       .from(
         db
           .select({
-            testRunId: userAnswers.testRunId,
+            testRunId: userAnswers.userTestRunId,
             questionCount: sql<number>`COUNT(*)`
           })
           .from(userAnswers)
@@ -246,7 +249,7 @@ export class UsageMetricsAggregator {
               lte(userAnswers.answeredAt, this.dateRange.endDate)
             )
           )
-          .groupBy(userAnswers.testRunId)
+          .groupBy(userAnswers.userTestRunId)
           .as('session_questions')
       );
 
@@ -255,18 +258,20 @@ export class UsageMetricsAggregator {
     // Top failed questions
     const topFailedQuestionsResult = await db
       .select({
-        questionId: userAnswers.questionId,
+        questionId: questions.id,
         attempts: sql<number>`COUNT(*)`,
         failureRate: sql<number>`AVG(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
       })
       .from(userAnswers)
+      .innerJoin(questionVersions, eq(userAnswers.questionVersionId, questionVersions.id))
+      .innerJoin(questions, eq(questionVersions.questionId, questions.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
           lte(userAnswers.answeredAt, this.dateRange.endDate)
         )
       )
-      .groupBy(userAnswers.questionId)
+      .groupBy(questions.id)
       .having(sql`COUNT(*) >= 5`) // Only consider questions with at least 5 attempts
       .orderBy(desc(sql`AVG(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`))
       .limit(10);
@@ -279,7 +284,10 @@ export class UsageMetricsAggregator {
         questionText: questionVersions.questionText
       })
       .from(questions)
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.versionNumber, 1)
+      ))
       .where(sql`${questions.id} IN (${sql.join(failedQuestionIds, sql`, `)})`) : [];
 
     const failedQuestionsMap = new Map(failedQuestionTexts.map(q => [q.questionId, q.questionText || '']));
@@ -294,18 +302,20 @@ export class UsageMetricsAggregator {
     // Top passed questions
     const topPassedQuestionsResult = await db
       .select({
-        questionId: userAnswers.questionId,
+        questionId: questions.id,
         attempts: sql<number>`COUNT(*)`,
         successRate: sql<number>`AVG(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`
       })
       .from(userAnswers)
+      .innerJoin(questionVersions, eq(userAnswers.questionVersionId, questionVersions.id))
+      .innerJoin(questions, eq(questionVersions.questionId, questions.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
           lte(userAnswers.answeredAt, this.dateRange.endDate)
         )
       )
-      .groupBy(userAnswers.questionId)
+      .groupBy(questions.id)
       .having(sql`COUNT(*) >= 5`)
       .orderBy(desc(sql`AVG(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`))
       .limit(10);
@@ -318,7 +328,10 @@ export class UsageMetricsAggregator {
         questionText: questionVersions.questionText
       })
       .from(questions)
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.versionNumber, 1)
+      ))
       .where(sql`${questions.id} IN (${sql.join(passedQuestionIds, sql`, `)})`) : [];
 
     const passedQuestionsMap = new Map(passedQuestionTexts.map(q => [q.questionId, q.questionText || '']));
@@ -338,8 +351,8 @@ export class UsageMetricsAggregator {
         total: sql<number>`COUNT(*)`
       })
       .from(userAnswers)
-      .leftJoin(questions, eq(userAnswers.questionId, questions.id))
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questionVersions, eq(userAnswers.questionVersionId, questionVersions.id))
+      .leftJoin(questions, eq(questionVersions.questionId, questions.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
@@ -354,23 +367,8 @@ export class UsageMetricsAggregator {
       total: Number(r.total)
     }));
 
-    // Average time by question type
-    const averageTimeByTypeResult = await db
-      .select({
-        type: questionVersions.questionType,
-        averageTime: sql<number>`AVG(${userAnswers.timeSpent})`
-      })
-      .from(userAnswers)
-      .leftJoin(questions, eq(userAnswers.questionId, questions.id))
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
-      .where(
-        and(
-          gte(userAnswers.answeredAt, this.dateRange.startDate),
-          lte(userAnswers.answeredAt, this.dateRange.endDate),
-          sql`${userAnswers.timeSpent} IS NOT NULL`
-        )
-      )
-      .groupBy(questionVersions.questionType);
+    // Average time by question type - timeSpent column doesn't exist, so we'll return empty array
+    const averageTimeByTypeResult: any[] = [];
 
     const averageTimeByType = averageTimeByTypeResult.map(r => ({
       type: r.type || 'Unknown',
@@ -418,7 +416,7 @@ export class UsageMetricsAggregator {
     // Average messages per conversation
     const conversationMessagesResult = await db
       .select({
-        conversationId: chatbotLogs.conversationId,
+        conversationId: chatbotLogs.userId,
         messageCount: sql<number>`COUNT(*)`
       })
       .from(chatbotLogs)
@@ -428,7 +426,7 @@ export class UsageMetricsAggregator {
           lte(chatbotLogs.createdAt, this.dateRange.endDate)
         )
       )
-      .groupBy(chatbotLogs.conversationId);
+      .groupBy(chatbotLogs.userId);
 
     const totalConversations = conversationMessagesResult.length;
     const totalConversationMessages = conversationMessagesResult.reduce((sum, c) => sum + Number(c.messageCount), 0);
@@ -458,18 +456,18 @@ export class UsageMetricsAggregator {
     // Top discussed questions
     const topDiscussedQuestionsResult = await db
       .select({
-        questionId: chatbotLogs.questionId,
+        questionId: chatbotFeedback.questionId,
         count: sql<number>`COUNT(*)`
       })
-      .from(chatbotLogs)
+      .from(chatbotFeedback)
       .where(
         and(
-          gte(chatbotLogs.createdAt, this.dateRange.startDate),
-          lte(chatbotLogs.createdAt, this.dateRange.endDate),
-          sql`${chatbotLogs.questionId} IS NOT NULL`
+          gte(chatbotFeedback.createdAt, this.dateRange.startDate),
+          lte(chatbotFeedback.createdAt, this.dateRange.endDate),
+          sql`${chatbotFeedback.questionId} IS NOT NULL`
         )
       )
-      .groupBy(chatbotLogs.questionId)
+      .groupBy(chatbotFeedback.questionId)
       .orderBy(desc(sql`COUNT(*)`))
       .limit(10);
 
@@ -481,7 +479,10 @@ export class UsageMetricsAggregator {
         questionText: questionVersions.questionText
       })
       .from(questions)
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.versionNumber, 1)
+      ))
       .where(sql`${questions.id} IN (${sql.join(discussedQuestionIds, sql`, `)})`) : [];
 
     const discussedQuestionsMap = new Map(discussedQuestionTexts.map(q => [q.questionId, q.questionText || '']));
@@ -518,7 +519,7 @@ export class UsageMetricsAggregator {
     // Positive vs negative ratio
     const sentimentRatioResult = await db
       .select({
-        isPositive: chatbotFeedback.isPositive,
+        feedbackType: chatbotFeedback.feedbackType,
         count: sql<number>`COUNT(*)`
       })
       .from(chatbotFeedback)
@@ -528,10 +529,10 @@ export class UsageMetricsAggregator {
           lte(chatbotFeedback.createdAt, this.dateRange.endDate)
         )
       )
-      .groupBy(chatbotFeedback.isPositive);
+      .groupBy(chatbotFeedback.feedbackType);
 
-    const positiveCount = sentimentRatioResult.find(r => r.isPositive)?.count || 0;
-    const negativeCount = sentimentRatioResult.find(r => !r.isPositive)?.count || 0;
+    const positiveCount = sentimentRatioResult.find(r => r.feedbackType === 'positive')?.count || 0;
+    const negativeCount = sentimentRatioResult.find(r => r.feedbackType === 'negative')?.count || 0;
 
     const positiveRatio = totalFeedback > 0 ? (Number(positiveCount) / totalFeedback) * 100 : 0;
     const negativeRatio = totalFeedback > 0 ? (Number(negativeCount) / totalFeedback) * 100 : 0;
@@ -540,20 +541,22 @@ export class UsageMetricsAggregator {
     const feedbackByTypeResult = await db
       .select({
         type: questionVersions.questionType,
-        isPositive: chatbotFeedback.isPositive,
+        feedbackType: chatbotFeedback.feedbackType,
         count: sql<number>`COUNT(*)`
       })
       .from(chatbotFeedback)
-      .leftJoin(chatbotLogs, eq(chatbotFeedback.chatbotLogId, chatbotLogs.id))
-      .leftJoin(questions, eq(chatbotLogs.questionId, questions.id))
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questions, eq(chatbotFeedback.questionId, questions.id))
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.versionNumber, 1)
+      ))
       .where(
         and(
           gte(chatbotFeedback.createdAt, this.dateRange.startDate),
           lte(chatbotFeedback.createdAt, this.dateRange.endDate)
         )
       )
-      .groupBy(questionVersions.questionType, chatbotFeedback.isPositive);
+      .groupBy(questionVersions.questionType, chatbotFeedback.feedbackType);
 
     const feedbackByTypeMap = new Map<string, { positive: number; negative: number }>();
     feedbackByTypeResult.forEach(r => {
@@ -562,9 +565,9 @@ export class UsageMetricsAggregator {
         feedbackByTypeMap.set(type, { positive: 0, negative: 0 });
       }
       const entry = feedbackByTypeMap.get(type)!;
-      if (r.isPositive) {
+      if (r.feedbackType === 'positive') {
         entry.positive = Number(r.count);
-      } else {
+      } else if (r.feedbackType === 'negative') {
         entry.negative = Number(r.count);
       }
     });
@@ -578,7 +581,7 @@ export class UsageMetricsAggregator {
     // Top issues from negative feedback
     const topIssuesResult = await db
       .select({
-        feedbackText: chatbotFeedback.feedbackText,
+        feedbackText: chatbotFeedback.feedbackMessage,
         count: sql<number>`COUNT(*)`
       })
       .from(chatbotFeedback)
@@ -586,11 +589,11 @@ export class UsageMetricsAggregator {
         and(
           gte(chatbotFeedback.createdAt, this.dateRange.startDate),
           lte(chatbotFeedback.createdAt, this.dateRange.endDate),
-          eq(chatbotFeedback.isPositive, false),
-          sql`${chatbotFeedback.feedbackText} IS NOT NULL`
+          eq(chatbotFeedback.feedbackType, 'negative'),
+          sql`${chatbotFeedback.feedbackMessage} IS NOT NULL`
         )
       )
-      .groupBy(chatbotFeedback.feedbackText)
+      .groupBy(chatbotFeedback.feedbackMessage)
       .orderBy(desc(sql`COUNT(*)`))
       .limit(10);
 
@@ -658,18 +661,21 @@ export class UsageMetricsAggregator {
     // Retry patterns
     const retryPatternsResult = await db
       .select({
-        questionId: userAnswers.questionId,
-        userId: userAnswers.userId,
+        questionId: questions.id,
+        userId: userTestRuns.userId,
         attempts: sql<number>`COUNT(*)`
       })
       .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+      .innerJoin(questionVersions, eq(userAnswers.questionVersionId, questionVersions.id))
+      .innerJoin(questions, eq(questionVersions.questionId, questions.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
           lte(userAnswers.answeredAt, this.dateRange.endDate)
         )
       )
-      .groupBy(userAnswers.questionId, userAnswers.userId)
+      .groupBy(questions.id, userTestRuns.userId)
       .having(sql`COUNT(*) > 1`);
 
     const retryAggregation = new Map<number, { totalRetries: number; userCount: number }>();
@@ -687,7 +693,10 @@ export class UsageMetricsAggregator {
         questionText: questionVersions.questionText
       })
       .from(questions)
-      .leftJoin(questionVersions, eq(questions.currentVersionId, questionVersions.id))
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.versionNumber, 1)
+      ))
       .where(sql`${questions.id} IN (${sql.join(retryQuestionIds, sql`, `)})`) : [];
 
     const retryQuestionsMap = new Map(retryQuestionTexts.map(q => [q.questionId, q.questionText || '']));
@@ -711,7 +720,8 @@ export class UsageMetricsAggregator {
       .from(courses)
       .leftJoin(questionSets, eq(courses.id, questionSets.courseId))
       .leftJoin(questions, eq(questionSets.id, questions.questionSetId))
-      .leftJoin(userAnswers, eq(questions.id, userAnswers.questionId))
+      .leftJoin(questionVersions, eq(questions.id, questionVersions.questionId))
+      .leftJoin(userAnswers, eq(questionVersions.id, userAnswers.questionVersionId))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
@@ -726,25 +736,8 @@ export class UsageMetricsAggregator {
       averageScore: Number(r.averageScore) * 100
     }));
 
-    // Time spent per course
-    const timeSpentPerCourseResult = await db
-      .select({
-        courseId: courses.id,
-        courseName: courses.courseTitle,
-        totalTime: sql<number>`SUM(${userAnswers.timeSpent})`
-      })
-      .from(courses)
-      .leftJoin(questionSets, eq(courses.id, questionSets.courseId))
-      .leftJoin(questions, eq(questionSets.id, questions.questionSetId))
-      .leftJoin(userAnswers, eq(questions.id, userAnswers.questionId))
-      .where(
-        and(
-          gte(userAnswers.answeredAt, this.dateRange.startDate),
-          lte(userAnswers.answeredAt, this.dateRange.endDate),
-          sql`${userAnswers.timeSpent} IS NOT NULL`
-        )
-      )
-      .groupBy(courses.id, courses.courseTitle);
+    // Time spent per course - timeSpent column doesn't exist, return empty array
+    const timeSpentPerCourseResult: any[] = [];
 
     const timeSpentPerCourse = timeSpentPerCourseResult.map(r => ({
       courseId: r.courseId,

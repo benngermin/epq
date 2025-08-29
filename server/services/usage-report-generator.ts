@@ -63,7 +63,8 @@ class ReportCache {
 
   private cleanup(): void {
     const now = Date.now();
-    for (const [key, value] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries());
+    for (const [key, value] of entries) {
       const age = now - value.generatedAt.getTime();
       if (age > this.TTL_MS) {
         this.cache.delete(key);
