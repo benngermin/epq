@@ -1,5 +1,6 @@
 import * as puppeteer from 'puppeteer';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import { execSync } from 'child_process';
 import {
   UserEngagementMetrics,
   QuestionPerformanceMetrics,
@@ -21,6 +22,22 @@ export class PDFReportBuilder {
     });
   }
 
+  private findChromiumExecutable(): string | undefined {
+    try {
+      // Try to find chromium in the system
+      const chromiumPath = execSync('which chromium 2>/dev/null || which chromium-browser 2>/dev/null', { encoding: 'utf-8' }).trim();
+      if (chromiumPath) {
+        console.log('Found Chromium at:', chromiumPath);
+        return chromiumPath;
+      }
+    } catch (error) {
+      console.log('Could not find Chromium using which command');
+    }
+    
+    // Return undefined to let Puppeteer use its default
+    return undefined;
+  }
+
   async generatePDFReport(
     userEngagement: UserEngagementMetrics,
     questionPerformance: QuestionPerformanceMetrics,
@@ -29,9 +46,21 @@ export class PDFReportBuilder {
     learningProgress: LearningProgressMetrics,
     dateRange: { startDate: Date; endDate: Date }
   ): Promise<Buffer> {
+    const executablePath = this.findChromiumExecutable();
+    
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      ...(executablePath && { executablePath }),
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
     });
 
     try {
