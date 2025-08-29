@@ -26,10 +26,29 @@ export function DragDropZones({
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
     if (typeof value === 'string' && value) {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        // Ensure all values are arrays
+        const sanitized: Record<number, string[]> = {};
+        for (const key in parsed) {
+          const zoneId = parseInt(key);
+          if (!isNaN(zoneId)) {
+            sanitized[zoneId] = Array.isArray(parsed[key]) ? parsed[key] : [];
+          }
+        }
+        return sanitized;
       } catch {
         return {};
       }
+    } else if (typeof value === 'object' && value) {
+      // If value is already an object, ensure all values are arrays
+      const sanitized: Record<number, string[]> = {};
+      for (const key in value) {
+        const zoneId = parseInt(key);
+        if (!isNaN(zoneId)) {
+          sanitized[zoneId] = Array.isArray(value[key]) ? value[key] : [];
+        }
+      }
+      return sanitized;
     }
     return {};
   });
@@ -40,8 +59,16 @@ export function DragDropZones({
   });
 
   useEffect(() => {
-    onChange(JSON.stringify(zoneContents));
-  }, [zoneContents]);
+    // Ensure all zone contents are arrays before stringifying
+    const sanitizedContents: Record<number, string[]> = {};
+    for (const key in zoneContents) {
+      const zoneId = parseInt(key);
+      if (!isNaN(zoneId) && Array.isArray(zoneContents[zoneId])) {
+        sanitizedContents[zoneId] = zoneContents[zoneId];
+      }
+    }
+    onChange(JSON.stringify(sanitizedContents));
+  }, [zoneContents, onChange]);
 
   const handleDragStart = (item: string) => {
     if (!disabled) {
@@ -145,7 +172,7 @@ export function DragDropZones({
           >
             <h4 className="font-medium mb-2">{zone.zone_label}</h4>
             <div className="flex flex-wrap gap-2 min-h-[80px] bg-muted/50 rounded p-2">
-              {(zoneContents[zone.zone_id] || []).map((item) => (
+              {Array.isArray(zoneContents[zone.zone_id]) ? zoneContents[zone.zone_id].map((item) => (
                 <div
                   key={item}
                   draggable={!disabled}
@@ -158,7 +185,7 @@ export function DragDropZones({
                 >
                   {item}
                 </div>
-              ))}
+              )) : []}
             </div>
           </Card>
         ))}
@@ -168,11 +195,14 @@ export function DragDropZones({
       {disabled && correctAnswer && (
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm font-medium">Correct arrangement:</p>
-          {Object.entries(correctAnswer).map(([zone, items]) => (
-            <p key={zone} className="text-sm text-muted-foreground mt-1">
-              {zone}: {(items as string[]).join(", ")}
-            </p>
-          ))}
+          {Object.entries(correctAnswer).map(([zone, items]) => {
+            const itemsArray = Array.isArray(items) ? items : [];
+            return (
+              <p key={zone} className="text-sm text-muted-foreground mt-1">
+                {zone}: {itemsArray.join(", ")}
+              </p>
+            );
+          })}
         </div>
       )}
     </div>
