@@ -3153,7 +3153,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         let skippedCount = 0;
         const errors: string[] = [];
         
-        // Check for duplicate LOIDs in the incoming data
+        // Check for duplicate LOIDs in the incoming data (just for information)
         const loidCounts = new Map<string, number>();
         parsedQuestions.forEach(q => {
           const loid = q.loid || "unknown";
@@ -3165,28 +3165,21 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .map(([loid, count]) => `${loid} (${count} occurrences)`);
         
         if (duplicateLoids.length > 0) {
-          console.log(`  ⚠️ Warning: Found duplicate LOIDs in incoming data: ${duplicateLoids.join(', ')}`);
+          console.log(`  Note: Found LOIDs appearing multiple times (this is OK): ${duplicateLoids.join(', ')}`);
         }
-        
-        // Track which LOIDs we've already processed in this batch
-        const processedLoids = new Set<string>();
         
         // Process each parsed question
         for (let i = 0; i < parsedQuestions.length; i++) {
           const parsedQuestion = parsedQuestions[i];
-          let loid = parsedQuestion.loid || `unknown_${i}`;  // Make unique if no LOID
+          const loid = parsedQuestion.loid || `unknown_${i}`;  // Make unique if no LOID
           const questionNumber = parsedQuestion.question_number || (i + 1);
           
-          // Handle duplicate LOIDs within the same batch
-          if (processedLoids.has(loid)) {
-            console.log(`  Q${questionNumber} (LOID: ${loid}): Skipping duplicate LOID in same batch`);
-            skippedCount++;
-            continue;
-          }
-          processedLoids.add(loid);
-          
           try {
-            const existingQuestion = existingQuestionsMap.get(loid);
+            // Check if this exact question already exists (matching by LOID and question number)
+            // This allows multiple questions with the same LOID but different question numbers
+            const existingQuestion = existingQuestions.find(
+              q => q.loid === loid && q.originalQuestionNumber === questionNumber
+            );
           
             if (existingQuestion) {
               // Update existing question's version
