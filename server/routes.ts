@@ -2766,13 +2766,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const currentQuestions = await storage.getQuestionsByQuestionSet(questionSetId);
       
       // Create simplified comparison data
-      const currentQuestionsSummary = currentQuestions.map((q: any) => ({
-        id: q.id,
-        questionNumber: q.originalQuestionNumber,
-        loid: q.loid,
-        versionCount: 1, // Simplified for display
-        preview: `Question ${q.originalQuestionNumber}` // Simplified preview
-      }));
+      const currentQuestionsSummary = currentQuestions
+        .map((q: any) => ({
+          id: q.id,
+          questionNumber: q.originalQuestionNumber,
+          loid: q.loid,
+          versionCount: 1, // Simplified for display
+          preview: `Question ${q.originalQuestionNumber}` // Simplified preview
+        }))
+        .sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0));
       
       const newQuestionsSummary = newQuestions.map((q, index) => ({
         questionNumber: q.question_number || (index + 1),
