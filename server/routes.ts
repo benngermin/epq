@@ -3134,7 +3134,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         await storage.updateQuestionSetCount(questionSetId);
       } else if (parsedQuestions.length > 0 && hasUserAnswers) {
         // Handle the case where there are existing user answers
-        console.log(`📥 Updating ${parsedQuestions.length} questions from Bubble while preserving user data...`);
+        console.log(`📥 Overriding ${parsedQuestions.length} questions from Bubble (replacing existing questions)...`);
         
         // Get existing questions for this question set
         const existingQuestions = await db.select()
@@ -3143,30 +3143,55 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         console.log(`  Found ${existingQuestions.length} existing questions in database`);
         
-        // Create a map of existing questions by LOID
-        const existingQuestionsMap = new Map(
-          existingQuestions.map(q => [q.loid, q])
-        );
+        // Build a set of unique identifiers for incoming questions (LOID + question number)
+        const incomingQuestionIds = new Set<string>();
+        parsedQuestions.forEach(q => {
+          const loid = q.loid || `unknown_${parsedQuestions.indexOf(q)}`;
+          const questionNumber = q.question_number || (parsedQuestions.indexOf(q) + 1);
+          incomingQuestionIds.add(`${loid}_${questionNumber}`);
+        });
+        
+        // Find questions to delete (those not in the new import)
+        const questionsToDelete: number[] = [];
+        for (const existingQuestion of existingQuestions) {
+          const existingId = `${existingQuestion.loid}_${existingQuestion.originalQuestionNumber}`;
+          if (!incomingQuestionIds.has(existingId)) {
+            questionsToDelete.push(existingQuestion.id);
+          }
+        }
+        
+        // Delete old questions that are not in the new import
+        if (questionsToDelete.length > 0) {
+          console.log(`  Deleting ${questionsToDelete.length} questions that are not in the new import...`);
+          
+          // First delete user answers associated with these questions through question versions
+          const versionIds = await db.select({ id: questionVersions.id })
+            .from(questionVersions)
+            .where(inArray(questionVersions.questionId, questionsToDelete));
+          
+          if (versionIds.length > 0) {
+            await db.delete(userAnswers)
+              .where(inArray(userAnswers.questionVersionId, versionIds.map(v => v.id)));
+          }
+          
+          // Delete question versions
+          await db.delete(questionVersions)
+            .where(inArray(questionVersions.questionId, questionsToDelete));
+          
+          // Delete the questions themselves
+          await db.delete(questions)
+            .where(inArray(questions.id, questionsToDelete));
+        }
+        
+        // Re-fetch existing questions after deletion
+        const remainingQuestions = await db.select()
+          .from(questions)
+          .where(eq(questions.questionSetId, questionSetId));
         
         let updatedCount = 0;
         let newCount = 0;
         let skippedCount = 0;
         const errors: string[] = [];
-        
-        // Check for duplicate LOIDs in the incoming data (just for information)
-        const loidCounts = new Map<string, number>();
-        parsedQuestions.forEach(q => {
-          const loid = q.loid || "unknown";
-          loidCounts.set(loid, (loidCounts.get(loid) || 0) + 1);
-        });
-        
-        const duplicateLoids = Array.from(loidCounts.entries())
-          .filter(([_, count]) => count > 1)
-          .map(([loid, count]) => `${loid} (${count} occurrences)`);
-        
-        if (duplicateLoids.length > 0) {
-          console.log(`  Note: Found LOIDs appearing multiple times (this is OK): ${duplicateLoids.join(', ')}`);
-        }
         
         // Process each parsed question
         for (let i = 0; i < parsedQuestions.length; i++) {
@@ -3176,8 +3201,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           
           try {
             // Check if this exact question already exists (matching by LOID and question number)
-            // This allows multiple questions with the same LOID but different question numbers
-            const existingQuestion = existingQuestions.find(
+            const existingQuestion = remainingQuestions.find(
               q => q.loid === loid && q.originalQuestionNumber === questionNumber
             );
           
@@ -3284,7 +3308,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           }
         }
         
-        console.log(`  Summary: Updated ${updatedCount}, Added ${newCount}, Skipped ${skippedCount}`);
+        console.log(`  Summary: Deleted ${questionsToDelete.length}, Updated ${updatedCount}, Added ${newCount}, Skipped ${skippedCount}`);
         if (errors.length > 0) {
           console.log(`  Errors encountered:`);
           errors.forEach(err => console.log(`    - ${err}`));
