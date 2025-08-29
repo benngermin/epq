@@ -763,8 +763,9 @@ export class UsageMetricsAggregator {
 
   async getPreviewCounts(): Promise<{ userCount: number; questionCount: number }> {
     const userCountResult = await db
-      .select({ count: sql<number>`COUNT(DISTINCT ${userAnswers.userId})` })
+      .select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})` })
       .from(userAnswers)
+      .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
       .where(
         and(
           gte(userAnswers.answeredAt, this.dateRange.startDate),
