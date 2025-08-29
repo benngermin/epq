@@ -2415,7 +2415,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.setHeader('Content-Length', reportBuffer.length.toString());
       
-      res.send(reportBuffer);
+      // Send as binary data, not JSON
+      res.end(reportBuffer);
     } catch (error: any) {
       console.error("Error generating report:", error);
       
