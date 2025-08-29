@@ -1,0 +1,208 @@
+Usage Report Generation Feature - Admin Panel
+
+  Feature Overview
+
+  Add a usage report generation feature to the admin panel's Logs tab that creates downloadable reports focused on user behavior and learning patterns. Available in PDF (presentation-ready with charts) or
+  CSV (raw data export) format.
+
+  Core Requirements
+
+  1. UI Components (Admin Panel - Logs Tab)
+
+  Add a "Generate Usage Report" card with:
+  - Date range picker (start and end date inputs)
+  - Format selector: PDF or CSV radio buttons
+  - Generate Report button with loading state
+  - Preview text showing selected date range and estimated data volume
+
+  2. API Endpoints
+
+  POST /api/admin/reports/generate
+  - Accepts: startDate, endDate, format
+  - Returns: File download (PDF or ZIP containing CSVs)
+  - Validates: Date range (max 1 year), admin authentication
+  - Rate limiting: 1 request per minute
+
+  GET /api/admin/reports/preview
+  - Returns quick count of users and questions for the selected period
+
+  3. Report Metrics to Include
+
+  User Engagement Metrics
+
+  - Total active users (unique users who answered at least 1 question)
+  - Daily/weekly active users (trend over time)
+  - Average questions per user
+  - User distribution (power users vs casual users)
+  - Session frequency (how often users return)
+  - Average session duration
+
+  Question Performance Metrics
+
+  - Total questions answered
+  - Question sets started vs completed (completion rate)
+  - Questions per session average
+  - Top 10 most failed questions (with failure rate)
+  - Top 10 most passed questions (with success rate)
+  - Question difficulty distribution
+  - Average time per question type
+  - Accuracy by question type (multiple choice, true/false, fill-in-blank, etc.)
+
+  AI Assistant Usage
+
+  - Total messages sent to assistant
+  - Unique users using assistant
+  - Follow-up messages per conversation (engagement depth)
+  - Average conversation length
+  - Peak usage hours
+  - Most discussed topics/questions
+
+  User Feedback Analytics
+
+  - Total feedback submissions
+  - Positive vs negative ratio
+  - Feedback by question type
+  - Most helpful AI responses (based on positive feedback)
+  - Common complaints/issues (from negative feedback)
+
+  Learning Progress Metrics
+
+  - Course completion rates
+  - Average score progression over time
+  - Retry patterns (questions attempted multiple times)
+  - Performance by course/topic
+  - Time spent per course
+
+  4. Report Format Specifications
+
+  PDF Format (Presentation-Ready)
+
+  Page 1: Executive Dashboard
+  - Period overview with date range
+  - Key metrics cards (active users, questions answered, completion rate, AI usage)
+  - User activity trend chart (line graph)
+
+  Page 2: User Engagement Analysis
+  - Daily active users chart
+  - Questions per user distribution (histogram)
+  - Session frequency heat map
+  - Power users table (top 10 most active)
+
+  Page 3: Question Performance
+  - Success rate by question type (bar chart)
+  - Top failed questions table with details
+  - Top passed questions table
+  - Time spent per question type (box plot or bar chart)
+
+  Page 4: AI Assistant Analytics
+  - Usage over time (area chart)
+  - Conversation depth distribution (pie chart)
+  - Peak usage hours (heat map)
+  - Engagement metrics summary
+
+  Page 5: Feedback & Insights
+  - Feedback sentiment donut chart
+  - Feedback trends over time
+  - Key insights and recommendations
+
+  CSV Format (Data Export)
+
+  ZIP file containing:
+  - user_activity.csv: Daily metrics per user
+  - question_performance.csv: Question-level success/failure data
+  - ai_assistant_usage.csv: Conversation logs with metrics
+  - feedback_summary.csv: All feedback with sentiment
+  - session_details.csv: Individual session data
+
+  5. Required Libraries
+
+  Backend:
+  - puppeteer - PDF generation
+  - chart.js + chartjs-node-canvas - Server-side charts
+  - csv-writer - CSV generation
+  - archiver - ZIP creation
+
+  Frontend:
+  - Existing UI components from shadcn/ui
+  - Date validation utilities
+
+  6. Database Queries to Implement
+
+  Pull data from:
+  - user_test_runs - Session data
+  - user_answers - Question performance
+  - chatbot_logs - AI assistant usage
+  - chatbot_feedback - User feedback
+  - questions + question_versions - Question details
+  - daily_activity_summary - Pre-aggregated metrics where available
+
+  Key aggregations needed:
+  -- Example: Most failed questions
+  SELECT question_id, COUNT(*) as attempts,
+         AVG(CASE WHEN is_correct THEN 0 ELSE 1 END) as failure_rate
+  FROM user_answers
+  GROUP BY question_id
+  ORDER BY failure_rate DESC
+  LIMIT 10
+
+  7. Chart Specifications
+
+  Essential Charts for PDF:
+  1. User Activity Trend - Line graph showing daily active users
+  2. Question Success Rates - Horizontal bar chart by question type
+  3. AI Usage Pattern - Area chart showing messages over time
+  4. Feedback Sentiment - Donut chart (positive/negative/neutral)
+  5. Session Distribution - Histogram of questions per session
+  6. Completion Funnel - Funnel chart (started → in progress → completed)
+
+  Use consistent color scheme:
+  - Primary: #667eea (purple)
+  - Success: #48bb78 (green)
+  - Warning: #ed8936 (orange)
+  - Error: #f56565 (red)
+
+  8. Performance Optimizations
+
+  - Use database indexes on created_at, answered_at columns
+  - Aggregate data in parallel using Promise.all()
+  - Cache generated reports for 5 minutes
+  - Stream large CSV files
+  - Show progress indicator for long-running reports
+
+  9. User Experience Details
+
+  - Default date range: Last 30 days
+  - Show data preview before generation
+  - Clear loading states with estimated time
+  - Auto-download when complete
+  - Success/error toast notifications
+
+  10. File Structure
+
+  New files:
+  - /server/services/usage-report-generator.ts - Main orchestration
+  - /server/services/usage-metrics-aggregator.ts - Data queries
+  - /server/services/pdf-report-builder.ts - PDF generation
+  - /server/services/csv-report-builder.ts - CSV generation
+
+  Modify:
+  - /server/routes.ts - Add report endpoints
+  - /client/src/pages/admin-panel.tsx - Add report UI to Logs tab
+
+  Key Implementation Notes
+
+  1. Focus on actionable insights: Every metric should answer "how are users learning?"
+  2. Visual hierarchy: Most important metrics first, details later
+  3. Comparative analysis: Include period-over-period changes where relevant
+  4. Question details: Include question text for top failed/passed questions
+  5. User privacy: Aggregate data, don't expose individual user details
+  6. Time zones: Use consistent timezone (EST) for all timestamps
+
+  Success Criteria
+
+  - Report clearly shows user engagement patterns
+  - Failed questions are easily identifiable for improvement
+  - AI assistant value is quantifiable
+  - PDF is board-meeting ready without editing
+  - CSV data enables further analysis in Excel
+  - Generation completes within 30 seconds for 1 month of data
