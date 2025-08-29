@@ -1,0 +1,94 @@
+{
+  "course_number": "Course Number Here",
+  "bubble_course_unique_id": "unique_id_here",
+  "bubble_question_set_unique_id": "question_set_unique_id_here",
+  "question_set_number": 1,
+  "questions": [
+    {
+      "question_number": 1,
+      "loid": "00000",
+      "question_type": "multiple_choice",
+      "question_text": "Question text here",
+      "answer_choices": [
+        "A. Choice 1",
+        "B. Choice 2", 
+        "C. Choice 3",
+        "D. Choice 4"
+      ],
+      "correct_answer": "A"
+    },
+    {
+      "question_number": 2,
+      "loid": "00001",
+      "question_type": "numerical_entry",
+      "question_text": "Numerical question here",
+      "answer_choices": [],
+      "correct_answer": "100",
+      "acceptable_answers": ["100", "100.0", "100.00"]
+    },
+    {
+      "question_number": 3,
+      "loid": "00002",
+      "question_type": "select_from_list",
+      "question_text": "Question with _____ blank here",
+      "blanks": [
+        {
+          "blank_id": 1,
+          "answer_choices": ["choice 1", "choice 2", "choice 3", "choice 4"],
+          "correct_answer": "choice 1"
+        }
+      ]
+    },
+    {
+      "question_number": 4,
+      "loid": "00003",
+      "question_type": "drag_and_drop",
+      "question_text": "Drag and drop question here",
+      "answer_choices": ["Item 1", "Item 2", "Item 3", "Item 4"],
+      "drop_zones": [
+        {
+          "zone_id": 1,
+          "zone_label": "Zone 1 Label"
+        },
+        {
+          "zone_id": 2,
+          "zone_label": "Zone 2 Label"
+        }
+      ],
+      "correct_answer": {
+        "zone_1": ["Item 1", "Item 2"],
+        "zone_2": ["Item 3", "Item 4"]
+      }
+    },
+    {
+      "question_number": 5,
+      "loid": "00004",
+      "question_type": "either_or",
+      "question_text": "Either/or question here",
+      "answer_choices": [
+        "A) Option A",
+        "B) Option B"
+      ],
+      "correct_answer": "A) Option A"
+    },
+    {
+      "question_number": 6,
+      "loid": "00005",
+      "question_type": "multiple_response",
+      "question_text": "Multiple response question. Select all that apply:",
+      "answer_choices": ["Choice 1", "Choice 2", "Choice 3", "Choice 4", "Choice 5"],
+      "correct_answer": ["Choice 1", "Choice 2", "Choice 3"],
+      "allow_multiple": true
+    },
+    {
+      "question_number": 7,
+      "loid": "00006",
+      "question_type": "short_answer",
+      "question_text": "Fill-in-the-blank: A _____ is something and a _____ is something else.",
+      "answer_choices": [],
+      "correct_answer": "answer 1, answer 2",
+      "acceptable_answers": ["answer 1, answer 2", "alternate answer"],
+      "case_sensitive": false
+    }
+  ]
+}
