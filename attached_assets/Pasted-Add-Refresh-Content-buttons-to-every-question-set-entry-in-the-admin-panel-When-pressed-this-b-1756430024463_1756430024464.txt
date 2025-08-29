@@ -1,0 +1,98 @@
+Add 'Refresh Content' buttons to every question set entry in the admin panel. When pressed,
+  this button will update that question set's questions with the latest data from Bubble.io.
+
+  Technical Implementation Requirements:
+
+  1. Frontend Changes (Admin Panel)
+
+  - Add a "Refresh Content" button to each question set row in the admin panel
+  - When clicked, the button should:
+    a. Make a GET API call to /api/admin/question-sets/{questionSetId}/refresh
+    b. Show a loading state during the API call
+    c. Display a confirmation dialog with side-by-side comparison showing:
+        - Left side: Current questions in the database (question text, type, versions)
+      - Right side: New questions from Bubble (what will replace/be added)
+      - Summary: Count of questions to be added/updated/removed
+    d. Allow user to review changes and click "Confirm Refresh" or "Cancel"
+    e. On confirmation, proceed with the refresh operation
+    f. Show success/error toast notifications
+
+  2. Backend API Endpoint
+
+  Create a new endpoint: GET /api/admin/question-sets/:questionSetId/refresh
+
+  Implementation Details:
+  - Authentication: Use existing BUBBLE_API_KEY environment variable (already configured)
+  - Bubble API URL: Use existing pattern: https://ti-content-repository.bubbleapps.io/version-tes
+  t/api/1.1/obj/question_set/${questionSet.externalId}
+  - Authorization: Use existing header pattern: Authorization: Bearer ${bubbleApiKey}
+
+  Process Flow:
+  1. Fetch the question set from database using questionSetId
+  2. Make GET request to Bubble API using questionSet.externalId
+  3. Parse the returned JSON using existing questionImportSchema validation from shared/schema.ts
+  4. Compare current database questions with incoming Bubble questions
+  5. Return comparison data for frontend confirmation dialog
+  6. On confirmation, perform the refresh operation:
+    - Full Override: Remove all existing questions for this question set
+    - Import New: Add all questions from Bubble response
+    - Update Count: Update questionSets.questionCount field
+    - Atomic Operation: Use database transaction to ensure data consistency
+
+  3. Data Processing
+
+  - Validation: Use existing questionImportSchema from shared/schema.ts (lines 302-331)
+  - Database Relations: Follow existing pattern: question_sets → questions → question_versions
+  - Question Matching: Use loid and original_question_number fields for identification
+  - Override Behavior: Complete replacement of all questions in the question set (not additive)
+
+  4. Error Handling & User Experience
+
+  - Handle Bubble API authentication errors
+  - Handle network timeouts and connection issues
+  - Provide clear error messages for validation failures
+  - Show progress indicators during long operations
+  - Rate limiting: Apply existing generalRateLimiter middleware
+
+  5. Confirmation Dialog Specifications
+
+  Display Format:
+  ┌─────────────────────┬─────────────────────┐
+  │   Current Questions │   New Questions     │
+  ├─────────────────────┼─────────────────────┤
+  │ Q1: [question text] │ Q1: [question text] │
+  │ Type: multiple_choice│ Type: multiple_choice│
+  │ Versions: 2         │ Versions: 3         │
+  ├─────────────────────┼─────────────────────┤
+  │ Q2: [question text] │ Q2: [question text] │
+  │ [Will be removed]   │ [Updated content]   │
+  └─────────────────────┴─────────────────────┘
+
+  Summary:
+  - 15 questions will be updated
+  - 3 new questions will be added
+  - 2 questions will be removed
+  - Total after refresh: 18 questions
+
+  User Actions:
+  - "Confirm Refresh" button (destructive action - red styling)
+  - "Cancel" button
+  - "Review Changes" expandable section for detailed diff
+
+  6. Integration Points
+
+  - Existing API Pattern: Follow the pattern in server/routes.ts lines around the Bubble
+  integration
+  - Existing Components: Integrate with current admin panel question set management UI
+  - Existing Validation: Use the established questionImportSchema and error handling patterns
+  - Database Operations: Use existing db connection and Drizzle ORM patterns
+
+  Success Criteria:
+
+  1. Admin can click refresh button on any question set
+  2. System fetches latest data from Bubble using existing API integration
+  3. User sees clear before/after comparison of changes
+  4. User can confirm or cancel the refresh operation
+  5. On confirmation, questions are completely replaced with Bubble data
+  6. Question set count is updated accurately
+  7. Appropriate success/error feedback is provided
