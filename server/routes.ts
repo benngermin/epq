@@ -2378,10 +2378,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
       }
       
-      // Validate format
-      if (!['pdf', 'csv'].includes(format)) {
+      // Only CSV format is supported now
+      if (format !== 'csv') {
         return res.status(400).json({ 
-          message: "Format must be 'pdf' or 'csv'" 
+          message: "Only CSV format is supported" 
         });
       }
       
@@ -2398,17 +2398,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const { UsageReportGenerator } = await import('./services/usage-report-generator');
       const generator = new UsageReportGenerator();
       
-      // Generate the report
+      // Generate the CSV report
       const reportBuffer = await generator.generateReport({
         startDate: start,
         endDate: end,
-        format: format as 'pdf' | 'csv'
+        format: 'csv'
       });
       
       // Set appropriate headers for file download
       const timestamp = new Date().toISOString().split('T')[0];
-      const extension = format === 'pdf' ? 'pdf' : 'zip';
-      const mimeType = format === 'pdf' ? 'application/pdf' : 'application/zip';
+      const extension = 'zip';
+      const mimeType = 'application/zip';
       const filename = `usage-report-${timestamp}.${extension}`;
       
       res.setHeader('Content-Type', mimeType);

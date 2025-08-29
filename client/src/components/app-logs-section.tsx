@@ -70,7 +70,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FileDown } from "lucide-react";
@@ -192,7 +191,7 @@ export function AppLogsSection() {
     from: addDays(new Date(), -30),
     to: new Date(),
   });
-  const [reportFormat, setReportFormat] = useState<'pdf' | 'csv'>('pdf');
+  // CSV is the only report format now
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportPreview, setReportPreview] = useState<{userCount: number; questionCount: number} | null>(null);
   
@@ -474,7 +473,7 @@ export function AppLogsSection() {
         body: JSON.stringify({
           startDate: reportDateRange.from.toISOString(),
           endDate: reportDateRange.to.toISOString(),
-          format: reportFormat,
+          format: 'csv',
         }),
       });
       
@@ -486,7 +485,7 @@ export function AppLogsSection() {
       // Get the filename from the Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : `report.${reportFormat === 'pdf' ? 'pdf' : 'zip'}`;
+      const filename = filenameMatch ? filenameMatch[1] : 'report.zip';
       
       // Download the file
       const blob = await response.blob();
@@ -501,7 +500,7 @@ export function AppLogsSection() {
       
       toast({
         title: "Report generated successfully",
-        description: `Your ${reportFormat.toUpperCase()} report has been downloaded.`,
+        description: `Your CSV report has been downloaded.`,
       });
     } catch (error: any) {
       toast({
@@ -597,7 +596,7 @@ export function AppLogsSection() {
             Generate Usage Report
           </CardTitle>
           <CardDescription>
-            Create comprehensive reports on user behavior and learning patterns in PDF or CSV format
+            Create comprehensive reports on user behavior and learning patterns in CSV format
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -642,23 +641,12 @@ export function AppLogsSection() {
               </Popover>
             </div>
 
-            {/* Format Selector */}
+            {/* Report Format Info */}
             <div className="space-y-2">
               <Label>Report Format</Label>
-              <RadioGroup value={reportFormat} onValueChange={(value: 'pdf' | 'csv') => setReportFormat(value)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf" className="font-normal cursor-pointer">
-                    PDF (Presentation-ready with charts)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv" className="font-normal cursor-pointer">
-                    CSV (Raw data export)
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                Reports are generated as CSV files (ZIP archive) containing detailed usage data for analysis
+              </div>
             </div>
           </div>
 

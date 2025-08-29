@@ -1,8 +1,7 @@
 import { UsageMetricsAggregator, DateRange } from './usage-metrics-aggregator';
 import { CSVReportBuilder } from './csv-report-builder';
-import { PDFReportBuilder } from './pdf-report-builder';
 
-export type ReportFormat = 'pdf' | 'csv';
+export type ReportFormat = 'csv';
 
 export interface ReportGenerationOptions {
   startDate: Date;
@@ -111,29 +110,16 @@ export class UsageReportGenerator {
       metricsAggregator.getLearningProgressMetrics()
     ]);
     
-    let reportBuffer: Buffer;
-    
-    if (options.format === 'pdf') {
-      const pdfBuilder = new PDFReportBuilder();
-      reportBuffer = await pdfBuilder.generatePDFReport(
-        userEngagement,
-        questionPerformance,
-        aiAssistant,
-        feedback,
-        learningProgress,
-        dateRange
-      );
-    } else {
-      const csvBuilder = new CSVReportBuilder();
-      reportBuffer = await csvBuilder.generateCSVReport(
-        userEngagement,
-        questionPerformance,
-        aiAssistant,
-        feedback,
-        learningProgress,
-        dateRange
-      );
-    }
+    // Generate CSV report (only format now supported)
+    const csvBuilder = new CSVReportBuilder();
+    const reportBuffer = await csvBuilder.generateCSVReport(
+      userEngagement,
+      questionPerformance,
+      aiAssistant,
+      feedback,
+      learningProgress,
+      dateRange
+    );
     
     // Cache the report
     this.reportCache.set(options, reportBuffer);
