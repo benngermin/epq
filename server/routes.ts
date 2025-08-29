@@ -3141,26 +3141,64 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .from(questions)
           .where(eq(questions.questionSetId, questionSetId));
         
+        console.log(`  Found ${existingQuestions.length} existing questions in database`);
+        
         // Create a map of existing questions by LOID
         const existingQuestionsMap = new Map(
           existingQuestions.map(q => [q.loid, q])
         );
         
+        let updatedCount = 0;
+        let newCount = 0;
+        let skippedCount = 0;
+        const errors: string[] = [];
+        
+        // Check for duplicate LOIDs in the incoming data
+        const loidCounts = new Map<string, number>();
+        parsedQuestions.forEach(q => {
+          const loid = q.loid || "unknown";
+          loidCounts.set(loid, (loidCounts.get(loid) || 0) + 1);
+        });
+        
+        const duplicateLoids = Array.from(loidCounts.entries())
+          .filter(([_, count]) => count > 1)
+          .map(([loid, count]) => `${loid} (${count} occurrences)`);
+        
+        if (duplicateLoids.length > 0) {
+          console.log(`  ⚠️ Warning: Found duplicate LOIDs in incoming data: ${duplicateLoids.join(', ')}`);
+        }
+        
+        // Track which LOIDs we've already processed in this batch
+        const processedLoids = new Set<string>();
+        
         // Process each parsed question
-        for (const parsedQuestion of parsedQuestions) {
-          const loid = parsedQuestion.loid || "unknown";
-          const existingQuestion = existingQuestionsMap.get(loid);
+        for (let i = 0; i < parsedQuestions.length; i++) {
+          const parsedQuestion = parsedQuestions[i];
+          let loid = parsedQuestion.loid || `unknown_${i}`;  // Make unique if no LOID
+          const questionNumber = parsedQuestion.question_number || (i + 1);
           
-          if (existingQuestion) {
-            // Update existing question's version
-            const questionType = parsedQuestion.question_type || "multiple_choice";
-            
-            // Get the latest version number for this question
-            const latestVersion = await db.select({ maxVersion: sql<number>`MAX(version_number)` })
-              .from(questionVersions)
-              .where(eq(questionVersions.questionId, existingQuestion.id));
-            
-            const nextVersionNumber = (latestVersion[0]?.maxVersion || 0) + 1;
+          // Handle duplicate LOIDs within the same batch
+          if (processedLoids.has(loid)) {
+            console.log(`  Q${questionNumber} (LOID: ${loid}): Skipping duplicate LOID in same batch`);
+            skippedCount++;
+            continue;
+          }
+          processedLoids.add(loid);
+          
+          try {
+            const existingQuestion = existingQuestionsMap.get(loid);
+          
+            if (existingQuestion) {
+              // Update existing question's version
+              console.log(`  Q${questionNumber} (LOID: ${loid}): Updating existing question ID ${existingQuestion.id}`);
+              const questionType = parsedQuestion.question_type || "multiple_choice";
+              
+              // Get the latest version number for this question
+              const latestVersion = await db.select({ maxVersion: sql<number>`MAX(version_number)` })
+                .from(questionVersions)
+                .where(eq(questionVersions.questionId, existingQuestion.id));
+              
+              const nextVersionNumber = (latestVersion[0]?.maxVersion || 0) + 1;
             
             // Create a new version with the updated content
             const versionData: any = {
@@ -3196,53 +3234,67 @@ Remember, your goal is to support student comprehension through meaningful feedb
               versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
             }
             
-            // Insert the new version
-            await db.insert(questionVersions).values(versionData);
-          } else {
-            // This is a new question, add it
-            const [newQuestion] = await db.insert(questions).values({
-              questionSetId,
-              originalQuestionNumber: parsedQuestion.question_number || 0,
-              loid: loid,
-            }).returning();
-            
-            // Add its version
-            const questionType = parsedQuestion.question_type || "multiple_choice";
-            const versionData: any = {
-              questionId: newQuestion.id,
-              versionNumber: 1,
-              topicFocus: bubbleQuestionSet.title || "General",
-              questionText: parsedQuestion.question_text || "",
-              questionType: questionType,
-              answerChoices: parsedQuestion.answer_choices || [],
-              correctAnswer: parsedQuestion.correct_answer || "",
-              acceptableAnswers: parsedQuestion.acceptable_answers,
-              caseSensitive: parsedQuestion.case_sensitive || false,
-              allowMultiple: parsedQuestion.allow_multiple || false,
-              matchingPairs: parsedQuestion.matching_pairs || null,
-              correctOrder: parsedQuestion.correct_order || null,
-            };
-            
-            // Add question type specific fields
-            if (questionType === "select_from_list" && parsedQuestion.blanks) {
-              versionData.blanks = parsedQuestion.blanks;
-            }
-            
-            if (questionType === "drag_and_drop") {
-              if (parsedQuestion.drop_zones) {
-                versionData.dropZones = parsedQuestion.drop_zones;
+              // Insert the new version
+              await db.insert(questionVersions).values(versionData);
+              updatedCount++;
+            } else {
+              // This is a new question, add it
+              console.log(`  Q${questionNumber} (LOID: ${loid}): Adding new question`);
+              const [newQuestion] = await db.insert(questions).values({
+                questionSetId,
+                originalQuestionNumber: parsedQuestion.question_number || 0,
+                loid: loid,
+              }).returning();
+              
+              // Add its version
+              const questionType = parsedQuestion.question_type || "multiple_choice";
+              const versionData: any = {
+                questionId: newQuestion.id,
+                versionNumber: 1,
+                topicFocus: bubbleQuestionSet.title || "General",
+                questionText: parsedQuestion.question_text || "",
+                questionType: questionType,
+                answerChoices: parsedQuestion.answer_choices || [],
+                correctAnswer: parsedQuestion.correct_answer || "",
+                acceptableAnswers: parsedQuestion.acceptable_answers,
+                caseSensitive: parsedQuestion.case_sensitive || false,
+                allowMultiple: parsedQuestion.allow_multiple || false,
+                matchingPairs: parsedQuestion.matching_pairs || null,
+                correctOrder: parsedQuestion.correct_order || null,
+              };
+              
+              // Add question type specific fields
+              if (questionType === "select_from_list" && parsedQuestion.blanks) {
+                versionData.blanks = parsedQuestion.blanks;
               }
-              if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
+              
+              if (questionType === "drag_and_drop") {
+                if (parsedQuestion.drop_zones) {
+                  versionData.dropZones = parsedQuestion.drop_zones;
+                }
+                if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
+                  versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
+                }
+              }
+              
+              if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
                 versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
               }
+              
+              await db.insert(questionVersions).values(versionData);
+              newCount++;
             }
-            
-            if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
-              versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
-            }
-            
-            await db.insert(questionVersions).values(versionData);
+          } catch (error) {
+            console.error(`  ❌ Failed to process Q${questionNumber} (LOID: ${loid}):`, error);
+            errors.push(`Q${questionNumber} (LOID: ${loid}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+            skippedCount++;
           }
+        }
+        
+        console.log(`  Summary: Updated ${updatedCount}, Added ${newCount}, Skipped ${skippedCount}`);
+        if (errors.length > 0) {
+          console.log(`  Errors encountered:`);
+          errors.forEach(err => console.log(`    - ${err}`));
         }
         
         // Update question count
