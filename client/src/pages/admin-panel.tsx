@@ -1501,6 +1501,9 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
   const [importModalOpen, setImportModalOpen] = useState<number | null>(null);
   const [importJsonData, setImportJsonData] = useState("");
   const [updatingQuestionSet, setUpdatingQuestionSet] = useState<number | null>(null);
+  const [refreshModalOpen, setRefreshModalOpen] = useState<number | null>(null);
+  const [refreshComparisonData, setRefreshComparisonData] = useState<any>(null);
+  const [refreshingQuestionSet, setRefreshingQuestionSet] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -1582,6 +1585,59 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
     },
   });
 
+  const getRefreshComparisonMutation = useMutation({
+    mutationFn: async (questionSetId: number) => {
+      const res = await apiRequest("GET", `/api/admin/question-sets/${questionSetId}/refresh`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch refresh comparison data");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setRefreshComparisonData(data);
+      setRefreshModalOpen(data.questionSet.id);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to fetch refresh comparison",
+        description: error.message,
+        variant: "destructive",
+      });
+      setRefreshingQuestionSet(null);
+    },
+  });
+
+  const performRefreshMutation = useMutation({
+    mutationFn: async (questionSetId: number) => {
+      const res = await apiRequest("POST", `/api/admin/question-sets/${questionSetId}/update-from-bubble`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to refresh question set");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Question set refreshed successfully",
+        description: data.message 
+      });
+      setRefreshModalOpen(null);
+      setRefreshComparisonData(null);
+      setRefreshingQuestionSet(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/questions"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to refresh question set",
+        description: error.message,
+        variant: "destructive",
+      });
+      setRefreshingQuestionSet(null);
+    },
+  });
+
   const handleImport = (questionSetId: number) => {
     if (!importJsonData.trim()) {
       toast({
@@ -1651,6 +1707,20 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${updatingQuestionSet === questionSet.id ? 'animate-spin' : ''}`} />
                     {updatingQuestionSet === questionSet.id ? "Updating..." : "Update"}
+                  </Button>
+                )}
+                {questionSet.externalId && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setRefreshingQuestionSet(questionSet.id);
+                      getRefreshComparisonMutation.mutate(questionSet.id);
+                    }}
+                    disabled={refreshingQuestionSet === questionSet.id}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshingQuestionSet === questionSet.id ? 'animate-spin' : ''}`} />
+                    {refreshingQuestionSet === questionSet.id ? "Loading..." : "Refresh Content"}
                   </Button>
                 )}
                 <Button 
@@ -1766,6 +1836,149 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
               disabled={importQuestionsMutation.isPending}
             >
               {importQuestionsMutation.isPending ? "Importing..." : "Import Questions"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refresh Content Confirmation Dialog */}
+      <Dialog open={refreshModalOpen !== null} onOpenChange={(open) => !open && setRefreshModalOpen(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Refresh Content: {refreshComparisonData?.questionSet?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Review the changes that will be made to this question set. All current questions will be replaced with the latest data from Bubble.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {refreshComparisonData && (
+            <div className="space-y-6">
+              {/* Summary Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-medium text-blue-900 mb-2">Summary of Changes</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-blue-700">{refreshComparisonData.summary.currentCount}</div>
+                    <div className="text-blue-600">Current Questions</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-green-700">{refreshComparisonData.summary.newCount}</div>
+                    <div className="text-green-600">New Questions</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-amber-700">{refreshComparisonData.summary.willBeUpdated}</div>
+                    <div className="text-amber-600">Will Be Updated</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-red-700">{refreshComparisonData.summary.willBeRemoved}</div>
+                    <div className="text-red-600">Will Be Removed</div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-blue-900">{refreshComparisonData.summary.totalAfterRefresh}</div>
+                    <div className="text-blue-700">Total After Refresh</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Side-by-Side Comparison */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Current Questions */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-gray-900 border-b pb-2">
+                    Current Questions ({refreshComparisonData.currentQuestions.length})
+                  </h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {refreshComparisonData.currentQuestions.length > 0 ? (
+                      refreshComparisonData.currentQuestions.map((q: any, index: number) => (
+                        <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">Q{q.questionNumber}</div>
+                              <div className="text-xs text-gray-600">LOID: {q.loid}</div>
+                              <div className="text-xs text-gray-500 mt-1">{q.preview}</div>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {q.versionCount} version{q.versionCount !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No current questions</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* New Questions */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-gray-900 border-b pb-2">
+                    New Questions ({refreshComparisonData.newQuestions.length})
+                  </h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {refreshComparisonData.newQuestions.length > 0 ? (
+                      refreshComparisonData.newQuestions.map((q: any, index: number) => (
+                        <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">Q{q.questionNumber}</div>
+                              <div className="text-xs text-gray-600">LOID: {q.loid}</div>
+                              <div className="text-xs text-gray-600">Type: {q.type}</div>
+                              <div className="text-xs text-gray-500 mt-1">{q.preview}</div>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {q.versionCount} version{q.versionCount !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No new questions</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning Section */}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5">!</div>
+                  <div>
+                    <h4 className="font-medium text-red-900">Warning: This action cannot be undone</h4>
+                    <p className="text-sm text-red-700 mt-1">
+                      This will completely replace all current questions in this question set with the latest data from Bubble. 
+                      Any existing questions not found in Bubble will be permanently deleted.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRefreshModalOpen(null);
+                setRefreshComparisonData(null);
+                setRefreshingQuestionSet(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (refreshModalOpen) {
+                  performRefreshMutation.mutate(refreshModalOpen);
+                }
+              }}
+              disabled={performRefreshMutation.isPending}
+            >
+              {performRefreshMutation.isPending ? "Refreshing..." : "Confirm Refresh"}
             </Button>
           </DialogFooter>
         </DialogContent>

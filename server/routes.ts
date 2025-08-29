@@ -2696,6 +2696,115 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Get comparison data for question set refresh from Bubble
+  app.get("/api/admin/question-sets/:questionSetId/refresh", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Get the question set to find its external ID
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      if (!questionSet.externalId) {
+        return res.status(400).json({ message: "Question set has no Bubble ID associated" });
+      }
+      
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+      
+      // Fetch the specific question set from Bubble using its ID
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+      
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
+      }
+      
+      const data = await response.json();
+      const bubbleQuestionSet = data.response;
+      
+      if (!bubbleQuestionSet) {
+        return res.status(404).json({ message: "Question set not found in Bubble" });
+      }
+      
+      // Parse the content field to get new questions from Bubble
+      let newQuestions: any[] = [];
+      if (bubbleQuestionSet.content) {
+        try {
+          const contentJson = JSON.parse(bubbleQuestionSet.content);
+          if (contentJson.questions && Array.isArray(contentJson.questions)) {
+            newQuestions = contentJson.questions;
+          }
+        } catch (parseError) {
+          console.error("Error parsing question content:", parseError);
+          return res.status(400).json({ message: "Invalid question content format in Bubble data" });
+        }
+      }
+      
+      // Get current questions from database
+      const currentQuestions = await storage.getQuestionsByQuestionSet(questionSetId);
+      
+      // Create simplified comparison data
+      const currentQuestionsSummary = currentQuestions.map((q: any) => ({
+        id: q.id,
+        questionNumber: q.originalQuestionNumber,
+        loid: q.loid,
+        versionCount: 1, // Simplified for display
+        preview: `Question ${q.originalQuestionNumber}` // Simplified preview
+      }));
+      
+      const newQuestionsSummary = newQuestions.map((q, index) => ({
+        questionNumber: q.question_number || (index + 1),
+        loid: q.loid || "unknown",
+        type: q.type || "multiple_choice",
+        versionCount: (q.versions && Array.isArray(q.versions)) ? q.versions.length : 1,
+        preview: (q.versions && q.versions[0] && q.versions[0].question_text) 
+          ? q.versions[0].question_text.substring(0, 100) + "..."
+          : `Question ${q.question_number || (index + 1)}`
+      }));
+      
+      // Generate summary statistics
+      const summary = {
+        currentCount: currentQuestions.length,
+        newCount: newQuestions.length,
+        willBeAdded: Math.max(0, newQuestions.length - currentQuestions.length),
+        willBeUpdated: Math.min(currentQuestions.length, newQuestions.length),
+        willBeRemoved: Math.max(0, currentQuestions.length - newQuestions.length),
+        totalAfterRefresh: newQuestions.length
+      };
+      
+      res.json({
+        questionSet: {
+          id: questionSet.id,
+          title: questionSet.title,
+          externalId: questionSet.externalId
+        },
+        currentQuestions: currentQuestionsSummary,
+        newQuestions: newQuestionsSummary,
+        summary,
+        bubbleData: bubbleQuestionSet
+      });
+      
+    } catch (error) {
+      console.error("Error fetching refresh comparison data:", error);
+      res.status(500).json({ message: "Failed to fetch refresh comparison data" });
+    }
+  });
+
   // New endpoint to update a single question set from Bubble
   app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, async (req, res) => {
     try {
