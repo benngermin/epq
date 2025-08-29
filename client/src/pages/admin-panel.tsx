@@ -1807,7 +1807,8 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
               Refresh Content: {refreshComparisonData?.questionSet?.title}
             </DialogTitle>
             <DialogDescription>
-              Review the changes that will be made to this question set. All current questions will be replaced with the latest data from Bubble.
+              <strong>⚠️ PREVIEW ONLY:</strong> Review the changes that would be made to this question set. 
+              <strong>No data has been changed yet.</strong> You must click "Confirm Refresh" below to actually apply these changes.
             </DialogDescription>
           </DialogHeader>
           
@@ -1905,8 +1906,9 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5">!</div>
                   <div>
-                    <h4 className="font-medium text-red-900">Warning: This action cannot be undone</h4>
+                    <h4 className="font-medium text-red-900">Final Warning: This action cannot be undone</h4>
                     <p className="text-sm text-red-700 mt-1">
+                      <strong>ONLY clicking "Confirm Refresh" below will change your data.</strong><br/>
                       This will completely replace all current questions in this question set with the latest data from Bubble. 
                       Any existing questions not found in Bubble will be permanently deleted.
                     </p>

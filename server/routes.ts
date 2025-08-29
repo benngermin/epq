@@ -2731,6 +2731,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       if (!response.ok) {
         console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        
+        if (response.status === 404) {
+          return res.status(404).json({ 
+            message: `Question set not found in Bubble.io. The external ID "${questionSet.externalId}" may be invalid or the content may have been removed from Bubble.` 
+          });
+        }
+        
         return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
       }
       
