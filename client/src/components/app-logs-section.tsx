@@ -437,44 +437,6 @@ export function AppLogsSection() {
     });
   }, [questionStats?.mostFailedQuestions]);
 
-  if (overallLoading || usersLoading || questionsLoading || coursesLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(2)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-20 mb-2" />
-                <Skeleton className="h-3 w-24" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Check if we have any data
-  const hasData = overallStats && (overallStats.totalTestRuns > 0 || overallStats.totalAnswers > 0);
-
-  // Format time for display
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) return `${Math.round(seconds)}s`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-    return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
-  };
-
   // Fetch report preview when date range changes
   useEffect(() => {
     if (reportDateRange?.from && reportDateRange?.to) {
@@ -550,6 +512,45 @@ export function AppLogsSection() {
     } finally {
       setIsGeneratingReport(false);
     }
+  };
+
+  // Loading state
+  if (overallLoading || usersLoading || questionsLoading || coursesLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if we have any data
+  const hasData = overallStats && (overallStats.totalTestRuns > 0 || overallStats.totalAnswers > 0);
+
+  // Format time for display
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
   };
 
   return (
