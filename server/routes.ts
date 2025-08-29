@@ -2433,7 +2433,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/reports/preview", requireAdmin, async (req, res) => {
+  app.get("/api/admin/reports/preview", requireAuth, requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
       
