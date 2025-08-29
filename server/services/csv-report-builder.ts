@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createObjectCsvWriter } from 'csv-writer';
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import {
   UserEngagementMetrics,
   QuestionPerformanceMetrics,
