@@ -478,7 +478,9 @@ export function AppLogsSection() {
   // Fetch report preview when date range changes
   useEffect(() => {
     if (reportDateRange?.from && reportDateRange?.to) {
-      fetch(`/api/admin/reports/preview?startDate=${reportDateRange.from.toISOString()}&endDate=${reportDateRange.to.toISOString()}`)
+      fetch(`/api/admin/reports/preview?startDate=${reportDateRange.from.toISOString()}&endDate=${reportDateRange.to.toISOString()}`, {
+        credentials: 'include'
+      })
         .then(res => {
           if (!res.ok) {
             throw new Error('Failed to fetch preview');
