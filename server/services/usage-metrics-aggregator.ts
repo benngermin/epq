@@ -234,7 +234,7 @@ export class UsageMetricsAggregator {
     // Questions per session
     const questionsPerSessionResult = await db
       .select({
-        avgQuestions: sql<number>`AVG(q_count)`
+        avgQuestions: sql<number>`AVG(session_questions.q_count)`
       })
       .from(
         db
