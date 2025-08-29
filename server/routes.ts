@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses, questions, questionVersions
+  promptVersions, questionSets, courses, questions, questionVersions, userAnswers, userTestRuns
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
@@ -3037,17 +3037,45 @@ Remember, your goal is to support student comprehension through meaningful feedb
         description: bubbleQuestionSet.description || questionSet.description,
       });
       
-      // Delete existing questions and versions to replace with updated ones
-      await db.delete(questionVersions)
-        .where(inArray(questionVersions.questionId, 
-          db.select({ id: questions.id })
-            .from(questions)
-            .where(eq(questions.questionSetId, questionSetId))
-        ));
-      await db.delete(questions).where(eq(questions.questionSetId, questionSetId));
+      // Check if there are any user answers for this question set
+      const existingAnswers = await db.select({ count: sql<number>`COUNT(*)::int` })
+        .from(userAnswers)
+        .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
+        .where(eq(userTestRuns.questionSetId, questionSetId));
+      
+      const hasUserAnswers = existingAnswers[0]?.count > 0;
+      
+      if (hasUserAnswers) {
+        // If users have answered questions, we need to preserve the data
+        // Instead of deleting, we'll update existing questions or create new ones
+        console.log(`⚠️ Question set ${questionSetId} has existing user answers. Updating questions while preserving user data.`);
+        
+        // Get existing questions
+        const existingQuestions = await db.select()
+          .from(questions)
+          .where(eq(questions.questionSetId, questionSetId));
+        
+        // Create a map of existing questions by LOID for efficient lookup
+        const existingQuestionsMap = new Map(
+          existingQuestions.map(q => [q.loid, q])
+        );
+        
+        // We'll handle the question updates differently below
+      } else {
+        // No user answers exist, safe to delete and recreate
+        console.log(`✅ No user answers found for question set ${questionSetId}. Safe to delete and recreate.`);
+        
+        await db.delete(questionVersions)
+          .where(inArray(questionVersions.questionId, 
+            db.select({ id: questions.id })
+              .from(questions)
+              .where(eq(questions.questionSetId, questionSetId))
+          ));
+        await db.delete(questions).where(eq(questions.questionSetId, questionSetId));
+      }
       
       // Import the updated questions
-      if (parsedQuestions.length > 0) {
+      if (parsedQuestions.length > 0 && !hasUserAnswers) {
         console.log(`📥 Importing ${parsedQuestions.length} questions from Bubble...`);
         
         const questionImports = parsedQuestions.map((q: any, index: number) => {
@@ -3103,6 +3131,121 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
         
         await storage.importQuestions(questionSetId, questionImports);
+        await storage.updateQuestionSetCount(questionSetId);
+      } else if (parsedQuestions.length > 0 && hasUserAnswers) {
+        // Handle the case where there are existing user answers
+        console.log(`📥 Updating ${parsedQuestions.length} questions from Bubble while preserving user data...`);
+        
+        // Get existing questions for this question set
+        const existingQuestions = await db.select()
+          .from(questions)
+          .where(eq(questions.questionSetId, questionSetId));
+        
+        // Create a map of existing questions by LOID
+        const existingQuestionsMap = new Map(
+          existingQuestions.map(q => [q.loid, q])
+        );
+        
+        // Process each parsed question
+        for (const parsedQuestion of parsedQuestions) {
+          const loid = parsedQuestion.loid || "unknown";
+          const existingQuestion = existingQuestionsMap.get(loid);
+          
+          if (existingQuestion) {
+            // Update existing question's version
+            const questionType = parsedQuestion.question_type || "multiple_choice";
+            
+            // Get the latest version number for this question
+            const latestVersion = await db.select({ maxVersion: sql<number>`MAX(version_number)` })
+              .from(questionVersions)
+              .where(eq(questionVersions.questionId, existingQuestion.id));
+            
+            const nextVersionNumber = (latestVersion[0]?.maxVersion || 0) + 1;
+            
+            // Create a new version with the updated content
+            const versionData: any = {
+              questionId: existingQuestion.id,
+              versionNumber: nextVersionNumber,
+              topicFocus: bubbleQuestionSet.title || "General",
+              questionText: parsedQuestion.question_text || "",
+              questionType: questionType,
+              answerChoices: parsedQuestion.answer_choices || [],
+              correctAnswer: parsedQuestion.correct_answer || "",
+              acceptableAnswers: parsedQuestion.acceptable_answers,
+              caseSensitive: parsedQuestion.case_sensitive || false,
+              allowMultiple: parsedQuestion.allow_multiple || false,
+              matchingPairs: parsedQuestion.matching_pairs || null,
+              correctOrder: parsedQuestion.correct_order || null,
+            };
+            
+            // Add question type specific fields
+            if (questionType === "select_from_list" && parsedQuestion.blanks) {
+              versionData.blanks = parsedQuestion.blanks;
+            }
+            
+            if (questionType === "drag_and_drop") {
+              if (parsedQuestion.drop_zones) {
+                versionData.dropZones = parsedQuestion.drop_zones;
+              }
+              if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
+                versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
+              }
+            }
+            
+            if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
+              versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
+            }
+            
+            // Insert the new version
+            await db.insert(questionVersions).values(versionData);
+          } else {
+            // This is a new question, add it
+            const [newQuestion] = await db.insert(questions).values({
+              questionSetId,
+              originalQuestionNumber: parsedQuestion.question_number || 0,
+              loid: loid,
+            }).returning();
+            
+            // Add its version
+            const questionType = parsedQuestion.question_type || "multiple_choice";
+            const versionData: any = {
+              questionId: newQuestion.id,
+              versionNumber: 1,
+              topicFocus: bubbleQuestionSet.title || "General",
+              questionText: parsedQuestion.question_text || "",
+              questionType: questionType,
+              answerChoices: parsedQuestion.answer_choices || [],
+              correctAnswer: parsedQuestion.correct_answer || "",
+              acceptableAnswers: parsedQuestion.acceptable_answers,
+              caseSensitive: parsedQuestion.case_sensitive || false,
+              allowMultiple: parsedQuestion.allow_multiple || false,
+              matchingPairs: parsedQuestion.matching_pairs || null,
+              correctOrder: parsedQuestion.correct_order || null,
+            };
+            
+            // Add question type specific fields
+            if (questionType === "select_from_list" && parsedQuestion.blanks) {
+              versionData.blanks = parsedQuestion.blanks;
+            }
+            
+            if (questionType === "drag_and_drop") {
+              if (parsedQuestion.drop_zones) {
+                versionData.dropZones = parsedQuestion.drop_zones;
+              }
+              if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
+                versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
+              }
+            }
+            
+            if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
+              versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
+            }
+            
+            await db.insert(questionVersions).values(versionData);
+          }
+        }
+        
+        // Update question count
         await storage.updateQuestionSetCount(questionSetId);
       }
       
