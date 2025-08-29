@@ -479,9 +479,17 @@ export function AppLogsSection() {
   useEffect(() => {
     if (reportDateRange?.from && reportDateRange?.to) {
       fetch(`/api/admin/reports/preview?startDate=${reportDateRange.from.toISOString()}&endDate=${reportDateRange.to.toISOString()}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch preview');
+          }
+          return res.json();
+        })
         .then(data => setReportPreview(data))
-        .catch(() => setReportPreview(null));
+        .catch((error) => {
+          console.error('Error fetching report preview:', error);
+          setReportPreview(null);
+        });
     } else {
       setReportPreview(null);
     }
