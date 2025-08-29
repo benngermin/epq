@@ -2038,6 +2038,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         })
       );
       
+      // Sort questions by originalQuestionNumber in ascending order
+      questionsWithVersions.sort((a, b) => a.originalQuestionNumber - b.originalQuestionNumber);
+      
       res.json(questionsWithVersions);
     } catch (error) {
       console.error("Error fetching questions:", error);
