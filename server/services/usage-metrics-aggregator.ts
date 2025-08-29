@@ -234,13 +234,13 @@ export class UsageMetricsAggregator {
     // Questions per session
     const questionsPerSessionResult = await db
       .select({
-        avgQuestions: sql<number>`AVG(session_questions.questionCount)`
+        avgQuestions: sql<number>`AVG(q_count)`
       })
       .from(
         db
           .select({
             testRunId: userAnswers.userTestRunId,
-            questionCount: sql<number>`COUNT(*)`
+            q_count: sql<number>`COUNT(*)`
           })
           .from(userAnswers)
           .where(
