@@ -231,29 +231,25 @@ export class UsageMetricsAggregator {
     const completedCount = Number(completedSetsResult[0]?.count || 0);
     const completionRate = startedCount > 0 ? (completedCount / startedCount) * 100 : 0;
 
-    // Questions per session
+    // Questions per session - using simpler approach
     const questionsPerSessionResult = await db
       .select({
-        avgQuestions: sql<number>`AVG(session_questions.q_count)`
+        testRunId: userAnswers.userTestRunId,
+        count: sql<number>`COUNT(*)`
       })
-      .from(
-        db
-          .select({
-            testRunId: userAnswers.userTestRunId,
-            q_count: sql<number>`COUNT(*)`
-          })
-          .from(userAnswers)
-          .where(
-            and(
-              gte(userAnswers.answeredAt, this.dateRange.startDate),
-              lte(userAnswers.answeredAt, this.dateRange.endDate)
-            )
-          )
-          .groupBy(userAnswers.userTestRunId)
-          .as('session_questions')
-      );
+      .from(userAnswers)
+      .where(
+        and(
+          gte(userAnswers.answeredAt, this.dateRange.startDate),
+          lte(userAnswers.answeredAt, this.dateRange.endDate)
+        )
+      )
+      .groupBy(userAnswers.userTestRunId);
 
-    const questionsPerSession = Number(questionsPerSessionResult[0]?.avgQuestions || 0);
+    // Calculate average questions per session
+    const totalSessionQuestions = questionsPerSessionResult.reduce((sum, session) => sum + Number(session.count), 0);
+    const sessionCount = questionsPerSessionResult.length;
+    const questionsPerSession = sessionCount > 0 ? totalSessionQuestions / sessionCount : 0;
 
     // Top failed questions
     const topFailedQuestionsResult = await db
