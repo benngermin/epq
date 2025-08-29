@@ -2756,24 +2756,52 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Import questions from parsed content
           if (parsedQuestions.length > 0) {
-            const questionImports = parsedQuestions.map((q: any, index: number) => ({
-              question_number: q.question_number || q.originalQuestionNumber || (index + 1),
-              type: q.type || "multiple_choice",
-              loid: q.loid || q.LOID || "unknown",
-              versions: [{
+            const questionImports = parsedQuestions.map((q: any, index: number) => {
+              // Use the new JSON format fields directly
+              const questionType = q.question_type || "multiple_choice";
+              
+              // Build the version object with all fields from the new format
+              const versionData: any = {
                 version_number: 1,
-                topic_focus: q.topic_focus || q.topicFocus || bubbleQuestionSet.title || "General",
-                question_text: q.question_text || q.questionText || "",
-                question_type: q.question_type || q.questionType || q.type || "multiple_choice",
-                answer_choices: q.answer_choices || q.answerChoices || [],
-                correct_answer: q.correct_answer || q.correctAnswer || "",
-                acceptable_answers: q.acceptable_answers || q.acceptableAnswers,
-                case_sensitive: q.case_sensitive || q.caseSensitive || false,
-                allow_multiple: q.allow_multiple || q.allowMultiple || false,
-                matching_pairs: q.matching_pairs || q.matchingPairs,
-                correct_order: q.correct_order || q.correctOrder
-              }]
-            }));
+                topic_focus: bubbleQuestionSet.title || "General",
+                question_text: q.question_text || "",
+                question_type: questionType,
+                answer_choices: q.answer_choices || [],
+                correct_answer: q.correct_answer || "",
+                acceptable_answers: q.acceptable_answers,
+                case_sensitive: q.case_sensitive || false,
+                allow_multiple: q.allow_multiple || false,
+                matching_pairs: q.matching_pairs || null,
+                correct_order: q.correct_order || null,
+              };
+              
+              // Add question type specific fields
+              if (questionType === "select_from_list" && q.blanks) {
+                versionData.blanks = q.blanks;
+              }
+              
+              if (questionType === "drag_and_drop") {
+                if (q.drop_zones) {
+                  versionData.drop_zones = q.drop_zones;
+                }
+                // Store the correct_answer object as-is for drag_and_drop
+                if (typeof q.correct_answer === 'object' && !Array.isArray(q.correct_answer)) {
+                  versionData.correct_answer = JSON.stringify(q.correct_answer);
+                }
+              }
+              
+              if (questionType === "multiple_response" && Array.isArray(q.correct_answer)) {
+                // Store array as JSON string for multiple response
+                versionData.correct_answer = JSON.stringify(q.correct_answer);
+              }
+              
+              return {
+                question_number: q.question_number || (index + 1),
+                type: questionType,
+                loid: q.loid || "unknown",
+                versions: [versionData]
+              };
+            });
 
             // Wrap bulk operations in try-catch for better error handling
             try {
