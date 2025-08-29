@@ -24,29 +24,31 @@ export function usePerformanceMonitor(componentName: string) {
         console.warn(`[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render`);
       }
       
-      // Store metrics for analysis
-      const metrics: PerformanceMetrics = {
-        renderTime,
-        componentName,
-        timestamp: Date.now()
-      };
-      
-      try {
-        const existingMetrics = JSON.parse(
-          sessionStorage.getItem('performance-metrics') || '[]'
-        );
-        existingMetrics.push(metrics);
+      // Only store metrics for slow renders to reduce sessionStorage writes
+      if (renderTime > 50) {
+        const metrics: PerformanceMetrics = {
+          renderTime,
+          componentName,
+          timestamp: Date.now()
+        };
         
-        // Keep only last 50 metrics to reduce memory usage
-        if (existingMetrics.length > 50) {
-          existingMetrics.splice(0, existingMetrics.length - 50);
-        }
-        
-        sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
-      } catch (e) {
-        // Ignore sessionStorage errors (quota exceeded, etc.)
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to store performance metrics:', e);
+        try {
+          const existingMetrics = JSON.parse(
+            sessionStorage.getItem('performance-metrics') || '[]'
+          );
+          existingMetrics.push(metrics);
+          
+          // Keep only last 50 metrics to reduce memory usage
+          if (existingMetrics.length > 50) {
+            existingMetrics.splice(0, existingMetrics.length - 50);
+          }
+          
+          sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
+        } catch (e) {
+          // Ignore sessionStorage errors (quota exceeded, etc.)
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Failed to store performance metrics:', e);
+          }
         }
       }
     }

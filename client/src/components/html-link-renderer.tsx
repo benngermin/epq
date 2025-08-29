@@ -78,12 +78,25 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
           const hrefMatch = attributes.match(/href="([^"]*)"/);
           let href = hrefMatch ? hrefMatch[1] : '#';
           
-          // Prevent javascript: URLs and other potentially dangerous protocols
-          const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
-          const lowerHref = href.toLowerCase().trim();
-          if (dangerousProtocols.some(protocol => lowerHref.startsWith(protocol))) {
-            href = '#'; // Replace dangerous URLs with safe fallback
-            console.warn('Blocked potentially dangerous URL:', hrefMatch?.[1]);
+          // Enhanced security: prevent javascript: and other dangerous protocols
+          const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:', 'blob:'];
+          const lowerHref = href.toLowerCase().trim().replace(/[\s\0-\x1f]/g, ''); // Remove whitespace and control characters
+          
+          // Check for encoded versions as well
+          try {
+            const decodedHref = decodeURIComponent(lowerHref).toLowerCase();
+            if (dangerousProtocols.some(protocol => 
+              lowerHref.startsWith(protocol) || 
+              decodedHref.startsWith(protocol) ||
+              lowerHref.includes(`%${protocol.charCodeAt(0).toString(16)}`) // Check for hex encoding
+            )) {
+              href = '#'; // Replace dangerous URLs with safe fallback
+              console.warn('Blocked potentially dangerous URL:', hrefMatch?.[1]);
+            }
+          } catch (e) {
+            // If decoding fails, treat as suspicious
+            href = '#';
+            console.warn('Blocked malformed URL:', hrefMatch?.[1]);
           }
           
           htmlParts.push(
@@ -211,7 +224,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
           if (styleMatch) {
             let styleStr = styleMatch[1];
             
-            // Sanitize styles to prevent XSS
+            // Enhanced style sanitization to prevent XSS
             const dangerousPatterns = [
               /javascript:/gi,
               /expression\s*\(/gi,
@@ -219,7 +232,12 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
               /@import/gi,
               /behavior:/gi,
               /-moz-binding:/gi,
-              /url\s*\([^)]*javascript:/gi
+              /url\s*\([^)]*javascript:/gi,
+              /url\s*\([^)]*data:/gi,
+              /on\w+\s*=/gi, // Prevent inline event handlers
+              /<script/gi,
+              /&#/gi, // Prevent HTML entity encoding attacks
+              /\\[0-9a-fA-F]/gi // Prevent hex encoding attacks
             ];
             
             let isSafe = true;

@@ -178,12 +178,15 @@ function cleanupStream(streamId: string) {
     if (stream) {
       // Clear large data first
       stream.chunks = [];
-      stream.error = undefined;
+      // Clear error stream data to prevent memory leak
+      if (stream.error) {
+        stream.error = undefined;
+      }
       // Then delete the stream
       activeStreams.delete(streamId);
     }
   } catch (error) {
-    // Error cleaning up stream
+    console.error('Error cleaning up stream:', error);
     // Force delete even if there was an error
     activeStreams.delete(streamId);
   } finally {
