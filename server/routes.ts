@@ -3265,7 +3265,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               console.log(`  Q${questionNumber} (LOID: ${loid}): Adding new question`);
               const [newQuestion] = await db.insert(questions).values({
                 questionSetId,
-                originalQuestionNumber: parsedQuestion.question_number || 0,
+                originalQuestionNumber: questionNumber,
                 loid: loid,
               }).returning();
               
