@@ -2363,6 +2363,122 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Usage Report Generation Routes
+  app.post("/api/admin/reports/generate", requireAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate, format } = req.body;
+      
+      // Validate required fields
+      if (!startDate || !endDate || !format) {
+        return res.status(400).json({ 
+          message: "Start date, end date, and format are required" 
+        });
+      }
+      
+      // Validate format
+      if (!['pdf', 'csv'].includes(format)) {
+        return res.status(400).json({ 
+          message: "Format must be 'pdf' or 'csv'" 
+        });
+      }
+      
+      // Parse dates
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+      
+      // Import the report generator
+      const { UsageReportGenerator } = await import('./services/usage-report-generator');
+      const generator = new UsageReportGenerator();
+      
+      // Generate the report
+      const reportBuffer = await generator.generateReport({
+        startDate: start,
+        endDate: end,
+        format: format as 'pdf' | 'csv'
+      });
+      
+      // Set appropriate headers for file download
+      const timestamp = new Date().toISOString().split('T')[0];
+      const extension = format === 'pdf' ? 'pdf' : 'zip';
+      const mimeType = format === 'pdf' ? 'application/pdf' : 'application/zip';
+      const filename = `usage-report-${timestamp}.${extension}`;
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', reportBuffer.length.toString());
+      
+      res.send(reportBuffer);
+    } catch (error: any) {
+      console.error("Error generating report:", error);
+      
+      // Handle specific error types
+      if (error.message?.includes('Date range cannot exceed 1 year')) {
+        return res.status(400).json({ message: error.message });
+      }
+      if (error.message?.includes('Start date must be before end date')) {
+        return res.status(400).json({ message: error.message });
+      }
+      if (error.message?.includes('End date cannot be in the future')) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to generate report. Please try again later." 
+      });
+    }
+  });
+
+  app.get("/api/admin/reports/preview", requireAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ 
+          message: "Start date and end date are required" 
+        });
+      }
+      
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+      
+      // Import the report generator
+      const { UsageReportGenerator } = await import('./services/usage-report-generator');
+      const generator = new UsageReportGenerator();
+      
+      // Get preview data
+      const preview = await generator.getReportPreview(start, end);
+      
+      res.json(preview);
+    } catch (error: any) {
+      console.error("Error fetching report preview:", error);
+      
+      // Handle specific error types
+      if (error.message?.includes('Date range cannot exceed 1 year')) {
+        return res.status(400).json({ message: error.message });
+      }
+      if (error.message?.includes('Start date must be before end date')) {
+        return res.status(400).json({ message: error.message });
+      }
+      if (error.message?.includes('End date cannot be in the future')) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to fetch report preview" 
+      });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {

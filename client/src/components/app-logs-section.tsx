@@ -70,6 +70,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { FileDown } from "lucide-react";
 
 // Utility function to format numbers with commas
 const formatNumber = (num: number): string => {
@@ -182,6 +186,17 @@ export function AppLogsSection() {
   
   // State for conversation viewer modal
   const [selectedFeedback, setSelectedFeedback] = useState<{id: number, messageId: string} | null>(null);
+  
+  // State for usage report generation
+  const [reportDateRange, setReportDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  });
+  const [reportFormat, setReportFormat] = useState<'pdf' | 'csv'>('pdf');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportPreview, setReportPreview] = useState<{userCount: number; questionCount: number} | null>(null);
+  
+  const { toast } = useToast();
 
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
     queryKey: ["/api/admin/logs/overview", timeScale],
@@ -460,6 +475,73 @@ export function AppLogsSection() {
     return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
   };
 
+  // Fetch report preview when date range changes
+  useEffect(() => {
+    if (reportDateRange?.from && reportDateRange?.to) {
+      fetch(`/api/admin/reports/preview?startDate=${reportDateRange.from.toISOString()}&endDate=${reportDateRange.to.toISOString()}`)
+        .then(res => res.json())
+        .then(data => setReportPreview(data))
+        .catch(() => setReportPreview(null));
+    } else {
+      setReportPreview(null);
+    }
+  }, [reportDateRange]);
+
+  // Handle report generation
+  const handleGenerateReport = async () => {
+    if (!reportDateRange?.from || !reportDateRange?.to) return;
+    
+    setIsGeneratingReport(true);
+    
+    try {
+      const response = await fetch('/api/admin/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate: reportDateRange.from.toISOString(),
+          endDate: reportDateRange.to.toISOString(),
+          format: reportFormat,
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate report');
+      }
+      
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `report.${reportFormat === 'pdf' ? 'pdf' : 'zip'}`;
+      
+      // Download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Report generated successfully",
+        description: `Your ${reportFormat.toUpperCase()} report has been downloaded.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to generate report",
+        description: error.message || "An error occurred while generating the report.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* No Data Alert */}
@@ -495,6 +577,112 @@ export function AppLogsSection() {
           </Select>
         </div>
       </div>
+
+      {/* Usage Report Generation Card */}
+      <Card className="mb-6 border-2 border-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileDown className="h-5 w-5" />
+            Generate Usage Report
+          </CardTitle>
+          <CardDescription>
+            Create comprehensive reports on user behavior and learning patterns in PDF or CSV format
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Date Range Picker */}
+            <div className="space-y-2">
+              <Label>Date Range</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !reportDateRange && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {reportDateRange?.from ? (
+                      reportDateRange.to ? (
+                        <>
+                          {format(reportDateRange.from, "MMM dd, yyyy")} -{" "}
+                          {format(reportDateRange.to, "MMM dd, yyyy")}
+                        </>
+                      ) : (
+                        format(reportDateRange.from, "MMM dd, yyyy")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={reportDateRange?.from}
+                    selected={reportDateRange}
+                    onSelect={setReportDateRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Format Selector */}
+            <div className="space-y-2">
+              <Label>Report Format</Label>
+              <RadioGroup value={reportFormat} onValueChange={(value: 'pdf' | 'csv') => setReportFormat(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf" id="pdf" />
+                  <Label htmlFor="pdf" className="font-normal cursor-pointer">
+                    PDF (Presentation-ready with charts)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="csv" id="csv" />
+                  <Label htmlFor="csv" className="font-normal cursor-pointer">
+                    CSV (Raw data export)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+
+          {/* Preview Information */}
+          {reportDateRange?.from && reportDateRange?.to && reportPreview && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-sm text-muted-foreground">
+                Report will include data from <strong>{reportPreview.userCount}</strong> users 
+                and <strong>{reportPreview.questionCount}</strong> questions answered
+              </p>
+            </div>
+          )}
+
+          {/* Generate Button */}
+          <div className="flex justify-end">
+            <Button
+              onClick={handleGenerateReport}
+              disabled={!reportDateRange?.from || !reportDateRange?.to || isGeneratingReport}
+              className="min-w-[150px]"
+            >
+              {isGeneratingReport ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Generate Report
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
