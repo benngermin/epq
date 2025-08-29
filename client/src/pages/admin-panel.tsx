@@ -1500,7 +1500,6 @@ function CourseMaterialsSection() {
 function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiCourse?: boolean }) {
   const [importModalOpen, setImportModalOpen] = useState<number | null>(null);
   const [importJsonData, setImportJsonData] = useState("");
-  const [updatingQuestionSet, setUpdatingQuestionSet] = useState<number | null>(null);
   const [refreshModalOpen, setRefreshModalOpen] = useState<number | null>(null);
   const [refreshComparisonData, setRefreshComparisonData] = useState<any>(null);
   const [refreshingQuestionSet, setRefreshingQuestionSet] = useState<number | null>(null);
@@ -1557,33 +1556,6 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
     },
   });
 
-  const updateFromBubbleMutation = useMutation({
-    mutationFn: async (questionSetId: number) => {
-      const res = await apiRequest("POST", `/api/admin/question-sets/${questionSetId}/update-from-bubble`);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update from Bubble");
-      }
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({ 
-        title: "Question set updated successfully",
-        description: data.message 
-      });
-      setUpdatingQuestionSet(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", courseId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/questions"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update from Bubble",
-        description: error.message,
-        variant: "destructive",
-      });
-      setUpdatingQuestionSet(null);
-    },
-  });
 
   const getRefreshComparisonMutation = useMutation({
     mutationFn: async (questionSetId: number) => {
@@ -1695,20 +1667,6 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
               </div>
               <div className="flex gap-2">
-                {questionSet.externalId && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => {
-                      setUpdatingQuestionSet(questionSet.id);
-                      updateFromBubbleMutation.mutate(questionSet.id);
-                    }}
-                    disabled={updatingQuestionSet === questionSet.id}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${updatingQuestionSet === questionSet.id ? 'animate-spin' : ''}`} />
-                    {updatingQuestionSet === questionSet.id ? "Updating..." : "Update"}
-                  </Button>
-                )}
                 {questionSet.externalId && (
                   <Button 
                     variant="outline" 
