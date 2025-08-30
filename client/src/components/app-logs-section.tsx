@@ -588,100 +588,102 @@ export function AppLogsSection() {
         </div>
       </div>
 
-      {/* Usage Report Generation Card */}
-      <Card className="mb-6 border-2 border-primary/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileDown className="h-5 w-5" />
-            Generate Usage Report
-          </CardTitle>
-          <CardDescription>
-            Create comprehensive reports on user behavior and learning patterns in CSV format
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date Range Picker */}
-            <div className="space-y-2">
-              <Label>Date Range</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !reportDateRange && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {reportDateRange?.from ? (
-                      reportDateRange.to ? (
-                        <>
-                          {format(reportDateRange.from, "MMM dd, yyyy")} -{" "}
-                          {format(reportDateRange.to, "MMM dd, yyyy")}
-                        </>
+      {/* Usage Report Generation Card - Hidden for now */}
+      {false && (
+        <Card className="mb-6 border-2 border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileDown className="h-5 w-5" />
+              Generate Usage Report
+            </CardTitle>
+            <CardDescription>
+              Create comprehensive reports on user behavior and learning patterns in CSV format
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Date Range Picker */}
+              <div className="space-y-2">
+                <Label>Date Range</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !reportDateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {reportDateRange?.from ? (
+                        reportDateRange.to ? (
+                          <>
+                            {format(reportDateRange.from, "MMM dd, yyyy")} -{" "}
+                            {format(reportDateRange.to, "MMM dd, yyyy")}
+                          </>
+                        ) : (
+                          format(reportDateRange.from, "MMM dd, yyyy")
+                        )
                       ) : (
-                        format(reportDateRange.from, "MMM dd, yyyy")
-                      )
-                    ) : (
-                      <span>Pick a date range</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={reportDateRange?.from}
-                    selected={reportDateRange}
-                    onSelect={setReportDateRange}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={reportDateRange?.from}
+                      selected={reportDateRange}
+                      onSelect={setReportDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {/* Report Format Info */}
-            <div className="space-y-2">
-              <Label>Report Format</Label>
-              <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                Reports are generated as CSV files (ZIP archive) containing detailed usage data for analysis
+              {/* Report Format Info */}
+              <div className="space-y-2">
+                <Label>Report Format</Label>
+                <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                  Reports are generated as CSV files (ZIP archive) containing detailed usage data for analysis
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Preview Information */}
-          {reportDateRange?.from && reportDateRange?.to && reportPreview && (
-            <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-sm text-muted-foreground">
-                Report will include data from <strong>{reportPreview.userCount}</strong> users 
-                and <strong>{reportPreview.questionCount}</strong> questions answered
-              </p>
+            {/* Preview Information */}
+            {reportDateRange?.from && reportDateRange?.to && reportPreview && (
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-sm text-muted-foreground">
+                  Report will include data from <strong>{reportPreview.userCount}</strong> users 
+                  and <strong>{reportPreview.questionCount}</strong> questions answered
+                </p>
+              </div>
+            )}
+
+            {/* Generate Button */}
+            <div className="flex justify-end">
+              <Button
+                onClick={handleGenerateReport}
+                disabled={!reportDateRange?.from || !reportDateRange?.to || isGeneratingReport}
+                className="min-w-[150px]"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-
-          {/* Generate Button */}
-          <div className="flex justify-end">
-            <Button
-              onClick={handleGenerateReport}
-              disabled={!reportDateRange?.from || !reportDateRange?.to || isGeneratingReport}
-              className="min-w-[150px]"
-            >
-              {isGeneratingReport ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Generate Report
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
