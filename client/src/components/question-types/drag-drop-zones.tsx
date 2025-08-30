@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { GripVertical } from "lucide-react";
 
 interface DragDropZonesProps {
   answerChoices: string[];
@@ -147,12 +148,14 @@ export function DragDropZones({
               draggable={!disabled}
               onDragStart={() => handleDragStart(item)}
               className={cn(
-                "px-3 py-2 bg-primary/10 rounded-md cursor-move",
+                "flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-md cursor-move",
+                "border border-border",
                 "hover:bg-primary/20 transition-colors",
                 disabled && "cursor-not-allowed opacity-50"
               )}
             >
-              {item}
+              <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span>{item}</span>
             </div>
           ))}
         </div>
@@ -178,12 +181,14 @@ export function DragDropZones({
                   draggable={!disabled}
                   onDragStart={() => handleDragStart(item)}
                   className={cn(
-                    "px-3 py-2 bg-background rounded-md cursor-move",
+                    "flex items-center gap-2 px-3 py-2 bg-background rounded-md cursor-move",
+                    "border border-border",
                     "hover:bg-accent transition-colors",
                     disabled && "cursor-not-allowed opacity-50"
                   )}
                 >
-                  {item}
+                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span>{item}</span>
                 </div>
               )) : []}
             </div>
