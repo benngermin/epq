@@ -24,6 +24,7 @@ export function DragDropZones({
   correctAnswer,
 }: DragDropZonesProps) {
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
+  const [dragOverZone, setDragOverZone] = useState<number | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
     if (typeof value === 'string' && value) {
       try {
@@ -81,6 +82,21 @@ export function DragDropZones({
     e.preventDefault();
   };
 
+  const handleDragEnterZone = (zoneId: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (!disabled && draggingItem) {
+      setDragOverZone(zoneId);
+    }
+  };
+
+  const handleDragLeaveZone = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Only clear if we're leaving the zone entirely (not just hovering over a child)
+    if (e.currentTarget === e.target) {
+      setDragOverZone(null);
+    }
+  };
+
   const handleDropToZone = (zoneId: number, e: React.DragEvent) => {
     e.preventDefault();
     if (!draggingItem || disabled) return;
@@ -107,6 +123,7 @@ export function DragDropZones({
     setZoneContents(newZoneContents);
     setAvailableItems(newAvailable);
     setDraggingItem(null);
+    setDragOverZone(null);
   };
 
   const handleDropToAvailable = (e: React.DragEvent) => {
@@ -130,6 +147,7 @@ export function DragDropZones({
 
     setZoneContents(newZoneContents);
     setDraggingItem(null);
+    setDragOverZone(null);
   };
 
   return (
@@ -170,9 +188,12 @@ export function DragDropZones({
             className={cn(
               "p-4 rounded-lg border-2 border-dashed border-muted-foreground/30",
               "transition-all duration-200",
-              draggingItem && "border-primary/50 bg-primary/5"
+              draggingItem && "border-primary/50 bg-primary/5",
+              dragOverZone === zone.zone_id && "border-primary bg-primary/10 scale-[1.02] shadow-lg"
             )}
             onDragOver={handleDragOver}
+            onDragEnter={(e) => handleDragEnterZone(zone.zone_id, e)}
+            onDragLeave={handleDragLeaveZone}
             onDrop={(e) => handleDropToZone(zone.zone_id, e)}
           >
             <h4 className="font-medium text-center mb-3 text-muted-foreground uppercase text-sm tracking-wider">{zone.zone_label}</h4>
