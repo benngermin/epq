@@ -616,13 +616,13 @@ export function AppLogsSection() {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {reportDateRange?.from ? (
-                        reportDateRange.to ? (
+                        reportDateRange?.to ? (
                           <>
-                            {format(reportDateRange.from, "MMM dd, yyyy")} -{" "}
-                            {format(reportDateRange.to, "MMM dd, yyyy")}
+                            {format(reportDateRange.from!, "MMM dd, yyyy")} -{" "}
+                            {format(reportDateRange.to!, "MMM dd, yyyy")}
                           </>
                         ) : (
-                          format(reportDateRange.from, "MMM dd, yyyy")
+                          format(reportDateRange.from!, "MMM dd, yyyy")
                         )
                       ) : (
                         <span>Pick a date range</span>
@@ -655,8 +655,8 @@ export function AppLogsSection() {
             {reportDateRange?.from && reportDateRange?.to && reportPreview && (
               <div className="bg-muted/50 rounded-lg p-3">
                 <p className="text-sm text-muted-foreground">
-                  Report will include data from <strong>{reportPreview.userCount}</strong> users 
-                  and <strong>{reportPreview.questionCount}</strong> questions answered
+                  Report will include data from <strong>{reportPreview?.userCount}</strong> users 
+                  and <strong>{reportPreview?.questionCount}</strong> questions answered
                 </p>
               </div>
             )}

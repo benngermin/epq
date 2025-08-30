@@ -99,7 +99,9 @@ export class CognitoAuth {
 
         return done(null, user);
       } catch (error) {
-        console.error('Error in Cognito OAuth strategy:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error in Cognito OAuth strategy:', error);
+        }
         return done(error, null);
       }
     });
