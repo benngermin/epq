@@ -176,7 +176,7 @@ export function DragDropZones({
             onDrop={(e) => handleDropToZone(zone.zone_id, e)}
           >
             <h4 className="font-medium text-center mb-3 text-muted-foreground uppercase text-sm tracking-wider">{zone.zone_label}</h4>
-            <div className="flex flex-wrap gap-2 min-h-[60px]">
+            <div className="flex flex-wrap gap-2 min-h-[45px]">
               {Array.isArray(zoneContents[zone.zone_id]) ? zoneContents[zone.zone_id].map((item) => (
                 <div
                   key={item}
