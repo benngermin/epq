@@ -165,17 +165,18 @@ export function DragDropZones({
       {/* Drop zones */}
       <div className="grid gap-4 md:grid-cols-2">
         {dropZones.map((zone) => (
-          <Card
+          <div
             key={zone.zone_id}
             className={cn(
-              "p-4",
-              draggingItem && "border-dashed border-2 border-primary/50"
+              "p-4 rounded-lg border-2 border-dashed border-muted-foreground/30",
+              "transition-all duration-200",
+              draggingItem && "border-primary/50 bg-primary/5"
             )}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDropToZone(zone.zone_id, e)}
           >
-            <h4 className="font-medium mb-2">{zone.zone_label}</h4>
-            <div className="flex flex-wrap gap-2 min-h-[80px] bg-muted/50 rounded p-2">
+            <h4 className="font-medium text-center mb-3 text-muted-foreground uppercase text-sm tracking-wider">{zone.zone_label}</h4>
+            <div className="flex flex-wrap gap-2 min-h-[60px]">
               {Array.isArray(zoneContents[zone.zone_id]) ? zoneContents[zone.zone_id].map((item) => (
                 <div
                   key={item}
@@ -194,7 +195,7 @@ export function DragDropZones({
                 </div>
               )) : []}
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
