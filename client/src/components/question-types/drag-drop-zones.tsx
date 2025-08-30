@@ -150,7 +150,8 @@ export function DragDropZones({
               className={cn(
                 "flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-md cursor-move",
                 "border border-border",
-                "hover:bg-primary/20 transition-colors",
+                "hover:bg-primary/20 hover:shadow-md hover:-translate-y-0.5",
+                "transition-all duration-200 ease-in-out",
                 disabled && "cursor-not-allowed opacity-50"
               )}
             >
@@ -183,7 +184,8 @@ export function DragDropZones({
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 bg-background rounded-md cursor-move",
                     "border border-border",
-                    "hover:bg-accent transition-colors",
+                    "hover:bg-accent hover:shadow-md hover:-translate-y-0.5",
+                    "transition-all duration-200 ease-in-out",
                     disabled && "cursor-not-allowed opacity-50"
                   )}
                 >
