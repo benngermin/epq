@@ -51,5 +51,12 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
     };
   });
   
+  // Sort questions by originalQuestionNumber in ascending order
+  questionsWithVersions.sort((a, b) => {
+    const aNum = a.originalQuestionNumber || 0;
+    const bNum = b.originalQuestionNumber || 0;
+    return aNum - bNum;
+  });
+  
   return questionsWithVersions;
 }
