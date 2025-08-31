@@ -1180,7 +1180,70 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question not found" });
       }
 
-      const isCorrect = answerData.chosenAnswer === questionVersion.correctAnswer;
+      // Check if answer is correct based on question type
+      let isCorrect = false;
+      const questionType = questionVersion.questionType;
+      const userAnswer = answerData.chosenAnswer;
+      
+      if (questionType === 'short_answer' || questionType === 'numerical_entry') {
+        const caseSensitive = questionVersion.caseSensitive || false;
+        
+        // Check if this is a multi-blank answer (JSON format)
+        if (userAnswer.startsWith('{')) {
+          try {
+            const userBlanks = JSON.parse(userAnswer);
+            const blankValues = Object.values(userBlanks).map((v: any) => 
+              caseSensitive ? String(v) : String(v).toLowerCase()
+            );
+            
+            // Join the blank values with spaces to create the full answer
+            const userFullAnswer = blankValues.join(' ');
+            const correctFullAnswer = caseSensitive 
+              ? questionVersion.correctAnswer 
+              : questionVersion.correctAnswer.toLowerCase();
+            
+            isCorrect = userFullAnswer === correctFullAnswer;
+            
+            // Check acceptable answers for multi-blank
+            if (!isCorrect && questionVersion.acceptableAnswers) {
+              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+                caseSensitive ? a : a.toLowerCase()
+              );
+              isCorrect = acceptableAnswers.includes(userFullAnswer);
+            }
+          } catch (e) {
+            // If JSON parse fails, treat as single answer
+            const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
+            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+            isCorrect = userAnswerNormalized === correctAnswer;
+            
+            // Check acceptable answers
+            if (!isCorrect && questionVersion.acceptableAnswers) {
+              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+                caseSensitive ? a : a.toLowerCase()
+              );
+              isCorrect = acceptableAnswers.includes(userAnswerNormalized);
+            }
+          }
+        } else {
+          // Single answer
+          const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
+          const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+          
+          isCorrect = userAnswerNormalized === correctAnswer;
+          
+          // Check acceptable answers
+          if (!isCorrect && questionVersion.acceptableAnswers) {
+            const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+              caseSensitive ? a : a.toLowerCase()
+            );
+            isCorrect = acceptableAnswers.includes(userAnswerNormalized);
+          }
+        }
+      } else {
+        // For other question types, use simple comparison
+        isCorrect = userAnswer === questionVersion.correctAnswer;
+      }
       
       const answer = await storage.createUserAnswer({
         ...answerData,
@@ -1245,7 +1308,70 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question version not found" });
       }
 
-      const isCorrect = answer === questionVersion.correctAnswer;
+      // Check if answer is correct based on question type
+      let isCorrect = false;
+      const questionType = questionVersion.questionType;
+      const userAnswer = answer;
+      
+      if (questionType === 'short_answer' || questionType === 'numerical_entry') {
+        const caseSensitive = questionVersion.caseSensitive || false;
+        
+        // Check if this is a multi-blank answer (JSON format)
+        if (userAnswer.startsWith('{')) {
+          try {
+            const userBlanks = JSON.parse(userAnswer);
+            const blankValues = Object.values(userBlanks).map((v: any) => 
+              caseSensitive ? String(v) : String(v).toLowerCase()
+            );
+            
+            // Join the blank values with spaces to create the full answer
+            const userFullAnswer = blankValues.join(' ');
+            const correctFullAnswer = caseSensitive 
+              ? questionVersion.correctAnswer 
+              : questionVersion.correctAnswer.toLowerCase();
+            
+            isCorrect = userFullAnswer === correctFullAnswer;
+            
+            // Check acceptable answers for multi-blank
+            if (!isCorrect && questionVersion.acceptableAnswers) {
+              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+                caseSensitive ? a : a.toLowerCase()
+              );
+              isCorrect = acceptableAnswers.includes(userFullAnswer);
+            }
+          } catch (e) {
+            // If JSON parse fails, treat as single answer
+            const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
+            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+            isCorrect = userAnswerNormalized === correctAnswer;
+            
+            // Check acceptable answers
+            if (!isCorrect && questionVersion.acceptableAnswers) {
+              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+                caseSensitive ? a : a.toLowerCase()
+              );
+              isCorrect = acceptableAnswers.includes(userAnswerNormalized);
+            }
+          }
+        } else {
+          // Single answer
+          const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
+          const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+          
+          isCorrect = userAnswerNormalized === correctAnswer;
+          
+          // Check acceptable answers
+          if (!isCorrect && questionVersion.acceptableAnswers) {
+            const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
+              caseSensitive ? a : a.toLowerCase()
+            );
+            isCorrect = acceptableAnswers.includes(userAnswerNormalized);
+          }
+        }
+      } else {
+        // For other question types, use simple comparison
+        isCorrect = userAnswer === questionVersion.correctAnswer;
+      }
 
       // Log this practice answer for analytics
       // First, find or create a practice test run for this user and question set

@@ -106,17 +106,50 @@ export function QuestionCard({
         case "numerical_entry":
         case "short_answer":
           const caseSensitive = question.latestVersion.caseSensitive;
-          const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
-          const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
           
-          isAnswerCorrect = userAnswer === correctAnswer;
-          
-          // Check acceptable answers
-          if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-            const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
-              caseSensitive ? a : a.toLowerCase()
-            );
-            isAnswerCorrect = acceptableAnswers.includes(userAnswer);
+          // Check if this is a multi-blank answer (JSON format)
+          if (answerString.startsWith('{')) {
+            try {
+              const userBlanks = JSON.parse(answerString);
+              const blankValues = Object.values(userBlanks).map((v: any) => 
+                caseSensitive ? String(v) : String(v).toLowerCase()
+              );
+              
+              // Join the blank values with spaces to create the full answer
+              const userFullAnswer = blankValues.join(' ');
+              const correctFullAnswer = caseSensitive 
+                ? question.latestVersion.correctAnswer 
+                : question.latestVersion.correctAnswer.toLowerCase();
+              
+              isAnswerCorrect = userFullAnswer === correctFullAnswer;
+              
+              // Check acceptable answers for multi-blank
+              if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+                const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
+                  caseSensitive ? a : a.toLowerCase()
+                );
+                isAnswerCorrect = acceptableAnswers.includes(userFullAnswer);
+              }
+            } catch (e) {
+              // If JSON parse fails, treat as single answer
+              const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
+              const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
+              isAnswerCorrect = userAnswer === correctAnswer;
+            }
+          } else {
+            // Single blank answer
+            const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
+            const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
+            
+            isAnswerCorrect = userAnswer === correctAnswer;
+            
+            // Check acceptable answers
+            if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+              const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
+                caseSensitive ? a : a.toLowerCase()
+              );
+              isAnswerCorrect = acceptableAnswers.includes(userAnswer);
+            }
           }
           break;
           
