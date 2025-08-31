@@ -169,10 +169,48 @@ export function QuestionCard({
         case "drag_and_drop":
           // Compare zone contents
           if (question.latestVersion.dropZones) {
-            const userZones = JSON.parse(answerString);
-            const correctZones = question.latestVersion.correctAnswer;
-            isAnswerCorrect = JSON.stringify(userZones) === JSON.stringify(correctZones);
+            try {
+              const userZones = JSON.parse(answerString);
+              
+              // Parse correctAnswer if it's a string
+              let correctZones: Record<string, string[]>;
+              if (typeof question.latestVersion.correctAnswer === 'string') {
+                correctZones = JSON.parse(question.latestVersion.correctAnswer);
+              } else {
+                correctZones = question.latestVersion.correctAnswer;
+              }
+              
+              // Compare each zone's contents
+              isAnswerCorrect = true;
+              
+              // Check if all zones have the same items (order doesn't matter within a zone)
+              for (const zoneId in correctZones) {
+                const correctItems = correctZones[zoneId] || [];
+                const userItems = userZones[zoneId] || [];
+                
+                // Sort both arrays to compare regardless of order within the zone
+                const sortedCorrect = [...correctItems].sort();
+                const sortedUser = [...userItems].sort();
+                
+                if (JSON.stringify(sortedCorrect) !== JSON.stringify(sortedUser)) {
+                  isAnswerCorrect = false;
+                  break;
+                }
+              }
+              
+              // Also check if user has items in zones that shouldn't have any
+              for (const zoneId in userZones) {
+                if (!correctZones[zoneId] && userZones[zoneId] && userZones[zoneId].length > 0) {
+                  isAnswerCorrect = false;
+                  break;
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing drag and drop answer:', e);
+              isAnswerCorrect = false;
+            }
           } else {
+            // Fallback for old format
             isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
           }
           break;
