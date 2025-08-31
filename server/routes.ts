@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses, questions, questionVersions, userAnswers, userTestRuns
+  promptVersions, questionSets, courses, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
@@ -3207,12 +3207,32 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // No user answers exist, safe to delete and recreate
         console.log(`✅ No user answers found for question set ${questionSetId}. Safe to delete and recreate.`);
         
+        // First delete chatbot feedback associated with these question versions
+        await db.delete(chatbotFeedback)
+          .where(inArray(chatbotFeedback.questionVersionId, 
+            db.select({ id: questionVersions.id })
+              .from(questionVersions)
+              .innerJoin(questions, eq(questionVersions.questionId, questions.id))
+              .where(eq(questions.questionSetId, questionSetId))
+          ));
+        
+        // Also delete chatbot feedback that references the questions directly
+        await db.delete(chatbotFeedback)
+          .where(inArray(chatbotFeedback.questionId, 
+            db.select({ id: questions.id })
+              .from(questions)
+              .where(eq(questions.questionSetId, questionSetId))
+          ));
+        
+        // Now delete question versions
         await db.delete(questionVersions)
           .where(inArray(questionVersions.questionId, 
             db.select({ id: questions.id })
               .from(questions)
               .where(eq(questions.questionSetId, questionSetId))
           ));
+        
+        // Finally delete the questions themselves
         await db.delete(questions).where(eq(questions.questionSetId, questionSetId));
       }
       
@@ -3306,15 +3326,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
         if (questionsToDelete.length > 0) {
           console.log(`  Deleting ${questionsToDelete.length} questions that are not in the new import...`);
           
-          // First delete user answers associated with these questions through question versions
+          // First get all question version IDs that will be deleted
           const versionIds = await db.select({ id: questionVersions.id })
             .from(questionVersions)
             .where(inArray(questionVersions.questionId, questionsToDelete));
           
           if (versionIds.length > 0) {
+            // Delete user answers associated with these question versions
             await db.delete(userAnswers)
               .where(inArray(userAnswers.questionVersionId, versionIds.map(v => v.id)));
+            
+            // Delete chatbot feedback associated with these question versions
+            await db.delete(chatbotFeedback)
+              .where(inArray(chatbotFeedback.questionVersionId, versionIds.map(v => v.id)));
           }
+          
+          // Also delete chatbot feedback that references the questions directly
+          await db.delete(chatbotFeedback)
+            .where(inArray(chatbotFeedback.questionId, questionsToDelete));
           
           // Delete question versions
           await db.delete(questionVersions)
