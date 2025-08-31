@@ -32,7 +32,13 @@ export function DragDropZones({
         // Ensure all values are arrays
         const sanitized: Record<number, string[]> = {};
         for (const key in parsed) {
-          const zoneId = parseInt(key);
+          // Handle both "zone_1" format (from DB) and numeric "1" format
+          let zoneId: number;
+          if (key.startsWith('zone_')) {
+            zoneId = parseInt(key.replace('zone_', ''));
+          } else {
+            zoneId = parseInt(key);
+          }
           if (!isNaN(zoneId)) {
             sanitized[zoneId] = Array.isArray(parsed[key]) ? parsed[key] : [];
           }
@@ -45,7 +51,13 @@ export function DragDropZones({
       // If value is already an object, ensure all values are arrays
       const sanitized: Record<number, string[]> = {};
       for (const key in value) {
-        const zoneId = parseInt(key);
+        // Handle both "zone_1" format (from DB) and numeric "1" format
+        let zoneId: number;
+        if (key.startsWith('zone_')) {
+          zoneId = parseInt(key.replace('zone_', ''));
+        } else {
+          zoneId = parseInt(key);
+        }
         if (!isNaN(zoneId)) {
           sanitized[zoneId] = Array.isArray(value[key]) ? value[key] : [];
         }
@@ -62,11 +74,13 @@ export function DragDropZones({
 
   useEffect(() => {
     // Ensure all zone contents are arrays before stringifying
-    const sanitizedContents: Record<number, string[]> = {};
+    // Convert numeric zone IDs to string format "zone_1", "zone_2" for database compatibility
+    const sanitizedContents: Record<string, string[]> = {};
     for (const key in zoneContents) {
       const zoneId = parseInt(key);
       if (!isNaN(zoneId) && Array.isArray(zoneContents[zoneId])) {
-        sanitizedContents[zoneId] = zoneContents[zoneId];
+        // Use string key format "zone_1", "zone_2" etc. for database compatibility
+        sanitizedContents[`zone_${zoneId}`] = zoneContents[zoneId];
       }
     }
     onChange(JSON.stringify(sanitizedContents));

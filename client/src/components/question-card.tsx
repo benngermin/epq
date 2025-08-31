@@ -180,13 +180,31 @@ export function QuestionCard({
                 correctZones = question.latestVersion.correctAnswer;
               }
               
+              // Normalize both user and correct zones to use consistent key format
+              // Handle both "zone_1" and "1" formats
+              const normalizedUserZones: Record<string, string[]> = {};
+              const normalizedCorrectZones: Record<string, string[]> = {};
+              
+              // Normalize user zones
+              for (const key in userZones) {
+                // Convert to "zone_X" format if not already
+                const normalizedKey = key.startsWith('zone_') ? key : `zone_${key}`;
+                normalizedUserZones[normalizedKey] = userZones[key] || [];
+              }
+              
+              // Normalize correct zones (they should already be in "zone_X" format from DB)
+              for (const key in correctZones) {
+                const normalizedKey = key.startsWith('zone_') ? key : `zone_${key}`;
+                normalizedCorrectZones[normalizedKey] = correctZones[key] || [];
+              }
+              
               // Compare each zone's contents
               isAnswerCorrect = true;
               
               // Check if all zones have the same items (order doesn't matter within a zone)
-              for (const zoneId in correctZones) {
-                const correctItems = correctZones[zoneId] || [];
-                const userItems = userZones[zoneId] || [];
+              for (const zoneId in normalizedCorrectZones) {
+                const correctItems = normalizedCorrectZones[zoneId] || [];
+                const userItems = normalizedUserZones[zoneId] || [];
                 
                 // Sort both arrays to compare regardless of order within the zone
                 const sortedCorrect = [...correctItems].sort();
@@ -199,8 +217,8 @@ export function QuestionCard({
               }
               
               // Also check if user has items in zones that shouldn't have any
-              for (const zoneId in userZones) {
-                if (!correctZones[zoneId] && userZones[zoneId] && userZones[zoneId].length > 0) {
+              for (const zoneId in normalizedUserZones) {
+                if (!normalizedCorrectZones[zoneId] && normalizedUserZones[zoneId] && normalizedUserZones[zoneId].length > 0) {
                   isAnswerCorrect = false;
                   break;
                 }
