@@ -269,6 +269,31 @@ export default function QuestionSetPractice() {
     }
   };
 
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger navigation if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowRight':
+          event.preventDefault();
+          handleNextQuestion();
+          break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          handlePreviousQuestion();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestionIndex, practiceData]);
+
   const resetMutation = useMutation({
     mutationFn: async () => {
       // Reset all state to initial values
