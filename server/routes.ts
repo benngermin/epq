@@ -3003,9 +3003,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      // For non-AI question sets, append '_non_ai' suffix to match Bubble's storage
-      const bubbleId = questionSet.isAi ? questionSet.externalId : `${questionSet.externalId}_non_ai`;
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${bubbleId}`;
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -3123,9 +3121,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      // For non-AI question sets, append '_non_ai' suffix to match Bubble's storage
-      const bubbleId = questionSet.isAi ? questionSet.externalId : `${questionSet.externalId}_non_ai`;
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${bubbleId}`;
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -3134,7 +3130,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const response = await fetch(url, { headers });
       
       if (!response.ok) {
-        console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        const responseText = await response.text();
+        console.error(`Bubble API error for question set ${questionSetId}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          url: url,
+          responseBody: responseText,
+          externalId: questionSet.externalId,
+          isAi: questionSet.isAi
+        });
         return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
       }
       
@@ -3463,6 +3467,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
     } catch (error) {
       console.error("Error updating question set from Bubble:", error);
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       res.status(500).json({ message: "Failed to update question set from Bubble" });
     }
   });
