@@ -120,7 +120,7 @@ export function FillInBlank({
     <div className="space-y-4">
       {renderQuestionWithInput()}
       
-      {disabled && correctAnswer && (
+      {disabled && !isCorrect && correctAnswer && (
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm font-medium">Correct answer: {correctAnswer}</p>
           {acceptableAnswers && acceptableAnswers.length > 0 && (
