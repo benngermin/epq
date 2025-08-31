@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 
 interface FillInBlankProps {
   questionText: string;
@@ -20,6 +21,52 @@ export function FillInBlank({
   correctAnswer,
   acceptableAnswers,
 }: FillInBlankProps) {
+  // Parse the value as JSON if it contains multiple blanks, otherwise use it as a single string
+  const [blankValues, setBlankValues] = useState<Record<number, string>>(() => {
+    try {
+      if (value && value.startsWith('{')) {
+        return JSON.parse(value);
+      }
+      return { 0: value || '' };
+    } catch {
+      return { 0: value || '' };
+    }
+  });
+
+  // Count the number of blanks
+  const blankCount = (questionText.match(/_{3,}/g) || []).length;
+
+  // Update local state when value prop changes (e.g., when navigating between questions)
+  useEffect(() => {
+    try {
+      if (value && value.startsWith('{')) {
+        setBlankValues(JSON.parse(value));
+      } else if (blankCount <= 1) {
+        setBlankValues({ 0: value || '' });
+      }
+    } catch {
+      setBlankValues({ 0: value || '' });
+    }
+  }, [value, questionText]); // Also depend on questionText to reset when question changes
+
+  // Update parent component when values change
+  useEffect(() => {
+    if (blankCount <= 1) {
+      // Single blank or no blank: send just the string value
+      onChange(blankValues[0] || '');
+    } else {
+      // Multiple blanks: send JSON stringified object
+      onChange(JSON.stringify(blankValues));
+    }
+  }, [blankValues, blankCount, onChange]);
+
+  const handleBlankChange = (index: number, newValue: string) => {
+    setBlankValues(prev => ({
+      ...prev,
+      [index]: newValue
+    }));
+  };
+
   // Replace _____ or similar patterns with the input field
   const renderQuestionWithInput = () => {
     const parts = questionText.split(/_{3,}/);
@@ -35,8 +82,8 @@ export function FillInBlank({
               <Input
                 id="answer-input"
                 type="text"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
+                value={blankValues[0] || ''}
+                onChange={(e) => handleBlankChange(0, e.target.value)}
                 disabled={disabled}
                 className="w-48"
                 placeholder="Type your answer"
@@ -47,7 +94,7 @@ export function FillInBlank({
       );
     }
     
-    // Render with inline input
+    // Render with inline input(s)
     return (
       <div className="text-base text-foreground leading-relaxed">
         {parts.map((part, index) => (
@@ -56,8 +103,8 @@ export function FillInBlank({
             {index < parts.length - 1 && (
               <Input
                 type="text"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
+                value={blankValues[index] || ''}
+                onChange={(e) => handleBlankChange(index, e.target.value)}
                 disabled={disabled}
                 className="inline-block w-48 mx-2"
                 placeholder="Type your answer"
