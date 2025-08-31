@@ -4,7 +4,9 @@ import { db } from '../db';
 // Create indexes for better query performance
 export async function createDatabaseIndexes() {
   try {
-    console.log('Creating database indexes for performance optimization...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Creating database indexes for performance optimization...');
+    }
     
     // Indexes for user authentication queries
     await db.execute(sql`
@@ -48,9 +50,13 @@ export async function createDatabaseIndexes() {
       CREATE INDEX IF NOT EXISTS idx_course_materials_loid ON course_materials(loid);
     `);
     
-    console.log('Database indexes created successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Database indexes created successfully');
+    }
   } catch (error) {
-    console.error('Error creating database indexes:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error creating database indexes:', error);
+    }
     // Don't throw error - indexes are optional for functionality
   }
 }

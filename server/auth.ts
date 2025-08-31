@@ -125,14 +125,18 @@ export function setupAuth(app: Express) {
         console.log(`✓ Redirect URI: ${cognitoRedirectUri}`);
       }
     } catch (error) {
-      console.error('❌ CRITICAL: Failed to initialize Cognito SSO - Authentication will not work!', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ CRITICAL: Failed to initialize Cognito SSO - Authentication will not work!', error);
+      }
       throw new Error('Cognito SSO configuration is required but failed to initialize');
     }
   } else {
-    console.warn('⚠️ WARNING: Cognito SSO environment variables are missing!');
-    console.warn('Required for production: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET');
-    console.warn('Optional: COGNITO_REDIRECT_URI (will be auto-detected if not provided)');
-    console.warn('Running in development mode with local authentication only');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ WARNING: Cognito SSO environment variables are missing!');
+      console.warn('Required for production: COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET');
+      console.warn('Optional: COGNITO_REDIRECT_URI (will be auto-detected if not provided)');
+      console.warn('Running in development mode with local authentication only');
+    }
   }
 
   // Local authentication strategy - now available for admin users only
@@ -156,7 +160,9 @@ export function setupAuth(app: Express) {
         
         return done(null, user);
       } catch (err) {
-        console.error('Authentication error:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Authentication error:', err);
+        }
         return done(err);
       }
     }),
@@ -172,7 +178,9 @@ export function setupAuth(app: Express) {
       }
       done(null, user);
     } catch (error) {
-      console.error('Error deserializing user:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deserializing user:', error);
+      }
       done(error, null);
     }
   });
@@ -202,7 +210,9 @@ export function setupAuth(app: Express) {
         // Ensure session is saved before sending response
         req.session.save((saveErr) => {
           if (saveErr) {
-            console.error('Failed to save session after registration:', saveErr);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Failed to save session after registration:', saveErr);
+            }
             return next(saveErr);
           }
           res.json(user);
@@ -230,7 +240,9 @@ export function setupAuth(app: Express) {
         // Ensure session is saved before sending response
         req.session.save((saveErr) => {
           if (saveErr) {
-            console.error('Failed to save session after login:', saveErr);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Failed to save session after login:', saveErr);
+            }
             return next(saveErr);
           }
           res.json(user);
@@ -296,8 +308,13 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Debug endpoint to list all registered routes
+  // Debug endpoint to list all registered routes - restricted to development or admin users
   app.get("/api/debug/routes", (req, res) => {
+    // Only allow in development mode or for authenticated admin users
+    if (process.env.NODE_ENV !== 'development' && (!req.user || !req.user.isAdmin)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
     const routes: any[] = [];
     app._router.stack.forEach((middleware: any) => {
       if (middleware.route) {

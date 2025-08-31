@@ -63,10 +63,12 @@ export async function withHealthMonitoring<T>(
     const err = error as Error;
     dbHealthMonitor.recordFailure(err);
     
-    console.error(`Database health check failed for ${operationName}:`, {
-      error: err.message,
-      healthStatus: dbHealthMonitor.getHealthStatus(),
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`Database health check failed for ${operationName}:`, {
+        error: err.message,
+        healthStatus: dbHealthMonitor.getHealthStatus(),
+      });
+    }
     
     throw error;
   }
