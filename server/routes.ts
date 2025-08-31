@@ -3003,7 +3003,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      // For non-AI question sets, append '_non_ai' suffix to match Bubble's storage
+      const bubbleId = questionSet.isAi ? questionSet.externalId : `${questionSet.externalId}_non_ai`;
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${bubbleId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -3121,7 +3123,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      // For non-AI question sets, append '_non_ai' suffix to match Bubble's storage
+      const bubbleId = questionSet.isAi ? questionSet.externalId : `${questionSet.externalId}_non_ai`;
+      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${bubbleId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
