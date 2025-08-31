@@ -686,7 +686,67 @@ export default function QuestionSetPractice() {
                     questionIndex: currentQuestionIndex,
                     userAnswer: userAnswers[currentQuestion?.id] ? {
                       chosenAnswer: userAnswers[currentQuestion.id],
-                      isCorrect: userAnswers[currentQuestion.id] === currentQuestion?.latestVersion?.correctAnswer
+                      isCorrect: (() => {
+                        const userAnswer = userAnswers[currentQuestion.id];
+                        const questionType = currentQuestion?.latestVersion?.questionType;
+                        const correctAnswer = currentQuestion?.latestVersion?.correctAnswer;
+                        const caseSensitive = currentQuestion?.latestVersion?.caseSensitive || false;
+                        const acceptableAnswers = currentQuestion?.latestVersion?.acceptableAnswers || [];
+                        
+                        if (questionType === 'short_answer' || questionType === 'numerical_entry') {
+                          // Check if this is a multi-blank answer (JSON format)
+                          if (userAnswer.startsWith('{')) {
+                            try {
+                              const userBlanks = JSON.parse(userAnswer);
+                              const blankValues = Object.values(userBlanks).map((v: any) => 
+                                caseSensitive ? String(v) : String(v).toLowerCase()
+                              );
+                              
+                              // Join the blank values with spaces to create the full answer
+                              const userFullAnswer = blankValues.join(' ');
+                              const correctFullAnswer = caseSensitive 
+                                ? correctAnswer 
+                                : correctAnswer.toLowerCase();
+                              
+                              let isCorrect = userFullAnswer === correctFullAnswer;
+                              
+                              // Check acceptable answers for multi-blank
+                              if (!isCorrect && acceptableAnswers.length > 0) {
+                                const normalizedAcceptable = acceptableAnswers.map((a: string) => 
+                                  caseSensitive ? a : a.toLowerCase()
+                                );
+                                isCorrect = normalizedAcceptable.includes(userFullAnswer);
+                              }
+                              
+                              return isCorrect;
+                            } catch (e) {
+                              // If JSON parse fails, treat as single answer
+                              const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+                              const correctAnswerNormalized = caseSensitive ? correctAnswer : correctAnswer.toLowerCase();
+                              return userAnswerNormalized === correctAnswerNormalized;
+                            }
+                          } else {
+                            // Single answer
+                            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
+                            const correctAnswerNormalized = caseSensitive ? correctAnswer : correctAnswer.toLowerCase();
+                            
+                            let isCorrect = userAnswerNormalized === correctAnswerNormalized;
+                            
+                            // Check acceptable answers
+                            if (!isCorrect && acceptableAnswers.length > 0) {
+                              const normalizedAcceptable = acceptableAnswers.map((a: string) => 
+                                caseSensitive ? a : a.toLowerCase()
+                              );
+                              isCorrect = normalizedAcceptable.includes(userAnswerNormalized);
+                            }
+                            
+                            return isCorrect;
+                          }
+                        } else {
+                          // For other question types, use simple comparison
+                          return userAnswer === correctAnswer;
+                        }
+                      })()
                     } : null
                   }}
                   onSubmitAnswer={handleSubmitAnswer}
