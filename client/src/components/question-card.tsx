@@ -254,7 +254,7 @@ export function QuestionCard({
       if (!isAnswerCorrect) {
         setIsFlipped(true);
       }
-    }, 3000);
+    }, 2500);
   };
 
   const handleReviewQuestion = () => {
