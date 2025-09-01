@@ -2719,24 +2719,50 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Import questions if they exist in the Bubble data
           if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
-            const questionImports = bubbleQuestionSet.questions.map((q: any) => ({
-              question_number: q.question_number || q.number || 1,
-              type: q.type || "multiple_choice",
-              loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
-              versions: [{
+            const questionImports = bubbleQuestionSet.questions.map((q: any) => {
+              const questionType = q.question_type || q.type || "multiple_choice";
+              const versionData: any = {
                 version_number: 1,
                 topic_focus: q.topic_focus || bubbleQuestionSet.title || "General",
                 question_text: q.question_text || q.text || "",
-                question_type: q.question_type || q.type || "multiple_choice",
+                question_type: questionType,
                 answer_choices: q.answer_choices || q.choices || [],
                 correct_answer: q.correct_answer || q.answer || "",
                 acceptable_answers: q.acceptable_answers,
                 case_sensitive: q.case_sensitive || false,
                 allow_multiple: q.allow_multiple || false,
                 matching_pairs: q.matching_pairs,
-                correct_order: q.correct_order
-              }]
-            }));
+                correct_order: q.correct_order,
+                blanks: q.blanks || null
+              };
+              
+              // Handle select_from_list questions properly
+              if (questionType === "select_from_list") {
+                if (q.blanks && Array.isArray(q.blanks) && q.blanks.length > 0) {
+                  // Check if question text has blanks (underscores)
+                  const hasUnderscores = /_{3,}/.test(versionData.question_text);
+                  
+                  if (!hasUnderscores) {
+                    // Convert to pick_from_list if no underscores but has blanks data
+                    versionData.question_type = "pick_from_list";
+                    versionData.answer_choices = q.blanks[0].answer_choices || [];
+                    versionData.correct_answer = q.blanks[0].correct_answer || "";
+                    versionData.allow_multiple = false;
+                    versionData.blanks = null;
+                  }
+                } else {
+                  // No blanks data, convert to multiple choice
+                  versionData.question_type = "multiple_choice";
+                }
+              }
+              
+              return {
+                question_number: q.question_number || q.number || 1,
+                type: versionData.question_type,
+                loid: q.loid || bubbleQuestionSet.learning_object?._id || "unknown",
+                versions: [versionData]
+              };
+            });
 
             // Wrap bulk operations in try-catch for better error handling
             try {
@@ -2910,8 +2936,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
               };
               
               // Add question type specific fields
-              if (questionType === "select_from_list" && q.blanks) {
-                versionData.blanks = q.blanks;
+              if (questionType === "select_from_list") {
+                if (q.blanks && Array.isArray(q.blanks) && q.blanks.length > 0) {
+                  // Check if question text has blanks (underscores)
+                  const hasUnderscores = /_{3,}/.test(versionData.question_text);
+                  
+                  if (!hasUnderscores) {
+                    // If no underscores in text but we have blanks data,
+                    // this is likely a multiple choice question that was miscategorized
+                    // Convert it to pick_from_list type with the answer choices from blanks
+                    versionData.question_type = "pick_from_list";
+                    versionData.answer_choices = q.blanks[0].answer_choices || [];
+                    versionData.correct_answer = q.blanks[0].correct_answer || "";
+                    versionData.allow_multiple = false;
+                    // Don't set blanks since we're converting to pick_from_list
+                  } else {
+                    // Question has underscores, keep as select_from_list with blanks
+                    versionData.blanks = q.blanks;
+                  }
+                } else if (!q.blanks || q.blanks.length === 0) {
+                  // No blanks data, convert to multiple choice
+                  versionData.question_type = "multiple_choice";
+                }
               }
               
               if (questionType === "drag_and_drop") {
