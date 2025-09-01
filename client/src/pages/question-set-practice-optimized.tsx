@@ -50,7 +50,7 @@ export default function QuestionSetPractice() {
   }, [user, authLoading, setLocation, isDemo]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<number, { answer: string; isCorrect?: boolean }>>({});
   const [showChat, setShowChat] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isCardFlipped, setIsCardFlipped] = useState(false);
@@ -179,7 +179,7 @@ export default function QuestionSetPractice() {
 
 
   const submitAnswerMutation = useMutation({
-    mutationFn: async ({ questionVersionId, answer }: { questionVersionId: number; answer: string }) => {
+    mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
       debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
       const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
         questionVersionId,
@@ -187,12 +187,22 @@ export default function QuestionSetPractice() {
       });
       const data = await res.json();
       debugLog(`Answer submission response:`, data);
-      return data;
+      return { ...data, questionId };
     },
     onSuccess: (data) => {
       debugLog(`Answer submitted successfully:`, data);
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
+      // Store the answer with the backend's isCorrect value
+      if (data.questionId) {
+        setUserAnswers(prev => ({
+          ...prev,
+          [data.questionId]: {
+            answer: data.chosenAnswer,
+            isCorrect: data.isCorrect
+          }
+        }));
+      }
     },
     onError: (error) => {
       debugError(`Answer submission failed:`, error);
@@ -232,20 +242,16 @@ export default function QuestionSetPractice() {
       return;
     }
     
-    debugLog(`Setting answer for question ${currentQuestion.id}: ${answer}`);
-    setUserAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: answer
-    }));
-    
     debugLog(`Calling submitAnswerMutation with:`, {
       questionVersionId: currentQuestion.latestVersion.id,
-      answer: answer
+      answer: answer,
+      questionId: currentQuestion.id
     });
     
     submitAnswerMutation.mutate({
       questionVersionId: currentQuestion.latestVersion.id,
       answer,
+      questionId: currentQuestion.id,
     });
   };
 
@@ -640,9 +646,9 @@ export default function QuestionSetPractice() {
               <div className="flex-1 overflow-hidden">
                 <div className="h-full overflow-y-auto space-y-2 pr-2 pb-4">
                   {questions?.map((question: any, index: number) => {
-                    const isAnswered = question?.id ? userAnswers[question.id] : false;
+                    const isAnswered = question?.id ? !!userAnswers[question.id] : false;
                     const isCurrent = index === currentQuestionIndex;
-                    const isCorrect = isAnswered && userAnswers[question.id] === question?.latestVersion?.correctAnswer;
+                    const isCorrect = isAnswered && userAnswers[question.id]?.isCorrect;
                     
                     return (
                       <div
@@ -710,68 +716,8 @@ export default function QuestionSetPractice() {
                     ...currentQuestion,
                     questionIndex: currentQuestionIndex,
                     userAnswer: userAnswers[currentQuestion?.id] ? {
-                      chosenAnswer: userAnswers[currentQuestion.id],
-                      isCorrect: (() => {
-                        const userAnswer = userAnswers[currentQuestion.id];
-                        const questionType = currentQuestion?.latestVersion?.questionType;
-                        const correctAnswer = currentQuestion?.latestVersion?.correctAnswer;
-                        const caseSensitive = currentQuestion?.latestVersion?.caseSensitive || false;
-                        const acceptableAnswers = currentQuestion?.latestVersion?.acceptableAnswers || [];
-                        
-                        if (questionType === 'short_answer' || questionType === 'numerical_entry') {
-                          // Check if this is a multi-blank answer (JSON format)
-                          if (userAnswer.startsWith('{')) {
-                            try {
-                              const userBlanks = JSON.parse(userAnswer);
-                              const blankValues = Object.values(userBlanks).map((v: any) => 
-                                caseSensitive ? String(v) : String(v).toLowerCase()
-                              );
-                              
-                              // Join the blank values with spaces to create the full answer
-                              const userFullAnswer = blankValues.join(' ');
-                              const correctFullAnswer = caseSensitive 
-                                ? correctAnswer 
-                                : correctAnswer.toLowerCase();
-                              
-                              let isCorrect = userFullAnswer === correctFullAnswer;
-                              
-                              // Check acceptable answers for multi-blank
-                              if (!isCorrect && acceptableAnswers.length > 0) {
-                                const normalizedAcceptable = acceptableAnswers.map((a: string) => 
-                                  caseSensitive ? a : a.toLowerCase()
-                                );
-                                isCorrect = normalizedAcceptable.includes(userFullAnswer);
-                              }
-                              
-                              return isCorrect;
-                            } catch (e) {
-                              // If JSON parse fails, treat as single answer
-                              const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-                              const correctAnswerNormalized = caseSensitive ? correctAnswer : correctAnswer.toLowerCase();
-                              return userAnswerNormalized === correctAnswerNormalized;
-                            }
-                          } else {
-                            // Single answer
-                            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-                            const correctAnswerNormalized = caseSensitive ? correctAnswer : correctAnswer.toLowerCase();
-                            
-                            let isCorrect = userAnswerNormalized === correctAnswerNormalized;
-                            
-                            // Check acceptable answers
-                            if (!isCorrect && acceptableAnswers.length > 0) {
-                              const normalizedAcceptable = acceptableAnswers.map((a: string) => 
-                                caseSensitive ? a : a.toLowerCase()
-                              );
-                              isCorrect = normalizedAcceptable.includes(userAnswerNormalized);
-                            }
-                            
-                            return isCorrect;
-                          }
-                        } else {
-                          // For other question types, use simple comparison
-                          return userAnswer === correctAnswer;
-                        }
-                      })()
+                      chosenAnswer: userAnswers[currentQuestion.id].answer,
+                      isCorrect: userAnswers[currentQuestion.id].isCorrect
                     } : null
                   }}
                   onSubmitAnswer={handleSubmitAnswer}
