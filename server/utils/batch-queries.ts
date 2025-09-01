@@ -45,9 +45,26 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
     const latestVersion = versions
       .sort((a: any, b: any) => b.versionNumber - a.versionNumber)[0];
     
+    // Transform latestVersion to use camelCase field names
+    let transformedLatestVersion = null;
+    if (latestVersion) {
+      transformedLatestVersion = {
+        ...latestVersion,
+        answerChoices: latestVersion.answerChoices || latestVersion.answer_choices,
+        dropZones: latestVersion.dropZones || latestVersion.drop_zones,
+      };
+      // Clean up snake_case versions if they exist
+      if ('answer_choices' in transformedLatestVersion) {
+        delete (transformedLatestVersion as any).answer_choices;
+      }
+      if ('drop_zones' in transformedLatestVersion) {
+        delete (transformedLatestVersion as any).drop_zones;
+      }
+    }
+    
     return {
       ...question,
-      latestVersion: latestVersion || null
+      latestVersion: transformedLatestVersion
     };
   });
   

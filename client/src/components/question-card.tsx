@@ -154,13 +154,17 @@ export function QuestionCard({
           break;
           
         case "select_from_list":
-          // For select_from_list with blanks, compare JSON objects
-          if (question.latestVersion.blanks) {
+          // For select_from_list with blanks in the text, compare JSON objects
+          if (question.latestVersion.blanks && question.latestVersion.questionText?.includes('___')) {
             const userBlanks = JSON.parse(answerString);
             const correctBlanks = question.latestVersion.blanks || [];
             isAnswerCorrect = correctBlanks.every((blank: any) =>
               userBlanks[blank.blank_id] === blank.correct_answer
             );
+          } else if (question.latestVersion.blanks && question.latestVersion.blanks[0]) {
+            // For select_from_list with blanks data but no blanks in text (regular dropdown)
+            // The answer is the selected choice directly
+            isAnswerCorrect = answerString === question.latestVersion.blanks[0].correct_answer;
           } else {
             isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
           }
@@ -372,8 +376,8 @@ export function QuestionCard({
                         );
                         
                       case "select_from_list":
-                        // Check if this uses the new blanks format
-                        if (question.latestVersion?.blanks) {
+                        // Check if this uses the new blanks format with actual blanks in text
+                        if (question.latestVersion?.blanks && question.latestVersion?.questionText?.includes('___')) {
                           return (
                             <SelectFromListBlank
                               questionText={question.latestVersion.questionText}
@@ -386,6 +390,17 @@ export function QuestionCard({
                             />
                           );
                         } else {
+                          // For select_from_list with blanks but no underscores in text,
+                          // extract answer choices from the first blank
+                          let answerChoices = question.latestVersion?.answerChoices || [];
+                          let correctAnswer = question.latestVersion?.correctAnswer;
+                          
+                          if (answerChoices.length === 0 && question.latestVersion?.blanks?.[0]?.answer_choices) {
+                            answerChoices = question.latestVersion.blanks[0].answer_choices;
+                            // Also get the correct answer from the blank
+                            correctAnswer = question.latestVersion.blanks[0].correct_answer;
+                          }
+                          
                           // Fallback to pick-from-list style
                           return (
                             <div className="flex-1 flex flex-col">
@@ -396,12 +411,12 @@ export function QuestionCard({
                               </div>
                               <div className="flex-1">
                                 <PickFromList
-                                  answerChoices={question.latestVersion?.answerChoices || []}
+                                  answerChoices={answerChoices}
                                   value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                   onChange={setSelectedAnswerState}
                                   allowMultiple={false}
                                   disabled={hasAnswer || isSubmitting}
-                                  correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                  correctAnswer={hasAnswer ? correctAnswer : undefined}
                                 />
                               </div>
                             </div>
