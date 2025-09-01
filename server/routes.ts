@@ -1187,7 +1187,34 @@ export function registerRoutes(app: Express): Server {
       const questionType = questionVersion.questionType;
       const userAnswer = answerData.chosenAnswer;
       
-      if (questionType === 'short_answer' || questionType === 'numerical_entry') {
+      if (questionType === 'select_from_list') {
+        // Handle select_from_list questions by comparing against blanks field
+        if (questionVersion.blanks && userAnswer.startsWith('{')) {
+          try {
+            const userBlanks = JSON.parse(userAnswer);
+            const correctBlanks = questionVersion.blanks as Array<{
+              blank_id: number;
+              answer_choices: string[];
+              correct_answer: string;
+            }>;
+            
+            // Check if all blanks are answered correctly
+            isCorrect = true;
+            for (const blank of correctBlanks) {
+              const userAnswerForBlank = userBlanks[blank.blank_id.toString()];
+              if (userAnswerForBlank !== blank.correct_answer) {
+                isCorrect = false;
+                break;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing select_from_list answer:', e);
+            isCorrect = false;
+          }
+        } else {
+          isCorrect = false;
+        }
+      } else if (questionType === 'short_answer' || questionType === 'numerical_entry') {
         const caseSensitive = questionVersion.caseSensitive || false;
         
         // Check if this is a multi-blank answer (JSON format)
@@ -1315,7 +1342,34 @@ export function registerRoutes(app: Express): Server {
       const questionType = questionVersion.questionType;
       const userAnswer = answer;
       
-      if (questionType === 'short_answer' || questionType === 'numerical_entry') {
+      if (questionType === 'select_from_list') {
+        // Handle select_from_list questions by comparing against blanks field
+        if (questionVersion.blanks && userAnswer.startsWith('{')) {
+          try {
+            const userBlanks = JSON.parse(userAnswer);
+            const correctBlanks = questionVersion.blanks as Array<{
+              blank_id: number;
+              answer_choices: string[];
+              correct_answer: string;
+            }>;
+            
+            // Check if all blanks are answered correctly
+            isCorrect = true;
+            for (const blank of correctBlanks) {
+              const userAnswerForBlank = userBlanks[blank.blank_id.toString()];
+              if (userAnswerForBlank !== blank.correct_answer) {
+                isCorrect = false;
+                break;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing select_from_list answer:', e);
+            isCorrect = false;
+          }
+        } else {
+          isCorrect = false;
+        }
+      } else if (questionType === 'short_answer' || questionType === 'numerical_entry') {
         const caseSensitive = questionVersion.caseSensitive || false;
         
         // Check if this is a multi-blank answer (JSON format)
