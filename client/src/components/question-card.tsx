@@ -382,6 +382,7 @@ export function QuestionCard({
                               onChange={setSelectedAnswerState}
                               disabled={hasAnswer || isSubmitting}
                               correctAnswer={hasAnswer ? question.latestVersion.blanks : undefined}
+                              isCorrect={isCorrect}
                             />
                           );
                         } else {

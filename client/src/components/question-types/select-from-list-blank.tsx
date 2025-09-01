@@ -12,6 +12,7 @@ interface SelectFromListBlankProps {
   onChange: (value: any) => void;
   disabled?: boolean;
   correctAnswer?: any;
+  isCorrect?: boolean;
 }
 
 export function SelectFromListBlank({
@@ -21,6 +22,7 @@ export function SelectFromListBlank({
   onChange,
   disabled,
   correctAnswer,
+  isCorrect,
 }: SelectFromListBlankProps) {
   // Parse current values or initialize
   const currentValues = typeof value === 'string' && value ? JSON.parse(value) : {};
@@ -95,7 +97,7 @@ export function SelectFromListBlank({
     <div className="space-y-4">
       {renderQuestionWithDropdowns()}
 
-      {disabled && correctAnswer && (
+      {disabled && correctAnswer && isCorrect === false && (
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm font-medium">Correct answers:</p>
           {blanks.map((blank) => (
