@@ -138,19 +138,6 @@ export function Ordering({
         })}
       </div>
 
-      {/* Show correct order when disabled */}
-      {disabled && correctAnswer && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm font-medium mb-2">Correct order:</p>
-          <div className="space-y-1">
-            {getCorrectOrder()?.map((item, index) => (
-              <div key={index} className="text-sm text-muted-foreground">
-                {index + 1}. {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

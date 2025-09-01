@@ -53,11 +53,6 @@ export function EitherOr({
         })}
       </RadioGroup>
 
-      {disabled && correctAnswer && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm font-medium">Correct answer: {correctAnswer}</p>
-        </div>
-      )}
     </div>
   );
 }
