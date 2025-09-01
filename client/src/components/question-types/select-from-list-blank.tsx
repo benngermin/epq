@@ -25,7 +25,19 @@ export function SelectFromListBlank({
   isCorrect,
 }: SelectFromListBlankProps) {
   // Parse current values or initialize
-  const currentValues = typeof value === 'string' && value ? JSON.parse(value) : {};
+  let currentValues: Record<number, string> = {};
+  if (value) {
+    if (typeof value === 'string') {
+      try {
+        currentValues = JSON.parse(value);
+      } catch (e) {
+        // If parsing fails, it might be a single value or invalid JSON
+        currentValues = {};
+      }
+    } else if (typeof value === 'object') {
+      currentValues = value;
+    }
+  }
 
   const handleBlankChange = (blankId: number, newValue: string) => {
     const updatedValues = { ...currentValues, [blankId]: newValue };
