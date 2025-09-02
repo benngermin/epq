@@ -33,9 +33,9 @@ export function FillInBlank({
     }
   });
 
-  // Create a combined pattern that matches underscore blanks (___), blank_N patterns, and square brackets []
+  // Create a combined pattern that matches underscore blanks (___), blank_N patterns, square brackets [], and asterisk-wrapped words
   // Memoize to prevent recreation on every render
-  const blankPattern = useMemo(() => /(?:_{3,}|blank_\d+|\[\s*\])/g, []);
+  const blankPattern = useMemo(() => /(?:_{3,}|blank_\d+|\[\s*\]|\*[^*]+\*)/g, []);
   
   // Count the number of blanks - memoized to prevent recalculation
   const blankCount = useMemo(() => {
