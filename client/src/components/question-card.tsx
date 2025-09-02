@@ -382,6 +382,13 @@ export function QuestionCard({
                           (question.latestVersion.questionText.includes('___') || 
                            /blank_\d+/i.test(question.latestVersion.questionText));
                         
+                        // Debug logging
+                        console.log('QuestionCard - select_from_list:', {
+                          questionText: question.latestVersion?.questionText,
+                          blanks: question.latestVersion?.blanks,
+                          hasBlankPattern,
+                        });
+                        
                         if (question.latestVersion?.blanks && hasBlankPattern) {
                           return (
                             <SelectFromListBlank

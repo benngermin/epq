@@ -24,6 +24,10 @@ export function SelectFromListBlank({
   correctAnswer,
   isCorrect,
 }: SelectFromListBlankProps) {
+  // Debug logging to understand the data structure
+  console.log('SelectFromListBlank - questionText:', questionText);
+  console.log('SelectFromListBlank - blanks:', blanks);
+  
   // Parse current values or initialize
   let currentValues: Record<number, string> = {};
   if (value) {
