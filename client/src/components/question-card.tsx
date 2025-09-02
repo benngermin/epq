@@ -377,7 +377,12 @@ export function QuestionCard({
                         
                       case "select_from_list":
                         // Check if this uses the new blanks format with actual blanks in text
-                        if (question.latestVersion?.blanks && question.latestVersion?.questionText?.includes('___')) {
+                        // Support both underscore patterns (___) and blank_n patterns
+                        const hasBlankPattern = question.latestVersion?.questionText && 
+                          (question.latestVersion.questionText.includes('___') || 
+                           /blank_\d+/i.test(question.latestVersion.questionText));
+                        
+                        if (question.latestVersion?.blanks && hasBlankPattern) {
                           return (
                             <SelectFromListBlank
                               questionText={question.latestVersion.questionText}

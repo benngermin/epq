@@ -50,23 +50,46 @@ export function SelectFromListBlank({
     const elements: JSX.Element[] = [];
     let lastIndex = 0;
 
-    // Find all blank positions
-    const blankRegex = /_{3,}/g;
+    // Combined regex to find both underscore patterns (___) and blank_n patterns
+    const blankRegex = /(?:_{3,}|blank_(\d+))/gi;
     let match;
-    let blankIndex = 0;
 
+    // Create array to store matches with their blank IDs
+    const matches: Array<{ index: number; length: number; blankId: number }> = [];
+    
     while ((match = blankRegex.exec(questionText)) !== null) {
+      let blankId: number;
+      
+      // Check if this is a blank_n pattern
+      if (match[1]) {
+        // Extract the number from blank_n
+        blankId = parseInt(match[1]);
+      } else {
+        // For underscore patterns, use sequential numbering starting from 1
+        blankId = matches.length + 1;
+      }
+      
+      matches.push({
+        index: match.index,
+        length: match[0].length,
+        blankId: blankId
+      });
+    }
+
+    // Process matches to build elements
+    matches.forEach((matchInfo, index) => {
       // Add text before the blank
-      if (match.index > lastIndex) {
+      if (matchInfo.index > lastIndex) {
         elements.push(
           <span key={`text-${lastIndex}`}>
-            {questionText.substring(lastIndex, match.index)}
+            {questionText.substring(lastIndex, matchInfo.index)}
           </span>
         );
       }
 
-      // Add dropdown for this blank
-      const blank = blanks[blankIndex];
+      // Find the corresponding blank data by blank_id
+      const blank = blanks.find(b => b.blank_id === matchInfo.blankId);
+      
       if (blank) {
         elements.push(
           <Select
@@ -76,7 +99,7 @@ export function SelectFromListBlank({
             disabled={disabled}
           >
             <SelectTrigger className="inline-flex w-48 mx-2">
-              <SelectValue placeholder="Select an answer" />
+              <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
               {blank.answer_choices.map((choice, idx) => (
@@ -89,9 +112,8 @@ export function SelectFromListBlank({
         );
       }
 
-      lastIndex = match.index + match[0].length;
-      blankIndex++;
-    }
+      lastIndex = matchInfo.index + matchInfo.length;
+    });
 
     // Add any remaining text
     if (lastIndex < questionText.length) {
