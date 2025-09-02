@@ -18,7 +18,7 @@ export function usePerformanceMonitor(componentName: string) {
     const renderTime = renderEndTime - renderStartTime.current;
     
     // Only process metrics in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       // Only log slow renders
       if (renderTime > 50) {
         console.warn(`[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render`);
@@ -46,7 +46,7 @@ export function usePerformanceMonitor(componentName: string) {
           sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
         } catch (e) {
           // Ignore sessionStorage errors (quota exceeded, etc.)
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.DEV) {
             console.warn('Failed to store performance metrics:', e);
           }
         }
