@@ -55,18 +55,26 @@ export function FillInBlank({
     }
   }, [value, questionText, blankCount]); // Also depend on questionText and blankCount to reset when question changes
 
-  // Update parent component when values change
+  // Track if this is initial mount or question change
+  const [isUserInput, setIsUserInput] = useState(false);
+
+  // Update parent component only when user actually changes values
   useEffect(() => {
-    if (blankCount <= 1) {
-      // Single blank or no blank: send just the string value
-      onChange(blankValues[0] || '');
-    } else {
-      // Multiple blanks: send JSON stringified object
-      onChange(JSON.stringify(blankValues));
+    // Only call onChange if this is from user input, not from prop updates
+    if (isUserInput) {
+      if (blankCount <= 1) {
+        // Single blank or no blank: send just the string value
+        onChange(blankValues[0] || '');
+      } else {
+        // Multiple blanks: send JSON stringified object
+        onChange(JSON.stringify(blankValues));
+      }
+      setIsUserInput(false); // Reset flag after calling onChange
     }
-  }, [blankValues, blankCount]); // Removed onChange from deps to prevent circular updates
+  }, [blankValues, blankCount, isUserInput]); // Removed onChange from deps to prevent circular updates
 
   const handleBlankChange = (index: number, newValue: string) => {
+    setIsUserInput(true); // Mark this as user input
     setBlankValues(prev => ({
       ...prev,
       [index]: newValue
