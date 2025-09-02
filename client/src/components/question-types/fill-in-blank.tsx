@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 interface FillInBlankProps {
   questionText: string;
@@ -34,10 +34,13 @@ export function FillInBlank({
   });
 
   // Create a combined pattern that matches both underscore blanks (___) and blank_N patterns
-  const blankPattern = /(?:_{3,}|blank_\d+)/g;
+  // Memoize to prevent recreation on every render
+  const blankPattern = useMemo(() => /(?:_{3,}|blank_\d+)/g, []);
   
-  // Count the number of blanks
-  const blankCount = (questionText.match(blankPattern) || []).length;
+  // Count the number of blanks - memoized to prevent recalculation
+  const blankCount = useMemo(() => {
+    return (questionText.match(blankPattern) || []).length;
+  }, [questionText, blankPattern]);
 
   // Update local state when value prop changes (e.g., when navigating between questions)
   useEffect(() => {
@@ -50,7 +53,7 @@ export function FillInBlank({
     } catch {
       setBlankValues({ 0: value || '' });
     }
-  }, [value, questionText]); // Also depend on questionText to reset when question changes
+  }, [value, questionText, blankCount]); // Also depend on questionText and blankCount to reset when question changes
 
   // Update parent component when values change
   useEffect(() => {
@@ -61,7 +64,7 @@ export function FillInBlank({
       // Multiple blanks: send JSON stringified object
       onChange(JSON.stringify(blankValues));
     }
-  }, [blankValues, blankCount, onChange]);
+  }, [blankValues, blankCount]); // Removed onChange from deps to prevent circular updates
 
   const handleBlankChange = (index: number, newValue: string) => {
     setBlankValues(prev => ({
