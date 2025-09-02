@@ -9,11 +9,13 @@ import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
 
-// Utility function to clean blank_n patterns from question text
+// Utility function to clean blank_n patterns and brackets from question text
 const cleanQuestionText = (text: string): string => {
   if (!text) return text;
-  // Remove blank_n patterns (e.g., blank_1, blank_2, etc.)
-  return text.replace(/\bblank_\d+\b/g, '___');
+  // Remove blank_n patterns (e.g., blank_1, blank_2, etc.) and replace brackets with underscores
+  return text
+    .replace(/\bblank_\d+\b/g, '___')
+    .replace(/\[\s*\]/g, '___');
 };
 
 // Import question type components
