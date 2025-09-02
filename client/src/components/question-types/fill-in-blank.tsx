@@ -33,8 +33,11 @@ export function FillInBlank({
     }
   });
 
+  // Create a combined pattern that matches both underscore blanks (___) and blank_N patterns
+  const blankPattern = /(?:_{3,}|blank_\d+)/g;
+  
   // Count the number of blanks
-  const blankCount = (questionText.match(/_{3,}/g) || []).length;
+  const blankCount = (questionText.match(blankPattern) || []).length;
 
   // Update local state when value prop changes (e.g., when navigating between questions)
   useEffect(() => {
@@ -67,11 +70,15 @@ export function FillInBlank({
     }));
   };
 
-  // Replace _____ or similar patterns with the input field
+  // Replace _____ or blank_N patterns with the input field
   const renderQuestionWithInput = () => {
-    const parts = questionText.split(/_{3,}/);
+    // Split by both underscore patterns and blank_N patterns
+    const parts = questionText.split(blankPattern);
     
-    if (parts.length === 1) {
+    // Find all blank matches to preserve their order
+    const blanks = questionText.match(blankPattern) || [];
+    
+    if (blanks.length === 0) {
       // No blank found, append input at the end
       return (
         <div className="space-y-4">
