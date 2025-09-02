@@ -234,51 +234,6 @@ export function DragDropZones({
         ))}
       </div>
 
-      {/* Correct answer display */}
-      {disabled && correctAnswer && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm font-medium">Correct arrangement:</p>
-          {(() => {
-            // Parse correctAnswer if it's a string
-            let parsedAnswer: Record<string, string[]> = {};
-            
-            if (typeof correctAnswer === 'string') {
-              try {
-                parsedAnswer = JSON.parse(correctAnswer);
-              } catch (e) {
-                console.error('Failed to parse correct answer:', correctAnswer);
-                return <p className="text-sm text-muted-foreground">Unable to display correct answer</p>;
-              }
-            } else if (typeof correctAnswer === 'object') {
-              parsedAnswer = correctAnswer;
-            }
-
-            // Map zone IDs to zone labels for better display
-            const zoneMap = dropZones.reduce((acc, zone) => {
-              acc[zone.zone_id] = zone.zone_label;
-              return acc;
-            }, {} as Record<number, string>);
-
-            return Object.entries(parsedAnswer).map(([zoneId, items]) => {
-              const zoneLabel = zoneMap[parseInt(zoneId)] || `Zone ${zoneId}`;
-              const itemsArray = Array.isArray(items) ? items : [];
-              
-              if (itemsArray.length === 0) {
-                return null; // Don't display empty zones
-              }
-              
-              return (
-                <div key={zoneId} className="mt-2">
-                  <p className="text-sm">
-                    <span className="font-medium">{zoneLabel}:</span>{" "}
-                    <span className="text-muted-foreground">{itemsArray.join(", ")}</span>
-                  </p>
-                </div>
-              );
-            }).filter(Boolean); // Remove null entries
-          })()}
-        </div>
-      )}
     </div>
   );
 }

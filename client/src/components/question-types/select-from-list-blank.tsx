@@ -24,10 +24,6 @@ export function SelectFromListBlank({
   correctAnswer,
   isCorrect,
 }: SelectFromListBlankProps) {
-  // Debug logging to understand the data structure
-  console.log('SelectFromListBlank - questionText:', questionText);
-  console.log('SelectFromListBlank - blanks:', blanks);
-  
   // Parse current values or initialize
   let currentValues: Record<number, string> = {};
   if (value) {
@@ -135,16 +131,6 @@ export function SelectFromListBlank({
     <div className="space-y-4">
       {renderQuestionWithDropdowns()}
 
-      {disabled && correctAnswer && isCorrect === false && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm font-medium">Correct answers:</p>
-          {blanks.map((blank) => (
-            <p key={blank.blank_id} className="text-sm text-muted-foreground">
-              Blank {blank.blank_id}: {blank.correct_answer}
-            </p>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
