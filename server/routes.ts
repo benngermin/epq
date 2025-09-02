@@ -45,11 +45,11 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 
   const startTime = Date.now();
-  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
+  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet-20241022";
   const temperature = 0; // Always use deterministic output
   
-  // Set max tokens to 32000 for all models as requested
-  let maxTokens = 32000; // Use 32000 tokens for all API calls
+  // Set max tokens to 56000 for all models as requested
+  let maxTokens = 56000; // Use 56000 tokens for all API calls
 
   try {
     const messages = [];
@@ -272,11 +272,11 @@ async function streamOpenRouterToBuffer(
   }
 
   const startTime = Date.now();
-  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet";
+  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet-20241022";
   const temperature = 0;
   
-  // Set max tokens to 32000 for all models as requested
-  let maxTokens = 32000; // Use 32000 tokens for all API calls
+  // Set max tokens to 56000 for all models as requested
+  let maxTokens = 56000; // Use 56000 tokens for all API calls
 
   try {
     let messages = [];
