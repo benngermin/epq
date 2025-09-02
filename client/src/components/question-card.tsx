@@ -392,19 +392,42 @@ export function QuestionCard({
                           (question.latestVersion.questionText.includes('___') || 
                            /blank_\d+/i.test(question.latestVersion.questionText));
                         
-                        if (question.latestVersion?.blanks && hasBlankPattern) {
-                          return (
-                            <SelectFromListBlank
-                              questionText={question.latestVersion.questionText}
-                              blanks={question.latestVersion.blanks}
-                              value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                              onChange={setSelectedAnswerState}
-                              disabled={hasAnswer || isSubmitting}
-                              correctAnswer={hasAnswer ? question.latestVersion.blanks : undefined}
-                              isCorrect={isCorrect}
-                            />
-                          );
-                        } else {
+                        if (hasBlankPattern) {
+                          // If we have blank patterns but no blanks data, auto-generate it
+                          let blanksData = question.latestVersion?.blanks;
+                          
+                          if (!blanksData && question.latestVersion?.answerChoices) {
+                            // Count how many blank patterns exist in the text
+                            const blankMatches = question.latestVersion.questionText.match(/blank_\d+|___/gi) || [];
+                            const numBlanks = blankMatches.length;
+                            
+                            // Generate blanks data from answerChoices
+                            // All blanks will use the same answer choices
+                            blanksData = Array.from({ length: numBlanks }, (_, index) => ({
+                              blank_id: index + 1,
+                              answer_choices: question.latestVersion.answerChoices,
+                              correct_answer: question.latestVersion.correctAnswer || ''
+                            }));
+                          }
+                          
+                          // Use SelectFromListBlank if we have blanks data (either from DB or auto-generated)
+                          if (blanksData) {
+                            return (
+                              <SelectFromListBlank
+                                questionText={question.latestVersion.questionText}
+                                blanks={blanksData}
+                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                onChange={setSelectedAnswerState}
+                                disabled={hasAnswer || isSubmitting}
+                                correctAnswer={hasAnswer ? (question.latestVersion.blanks || blanksData) : undefined}
+                                isCorrect={isCorrect}
+                              />
+                            );
+                          }
+                        }
+                        
+                        // Fallback for questions without blank patterns
+                        {
                           // For select_from_list with blanks but no underscores in text,
                           // extract answer choices from the first blank
                           let answerChoices = question.latestVersion?.answerChoices || [];
