@@ -449,7 +449,7 @@ export function QuestionCard({
                               </div>
                               <div className="flex-1">
                                 <PickFromList
-                                  answerChoices={answerChoices.map((choice: string) => cleanQuestionText(choice))}
+                                  answerChoices={answerChoices}
                                   value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                   onChange={setSelectedAnswerState}
                                   allowMultiple={false}
