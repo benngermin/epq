@@ -88,14 +88,25 @@ export function SelectFromListBlank({
       }
 
       // Find the corresponding blank data by blank_id
-      const blank = blanks.find(b => b.blank_id === matchInfo.blankId);
+      let blank = blanks.find(b => b.blank_id === matchInfo.blankId);
+      
+      // If no exact match found but blanks array exists, try to use the blank at the corresponding index
+      if (!blank && blanks.length > 0) {
+        // Use modulo to cycle through available blanks if there are more blank patterns than blank data
+        const blankIndex = (matchInfo.blankId - 1) % blanks.length;
+        blank = blanks[blankIndex];
+        // Override the blank_id to match the pattern in the text
+        if (blank) {
+          blank = { ...blank, blank_id: matchInfo.blankId };
+        }
+      }
       
       if (blank) {
         elements.push(
           <Select
-            key={`blank-${blank.blank_id}`}
-            value={currentValues[blank.blank_id] || ""}
-            onValueChange={(val) => handleBlankChange(blank.blank_id, val)}
+            key={`blank-${matchInfo.blankId}`}
+            value={currentValues[matchInfo.blankId] || ""}
+            onValueChange={(val) => handleBlankChange(matchInfo.blankId, val)}
             disabled={disabled}
           >
             <SelectTrigger className="inline-flex w-48 mx-2">
@@ -109,6 +120,13 @@ export function SelectFromListBlank({
               ))}
             </SelectContent>
           </Select>
+        );
+      } else {
+        // If still no blank data, show the original text pattern
+        elements.push(
+          <span key={`blank-text-${matchInfo.blankId}`} className="mx-2 font-medium">
+            {questionText.substring(matchInfo.index, matchInfo.index + matchInfo.length)}
+          </span>
         );
       }
 
