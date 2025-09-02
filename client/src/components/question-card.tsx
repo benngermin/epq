@@ -9,6 +9,13 @@ import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
 
+// Utility function to clean blank_n patterns from question text
+const cleanQuestionText = (text: string): string => {
+  if (!text) return text;
+  // Remove blank_n patterns (e.g., blank_1, blank_2, etc.)
+  return text.replace(/\bblank_\d+\b/g, '___');
+};
+
 // Import question type components
 import { FillInBlank } from "./question-types/fill-in-blank"; // Used by numerical_entry and short_answer
 import { PickFromList } from "./question-types/pick-from-list"; // Used by multiple_response and select_from_list fallback
@@ -302,7 +309,7 @@ export function QuestionCard({
                             <div className="flex-1 flex flex-col">
                               <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                                 <p className="text-base text-foreground leading-relaxed text-left">
-                                  {question.latestVersion?.questionText}
+                                  {cleanQuestionText(question.latestVersion?.questionText)}
                                 </p>
                               </div>
                               <div className="flex-1">
@@ -323,7 +330,7 @@ export function QuestionCard({
                             <div className="flex-1 flex flex-col">
                               <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                                 <p className="text-base text-foreground leading-relaxed text-left">
-                                  {question.latestVersion?.questionText}
+                                  {cleanQuestionText(question.latestVersion?.questionText)}
                                 </p>
                               </div>
                               <div className="flex-1">
@@ -411,7 +418,7 @@ export function QuestionCard({
                             <div className="flex-1 flex flex-col">
                               <div className="mb-1.5 sm:mb-2 md:mb-4 lg:mb-5 flex-shrink-0">
                                 <p className="text-base text-foreground leading-relaxed text-left">
-                                  {question.latestVersion?.questionText}
+                                  {cleanQuestionText(question.latestVersion?.questionText)}
                                 </p>
                               </div>
                               <div className="flex-1">
