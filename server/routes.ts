@@ -45,7 +45,7 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 
   const startTime = Date.now();
-  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet-4";
+  const modelName = settings?.modelName || "anthropic/claude-sonnet-4";
   const temperature = 0; // Always use deterministic output
   
   // Set max tokens to 56000 for all models as requested
@@ -272,7 +272,7 @@ async function streamOpenRouterToBuffer(
   }
 
   const startTime = Date.now();
-  const modelName = settings?.modelName || "anthropic/claude-3.5-sonnet-4";
+  const modelName = settings?.modelName || "anthropic/claude-sonnet-4";
   const temperature = 0;
   
   // Set max tokens to 56000 for all models as requested
