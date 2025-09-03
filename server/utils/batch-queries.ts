@@ -52,6 +52,7 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
         ...latestVersion,
         answerChoices: latestVersion.answerChoices || latestVersion.answer_choices,
         dropZones: latestVersion.dropZones || latestVersion.drop_zones,
+        blanks: latestVersion.blanks, // Include blanks field for select_from_list questions
       };
       // Clean up snake_case versions if they exist
       if ('answer_choices' in transformedLatestVersion) {
