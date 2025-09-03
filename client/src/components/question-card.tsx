@@ -64,6 +64,11 @@ export function QuestionCard({
 }: QuestionCardProps) {
   // Log question details when component mounts or question changes
   useEffect(() => {
+    console.log('QuestionCard - Full question data:', question);
+    console.log('QuestionCard - Latest version:', question.latestVersion);
+    console.log('QuestionCard - Blanks data:', question.latestVersion?.blanks);
+    console.log('QuestionCard - Question text:', question.latestVersion?.questionText);
+    console.log('QuestionCard - Answer choices:', question.latestVersion?.answerChoices);
     if (question) {
       debugLog(`Rendering question ${question.originalQuestionNumber || question.questionIndex + 1}`, {
         id: question.id,
@@ -392,14 +397,25 @@ export function QuestionCard({
                           (question.latestVersion.questionText.includes('___') || 
                            /blank_\d+/i.test(question.latestVersion.questionText));
                         
+                        console.log('Select from list - hasBlankPattern:', hasBlankPattern);
+                        console.log('Select from list - blanks data:', question.latestVersion?.blanks);
+                        console.log('Select from list - blanks type:', typeof question.latestVersion?.blanks);
+                        console.log('Select from list - blanks isArray:', Array.isArray(question.latestVersion?.blanks));
+                        
                         if (hasBlankPattern) {
                           // If we have blank patterns but no blanks data, auto-generate it
                           let blanksData = question.latestVersion?.blanks;
                           
-                          if (!blanksData && question.latestVersion?.answerChoices) {
+                          console.log('Inside hasBlankPattern - blanksData before processing:', blanksData);
+                          console.log('answerChoices:', question.latestVersion?.answerChoices);
+                          console.log('answerChoices length:', question.latestVersion?.answerChoices?.length);
+                          
+                          if (!blanksData && question.latestVersion?.answerChoices && question.latestVersion.answerChoices.length > 0) {
                             // Count how many blank patterns exist in the text
                             const blankMatches = question.latestVersion.questionText.match(/blank_\d+|___/gi) || [];
                             const numBlanks = blankMatches.length;
+                            
+                            console.log('Auto-generating blanks data for', numBlanks, 'blanks');
                             
                             // Generate blanks data from answerChoices
                             // All blanks will use the same answer choices
@@ -408,10 +424,13 @@ export function QuestionCard({
                               answer_choices: question.latestVersion.answerChoices,
                               correct_answer: question.latestVersion.correctAnswer || ''
                             }));
+                          } else if (!blanksData) {
+                            console.log('Cannot auto-generate blanks - no answerChoices available');
                           }
                           
                           // Use SelectFromListBlank if we have blanks data (either from DB or auto-generated)
-                          if (blanksData) {
+                          if (blanksData && blanksData.length > 0) {
+                            console.log('Rendering SelectFromListBlank with blanks:', blanksData);
                             return (
                               <SelectFromListBlank
                                 questionText={question.latestVersion.questionText}
@@ -424,10 +443,9 @@ export function QuestionCard({
                               />
                             );
                           }
-                        }
-                        
-                        // Fallback for questions without blank patterns
-                        {
+                        } else {
+                          // Fallback for questions without blank patterns
+                          console.log('Select from list - Using fallback rendering');
                           // For select_from_list with blanks but no underscores in text,
                           // extract answer choices from the first blank
                           let answerChoices = question.latestVersion?.answerChoices || [];
@@ -460,6 +478,9 @@ export function QuestionCard({
                             </div>
                           );
                         }
+                        
+                        // This should never be reached now, but keeping break for safety
+                        break;
                         
                       case "either_or":
                         return (
