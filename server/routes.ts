@@ -3719,7 +3719,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // Admin route for viewing course materials
   app.get("/api/admin/course-materials", requireAdmin, async (req, res) => {
     try {
-      const materials = await db.select().from(courseMaterials).limit(100);
+      const materials = await db.select().from(courseMaterials);
       res.json(materials);
     } catch (error) {
       console.error("Error fetching course materials:", error);
