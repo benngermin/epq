@@ -62,14 +62,9 @@ export function QuestionCard({
   selectedAnswer,
   chatResetTimestamp
 }: QuestionCardProps) {
-  // Log question details when component mounts or question changes
+  // Log question details in development mode only
   useEffect(() => {
-    console.log('QuestionCard - Full question data:', question);
-    console.log('QuestionCard - Latest version:', question.latestVersion);
-    console.log('QuestionCard - Blanks data:', question.latestVersion?.blanks);
-    console.log('QuestionCard - Question text:', question.latestVersion?.questionText);
-    console.log('QuestionCard - Answer choices:', question.latestVersion?.answerChoices);
-    if (question) {
+    if (import.meta.env.DEV && question) {
       debugLog(`Rendering question ${question.originalQuestionNumber || question.questionIndex + 1}`, {
         id: question.id,
         originalNumber: question.originalQuestionNumber,
@@ -397,18 +392,13 @@ export function QuestionCard({
                           (question.latestVersion.questionText.includes('___') || 
                            /blank_\d+/i.test(question.latestVersion.questionText));
                         
-                        console.log('Select from list - hasBlankPattern:', hasBlankPattern);
-                        console.log('Select from list - blanks data:', question.latestVersion?.blanks);
-                        console.log('Select from list - blanks type:', typeof question.latestVersion?.blanks);
-                        console.log('Select from list - blanks isArray:', Array.isArray(question.latestVersion?.blanks));
+                        // Debug logging disabled in production
                         
                         if (hasBlankPattern) {
                           // If we have blank patterns but no blanks data, auto-generate it
                           let blanksData = question.latestVersion?.blanks;
                           
-                          console.log('Inside hasBlankPattern - blanksData before processing:', blanksData);
-                          console.log('answerChoices:', question.latestVersion?.answerChoices);
-                          console.log('answerChoices length:', question.latestVersion?.answerChoices?.length);
+                          // Debug logging disabled in production
                           
                           if (!blanksData && question.latestVersion?.answerChoices && question.latestVersion.answerChoices.length > 0) {
                             // Count how many blank patterns exist in the text

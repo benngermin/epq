@@ -534,12 +534,11 @@ export function registerRoutes(app: Express): Server {
       
       // Return all courses without deduplication since we now use mapping table
       const uniqueCourses = allCourses.filter(course => {
-        // Special case: Show Test Course only to benn@modia.ai
-        if (course.courseNumber === 'Test Course') {
-          return req.user?.email === 'benn@modia.ai';
+        // Filter out test courses and invalid courses that don't follow CPCU or AIC naming pattern
+        if (course.courseNumber === 'Test Course' || course.courseNumber.toLowerCase().includes('test')) {
+          return false;
         }
         
-        // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
         const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
                                (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
         return hasStandardName;
@@ -3811,12 +3810,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Return all courses without deduplication since we now use mapping table
       const uniqueCourses = allCourses.filter(course => {
-        // Special case: Show Test Course only to benn@modia.ai
-        if (course.courseNumber === 'Test Course') {
-          return req.user?.email === 'benn@modia.ai';
+        // Filter out test courses and invalid courses that don't follow CPCU or AIC naming pattern
+        if (course.courseNumber === 'Test Course' || course.courseNumber.toLowerCase().includes('test')) {
+          return false;
         }
         
-        // Filter out test/invalid courses that don't follow CPCU or AIC naming pattern
         const hasStandardName = course.courseNumber.match(/^(CPCU|AIC)\s+\d+/) || 
                                (course.externalId && course.externalId.match(/(CPCU|AIC)\s+\d+/));
         return hasStandardName;

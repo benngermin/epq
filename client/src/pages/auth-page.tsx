@@ -10,13 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
 export default function AuthPage() {
-  // IMMEDIATE URL CHECK - Before any other logic
-  console.log('🚀 AUTH PAGE LOADED v3.0 - IMMEDIATE URL CHECK:', {
-    href: window.location.href,
-    search: window.location.search,
-    pathname: window.location.pathname,
-    timestamp: new Date().toISOString()
-  });
+  // URL check disabled in production
   
   const { user, authConfig, loginMutation } = useAuth();
   const [, setLocation] = useLocation();
@@ -25,31 +19,16 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   
-  // Version indicator to verify new code is loaded
+  // Parameter validation (logging disabled in production)
   useEffect(() => {
-    console.log('\n=== CLIENT AUTH PAGE LOADED ===');
-    console.log('Version: 2.2 - With enhanced authentication flow debugging');
-    
-    // Enhanced parameter logging for debugging
-    const params = new URLSearchParams(searchParams);
-    console.log('\nURL Parameters Received:');
-    console.log('  Full URL:', window.location.href);
-    console.log('  Search params:', window.location.search);
-    console.log('  courseId (camelCase):', params.get('courseId') || 'NOT PRESENT');
-    console.log('  course_id (underscore):', params.get('course_id') || 'NOT PRESENT');
-    console.log('  assignmentName (camelCase):', params.get('assignmentName') || 'NOT PRESENT');
-    console.log('  assignment_name (underscore):', params.get('assignment_name') || 'NOT PRESENT');
-    
-    if (params.get('course_id')) {
-      console.log('  ✓ Found course_id parameter:', params.get('course_id'));
-      console.log('  ℹ️ This will be preserved through SSO flow');
-    }
-    if (params.get('courseId')) {
-      console.log('  ✓ Found courseId parameter:', params.get('courseId'));
-      console.log('  ℹ️ This will be preserved through SSO flow');
-    }
-    if (!params.get('course_id') && !params.get('courseId')) {
-      console.log('  ⚠️ No course parameter found - will use default course');
+    if (import.meta.env.DEV) {
+      const params = new URLSearchParams(searchParams);
+      console.log('URL Parameters:', {
+        courseId: params.get('courseId'),
+        course_id: params.get('course_id'),
+        assignmentName: params.get('assignmentName'),
+        assignment_name: params.get('assignment_name')
+      });
     }
   }, [searchParams]);
   
@@ -57,23 +36,7 @@ export default function AuthPage() {
   const urlParams = new URLSearchParams(searchParams);
   const directUrlParams = new URLSearchParams(window.location.search);
   
-  // Critical debugging - log the raw URL and all parameters
-  console.log('\n🚨 CRITICAL URL PARAMETER DEBUGGING v3.0');
-  console.log('  Current window.location.href:', window.location.href);
-  console.log('  Current window.location.search:', window.location.search);
-  console.log('  searchParams from useSearch():', searchParams);
-  console.log('  urlParams.toString():', urlParams.toString());
-  console.log('  directUrlParams.toString():', directUrlParams.toString());
-  
-  // Test all parameter extraction methods
-  console.log('\n📊 PARAMETER EXTRACTION METHODS:');
-  console.log('  Method 1 - useSearch() + URLSearchParams:');
-  console.log('    courseId:', urlParams.get('courseId'));
-  console.log('    course_id:', urlParams.get('course_id'));
-  
-  console.log('  Method 2 - window.location.search + URLSearchParams:');
-  console.log('    courseId:', directUrlParams.get('courseId'));
-  console.log('    course_id:', directUrlParams.get('course_id'));
+  // Parameter extraction (debug logging disabled in production)
   
   // Manual parsing as ultimate fallback
   const manualParams: Record<string, string> = {};
@@ -84,22 +47,13 @@ export default function AuthPage() {
       if (key) manualParams[decodeURIComponent(key)] = decodeURIComponent(value || '');
     });
   }
-  console.log('  Method 3 - Manual parsing:');
-  console.log('    All params:', manualParams);
-  console.log('    courseId:', manualParams.courseId);
-  console.log('    course_id:', manualParams.course_id);
+  // Manual parameter parsing completed
   
   // Determine which method works
   const workingCourseId = urlParams.get('courseId') || urlParams.get('course_id') || urlParams.get('course_ID') || 
                           directUrlParams.get('courseId') || directUrlParams.get('course_id') || directUrlParams.get('course_ID') ||
                           manualParams.courseId || manualParams.course_id || manualParams.course_ID;
-  console.log('\n✅ FINAL RESULT:');
-  console.log('  Working courseId found:', workingCourseId || 'NONE');
-  console.log('  Method that worked:', 
-    urlParams.get('courseId') || urlParams.get('course_id') ? 'useSearch()' :
-    directUrlParams.get('courseId') || directUrlParams.get('course_id') ? 'window.location.search' :
-    manualParams.courseId || manualParams.course_id ? 'manual parsing' : 'NONE'
-  );
+  // Parameter extraction completed
   
   // Validate error parameter - only allow specific known error codes
   const rawError = urlParams.get('error');
@@ -120,12 +74,7 @@ export default function AuthPage() {
 
   // Auto-redirect to SSO if it's required
   useEffect(() => {
-    console.log('Auth config check:', {
-      authConfig,
-      ssoRequired: authConfig?.ssoRequired,
-      cognitoLoginUrl: authConfig?.cognitoLoginUrl,
-      hasUser: !!user
-    });
+    // Auth config loaded
     
     if (authConfig?.ssoRequired && authConfig?.cognitoLoginUrl && !user) {
       // Preserve and validate URL parameters when redirecting to SSO
@@ -136,19 +85,14 @@ export default function AuthPage() {
       const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
                              directParams.get('assignmentName') || directParams.get('assignment_name');
       
-      console.log('\n🔍 SSO AUTO-REDIRECT - PARAMETER CHECK');
-      console.log('  Raw courseId extracted:', courseId);
-      console.log('  Raw assignmentName extracted:', assignmentName);
-      console.log('  Course ID type:', typeof courseId);
-      console.log('  Course ID validation regex test:', courseId ? /^\d+$/.test(courseId) : 'N/A');
+      // Validating SSO redirect parameters
       
       // Validate courseId (should be numeric)
       const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
       // Validate assignmentName (alphanumeric, spaces, dashes, underscores only)
       const validAssignmentName = assignmentName && /^[a-zA-Z0-9\s\-_]+$/.test(assignmentName) ? assignmentName : null;
       
-      console.log('  Valid courseId after validation:', validCourseId);
-      console.log('  Valid assignmentName after validation:', validAssignmentName);
+      // Parameters validated
       
       let ssoUrl = authConfig.cognitoLoginUrl;
       const ssoParams = new URLSearchParams();
@@ -166,12 +110,7 @@ export default function AuthPage() {
         ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
       }
       
-      console.log('\n🔄 AUTO-REDIRECTING TO SSO');
-      console.log('  Base SSO URL:', authConfig.cognitoLoginUrl);
-      console.log('  Final SSO URL:', ssoUrl);
-      console.log('  URL params being sent:', ssoParams.toString());
-      console.log('  With courseId:', validCourseId || 'NONE');
-      console.log('  With assignmentName:', validAssignmentName || 'NONE');
+      // Redirecting to SSO
       
       // Small delay to ensure logs are visible
       setTimeout(() => {
@@ -240,9 +179,7 @@ export default function AuthPage() {
                 const assignmentName = urlParams.get('assignmentName') || urlParams.get('assignment_name') ||
                                        directParams.get('assignmentName') || directParams.get('assignment_name');
                 
-                console.log('\n🔍 SSO BUTTON CLICK - PARAMETER CHECK');
-                console.log('  Raw courseId extracted:', courseId);
-                console.log('  Raw assignmentName extracted:', assignmentName);
+                // SSO button clicked - validating parameters
                 
                 // Validate parameters
                 const validCourseId = courseId && /^\d+$/.test(courseId) ? courseId : null;
@@ -264,12 +201,7 @@ export default function AuthPage() {
                   ssoUrl += (ssoUrl.includes('?') ? '&' : '?') + ssoParams.toString();
                 }
                 
-                console.log('\n🔐 SSO BUTTON CLICKED');
-                console.log('  Base SSO URL:', authConfig.cognitoLoginUrl);
-                console.log('  Final redirect URL:', ssoUrl);
-                console.log('  URL params being sent:', ssoParams.toString());
-                console.log('  With courseId:', validCourseId || 'NONE');
-                console.log('  With assignmentName:', validAssignmentName || 'NONE');
+                // Redirecting to SSO with parameters
                 window.location.href = ssoUrl;
               }}
               variant="default"
