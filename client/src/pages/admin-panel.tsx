@@ -969,8 +969,8 @@ export default function AdminPanel() {
 
                   {/* Question Sets Sub-tab */}
                   <TabsContent value="question-sets">
-                    <div className="mb-6">
-                      <div className="flex justify-between items-center mb-4">
+                    <div className="mt-6 mb-2">
+                      <div className="flex justify-between items-center mb-2">
                         <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
