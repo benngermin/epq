@@ -969,9 +969,9 @@ export default function AdminPanel() {
 
                   {/* Question Sets Sub-tab */}
                   <TabsContent value="question-sets">
-                    <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
+                    <div className="mb-6">
                       <div className="flex justify-between items-center mb-4">
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline">
@@ -1195,7 +1195,7 @@ export default function AdminPanel() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {coursesLoading ? (
                     <div className="text-center py-8">Loading courses...</div>
                   ) : courses && Array.isArray(courses) && courses.length > 0 ? (
