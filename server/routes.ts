@@ -1662,6 +1662,15 @@ export function registerRoutes(app: Express): Server {
         stream.done = true;
         return;
       }
+      
+      // Debug: Log the raw questionVersion data
+      console.log("===== RAW QUESTION VERSION DATA =====");
+      console.log("Question Version ID:", questionVersionId);
+      console.log("Question Type:", questionVersion.questionType);
+      console.log("Correct Answer:", questionVersion.correctAnswer);
+      console.log("Answer Choices:", JSON.stringify(questionVersion.answerChoices));
+      console.log("Blanks:", JSON.stringify(questionVersion.blanks));
+      console.log("====================================");
 
       // Get the base question to access LOID
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
@@ -1737,6 +1746,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Ensure chosenAnswer is not empty or undefined
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
 
+        // Debug logging for fill-in-the-blank questions
+        console.log("===== CHATBOT STREAM DEBUG =====");
+        console.log("Question Type:", questionVersion.questionType);
+        console.log("Question ID:", questionVersion.id);
+        console.log("Correct Answer from DB:", questionVersion.correctAnswer);
+        console.log("Answer Choices:", questionVersion.answerChoices);
+        console.log("Blanks:", questionVersion.blanks);
+        console.log("Source Material:", sourceMaterial?.substring(0, 100));
+        console.log("LOID:", baseQuestion?.loid);
+        console.log("Course Material Found:", courseMaterial ? "Yes" : "No");
+        
         // Substitute variables in the prompt
         systemMessage = systemMessage
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
@@ -1744,6 +1764,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
           .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
+        
+        console.log("System Message Preview (first 500 chars):", systemMessage?.substring(0, 500));
+        console.log("================================");
         
         // For the initial message, the prompt is empty - the system message contains everything
         prompt = "Please provide feedback on my answer.";
