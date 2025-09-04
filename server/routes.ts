@@ -888,13 +888,23 @@ export function registerRoutes(app: Express): Server {
             loid: questionData.loid,
           });
           
+          // Import blank normalizer
+          const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
+          
           // Create versions for the question
           for (const versionData of questionData.versions) {
+            // Normalize blanks in question text if present
+            let normalizedQuestionText = versionData.question_text || '';
+            if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+              const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+              normalizedQuestionText = normalizedText;
+            }
+            
             await storage.createQuestionVersion({
               questionId: question.id,
               versionNumber: versionData.version_number || 1,
               topicFocus: versionData.topic_focus || '',
-              questionText: versionData.question_text || '',
+              questionText: normalizedQuestionText,
               questionType: versionData.question_type || questionData.type || 'multiple_choice',
               answerChoices: versionData.answer_choices || [],
               correctAnswer: versionData.correct_answer || '',
@@ -1182,97 +1192,20 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question not found" });
       }
 
-      // Check if answer is correct based on question type
-      let isCorrect = false;
-      const questionType = questionVersion.questionType;
-      const userAnswer = answerData.chosenAnswer;
+      // Use centralized validation system
+      const { validateAnswer } = await import('./utils/answer-validation');
       
-      if (questionType === 'select_from_list') {
-        // Handle select_from_list questions by comparing against blanks field
-        if (questionVersion.blanks && userAnswer.startsWith('{')) {
-          try {
-            const userBlanks = JSON.parse(userAnswer);
-            const correctBlanks = questionVersion.blanks as Array<{
-              blank_id: number;
-              answer_choices: string[];
-              correct_answer: string;
-            }>;
-            
-            // Check if all blanks are answered correctly
-            isCorrect = true;
-            for (const blank of correctBlanks) {
-              const userAnswerForBlank = userBlanks[blank.blank_id.toString()];
-              if (userAnswerForBlank !== blank.correct_answer) {
-                isCorrect = false;
-                break;
-              }
-            }
-          } catch (e) {
-            console.error('Error parsing select_from_list answer:', e);
-            isCorrect = false;
-          }
-        } else {
-          isCorrect = false;
+      const isCorrect = validateAnswer(
+        answerData.chosenAnswer,
+        questionVersion.correctAnswer,
+        questionVersion.questionType,
+        {
+          caseSensitive: questionVersion.caseSensitive || false,
+          acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+          blanks: questionVersion.blanks as any[] || undefined,
+          dropZones: questionVersion.dropZones as any[] || undefined
         }
-      } else if (questionType === 'short_answer' || questionType === 'numerical_entry') {
-        const caseSensitive = questionVersion.caseSensitive || false;
-        
-        // Check if this is a multi-blank answer (JSON format)
-        if (userAnswer.startsWith('{')) {
-          try {
-            const userBlanks = JSON.parse(userAnswer);
-            const blankValues = Object.values(userBlanks).map((v: any) => 
-              caseSensitive ? String(v) : String(v).toLowerCase()
-            );
-            
-            // Join the blank values with spaces to create the full answer
-            const userFullAnswer = blankValues.join(' ');
-            const correctFullAnswer = caseSensitive 
-              ? questionVersion.correctAnswer 
-              : questionVersion.correctAnswer.toLowerCase();
-            
-            isCorrect = userFullAnswer === correctFullAnswer;
-            
-            // Check acceptable answers for multi-blank
-            if (!isCorrect && questionVersion.acceptableAnswers) {
-              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-                caseSensitive ? a : a.toLowerCase()
-              );
-              isCorrect = acceptableAnswers.includes(userFullAnswer);
-            }
-          } catch (e) {
-            // If JSON parse fails, treat as single answer
-            const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
-            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-            isCorrect = userAnswerNormalized === correctAnswer;
-            
-            // Check acceptable answers
-            if (!isCorrect && questionVersion.acceptableAnswers) {
-              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-                caseSensitive ? a : a.toLowerCase()
-              );
-              isCorrect = acceptableAnswers.includes(userAnswerNormalized);
-            }
-          }
-        } else {
-          // Single answer
-          const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
-          const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-          
-          isCorrect = userAnswerNormalized === correctAnswer;
-          
-          // Check acceptable answers
-          if (!isCorrect && questionVersion.acceptableAnswers) {
-            const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-              caseSensitive ? a : a.toLowerCase()
-            );
-            isCorrect = acceptableAnswers.includes(userAnswerNormalized);
-          }
-        }
-      } else {
-        // For other question types, use simple comparison
-        isCorrect = userAnswer === questionVersion.correctAnswer;
-      }
+      );
       
       const answer = await storage.createUserAnswer({
         ...answerData,
@@ -1337,97 +1270,20 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question version not found" });
       }
 
-      // Check if answer is correct based on question type
-      let isCorrect = false;
-      const questionType = questionVersion.questionType;
-      const userAnswer = answer;
+      // Use centralized validation system
+      const { validateAnswer } = await import('./utils/answer-validation');
       
-      if (questionType === 'select_from_list') {
-        // Handle select_from_list questions by comparing against blanks field
-        if (questionVersion.blanks && userAnswer.startsWith('{')) {
-          try {
-            const userBlanks = JSON.parse(userAnswer);
-            const correctBlanks = questionVersion.blanks as Array<{
-              blank_id: number;
-              answer_choices: string[];
-              correct_answer: string;
-            }>;
-            
-            // Check if all blanks are answered correctly
-            isCorrect = true;
-            for (const blank of correctBlanks) {
-              const userAnswerForBlank = userBlanks[blank.blank_id.toString()];
-              if (userAnswerForBlank !== blank.correct_answer) {
-                isCorrect = false;
-                break;
-              }
-            }
-          } catch (e) {
-            console.error('Error parsing select_from_list answer:', e);
-            isCorrect = false;
-          }
-        } else {
-          isCorrect = false;
+      const isCorrect = validateAnswer(
+        answer,
+        questionVersion.correctAnswer,
+        questionVersion.questionType,
+        {
+          caseSensitive: questionVersion.caseSensitive || false,
+          acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+          blanks: questionVersion.blanks as any[] || undefined,
+          dropZones: questionVersion.dropZones as any[] || undefined
         }
-      } else if (questionType === 'short_answer' || questionType === 'numerical_entry') {
-        const caseSensitive = questionVersion.caseSensitive || false;
-        
-        // Check if this is a multi-blank answer (JSON format)
-        if (userAnswer.startsWith('{')) {
-          try {
-            const userBlanks = JSON.parse(userAnswer);
-            const blankValues = Object.values(userBlanks).map((v: any) => 
-              caseSensitive ? String(v) : String(v).toLowerCase()
-            );
-            
-            // Join the blank values with spaces to create the full answer
-            const userFullAnswer = blankValues.join(' ');
-            const correctFullAnswer = caseSensitive 
-              ? questionVersion.correctAnswer 
-              : questionVersion.correctAnswer.toLowerCase();
-            
-            isCorrect = userFullAnswer === correctFullAnswer;
-            
-            // Check acceptable answers for multi-blank
-            if (!isCorrect && questionVersion.acceptableAnswers) {
-              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-                caseSensitive ? a : a.toLowerCase()
-              );
-              isCorrect = acceptableAnswers.includes(userFullAnswer);
-            }
-          } catch (e) {
-            // If JSON parse fails, treat as single answer
-            const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
-            const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-            isCorrect = userAnswerNormalized === correctAnswer;
-            
-            // Check acceptable answers
-            if (!isCorrect && questionVersion.acceptableAnswers) {
-              const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-                caseSensitive ? a : a.toLowerCase()
-              );
-              isCorrect = acceptableAnswers.includes(userAnswerNormalized);
-            }
-          }
-        } else {
-          // Single answer
-          const correctAnswer = caseSensitive ? questionVersion.correctAnswer : questionVersion.correctAnswer.toLowerCase();
-          const userAnswerNormalized = caseSensitive ? userAnswer : userAnswer.toLowerCase();
-          
-          isCorrect = userAnswerNormalized === correctAnswer;
-          
-          // Check acceptable answers
-          if (!isCorrect && questionVersion.acceptableAnswers) {
-            const acceptableAnswers = questionVersion.acceptableAnswers.map((a: string) => 
-              caseSensitive ? a : a.toLowerCase()
-            );
-            isCorrect = acceptableAnswers.includes(userAnswerNormalized);
-          }
-        }
-      } else {
-        // For other question types, use simple comparison
-        isCorrect = userAnswer === questionVersion.correctAnswer;
-      }
+      );
 
       // Log this practice answer for analytics
       // First, find or create a practice test run for this user and question set
@@ -2944,15 +2800,25 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Import questions from parsed content
           if (parsedQuestions.length > 0) {
+            // Import blank normalizer
+            const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
+            
             const questionImports = parsedQuestions.map((q: any, index: number) => {
               // Use the new JSON format fields directly
               const questionType = q.question_type || "multiple_choice";
+              
+              // Normalize blanks in question text if present
+              let normalizedQuestionText = q.question_text || "";
+              if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+                const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+                normalizedQuestionText = normalizedText;
+              }
               
               // Build the version object with all fields from the new format
               const versionData: any = {
                 version_number: 1,
                 topic_focus: bubbleQuestionSet.title || "General",
-                question_text: q.question_text || "",
+                question_text: normalizedQuestionText,
                 question_type: questionType,
                 answer_choices: q.answer_choices || [],
                 correct_answer: q.correct_answer || "",
