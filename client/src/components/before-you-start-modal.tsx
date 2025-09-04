@@ -67,7 +67,7 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
               id="understand"
               checked={isChecked}
               onCheckedChange={(checked) => setIsChecked(checked as boolean)}
-              className="w-6 h-6"
+              className="w-5 h-5"
             />
             <label
               htmlFor="understand"
