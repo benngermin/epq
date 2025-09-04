@@ -37,7 +37,7 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
-        <DialogHeader className="pb-4">
+        <DialogHeader className="pb-2">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Before You Start:
           </DialogTitle>
