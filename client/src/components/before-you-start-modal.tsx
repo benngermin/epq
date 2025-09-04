@@ -62,12 +62,12 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
           </div>
 
           {/* Checkbox */}
-          <div className="flex items-start space-x-3 p-4 border rounded-lg border-gray-200">
+          <div className="flex items-center space-x-3 p-4 border rounded-lg border-gray-200">
             <Checkbox
               id="understand"
               checked={isChecked}
               onCheckedChange={(checked) => setIsChecked(checked as boolean)}
-              className="mt-1"
+              className="w-6 h-6"
             />
             <label
               htmlFor="understand"
