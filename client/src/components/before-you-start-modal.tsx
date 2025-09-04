@@ -29,7 +29,6 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
     if (isChecked) {
       // Store the agreement in localStorage so we don't show this again
       localStorage.setItem('epq_agreed_to_terms', 'true');
-      console.log('[BeforeYouStartModal] Agreement saved to localStorage');
       onAgree();
       onClose();
     }
@@ -88,14 +87,10 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
           <Button
             onClick={handleBeginPractice}
             disabled={!isChecked}
-            className={`w-full py-6 text-lg font-medium transition-all ${
-              isChecked 
-                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
-            variant="secondary"
+            className="w-full py-6 text-lg font-medium"
+            variant={isChecked ? "default" : "secondary"}
           >
-            Begin Practice
+            Continue
           </Button>
         </div>
       </DialogContent>

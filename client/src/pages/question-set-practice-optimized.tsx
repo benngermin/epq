@@ -58,7 +58,8 @@ export default function QuestionSetPractice() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Initialize both states based on localStorage
   const hasAgreedInStorage = localStorage.getItem('epq_agreed_to_terms') === 'true';
-  const [showBeginDialog, setShowBeginDialog] = useState(false);
+  // Show dialog initially if user hasn't agreed yet
+  const [showBeginDialog, setShowBeginDialog] = useState(!hasAgreedInStorage);
   const [agreedToTerms, setAgreedToTerms] = useState(hasAgreedInStorage);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
@@ -176,31 +177,8 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // Show the modal only once when practice data is loaded and user hasn't agreed yet
-  useEffect(() => {
-    if (!practiceData) return;
-    
-    // Check localStorage directly each time
-    const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
-    
-    debugLog('Modal display check:', {
-      hasAgreed,
-      practiceDataLoaded: true,
-      questionSetId: practiceData.questionSet?.id,
-      currentShowBeginDialog: showBeginDialog,
-      agreedToTermsState: agreedToTerms
-    });
-    
-    // Only show if user has NOT agreed (checking localStorage, not state)
-    if (!hasAgreed) {
-      debugLog('Showing modal because localStorage does not have agreement');
-      setShowBeginDialog(true);
-    } else {
-      debugLog('Not showing modal - user has already agreed');
-      // Make sure modal is closed if agreement exists
-      setShowBeginDialog(false);
-    }
-  }, [practiceData?.questionSet?.id]); // Only re-run when question set changes
+  // No need for useEffect to manage modal visibility - it's already set correctly on mount
+  // based on localStorage check above
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
