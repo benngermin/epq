@@ -2903,11 +2903,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
     const BATCH_SIZE = 5; // Process 5 question sets at a time
     
     // Set up SSE headers
+    const origin = req.headers.origin || '*';
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true'
     });
     
     // Send initial event

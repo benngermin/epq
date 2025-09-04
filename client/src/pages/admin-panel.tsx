@@ -772,7 +772,9 @@ export default function AdminPanel() {
     setIsRefreshing(true);
     setRefreshProgress({ current: 0, total: 0, errors: [] });
     
-    const eventSource = new EventSource('/api/admin/bubble/bulk-refresh-question-sets');
+    const eventSource = new EventSource('/api/admin/bubble/bulk-refresh-question-sets', {
+      withCredentials: true
+    });
     
     eventSource.onmessage = (event) => {
       try {
