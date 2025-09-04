@@ -44,22 +44,19 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Yellow warning box */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-            <div className="flex gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          {/* Important section - plain text */}
+          <div>
+            <div className="space-y-2">
+              <p className="text-gray-800 font-medium mb-2">
+                Important:
+              </p>
               <div className="space-y-2">
-                <p className="text-gray-800 font-medium mb-2">
-                  Important:
+                <p className="text-gray-800 font-normal">
+                  Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
                 </p>
-                <div className="space-y-2">
-                  <p className="text-gray-800 font-normal">
-                    Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
-                  </p>
-                  <p className="text-gray-800 font-normal">
-                    AI assistant explanations may occasionally be incorrect or incomplete.
-                  </p>
-                </div>
+                <p className="text-gray-800 font-normal">
+                  AI assistant explanations may occasionally be incorrect or incomplete.
+                </p>
               </div>
             </div>
           </div>

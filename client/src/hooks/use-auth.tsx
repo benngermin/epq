@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -60,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnReconnect: true, // Only refetch on reconnect
     enabled: isDemo ? true : undefined, // Always enable for demo mode
   });
+
+  // Clear the "Before You Start" modal for benn@modia.ai for testing
+  useEffect(() => {
+    if (user && user.email === 'benn@modia.ai') {
+      localStorage.removeItem('epq_agreed_to_terms');
+    }
+  }, [user]);
 
   const { data: authConfig } = useQuery<AuthConfig>({
     queryKey: ["/api/auth/config"],
