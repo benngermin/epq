@@ -1357,8 +1357,8 @@ export default function AdminPanel() {
                   </TabsContent>
                 </Tabs>
               </div>
-            </div>
             </TabsContent>
+          </div>
 
             {/* AI & Settings Tab */}
             <TabsContent value="settings">
@@ -1390,7 +1390,6 @@ export default function AdminPanel() {
             </TabsContent>
 
 
-          </div>
         </Tabs>
       </div>
       {/* Course Materials Import Dialog */}
