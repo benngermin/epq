@@ -45,26 +45,21 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
         
         <div className="space-y-6">
           {/* Important section - plain text */}
-          <div>
-            <div className="space-y-2">
-              <p className="text-gray-800 font-medium mb-2">
-                Important:
-              </p>
-              <div className="space-y-2">
-                <p className="text-gray-800 font-normal">
-                  Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
-                </p>
-                <p className="text-gray-800 font-normal">
-                  AI assistant explanations may occasionally be incorrect or incomplete.
-                </p>
-              </div>
-            </div>
+          <div className="space-y-3">
+            <p className="text-gray-800 font-medium">
+              Important:
+            </p>
+            <p className="text-gray-800 font-normal">
+              Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
+            </p>
+            <p className="text-gray-800 font-normal">
+              AI assistant explanations may occasionally be incorrect or incomplete.
+            </p>
+            <p className="text-gray-600 text-base">
+              Always use your official study materials to verify information and complete
+              your exam preparation.
+            </p>
           </div>
-
-          <p className="text-gray-600 text-base">
-            Always use your official study materials to verify information and complete
-            your exam preparation.
-          </p>
 
           {/* Checkbox */}
           <div className="flex items-start space-x-3 p-4 border rounded-lg border-gray-200">
