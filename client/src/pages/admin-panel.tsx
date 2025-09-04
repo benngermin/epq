@@ -960,71 +960,18 @@ export default function AdminPanel() {
             {/* Content Management Tab */}
             <TabsContent value="content">
               <div className="space-y-6">
-                <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex gap-3">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="lg">
-                          <Download className="w-5 h-5 mr-2" />
-                          Import Content
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Import Content from Bubble.io</DialogTitle>
-                          <DialogDescription>
-                            Choose what type of content you want to import from the Bubble.io repository
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <Button
-                            onClick={() => {
-                              importLearningObjectsMutation.mutate();
-                            }}
-                            disabled={importLearningObjectsMutation.isPending}
-                            className="w-full justify-start"
-                            size="lg"
-                          >
-                            <Download className="w-5 h-5 mr-2" />
-                            {importLearningObjectsMutation.isPending ? "Importing..." : "Import Learning Objects"}
-                          </Button>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start" size="lg">
-                                <Upload className="w-5 h-5 mr-2" />
-                                Import Question Sets
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
-                                <DialogDescription>
-                                  Fetch and import question sets from ti-content-repository.bubbleapps.io
-                                </DialogDescription>
-                              </DialogHeader>
-                              <BubbleImportSection />
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                        {importLearningObjectsMutation.isSuccess && (
-                          <Alert>
-                            <CheckCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              {importLearningObjectsMutation.data?.message}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        {importLearningObjectsMutation.isError && (
-                          <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              Failed to import learning objects. Please try again.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                {/* Sub-tabs for Question Sets and Course Materials */}
+                <Tabs defaultValue="question-sets" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="question-sets">Question Sets</TabsTrigger>
+                    <TabsTrigger value="course-materials">Course Materials</TabsTrigger>
+                  </TabsList>
+
+                  {/* Question Sets Sub-tab */}
+                  <TabsContent value="question-sets">
+                    <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex gap-3">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline">
@@ -1156,6 +1103,26 @@ export default function AdminPanel() {
                       </>
                     )}
                   </Button>
+                  
+                  {/* Import Question Sets from Bubble */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import Question Sets
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
+                        <DialogDescription>
+                          Fetch and import question sets from ti-content-repository.bubbleapps.io
+                        </DialogDescription>
+                      </DialogHeader>
+                      <BubbleImportSection />
+                    </DialogContent>
+                  </Dialog>
+                  </div>
                   </div>
                   
                   {/* Progress Indicator */}
@@ -1319,25 +1286,76 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
+                  </TabsContent>
 
-                {/* Course Materials Management Section */}
-                <div className="mt-8 bg-white rounded-lg p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-900">Course Materials</h2>
-                      <p className="text-gray-600 text-sm mt-1">View and manage uploaded course materials</p>
+                  {/* Course Materials Sub-tab */}
+                  <TabsContent value="course-materials">
+                    <div className="bg-white rounded-lg p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <h2 className="text-xl font-semibold text-gray-900">Course Materials</h2>
+                          <p className="text-gray-600 text-sm mt-1">View and manage uploaded course materials</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="lg">
+                                <Download className="w-5 h-5 mr-2" />
+                                Import from Bubble.io
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Import Learning Objects from Bubble.io</DialogTitle>
+                                <DialogDescription>
+                                  Import course materials (learning objects) from the Bubble.io repository
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <Button
+                                  onClick={() => {
+                                    importLearningObjectsMutation.mutate();
+                                  }}
+                                  disabled={importLearningObjectsMutation.isPending}
+                                  className="w-full justify-start"
+                                  size="lg"
+                                >
+                                  <Download className="w-5 h-5 mr-2" />
+                                  {importLearningObjectsMutation.isPending ? "Importing..." : "Import All Learning Objects"}
+                                </Button>
+                              </div>
+                              {importLearningObjectsMutation.isSuccess && (
+                                <Alert>
+                                  <CheckCircle className="h-4 w-4" />
+                                  <AlertDescription>
+                                    {importLearningObjectsMutation.data?.message}
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                              {importLearningObjectsMutation.isError && (
+                                <Alert variant="destructive">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <AlertDescription>
+                                    Failed to import learning objects. Please try again.
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          <Button 
+                            onClick={() => setCourseMaterialsDialogOpen(true)}
+                            variant="outline"
+                            className="shadow-sm"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Import CSV
+                          </Button>
+                        </div>
+                      </div>
+                      <CourseMaterialsSection />
                     </div>
-                    <Button 
-                      onClick={() => setCourseMaterialsDialogOpen(true)}
-                      variant="outline"
-                      className="shadow-sm"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Import CSV
-                    </Button>
-                  </div>
-                  <CourseMaterialsSection />
-                </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
             </TabsContent>
