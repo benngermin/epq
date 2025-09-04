@@ -56,9 +56,21 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Initialize agreedToTerms state without direct localStorage read to avoid hydration issues
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showBeginDialog, setShowBeginDialog] = useState(false);
+  // Check localStorage immediately to determine initial state
+  const [agreedToTerms, setAgreedToTerms] = useState(() => {
+    // Use a function to initialize state to ensure it runs only once
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('epq_agreed_to_terms') === 'true';
+    }
+    return false;
+  });
+  const [showBeginDialog, setShowBeginDialog] = useState(() => {
+    // Only show dialog if user hasn't agreed to terms yet
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('epq_agreed_to_terms') !== 'true';
+    }
+    return false;
+  });
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   // Handle the case where route doesn't match
@@ -82,16 +94,6 @@ export default function QuestionSetPractice() {
   }
 
   const questionSetId = parseInt(actualParams.id);
-  
-  // Sync agreedToTerms with localStorage on mount
-  useEffect(() => {
-    const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
-    setAgreedToTerms(hasAgreed);
-    // Only show dialog if user hasn't agreed yet
-    if (!hasAgreed) {
-      setShowBeginDialog(true);
-    }
-  }, []); // Run once on mount
   
   // Listen for storage changes (e.g., from other tabs)
   useEffect(() => {
@@ -809,14 +811,10 @@ export default function QuestionSetPractice() {
           setShowBeginDialog(false);
         }}
         onAgree={() => {
-          // Ensure localStorage is set before updating state
-          localStorage.setItem('epq_agreed_to_terms', 'true');
-          debugLog('User agreed to terms, setting localStorage and closing modal');
+          // The modal component already sets localStorage, we just need to update our state
+          debugLog('User agreed to terms, closing modal');
           setAgreedToTerms(true);
           setShowBeginDialog(false);
-          // Double-check localStorage was set
-          const stored = localStorage.getItem('epq_agreed_to_terms');
-          debugLog('After agreement, localStorage value:', stored);
         }}
       />
     </div>
