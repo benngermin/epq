@@ -53,13 +53,11 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
                   Important:
                 </p>
                 <div className="space-y-2">
-                  <p className="text-gray-800 font-normal flex items-start">
-                    <span className="mr-2">→</span>
-                    <span>Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.</span>
+                  <p className="text-gray-800 font-normal">
+                    Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
                   </p>
-                  <p className="text-gray-800 font-normal flex items-start">
-                    <span className="mr-2">→</span>
-                    <span>AI assistant explanations may occasionally be incorrect or incomplete.</span>
+                  <p className="text-gray-800 font-normal">
+                    AI assistant explanations may occasionally be incorrect or incomplete.
                   </p>
                 </div>
               </div>
