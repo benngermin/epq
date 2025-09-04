@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            background: #f3f4f6;
+        }
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Modal Testing Page</h1>
+        
+        <div class="space-y-4">
+            <button onclick="openModal1()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                Open "Before You Start" Modal
+            </button>
+            
+            <button onclick="openModal2()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+                Open "About the AI Assistant" Modal
+            </button>
+        </div>
+
+        <!-- Before You Start Modal -->
+        <div id="modal1" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop fixed inset-0" onclick="closeModal1()"></div>
+            <div class="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Before You Start:</h2>
+                
+                <div class="space-y-6">
+                    <!-- Yellow warning box -->
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                        <div class="flex gap-3">
+                            <svg class="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <p class="text-gray-800">
+                                    <span class="font-medium">Important:</span> <span class="font-normal">Practice questions familiarize you with the exam format, but
+                                    don't cover every possible topic that could be on the exam. AI assistant
+                                    explanations may occasionally be incorrect or incomplete.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-gray-600 text-base">
+                        Always use your official study materials to verify information and complete
+                        your exam preparation.
+                    </p>
+
+                    <!-- Checkbox -->
+                    <div class="flex items-start space-x-3 p-4 border rounded-lg border-gray-200">
+                        <input type="checkbox" id="understand" class="mt-1" onchange="toggleButton()">
+                        <label for="understand" class="text-gray-700 cursor-pointer select-none">
+                            I understand this is a practice tool with AI assistance that may have
+                            limitations, and I will verify information with official study materials.
+                        </label>
+                    </div>
+
+                    <!-- Begin Practice button -->
+                    <button id="beginButton" disabled onclick="closeModal1()" 
+                            class="w-full py-6 text-lg font-medium transition-all bg-gray-100 text-gray-400 cursor-not-allowed rounded-lg">
+                        Begin Practice
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About the AI Assistant Modal -->
+        <div id="modal2" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop fixed inset-0" onclick="closeModal2()"></div>
+            <div class="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">About the AI Assistant</h2>
+                
+                <div class="space-y-5">
+                    <p class="text-gray-600 text-base leading-relaxed">
+                        Our AI assistant provides explanations for why your answers to
+                        practice exam questions are correct or incorrect. It uses your
+                        actual course content, making it more accurate than general AI
+                        tools. However, like all generative AI, it can still make mistakes,
+                        provide incomplete explanations, or misinterpret concepts.
+                        Calculations in particular may sometimes be incorrect.
+                    </p>
+
+                    <!-- Yellow warning box -->
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                        <div class="flex gap-3">
+                            <svg class="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <p class="text-gray-800 font-semibold">Important:</p>
+                                <p class="text-gray-700 mt-2">
+                                    AI-generated explanations may occasionally be wrong, even
+                                    when they sound confident. Always verify important information
+                                    and problem-solving steps against your official study materials
+                                    and textbooks.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-gray-600 text-base leading-relaxed">
+                        Think of the AI as a helpful study companion that usually explains
+                        answers correctly, but isn't infallible. Use it to enhance your
+                        learning, not replace careful study.
+                    </p>
+
+                    <div class="space-y-2">
+                        <p class="text-gray-800 font-semibold">Our Commitment:</p>
+                        <p class="text-gray-600 text-base leading-relaxed">
+                            We continuously work to improve accuracy by
+                            grounding the AI in your course content. You can help us by using
+                            the thumbs up/down buttons to provide feedback on any
+                            explanation. We review and follow up on all feedback to make the
+                            tool better for everyone.
+                        </p>
+                    </div>
+
+                    <!-- Continue button -->
+                    <button onclick="closeModal2()" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-base font-medium rounded-lg">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal1() {
+            document.getElementById('modal1').classList.remove('hidden');
+        }
+
+        function closeModal1() {
+            document.getElementById('modal1').classList.add('hidden');
+            document.getElementById('understand').checked = false;
+            toggleButton();
+        }
+
+        function openModal2() {
+            document.getElementById('modal2').classList.remove('hidden');
+        }
+
+        function closeModal2() {
+            document.getElementById('modal2').classList.add('hidden');
+        }
+
+        function toggleButton() {
+            const checkbox = document.getElementById('understand');
+            const button = document.getElementById('beginButton');
+            
+            if (checkbox.checked) {
+                button.disabled = false;
+                button.className = 'w-full py-6 text-lg font-medium transition-all bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg cursor-pointer';
+            } else {
+                button.disabled = true;
+                button.className = 'w-full py-6 text-lg font-medium transition-all bg-gray-100 text-gray-400 cursor-not-allowed rounded-lg';
+            }
+        }
+    </script>
+</body>
+</html>

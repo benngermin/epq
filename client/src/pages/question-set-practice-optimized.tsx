@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCircle, XCircle, RotateCcw, PanelLeft, LogOut } from "lucide-react";
@@ -23,6 +22,7 @@ import { OptimizedImage } from "@/components/optimized-image";
 import { useState, useEffect } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
+import { BeforeYouStartModal } from "@/components/before-you-start-modal";
 import { debugLog, debugError } from "@/utils/debug";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AssessmentErrorFallback } from "@/components/assessment-error-fallback";
@@ -57,7 +57,10 @@ export default function QuestionSetPractice() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showBeginDialog, setShowBeginDialog] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(true);
+  const [agreedToTerms, setAgreedToTerms] = useState(() => {
+    // Check if user has already agreed to terms
+    return localStorage.getItem('epq_agreed_to_terms') === 'true';
+  });
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   // Handle the case where route doesn't match
@@ -100,6 +103,13 @@ export default function QuestionSetPractice() {
   useEffect(() => {
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
+
+  // Show the modal when practice data is loaded and user hasn't agreed yet
+  useEffect(() => {
+    if (practiceData && !agreedToTerms) {
+      setShowBeginDialog(true);
+    }
+  }, [practiceData, agreedToTerms]);
 
   // Fetch all courses for admin dropdown
   const { data: courses } = useQuery<(Course & { questionSets: any[] })[]>({
@@ -774,54 +784,15 @@ export default function QuestionSetPractice() {
         </div>
       </div>
 
-      {/* Before You Begin Dialog */}
-      <Dialog open={showBeginDialog} onOpenChange={setShowBeginDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold mb-4">Before You Begin</DialogTitle>
-            <DialogDescription className="sr-only">
-              Important information about using this practice tool for exam preparation
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Warning Box */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-base text-foreground leading-relaxed">
-                <span className="font-semibold">Important:</span> These practice questions familiarize you with the exam format, but don't cover every possible topic. Use them alongside other study materials for complete preparation.
-              </p>
-            </div>
-            
-            {/* Checkbox */}
-            <div className="flex items-center space-x-3">
-              <Checkbox
-                id="agree-terms"
-                checked={agreedToTerms}
-                onCheckedChange={(checked) => {
-                  if (typeof checked === 'boolean') {
-                    setAgreedToTerms(checked);
-                  }
-                }}
-              />
-              <label 
-                htmlFor="agree-terms" 
-                className="text-base text-foreground leading-relaxed cursor-pointer"
-              >
-                I understand this is a practice tool, not my only study resource.
-              </label>
-            </div>
-            
-            {/* Begin Practice Button */}
-            <Button
-              onClick={() => setShowBeginDialog(false)}
-              disabled={!agreedToTerms}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              Begin Practice
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Before You Begin Modal */}
+      <BeforeYouStartModal
+        isOpen={showBeginDialog}
+        onClose={() => setShowBeginDialog(false)}
+        onAgree={() => {
+          setAgreedToTerms(true);
+          setShowBeginDialog(false);
+        }}
+      />
     </div>
     </ErrorBoundary>
   );

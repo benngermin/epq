@@ -97,12 +97,19 @@ const isReplitEnv = Boolean(
 - **ID Preservation**: Question IDs remain unchanged, protecting analytics data
 - **Blank Normalization**: Applied during all imports/refreshes
 - **Bulk Operations**: Supports batch processing with progress tracking
+- **Real-time Progress**: SSE (Server-Sent Events) for live progress updates
+- **Enhanced Error Reporting**: Detailed error messages with course context
 
 #### Refresh Endpoints
-1. **Bulk Refresh**: `/api/admin/bubble/bulk-refresh-question-sets`
+1. **Bulk Refresh**: `/api/admin/bubble/bulk-refresh-question-sets` (GET with SSE)
+   - Uses Server-Sent Events for real-time progress updates
    - Processes 5 question sets at a time
-   - Progress indicator shows X/Y complete
-   - Error tracking for failed refreshes
+   - Live progress indicator updates as sets complete
+   - Enhanced error tracking with:
+     - Question set name and ID
+     - Associated course name and ID
+     - Detailed error message and resolution hints
+   - Visual error indicators on failed question sets
    - Confirmation modal prevents accidents
 
 2. **Individual Refresh**: `/api/admin/question-sets/:id/update-from-bubble`
@@ -129,8 +136,16 @@ const isReplitEnv = Boolean(
 - **Refresh All Button**: Top-right of Content Management tab
 - **Features**:
   - Confirmation modal with clear warning
-  - Real-time progress indicator (X/Y complete)
-  - Error display with specific failure reasons
+  - Real-time progress indicator updates live via SSE
+  - Enhanced error display showing:
+    - Question set title with course context
+    - Specific error message
+    - Detailed resolution instructions
+    - Visual highlighting of failed sets (red background)
+  - Failed question sets marked with:
+    - Red background and border
+    - "⚠️ Refresh Failed" badge
+    - Inline error details
   - Continues on error, tracks all failures
 
 #### Best Practices

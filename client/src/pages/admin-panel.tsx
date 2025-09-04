@@ -766,59 +766,95 @@ export default function AdminPanel() {
     },
   });
 
-  // Bulk refresh mutation
-  const bulkRefreshMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/bubble/bulk-refresh-question-sets");
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      setIsRefreshing(false);
-      setShowRefreshConfirm(false);
-      
-      const hasErrors = data.results?.errors?.length > 0;
-      
-      if (hasErrors) {
-        setRefreshProgress({
-          current: data.results.refreshed,
-          total: data.results.totalSets,
-          errors: data.results.errors
-        });
-        toast({
-          title: "Bulk refresh completed with errors",
-          description: `Refreshed: ${data.results.refreshed}, Failed: ${data.results.failed}`,
-          variant: "default",
-        });
-      } else {
-        setRefreshProgress(null);
-        toast({
-          title: "Bulk refresh completed successfully",
-          description: `All ${data.results.refreshed} question sets refreshed`,
-        });
-      }
-      
-      // Refresh the question sets list
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
-    },
-    onError: (error: Error) => {
-      setIsRefreshing(false);
-      setRefreshProgress(null);
-      toast({
-        title: "Failed to refresh question sets",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Start bulk refresh
-  const handleBulkRefresh = () => {
+  // Handle bulk refresh with SSE for real-time updates
+  const handleBulkRefresh = useCallback(() => {
     setShowRefreshConfirm(false);
     setIsRefreshing(true);
     setRefreshProgress({ current: 0, total: 0, errors: [] });
-    bulkRefreshMutation.mutate();
-  };
+    
+    const eventSource = new EventSource('/api/admin/bubble/bulk-refresh-question-sets');
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'start':
+            console.log('Bulk refresh started:', data.message);
+            break;
+            
+          case 'total':
+            setRefreshProgress(prev => ({ ...prev!, total: data.total }));
+            break;
+            
+          case 'progress':
+            setRefreshProgress(prev => ({
+              ...prev!,
+              current: data.current,
+              total: data.total
+            }));
+            break;
+            
+          case 'complete':
+            eventSource.close();
+            setIsRefreshing(false);
+            
+            const hasErrors = data.results?.errors?.length > 0;
+            
+            if (hasErrors) {
+              setRefreshProgress({
+                current: data.results.refreshed,
+                total: data.results.totalSets,
+                errors: data.results.errors
+              });
+              toast({
+                title: "Bulk refresh completed with errors",
+                description: `Refreshed: ${data.results.refreshed}, Failed: ${data.results.failed}`,
+                variant: "default",
+              });
+            } else {
+              setRefreshProgress(null);
+              toast({
+                title: "Bulk refresh completed successfully",
+                description: `All ${data.results.refreshed} question sets refreshed`,
+              });
+            }
+            
+            // Refresh the question sets list
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+            break;
+            
+          case 'error':
+            eventSource.close();
+            setIsRefreshing(false);
+            setRefreshProgress(null);
+            toast({
+              title: "Failed to refresh question sets",
+              description: data.message || data.error,
+              variant: "destructive",
+            });
+            break;
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('SSE error:', error);
+      eventSource.close();
+      setIsRefreshing(false);
+      setRefreshProgress(null);
+      toast({
+        title: "Connection error during refresh",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    };
+    
+    return () => eventSource.close();
+  }, [queryClient]);
 
   // Event handlers
   const onCreateCourse = (data: z.infer<typeof courseSchema>) => {
@@ -1144,18 +1180,24 @@ export default function AdminPanel() {
                       <XCircle className="h-4 w-4" />
                       <AlertDescription>
                         <div className="font-medium mb-2">Failed to refresh {refreshProgress.errors.length} question set(s):</div>
-                        <ul className="list-disc pl-5 space-y-1">
-                          {refreshProgress.errors.slice(0, 5).map((error, idx) => (
-                            <li key={idx} className="text-sm">
-                              <strong>{error.title}</strong>: {error.error}
-                            </li>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {refreshProgress.errors.map((error, idx) => (
+                            <div key={idx} className="text-sm border-l-2 border-red-300 pl-3 py-1">
+                              <div className="font-semibold">
+                                {error.title}
+                                {error.courseName && (
+                                  <span className="text-xs ml-2 text-red-600">
+                                    (Course: {error.courseName})
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-red-700">{error.error}</div>
+                              {error.details && (
+                                <div className="text-xs text-red-600 italic mt-1">{error.details}</div>
+                              )}
+                            </div>
                           ))}
-                          {refreshProgress.errors.length > 5 && (
-                            <li className="text-sm italic">
-                              ...and {refreshProgress.errors.length - 5} more errors
-                            </li>
-                          )}
-                        </ul>
+                        </div>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -1258,7 +1300,13 @@ export default function AdminPanel() {
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <QuestionSetsSection courseId={course.id} isAiCourse={course.isAi} />
+                          <QuestionSetsSection 
+                            courseId={course.id} 
+                            isAiCourse={course.isAi}
+                            refreshErrors={refreshProgress?.errors?.filter(
+                              (e: any) => e.courseId === course.id
+                            ) || []}
+                          />
                         </CardContent>
                       </Card>
                     ))
@@ -1641,7 +1689,20 @@ function CourseMaterialsSection() {
   );
 }
 
-function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiCourse?: boolean }) {
+function QuestionSetsSection({ 
+  courseId, 
+  isAiCourse,
+  refreshErrors = []
+}: { 
+  courseId: number; 
+  isAiCourse?: boolean;
+  refreshErrors?: Array<{
+    questionSetId: string;
+    title: string;
+    error: string;
+    details?: string;
+  }>;
+}) {
   const [importModalOpen, setImportModalOpen] = useState<number | null>(null);
   const [importJsonData, setImportJsonData] = useState("");
   const [refreshModalOpen, setRefreshModalOpen] = useState<number | null>(null);
@@ -1793,23 +1854,47 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
               const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
               return aNum - bNum;
             })
-            .map((questionSet: any) => (
-            <div key={questionSet.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900">
-                  {questionSet.title}
-                  {isAiCourse !== undefined && (
-                    <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                      isAiCourse 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {isAiCourse ? 'AI' : 'Non-AI'}
-                    </span>
+            .map((questionSet: any) => {
+              // Check if this question set has a refresh error
+              const refreshError = refreshErrors.find(
+                e => e.questionSetId === questionSet.externalId || 
+                     e.title === questionSet.title
+              );
+              
+              return (
+              <div key={questionSet.id} className={`flex justify-between items-center p-4 rounded-lg transition-colors ${
+                refreshError 
+                  ? 'bg-red-50 border-2 border-red-300 hover:bg-red-100' 
+                  : 'bg-gray-50 hover:bg-gray-100'
+              }`}>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900">
+                    {questionSet.title}
+                    {isAiCourse !== undefined && (
+                      <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+                        isAiCourse 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {isAiCourse ? 'AI' : 'Non-AI'}
+                      </span>
+                    )}
+                    {refreshError && (
+                      <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                        ⚠️ Refresh Failed
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
+                  {refreshError && (
+                    <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
+                      <div className="font-semibold">Error: {refreshError.error}</div>
+                      {refreshError.details && (
+                        <div className="mt-1 italic">{refreshError.details}</div>
+                      )}
+                    </div>
                   )}
-                </h4>
-                <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
-              </div>
+                </div>
               <div className="flex gap-2">
                 {questionSet.externalId && (
                   <Button 
@@ -1893,7 +1978,8 @@ function QuestionSetsSection({ courseId, isAiCourse }: { courseId: number; isAiC
                 </AlertDialog>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-8 bg-gray-50 rounded-lg">

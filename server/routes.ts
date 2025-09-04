@@ -2896,17 +2896,30 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Bulk refresh all question sets with progress tracking and batching
-  app.post("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
-    console.log("🔄 Starting bulk refresh of all question sets...");
+  // Bulk refresh all question sets with SSE for real-time progress tracking
+  app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
+    console.log("🔄 Starting bulk refresh of all question sets with SSE...");
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
+    
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    // Send initial event
+    res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting bulk refresh...' }) + '\n\n');
     
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
       if (!bubbleApiKey) {
-        return res.status(500).json({ message: "Bubble API key not configured" });
+        res.write('data: ' + JSON.stringify({ type: 'error', message: 'Bubble API key not configured' }) + '\n\n');
+        res.end();
+        return;
       }
 
       // Fetch all question sets from Bubble
@@ -2928,9 +2941,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const refreshResults = {
         refreshed: 0,
         failed: 0,
-        errors: [] as Array<{ questionSetId: string; title: string; error: string }>,
+        errors: [] as Array<{ 
+          questionSetId: string; 
+          title: string; 
+          courseId?: number;
+          courseName?: string;
+          error: string;
+          details?: string;
+        }>,
         totalSets: bubbleQuestionSets.length
       };
+      
+      // Send total count
+      res.write('data: ' + JSON.stringify({ 
+        type: 'total', 
+        total: bubbleQuestionSets.length 
+      }) + '\n\n');
 
       // Import blank normalizer once
       const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
@@ -2950,8 +2976,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
               refreshResults.failed++;
               refreshResults.errors.push({
                 questionSetId: bubbleId,
-                title: bubbleQuestionSet.title || bubbleId,
-                error: "No course association found"
+                title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
+                error: "No course association found",
+                details: "This question set is not linked to any course in Bubble"
               });
               return;
             }
@@ -2962,8 +2989,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
               refreshResults.failed++;
               refreshResults.errors.push({
                 questionSetId: bubbleId,
-                title: bubbleQuestionSet.title || bubbleId,
-                error: "Course not found in database"
+                title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
+                error: "Course not found in database",
+                details: `Course with Bubble ID ${courseBubbleId} needs to be imported first`
               });
               return;
             }
@@ -2989,8 +3017,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
               refreshResults.failed++;
               refreshResults.errors.push({
                 questionSetId: bubbleId,
-                title: bubbleQuestionSet.title || bubbleId,
-                error: "Question set does not exist (bulk refresh only updates existing sets)"
+                title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
+                courseId: course.id,
+                courseName: course.name,
+                error: "Question set does not exist",
+                details: "Bulk refresh only updates existing question sets. Use 'Update All' to import new sets."
               });
               return;
             }
@@ -3061,19 +3092,45 @@ Remember, your goal is to support student comprehension through meaningful feedb
             refreshResults.refreshed++;
             
           } catch (error) {
+            // Try to get course info even on error
+            let courseName = "Unknown Course";
+            let courseId = undefined;
+            
+            try {
+              const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
+              if (courseBubbleId) {
+                const course = await storage.getCourseByBubbleId(courseBubbleId);
+                if (course) {
+                  courseName = course.name;
+                  courseId = course.id;
+                }
+              }
+            } catch {}
+            
             refreshResults.failed++;
             refreshResults.errors.push({
               questionSetId: bubbleQuestionSet._id,
-              title: bubbleQuestionSet.title || bubbleQuestionSet._id,
-              error: error instanceof Error ? error.message : 'Unknown error'
+              title: bubbleQuestionSet.title || `Question Set (${bubbleQuestionSet._id.substring(0, 8)}...)`,
+              courseId,
+              courseName,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              details: error instanceof Error ? error.stack?.split('\n')[0] : undefined
             });
             console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
           }
         }));
         
-        // Log progress
+        // Send progress update via SSE
         const processed = Math.min(i + BATCH_SIZE, bubbleQuestionSets.length);
         console.log(`📊 Progress: ${processed}/${bubbleQuestionSets.length} question sets processed`);
+        
+        res.write('data: ' + JSON.stringify({
+          type: 'progress',
+          current: processed,
+          total: bubbleQuestionSets.length,
+          refreshed: refreshResults.refreshed,
+          failed: refreshResults.failed
+        }) + '\n\n');
       }
 
       const endTime = Date.now();
@@ -3081,13 +3138,26 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       const message = `Bulk refresh completed in ${duration}s. Refreshed: ${refreshResults.refreshed}, Failed: ${refreshResults.failed}`;
       
-      res.json({
+      // Send final results via SSE
+      res.write('data: ' + JSON.stringify({
+        type: 'complete',
         message,
-        results: refreshResults
-      });
+        results: refreshResults,
+        duration
+      }) + '\n\n');
+      
+      res.end();
     } catch (error) {
       console.error("❌ Critical error in bulk refresh:", error);
-      res.status(500).json({ message: "Failed to bulk refresh question sets" });
+      
+      // Send error via SSE
+      res.write('data: ' + JSON.stringify({
+        type: 'error',
+        message: "Failed to bulk refresh question sets",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }) + '\n\n');
+      
+      res.end();
     }
   });
 
@@ -3363,199 +3433,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         // Use the UPDATE method instead of import to preserve question IDs
         await storage.updateQuestionsForRefresh(questionSetId, questionImports);
-        await storage.updateQuestionSetCount(questionSetId);
-      }
-      
-      res.json({
-        message: `Successfully updated question set with ${parsedQuestions.length} questions from Bubble`,
-        questionCount: parsedQuestions.length
-      });
-      
-    } catch (error) {
-      console.error("Error updating question set from Bubble:", error);
-      // Log more detailed error information
-      if (error instanceof Error) {
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      res.status(500).json({ message: "Failed to update question set from Bubble" });
-    }
-  });
-
-  // Admin route to fetch all learning objects from Bubble.io
-  app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
-    try {
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
-      
-      if (!bubbleApiKey) {
-        return res.status(500).json({ message: "Bubble API key not configured" });
-      }
-
-      REMOVE_PLACEHOLDER
-          console.log(`  Deleting ${questionsToDelete.length} questions that are not in the new import...`);
-          
-          // First get all question version IDs that will be deleted
-          const versionIds = await db.select({ id: questionVersions.id })
-            .from(questionVersions)
-            .where(inArray(questionVersions.questionId, questionsToDelete));
-          
-          if (versionIds.length > 0) {
-            // Delete user answers associated with these question versions
-            await db.delete(userAnswers)
-              .where(inArray(userAnswers.questionVersionId, versionIds.map(v => v.id)));
-            
-            // Delete chatbot feedback associated with these question versions
-            await db.delete(chatbotFeedback)
-              .where(inArray(chatbotFeedback.questionVersionId, versionIds.map(v => v.id)));
-          }
-          
-          // Also delete chatbot feedback that references the questions directly
-          await db.delete(chatbotFeedback)
-            .where(inArray(chatbotFeedback.questionId, questionsToDelete));
-          
-          // Delete question versions
-          await db.delete(questionVersions)
-            .where(inArray(questionVersions.questionId, questionsToDelete));
-          
-          // Delete the questions themselves
-          await db.delete(questions)
-            .where(inArray(questions.id, questionsToDelete));
-        }
-        
-        // Re-fetch existing questions after deletion
-        const remainingQuestions = await db.select()
-          .from(questions)
-          .where(eq(questions.questionSetId, questionSetId));
-        
-        let updatedCount = 0;
-        let newCount = 0;
-        let skippedCount = 0;
-        const errors: string[] = [];
-        
-        // Process each parsed question
-        for (let i = 0; i < parsedQuestions.length; i++) {
-          const parsedQuestion = parsedQuestions[i];
-          const loid = parsedQuestion.loid || `unknown_${i}`;  // Make unique if no LOID
-          const questionNumber = parsedQuestion.question_number || (i + 1);
-          
-          try {
-            // Check if this exact question already exists (matching by LOID and question number)
-            const existingQuestion = remainingQuestions.find(
-              q => q.loid === loid && q.originalQuestionNumber === questionNumber
-            );
-          
-            if (existingQuestion) {
-              // Update existing question's version
-              console.log(`  Q${questionNumber} (LOID: ${loid}): Updating existing question ID ${existingQuestion.id}`);
-              const questionType = parsedQuestion.question_type || "multiple_choice";
-              
-              // Get the latest version number for this question
-              const latestVersion = await db.select({ maxVersion: sql<number>`MAX(version_number)` })
-                .from(questionVersions)
-                .where(eq(questionVersions.questionId, existingQuestion.id));
-              
-              const nextVersionNumber = (latestVersion[0]?.maxVersion || 0) + 1;
-            
-            // Create a new version with the updated content
-            const versionData: any = {
-              questionId: existingQuestion.id,
-              versionNumber: nextVersionNumber,
-              topicFocus: bubbleQuestionSet.title || "General",
-              questionText: parsedQuestion.question_text || "",
-              questionType: questionType,
-              answerChoices: parsedQuestion.answer_choices || [],
-              correctAnswer: parsedQuestion.correct_answer || "",
-              acceptableAnswers: parsedQuestion.acceptable_answers,
-              caseSensitive: parsedQuestion.case_sensitive || false,
-              allowMultiple: parsedQuestion.allow_multiple || false,
-              matchingPairs: parsedQuestion.matching_pairs || null,
-              correctOrder: parsedQuestion.correct_order || null,
-            };
-            
-            // Add question type specific fields
-            if (questionType === "select_from_list" && parsedQuestion.blanks) {
-              versionData.blanks = parsedQuestion.blanks;
-            }
-            
-            if (questionType === "drag_and_drop") {
-              if (parsedQuestion.drop_zones) {
-                versionData.dropZones = parsedQuestion.drop_zones;
-              }
-              if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
-                versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
-              }
-            }
-            
-            if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
-              versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
-            }
-            
-              // Insert the new version
-              await db.insert(questionVersions).values(versionData);
-              updatedCount++;
-            } else {
-              // This is a new question, add it
-              console.log(`  Q${questionNumber} (LOID: ${loid}): Adding new question`);
-              const [newQuestion] = await db.insert(questions).values({
-                questionSetId,
-                originalQuestionNumber: questionNumber,
-                loid: loid,
-              }).returning();
-              
-              // Add its version
-              const questionType = parsedQuestion.question_type || "multiple_choice";
-              const versionData: any = {
-                questionId: newQuestion.id,
-                versionNumber: 1,
-                topicFocus: bubbleQuestionSet.title || "General",
-                questionText: parsedQuestion.question_text || "",
-                questionType: questionType,
-                answerChoices: parsedQuestion.answer_choices || [],
-                correctAnswer: parsedQuestion.correct_answer || "",
-                acceptableAnswers: parsedQuestion.acceptable_answers,
-                caseSensitive: parsedQuestion.case_sensitive || false,
-                allowMultiple: parsedQuestion.allow_multiple || false,
-                matchingPairs: parsedQuestion.matching_pairs || null,
-                correctOrder: parsedQuestion.correct_order || null,
-              };
-              
-              // Add question type specific fields
-              if (questionType === "select_from_list" && parsedQuestion.blanks) {
-                versionData.blanks = parsedQuestion.blanks;
-              }
-              
-              if (questionType === "drag_and_drop") {
-                if (parsedQuestion.drop_zones) {
-                  versionData.dropZones = parsedQuestion.drop_zones;
-                }
-                if (typeof parsedQuestion.correct_answer === 'object' && !Array.isArray(parsedQuestion.correct_answer)) {
-                  versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
-                }
-              }
-              
-              if (questionType === "multiple_response" && Array.isArray(parsedQuestion.correct_answer)) {
-                versionData.correctAnswer = JSON.stringify(parsedQuestion.correct_answer);
-              }
-              
-              await db.insert(questionVersions).values(versionData);
-              newCount++;
-            }
-          } catch (error) {
-            console.error(`  ❌ Failed to process Q${questionNumber} (LOID: ${loid}):`, error);
-            errors.push(`Q${questionNumber} (LOID: ${loid}): ${error instanceof Error ? error.message : 'Unknown error'}`);
-            skippedCount++;
-          }
-        }
-        
-        console.log(`  Summary: Deleted ${questionsToDelete.length}, Updated ${updatedCount}, Added ${newCount}, Skipped ${skippedCount}`);
-        if (errors.length > 0) {
-          console.log(`  Errors encountered:`);
-          errors.forEach(err => console.log(`    - ${err}`));
-        }
-        
-        // Update question count
         await storage.updateQuestionSetCount(questionSetId);
       }
       

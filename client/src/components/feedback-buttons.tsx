@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
+import { AboutAIAssistantModal } from "./about-ai-assistant-modal";
 import { useToast } from "@/hooks/use-toast";
 
 interface FeedbackButtonsProps {
@@ -15,6 +16,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"positive" | "negative">("positive");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAboutAIModalOpen, setIsAboutAIModalOpen] = useState(false);
   const { toast } = useToast();
 
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
@@ -79,45 +81,58 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
 
   return (
     <>
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={handleThumbsUp}
-          disabled={!!feedbackState || isSubmitting}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
-            feedbackState === "positive"
-              ? "bg-blue-100 dark:bg-blue-900"
-              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-          } ${feedbackState || isSubmitting ? "cursor-not-allowed opacity-50" : "hover:scale-110"}`}
-          aria-label="Good response"
-        >
-          <ThumbsUp
-            className={`h-4 w-4 transition-colors ${
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex gap-2">
+          <button
+            onClick={handleThumbsUp}
+            disabled={!!feedbackState || isSubmitting}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
               feedbackState === "positive"
-                ? "fill-[#4a90e2] stroke-[#4a90e2]"
-                : "stroke-[#4a90e2]"
-            }`}
-          />
+                ? "bg-blue-100 dark:bg-blue-900"
+                : "hover:bg-gray-100 dark:hover:bg-gray-800"
+            } ${feedbackState || isSubmitting ? "cursor-not-allowed opacity-50" : "hover:scale-110"}`}
+            aria-label="Good response"
+          >
+            <ThumbsUp
+              className={`h-4 w-4 transition-colors ${
+                feedbackState === "positive"
+                  ? "fill-[#4a90e2] stroke-[#4a90e2]"
+                  : "stroke-[#4a90e2]"
+              }`}
+            />
 
-        </button>
-        <button
-          onClick={handleThumbsDown}
-          disabled={!!feedbackState || isSubmitting}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
-            feedbackState === "negative"
-              ? "bg-blue-100 dark:bg-blue-900"
-              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-          } ${feedbackState || isSubmitting ? "cursor-not-allowed opacity-50" : "hover:scale-110"}`}
-          aria-label="Poor response"
-        >
-          <ThumbsDown
-            className={`h-4 w-4 transition-colors ${
+          </button>
+          <button
+            onClick={handleThumbsDown}
+            disabled={!!feedbackState || isSubmitting}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
               feedbackState === "negative"
-                ? "fill-[#4a90e2] stroke-[#4a90e2]"
-                : "stroke-[#4a90e2]"
-            }`}
-          />
+                ? "bg-blue-100 dark:bg-blue-900"
+                : "hover:bg-gray-100 dark:hover:bg-gray-800"
+            } ${feedbackState || isSubmitting ? "cursor-not-allowed opacity-50" : "hover:scale-110"}`}
+            aria-label="Poor response"
+          >
+            <ThumbsDown
+              className={`h-4 w-4 transition-colors ${
+                feedbackState === "negative"
+                  ? "fill-[#4a90e2] stroke-[#4a90e2]"
+                  : "stroke-[#4a90e2]"
+              }`}
+            />
 
-        </button>
+          </button>
+        </div>
+        
+        {/* AI disclaimer text */}
+        <div className="text-xs text-gray-500 flex items-center gap-1">
+          <span>🤖 AI responses may be inaccurate • </span>
+          <button
+            onClick={() => setIsAboutAIModalOpen(true)}
+            className="text-blue-600 hover:text-blue-700 underline"
+          >
+            Learn more
+          </button>
+        </div>
       </div>
 
       <FeedbackModal
@@ -125,6 +140,11 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
         feedbackType={modalType}
+      />
+      
+      <AboutAIAssistantModal
+        isOpen={isAboutAIModalOpen}
+        onClose={() => setIsAboutAIModalOpen(false)}
       />
     </>
   );
