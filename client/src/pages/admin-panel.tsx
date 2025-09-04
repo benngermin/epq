@@ -974,7 +974,7 @@ export default function AdminPanel() {
                         <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline">
+                        <Button variant="secondary">
                           <Plus className="h-4 w-4 mr-2" />
                           Create Course
                         </Button>
@@ -1023,7 +1023,7 @@ export default function AdminPanel() {
                   </Dialog>
                   <Dialog open={standaloneQuestionSetDialogOpen} onOpenChange={setStandaloneQuestionSetDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline">
+                      <Button variant="secondary">
                         <Plus className="h-4 w-4 mr-2" />
                         Create Question Set
                       </Button>
@@ -1087,7 +1087,7 @@ export default function AdminPanel() {
                   
                   {/* Bulk Refresh Button */}
                   <Button 
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => setShowRefreshConfirm(true)}
                     disabled={isRefreshing}
                   >
@@ -1107,7 +1107,7 @@ export default function AdminPanel() {
                   {/* Import Question Sets from Bubble */}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline">
+                      <Button variant="secondary">
                         <Upload className="h-4 w-4 mr-2" />
                         Import Question Sets
                       </Button>
