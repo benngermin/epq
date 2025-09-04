@@ -3497,8 +3497,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       let allLearningObjects: any[] = [];
       let cursor = 0;
-      const limit = 100; // Bubble API typically has a limit per request
+      const limit = 25; // Reduced from 100 to 25 to prevent API timeouts
       let hasMore = true;
+      let totalFetched = 0;
+
+      console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
 
       while (hasMore) {
         const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
@@ -3515,10 +3518,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         if (results.length > 0) {
           allLearningObjects = allLearningObjects.concat(results);
           cursor += results.length;
+          totalFetched += results.length;
+          console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
         }
         
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
+
+      console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
 
       
       // Fetch course mapping from Bubble
@@ -3587,8 +3594,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       let allLearningObjects: any[] = [];
       let cursor = 0;
-      const limit = 100;
+      const limit = 25; // Reduced from 100 to 25 to prevent API timeouts
       let hasMore = true;
+      let totalFetched = 0;
+
+      console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
 
       while (hasMore) {
         const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
@@ -3604,10 +3614,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         if (results.length > 0) {
           allLearningObjects = allLearningObjects.concat(results);
           cursor += results.length;
+          totalFetched += results.length;
+          console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
         }
         
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
+
+      console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
 
       
       // Fetch course mapping from Bubble
