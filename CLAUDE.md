@@ -90,10 +90,55 @@ const isReplitEnv = Boolean(
 - **Test File**: `test-validation.ts`
 - **Coverage**: 30+ test cases for all question types and edge cases
 
-### Import Process Updates
-- Questions normalized during import from Bubble
-- Applied in `/api/admin/bubble/update-all-question-sets`
-- Prevents blank pattern mismatches
+### Import & Refresh System (Updated January 2025)
+
+#### Key Improvements
+- **UPDATE vs DELETE**: All refresh operations now UPDATE existing questions instead of deleting them
+- **ID Preservation**: Question IDs remain unchanged, protecting analytics data
+- **Blank Normalization**: Applied during all imports/refreshes
+- **Bulk Operations**: Supports batch processing with progress tracking
+
+#### Refresh Endpoints
+1. **Bulk Refresh**: `/api/admin/bubble/bulk-refresh-question-sets`
+   - Processes 5 question sets at a time
+   - Progress indicator shows X/Y complete
+   - Error tracking for failed refreshes
+   - Confirmation modal prevents accidents
+
+2. **Individual Refresh**: `/api/admin/question-sets/:id/update-from-bubble`
+   - Updates single question set
+   - Preserves all question IDs
+   - Uses `updateQuestionsForRefresh` method
+
+3. **Update All**: `/api/admin/bubble/update-all-question-sets`
+   - Imports new question sets
+   - Updates existing ones
+   - Conditional logic based on existence
+
+#### Storage Implementation
+- **Method**: `updateQuestionsForRefresh()` in `server/storage.ts`
+- **Purpose**: Updates questions while preserving IDs
+- **Features**: 
+  - Updates existing questions by matching `originalQuestionNumber`
+  - Adds new questions if they don't exist
+  - Updates or creates question versions
+  - All wrapped in database transactions
+
+#### UI Components
+- **Location**: `client/src/pages/admin-panel.tsx`
+- **Refresh All Button**: Top-right of Content Management tab
+- **Features**:
+  - Confirmation modal with clear warning
+  - Real-time progress indicator (X/Y complete)
+  - Error display with specific failure reasons
+  - Continues on error, tracks all failures
+
+#### Best Practices
+- **Always use UPDATE**: Never DELETE questions during refresh
+- **Preserve IDs**: Critical for maintaining analytics integrity
+- **Batch Operations**: Process in groups of 5 to avoid timeouts
+- **Error Handling**: Continue on failure, report all errors
+- **User Feedback**: Show progress and clear error messages
 
 ### Critical Implementation Notes
 
@@ -119,7 +164,7 @@ server/
 │   └── debug-utils.ts         # Safe logging
 ├── test/
 │   └── answer-validation.test.ts
-└── routes.ts                   # Updated endpoints (lines 1185-1198, 1263-1276)
+└── routes.ts                   # API endpoints and refresh logic
 ```
 
 ### Development Commands
