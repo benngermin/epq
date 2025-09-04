@@ -29,13 +29,19 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
     if (isChecked) {
       // Store the agreement in localStorage so we don't show this again
       localStorage.setItem('epq_agreed_to_terms', 'true');
+      console.log('[BeforeYouStartModal] Agreement saved to localStorage');
       onAgree();
       onClose();
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Only close if the dialog is being closed (not opened)
+      if (!open) {
+        onClose();
+      }
+    }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-2xl font-bold text-gray-900">

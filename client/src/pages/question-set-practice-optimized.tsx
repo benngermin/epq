@@ -56,11 +56,10 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Initialize both states based on localStorage
+  const hasAgreedInStorage = localStorage.getItem('epq_agreed_to_terms') === 'true';
   const [showBeginDialog, setShowBeginDialog] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(() => {
-    // Check if user has already agreed to terms
-    return localStorage.getItem('epq_agreed_to_terms') === 'true';
-  });
+  const [agreedToTerms, setAgreedToTerms] = useState(hasAgreedInStorage);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   // Handle the case where route doesn't match
@@ -177,17 +176,31 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // Show the modal when practice data is loaded and user hasn't agreed yet
+  // Show the modal only once when practice data is loaded and user hasn't agreed yet
   useEffect(() => {
-    // Only show the dialog if:
-    // 1. We have practice data
-    // 2. User hasn't agreed to terms (checking both state and localStorage)
-    // 3. We haven't already shown the dialog
-    const hasAgreedInStorage = localStorage.getItem('epq_agreed_to_terms') === 'true';
-    if (practiceData && !agreedToTerms && !hasAgreedInStorage && !showBeginDialog) {
+    if (!practiceData) return;
+    
+    // Check localStorage directly each time
+    const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
+    
+    debugLog('Modal display check:', {
+      hasAgreed,
+      practiceDataLoaded: true,
+      questionSetId: practiceData.questionSet?.id,
+      currentShowBeginDialog: showBeginDialog,
+      agreedToTermsState: agreedToTerms
+    });
+    
+    // Only show if user has NOT agreed (checking localStorage, not state)
+    if (!hasAgreed) {
+      debugLog('Showing modal because localStorage does not have agreement');
       setShowBeginDialog(true);
+    } else {
+      debugLog('Not showing modal - user has already agreed');
+      // Make sure modal is closed if agreement exists
+      setShowBeginDialog(false);
     }
-  }, [practiceData]); // Removed agreedToTerms from dependencies to prevent re-triggering
+  }, [practiceData?.questionSet?.id]); // Only re-run when question set changes
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
@@ -788,11 +801,18 @@ export default function QuestionSetPractice() {
       {/* Before You Begin Modal */}
       <BeforeYouStartModal
         isOpen={showBeginDialog}
-        onClose={() => setShowBeginDialog(false)}
+        onClose={() => {
+          debugLog('Modal closed without agreement');
+          setShowBeginDialog(false);
+        }}
         onAgree={() => {
           // The modal already sets localStorage, we just need to update our state
+          debugLog('User agreed to terms, closing modal');
           setAgreedToTerms(true);
           setShowBeginDialog(false);
+          // Double-check localStorage was set
+          const stored = localStorage.getItem('epq_agreed_to_terms');
+          debugLog('After agreement, localStorage value:', stored);
         }}
       />
     </div>
