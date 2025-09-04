@@ -104,13 +104,6 @@ export default function QuestionSetPractice() {
     setChatResetTimestamp(Date.now());
   }, [questionSetId]);
 
-  // Show the modal when practice data is loaded and user hasn't agreed yet
-  useEffect(() => {
-    if (practiceData && !agreedToTerms) {
-      setShowBeginDialog(true);
-    }
-  }, [practiceData, agreedToTerms]);
-
   // Fetch all courses for admin dropdown
   const { data: courses } = useQuery<(Course & { questionSets: any[] })[]>({
     queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
@@ -184,9 +177,12 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-
-
-
+  // Show the modal when practice data is loaded and user hasn't agreed yet
+  useEffect(() => {
+    if (practiceData && !agreedToTerms) {
+      setShowBeginDialog(true);
+    }
+  }, [practiceData, agreedToTerms]);
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
