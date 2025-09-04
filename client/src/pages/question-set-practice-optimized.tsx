@@ -204,8 +204,15 @@ export default function QuestionSetPractice() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // No need for useEffect to manage modal visibility - it's already set correctly on mount
-  // based on localStorage check above
+  // Show the modal when practice data is loaded and user hasn't agreed yet
+  useEffect(() => {
+    const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
+    if (practiceData && !hasAgreed) {
+      setShowBeginDialog(true);
+    } else if (practiceData && hasAgreed) {
+      setShowBeginDialog(false);
+    }
+  }, [practiceData]);
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
@@ -815,6 +822,13 @@ export default function QuestionSetPractice() {
           debugLog('User agreed to terms, closing modal');
           setAgreedToTerms(true);
           setShowBeginDialog(false);
+          // Force immediate re-check to prevent any race conditions
+          setTimeout(() => {
+            const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
+            if (hasAgreed) {
+              setShowBeginDialog(false);
+            }
+          }, 100);
         }}
       />
     </div>
