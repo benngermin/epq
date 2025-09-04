@@ -56,11 +56,9 @@ export default function QuestionSetPractice() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Initialize both states based on localStorage
-  const hasAgreedInStorage = localStorage.getItem('epq_agreed_to_terms') === 'true';
-  // Show dialog initially if user hasn't agreed yet
-  const [showBeginDialog, setShowBeginDialog] = useState(!hasAgreedInStorage);
-  const [agreedToTerms, setAgreedToTerms] = useState(hasAgreedInStorage);
+  // Initialize agreedToTerms state without direct localStorage read to avoid hydration issues
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showBeginDialog, setShowBeginDialog] = useState(false);
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
 
   // Handle the case where route doesn't match
@@ -84,6 +82,33 @@ export default function QuestionSetPractice() {
   }
 
   const questionSetId = parseInt(actualParams.id);
+  
+  // Sync agreedToTerms with localStorage on mount
+  useEffect(() => {
+    const hasAgreed = localStorage.getItem('epq_agreed_to_terms') === 'true';
+    setAgreedToTerms(hasAgreed);
+    // Only show dialog if user hasn't agreed yet
+    if (!hasAgreed) {
+      setShowBeginDialog(true);
+    }
+  }, []); // Run once on mount
+  
+  // Listen for storage changes (e.g., from other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'epq_agreed_to_terms') {
+        const hasAgreed = e.newValue === 'true';
+        setAgreedToTerms(hasAgreed);
+        // If agreement was revoked, show the dialog again
+        if (!hasAgreed) {
+          setShowBeginDialog(true);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   
   // Reset state when question set changes
   useEffect(() => {
@@ -784,8 +809,9 @@ export default function QuestionSetPractice() {
           setShowBeginDialog(false);
         }}
         onAgree={() => {
-          // The modal already sets localStorage, we just need to update our state
-          debugLog('User agreed to terms, closing modal');
+          // Ensure localStorage is set before updating state
+          localStorage.setItem('epq_agreed_to_terms', 'true');
+          debugLog('User agreed to terms, setting localStorage and closing modal');
           setAgreedToTerms(true);
           setShowBeginDialog(false);
           // Double-check localStorage was set
