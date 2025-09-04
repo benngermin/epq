@@ -1073,7 +1073,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(courseMaterials.loid, loid))
       .limit(1);
     
-    // If no exact match, try without leading zeros
+    // If no exact match, try without leading zeros from input
     if (!result[0] && loid) {
       const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
       result = await db.select()
@@ -1096,6 +1096,49 @@ export class DatabaseStorage implements IStorage {
       result = await db.select()
         .from(courseMaterials)
         .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`)
+        .limit(1);
+    }
+    
+    // NEW STRATEGY: Normalize database LOIDs by removing leading zeros AND version suffixes
+    // This handles cases where question has "7198" but database has "07198.v3"
+    if (!result[0] && loid) {
+      // Normalize the input LOID (remove leading zeros)
+      const normalizedInputLoid = loid.replace(/^0+/, '') || '0'; // Keep '0' if all zeros
+      
+      // Query using SQL to normalize database LOIDs
+      // Remove leading zeros: REGEXP_REPLACE(loid, '^0+', '', 'g')
+      // Remove version suffix: REGEXP_REPLACE(..., '\.[^.]+$', '', 'g')
+      result = await db.select()
+        .from(courseMaterials)
+        .where(sql`
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
+            '\.[^.]+$', '', 'g'
+          ) = ${normalizedInputLoid}
+        `)
+        .limit(1);
+      
+      // Log for debugging when this strategy is used
+      if (result[0]) {
+        console.log(`LOID match found using normalization: Question LOID "${loid}" matched with Course Material LOID "${result[0].loid}"`);
+      }
+    }
+    
+    // Final fallback: Try with leading zeros added to input and normalized database LOIDs
+    // This handles edge cases where input might be missing leading zeros
+    if (!result[0] && loid) {
+      // Pad the input with a leading zero if it doesn't have one
+      const paddedLoid = loid.match(/^0/) ? loid : '0' + loid;
+      const normalizedPaddedLoid = paddedLoid.replace(/^0+/, '') || '0';
+      
+      result = await db.select()
+        .from(courseMaterials)
+        .where(sql`
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
+            '\.[^.]+$', '', 'g'
+          ) = ${normalizedPaddedLoid}
+        `)
         .limit(1);
     }
     
