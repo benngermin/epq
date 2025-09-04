@@ -111,6 +111,20 @@ export async function createFeedbackInNotion(feedbackData: {
             }
         }
         
+        // Customer Email - specific field requested by user
+        const customerEmailField = findProperty(['CustomerEmail', 'Customer Email']);
+        if (customerEmailField) {
+            if (schemaProps[customerEmailField]?.type === 'email') {
+                properties[customerEmailField] = { email: feedbackData.userEmail };
+            } else if (schemaProps[customerEmailField]?.type === 'rich_text') {
+                properties[customerEmailField] = {
+                    rich_text: [{
+                        text: { content: feedbackData.userEmail }
+                    }]
+                };
+            }
+        }
+        
         // Feedback Type
         const typeField = findProperty(['FeedbackType', 'Type', 'Feedback Type']);
         if (typeField && schemaProps[typeField]?.type === 'select') {
@@ -167,6 +181,42 @@ export async function createFeedbackInNotion(feedbackData: {
                     text: { content: feedbackData.courseName }
                 }]
             };
+        }
+        
+        // Course Number - specific field requested by user
+        const courseNumberField = findProperty(['CourseNumber', 'Course Number']);
+        if (courseNumberField && feedbackData.courseNumber) {
+            if (schemaProps[courseNumberField]?.type === 'rich_text') {
+                properties[courseNumberField] = {
+                    rich_text: [{
+                        text: { content: feedbackData.courseNumber }
+                    }]
+                };
+            } else if (schemaProps[courseNumberField]?.type === 'title') {
+                properties[courseNumberField] = {
+                    title: [{
+                        text: { content: feedbackData.courseNumber }
+                    }]
+                };
+            }
+        }
+        
+        // LOID - specific field requested by user
+        const loidField = findProperty(['LOID', 'Loid']);
+        if (loidField && feedbackData.loid) {
+            if (schemaProps[loidField]?.type === 'rich_text') {
+                properties[loidField] = {
+                    rich_text: [{
+                        text: { content: feedbackData.loid }
+                    }]
+                };
+            } else if (schemaProps[loidField]?.type === 'title') {
+                properties[loidField] = {
+                    title: [{
+                        text: { content: feedbackData.loid }
+                    }]
+                };
+            }
         }
         
         // Created Date
