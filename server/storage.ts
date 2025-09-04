@@ -454,8 +454,63 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCourse(id: number): Promise<boolean> {
-    const result = await db.delete(courses).where(eq(courses.id, id));
-    return (result.rowCount || 0) > 0;
+    try {
+      // Use transaction to ensure all deletions are atomic
+      return await db.transaction(async (tx) => {
+        // First, get all question sets for this course
+        const courseSets = await tx.select().from(questionSets).where(eq(questionSets.courseId, id));
+        
+        // For each question set, we need to delete all related data
+        for (const questionSet of courseSets) {
+          // Check if there are any test runs that reference this question set
+          const referencingTestRuns = await tx.select().from(userTestRuns).where(eq(userTestRuns.questionSetId, questionSet.id));
+          
+          // If there are test runs, we need to delete user answers first
+          if (referencingTestRuns.length > 0) {
+            // Delete user answers for all test runs
+            for (const testRun of referencingTestRuns) {
+              await tx.delete(userAnswers).where(eq(userAnswers.userTestRunId, testRun.id));
+            }
+            
+            // Delete the test runs
+            await tx.delete(userTestRuns).where(eq(userTestRuns.questionSetId, questionSet.id));
+          }
+
+          // Delete all question versions for questions in this set
+          await tx.execute(sql`
+            DELETE FROM question_versions 
+            WHERE question_id IN (
+              SELECT id FROM questions WHERE question_set_id = ${questionSet.id}
+            )
+          `);
+
+          // Delete all questions in the set
+          await tx.delete(questions).where(eq(questions.questionSetId, questionSet.id));
+          
+          // Delete chatbot feedback related to this question set
+          await tx.delete(chatbotFeedback).where(eq(chatbotFeedback.questionSetId, questionSet.id));
+        }
+        
+        // Delete all question sets for this course
+        await tx.delete(questionSets).where(eq(questionSets.courseId, id));
+        
+        // Delete course external mappings
+        await tx.delete(courseExternalMappings).where(eq(courseExternalMappings.courseId, id));
+        
+        // Delete user course progress
+        await tx.delete(userCourseProgress).where(eq(userCourseProgress.courseId, id));
+        
+        // Delete chatbot feedback related to this course
+        await tx.delete(chatbotFeedback).where(eq(chatbotFeedback.courseId, id));
+        
+        // Finally, delete the course itself
+        const result = await tx.delete(courses).where(eq(courses.id, id));
+        return (result.rowCount || 0) > 0;
+      });
+    } catch (error) {
+      console.error('Error in deleteCourse:', error);
+      throw error;
+    }
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
