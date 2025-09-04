@@ -85,7 +85,7 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
             className={`w-full py-6 text-lg font-medium transition-all ${
               isChecked 
                 ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             }`}
             variant="secondary"
           >
