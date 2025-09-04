@@ -1590,7 +1590,7 @@ function CourseMaterialsSection() {
                   {new Set(materials.map((m: any) => m.loid)).size} unique LOIDs
                 </span>
               </div>
-              <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+              <div className="h-[calc(100vh-24rem)] overflow-y-auto space-y-3 pr-2">
                 {materials.map((material: any) => (
                   <div key={material.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
                     <div className="flex justify-between items-start">
