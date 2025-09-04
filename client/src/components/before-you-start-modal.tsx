@@ -49,11 +49,19 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
             <div className="flex gap-3">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-2">
-                <p className="text-gray-800 font-medium">
-                  Important: <span className="font-normal">Practice questions familiarize you with the exam format, but
-                  don't cover every possible topic that could be on the exam. AI assistant
-                  explanations may occasionally be incorrect or incomplete.</span>
+                <p className="text-gray-800 font-medium mb-2">
+                  Important:
                 </p>
+                <div className="space-y-2">
+                  <p className="text-gray-800 font-normal flex items-start">
+                    <span className="mr-2">→</span>
+                    <span>Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.</span>
+                  </p>
+                  <p className="text-gray-800 font-normal flex items-start">
+                    <span className="mr-2">→</span>
+                    <span>AI assistant explanations may occasionally be incorrect or incomplete.</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
