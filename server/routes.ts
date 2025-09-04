@@ -2768,6 +2768,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           // Check if question set already exists by external ID
           let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
+          let isExistingQuestionSet = false;
           
           if (questionSet) {
             // Update existing question set
@@ -2777,15 +2778,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               description: bubbleQuestionSet.description || null,
             });
             
-            // Delete existing questions to replace with updated ones
-            await db.delete(questionVersions)
-              .where(inArray(questionVersions.questionId, 
-                db.select({ id: questions.id })
-                  .from(questions)
-                  .where(eq(questions.questionSetId, questionSet.id))
-              ));
-            await db.delete(questions).where(eq(questions.questionSetId, questionSet.id));
-            
+            isExistingQuestionSet = true;
             updateResults.updated++;
           } else {
             // Create new question set
@@ -2859,7 +2852,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
             // Wrap bulk operations in try-catch for better error handling
             try {
-              await storage.importQuestions(questionSet.id, questionImports);
+              // Use update method for existing question sets, import for new ones
+              if (isExistingQuestionSet) {
+                await storage.updateQuestionsForRefresh(questionSet.id, questionImports);
+              } else {
+                await storage.importQuestions(questionSet.id, questionImports);
+              }
               await storage.updateQuestionSetCount(questionSet.id);
             } catch (importError) {
               console.error(`Error during bulk import for question set ${questionSet.id}:`, importError);
@@ -2895,6 +2893,201 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("❌ Critical error in update-all-question-sets:", error);
       res.status(500).json({ message: "Failed to update question sets from Bubble repository" });
+    }
+  });
+
+  // Bulk refresh all question sets with progress tracking and batching
+  app.post("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
+    console.log("🔄 Starting bulk refresh of all question sets...");
+    const startTime = Date.now();
+    const BATCH_SIZE = 5; // Process 5 question sets at a time
+    
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      // Fetch all question sets from Bubble
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      const response = await fetch(baseUrl, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const bubbleQuestionSets = data.response?.results || [];
+
+      const refreshResults = {
+        refreshed: 0,
+        failed: 0,
+        errors: [] as Array<{ questionSetId: string; title: string; error: string }>,
+        totalSets: bubbleQuestionSets.length
+      };
+
+      // Import blank normalizer once
+      const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
+
+      // Process in batches
+      for (let i = 0; i < bubbleQuestionSets.length; i += BATCH_SIZE) {
+        const batch = bubbleQuestionSets.slice(i, Math.min(i + BATCH_SIZE, bubbleQuestionSets.length));
+        
+        // Process batch in parallel
+        await Promise.all(batch.map(async (bubbleQuestionSet) => {
+          try {
+            const bubbleId = bubbleQuestionSet._id;
+            const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
+            
+            // Skip if no course association
+            if (!courseBubbleId) {
+              refreshResults.failed++;
+              refreshResults.errors.push({
+                questionSetId: bubbleId,
+                title: bubbleQuestionSet.title || bubbleId,
+                error: "No course association found"
+              });
+              return;
+            }
+            
+            // Find course by Bubble ID
+            let course = await storage.getCourseByBubbleId(courseBubbleId);
+            if (!course) {
+              refreshResults.failed++;
+              refreshResults.errors.push({
+                questionSetId: bubbleId,
+                title: bubbleQuestionSet.title || bubbleId,
+                error: "Course not found in database"
+              });
+              return;
+            }
+            
+            // Parse content field to get questions
+            let parsedQuestions: any[] = [];
+            if (bubbleQuestionSet.content) {
+              try {
+                const contentJson = JSON.parse(bubbleQuestionSet.content);
+                if (contentJson.questions && Array.isArray(contentJson.questions)) {
+                  parsedQuestions = contentJson.questions;
+                }
+              } catch (parseError) {
+                console.error(`Error parsing content for ${bubbleId}:`, parseError);
+              }
+            }
+
+            // Check if question set already exists
+            let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
+            
+            if (!questionSet) {
+              // Skip creation of new question sets in bulk refresh
+              refreshResults.failed++;
+              refreshResults.errors.push({
+                questionSetId: bubbleId,
+                title: bubbleQuestionSet.title || bubbleId,
+                error: "Question set does not exist (bulk refresh only updates existing sets)"
+              });
+              return;
+            }
+            
+            // Update existing question set
+            await storage.updateQuestionSet(questionSet.id, {
+              courseId: course.id,
+              title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+              description: bubbleQuestionSet.description || null,
+            });
+            
+            // Process and update questions
+            if (parsedQuestions.length > 0) {
+              const questionImports = parsedQuestions.map((q: any, index: number) => {
+                const questionType = q.question_type || "multiple_choice";
+                
+                // Normalize blanks in question text
+                let normalizedQuestionText = q.question_text || "";
+                if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+                  const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+                  normalizedQuestionText = normalizedText;
+                }
+                
+                const versionData: any = {
+                  version_number: 1,
+                  topic_focus: bubbleQuestionSet.title || "General",
+                  question_text: normalizedQuestionText,
+                  question_type: questionType,
+                  answer_choices: q.answer_choices || [],
+                  correct_answer: q.correct_answer || "",
+                  acceptable_answers: q.acceptable_answers,
+                  case_sensitive: q.case_sensitive || false,
+                  allow_multiple: q.allow_multiple || false,
+                  matching_pairs: q.matching_pairs || null,
+                  correct_order: q.correct_order || null,
+                };
+                
+                // Add question type specific fields
+                if (questionType === "select_from_list" && q.blanks) {
+                  versionData.blanks = q.blanks;
+                }
+                
+                if (questionType === "drag_and_drop") {
+                  if (q.drop_zones) {
+                    versionData.drop_zones = q.drop_zones;
+                  }
+                  if (typeof q.correct_answer === 'object' && !Array.isArray(q.correct_answer)) {
+                    versionData.correct_answer = JSON.stringify(q.correct_answer);
+                  }
+                }
+                
+                if (questionType === "multiple_response" && Array.isArray(q.correct_answer)) {
+                  versionData.correct_answer = JSON.stringify(q.correct_answer);
+                }
+                
+                return {
+                  question_number: q.question_number || (index + 1),
+                  type: questionType,
+                  loid: q.loid || "unknown",
+                  versions: [versionData]
+                };
+              });
+
+              await storage.updateQuestionsForRefresh(questionSet.id, questionImports);
+              await storage.updateQuestionSetCount(questionSet.id);
+            }
+
+            refreshResults.refreshed++;
+            
+          } catch (error) {
+            refreshResults.failed++;
+            refreshResults.errors.push({
+              questionSetId: bubbleQuestionSet._id,
+              title: bubbleQuestionSet.title || bubbleQuestionSet._id,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
+          }
+        }));
+        
+        // Log progress
+        const processed = Math.min(i + BATCH_SIZE, bubbleQuestionSets.length);
+        console.log(`📊 Progress: ${processed}/${bubbleQuestionSets.length} question sets processed`);
+      }
+
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      const message = `Bulk refresh completed in ${duration}s. Refreshed: ${refreshResults.refreshed}, Failed: ${refreshResults.failed}`;
+      
+      res.json({
+        message,
+        results: refreshResults
+      });
+    } catch (error) {
+      console.error("❌ Critical error in bulk refresh:", error);
+      res.status(500).json({ message: "Failed to bulk refresh question sets" });
     }
   });
 
@@ -3099,70 +3292,26 @@ Remember, your goal is to support student comprehension through meaningful feedb
         description: bubbleQuestionSet.description || questionSet.description,
       });
       
-      // Check if there are any user answers for this question set
-      const existingAnswers = await db.select({ count: sql<number>`COUNT(*)::int` })
-        .from(userAnswers)
-        .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
-        .where(eq(userTestRuns.questionSetId, questionSetId));
+      // Always use UPDATE approach to preserve question IDs and analytics
+      console.log(`📝 Updating question set ${questionSetId} while preserving all IDs and analytics data.`);
       
-      const hasUserAnswers = existingAnswers[0]?.count > 0;
-      
-      if (hasUserAnswers) {
-        // If users have answered questions, we need to preserve the data
-        // Instead of deleting, we'll update existing questions or create new ones
-        console.log(`⚠️ Question set ${questionSetId} has existing user answers. Updating questions while preserving user data.`);
+      // Import the updated questions using the UPDATE approach
+      if (parsedQuestions.length > 0) {
+        console.log(`📥 Refreshing ${parsedQuestions.length} questions from Bubble...`);
         
-        // Get existing questions
-        const existingQuestions = await db.select()
-          .from(questions)
-          .where(eq(questions.questionSetId, questionSetId));
-        
-        // Create a map of existing questions by LOID for efficient lookup
-        const existingQuestionsMap = new Map(
-          existingQuestions.map(q => [q.loid, q])
-        );
-        
-        // We'll handle the question updates differently below
-      } else {
-        // No user answers exist, safe to delete and recreate
-        console.log(`✅ No user answers found for question set ${questionSetId}. Safe to delete and recreate.`);
-        
-        // First delete chatbot feedback associated with these question versions
-        await db.delete(chatbotFeedback)
-          .where(inArray(chatbotFeedback.questionVersionId, 
-            db.select({ id: questionVersions.id })
-              .from(questionVersions)
-              .innerJoin(questions, eq(questionVersions.questionId, questions.id))
-              .where(eq(questions.questionSetId, questionSetId))
-          ));
-        
-        // Also delete chatbot feedback that references the questions directly
-        await db.delete(chatbotFeedback)
-          .where(inArray(chatbotFeedback.questionId, 
-            db.select({ id: questions.id })
-              .from(questions)
-              .where(eq(questions.questionSetId, questionSetId))
-          ));
-        
-        // Now delete question versions
-        await db.delete(questionVersions)
-          .where(inArray(questionVersions.questionId, 
-            db.select({ id: questions.id })
-              .from(questions)
-              .where(eq(questions.questionSetId, questionSetId))
-          ));
-        
-        // Finally delete the questions themselves
-        await db.delete(questions).where(eq(questions.questionSetId, questionSetId));
-      }
-      
-      // Import the updated questions
-      if (parsedQuestions.length > 0 && !hasUserAnswers) {
-        console.log(`📥 Importing ${parsedQuestions.length} questions from Bubble...`);
+        // Import blank normalizer
+        const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
         
         const questionImports = parsedQuestions.map((q: any, index: number) => {
           // Use the new JSON format fields directly
           const questionType = q.question_type || "multiple_choice";
+          
+          // Normalize blanks in question text
+          let normalizedQuestionText = q.question_text || "";
+          if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+            const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+            normalizedQuestionText = normalizedText;
+          }
           
           // Log question types to verify parsing
           if (index < 5) {  // Log first 5 questions for debugging
@@ -3173,7 +3322,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           const versionData: any = {
             version_number: 1,
             topic_focus: bubbleQuestionSet.title || "General",
-            question_text: q.question_text || "",
+            question_text: normalizedQuestionText,
             question_type: questionType,
             answer_choices: q.answer_choices || [],
             correct_answer: q.correct_answer || "",
@@ -3212,38 +3361,39 @@ Remember, your goal is to support student comprehension through meaningful feedb
           };
         });
         
-        await storage.importQuestions(questionSetId, questionImports);
+        // Use the UPDATE method instead of import to preserve question IDs
+        await storage.updateQuestionsForRefresh(questionSetId, questionImports);
         await storage.updateQuestionSetCount(questionSetId);
-      } else if (parsedQuestions.length > 0 && hasUserAnswers) {
-        // Handle the case where there are existing user answers
-        console.log(`📥 Overriding ${parsedQuestions.length} questions from Bubble (replacing existing questions)...`);
-        
-        // Get existing questions for this question set
-        const existingQuestions = await db.select()
-          .from(questions)
-          .where(eq(questions.questionSetId, questionSetId));
-        
-        console.log(`  Found ${existingQuestions.length} existing questions in database`);
-        
-        // Build a set of unique identifiers for incoming questions (LOID + question number)
-        const incomingQuestionIds = new Set<string>();
-        parsedQuestions.forEach(q => {
-          const loid = q.loid || `unknown_${parsedQuestions.indexOf(q)}`;
-          const questionNumber = q.question_number || (parsedQuestions.indexOf(q) + 1);
-          incomingQuestionIds.add(`${loid}_${questionNumber}`);
+      }
+      
+      res.json({
+        message: `Successfully updated question set with ${parsedQuestions.length} questions from Bubble`,
+        questionCount: parsedQuestions.length
+      });
+      
+    } catch (error) {
+      console.error("Error updating question set from Bubble:", error);
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack
         });
-        
-        // Find questions to delete (those not in the new import)
-        const questionsToDelete: number[] = [];
-        for (const existingQuestion of existingQuestions) {
-          const existingId = `${existingQuestion.loid}_${existingQuestion.originalQuestionNumber}`;
-          if (!incomingQuestionIds.has(existingId)) {
-            questionsToDelete.push(existingQuestion.id);
-          }
-        }
-        
-        // Delete old questions that are not in the new import
-        if (questionsToDelete.length > 0) {
+      }
+      res.status(500).json({ message: "Failed to update question set from Bubble" });
+    }
+  });
+
+  // Admin route to fetch all learning objects from Bubble.io
+  app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+
+      REMOVE_PLACEHOLDER
           console.log(`  Deleting ${questionsToDelete.length} questions that are not in the new import...`);
           
           // First get all question version IDs that will be deleted

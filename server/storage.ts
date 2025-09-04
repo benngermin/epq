@@ -87,6 +87,7 @@ export interface IStorage {
   
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
+  updateQuestionsForRefresh(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void>;
   updateQuestionSetCount(questionSetId: number): Promise<void>;
   
@@ -748,6 +749,92 @@ export class DatabaseStorage implements IStorage {
         }
       } catch (error) {
         console.error('Error importing questions:', error);
+        throw error; // This will rollback the transaction
+      }
+    });
+  }
+
+  async updateQuestionsForRefresh(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
+    // UPDATE existing questions instead of deleting - this preserves question IDs
+    // preserving their IDs is critical for maintaining analytics data
+    // Use transaction to ensure atomic operation
+    await db.transaction(async (tx) => {
+      try {
+        // Get all existing questions for this question set
+        const existingQuestions = await tx.select()
+          .from(questions)
+          .where(eq(questions.questionSetId, questionSetId));
+        
+        // Create a map for easy lookup
+        const existingQuestionsMap = new Map(
+          existingQuestions.map(q => [q.originalQuestionNumber, q])
+        );
+
+        for (const questionData of questionsData) {
+          let question = existingQuestionsMap.get(questionData.question_number);
+          
+          if (!question) {
+            // This is a new question in the refresh - add it
+            const [newQuestion] = await tx.insert(questions).values({
+              questionSetId,
+              originalQuestionNumber: questionData.question_number,
+              loid: questionData.loid,
+            }).returning();
+            question = newQuestion;
+          } else {
+            // Update existing question's LOID if changed
+            if (question.loid !== questionData.loid) {
+              await tx.update(questions)
+                .set({ loid: questionData.loid })
+                .where(eq(questions.id, question.id));
+            }
+          }
+
+          // Update or create question versions
+          for (const versionData of questionData.versions) {
+            // Check if this version exists
+            const existingVersions = await tx.select()
+              .from(questionVersions)
+              .where(and(
+                eq(questionVersions.questionId, question.id),
+                eq(questionVersions.versionNumber, versionData.version_number)
+              ))
+              .limit(1);
+            
+            const versionPayload = {
+              topicFocus: versionData.topic_focus,
+              questionText: versionData.question_text,
+              questionType: versionData.question_type || questionData.type || "multiple_choice",
+              answerChoices: versionData.answer_choices as any,
+              correctAnswer: typeof versionData.correct_answer === 'object'
+                ? JSON.stringify(versionData.correct_answer)
+                : versionData.correct_answer,
+              acceptableAnswers: versionData.acceptable_answers,
+              caseSensitive: versionData.case_sensitive,
+              allowMultiple: versionData.allow_multiple,
+              matchingPairs: versionData.matching_pairs,
+              correctOrder: versionData.correct_order,
+              blanks: versionData.blanks as any,
+              dropZones: versionData.drop_zones as any,
+            };
+
+            if (existingVersions.length > 0) {
+              // Update existing version
+              await tx.update(questionVersions)
+                .set(versionPayload)
+                .where(eq(questionVersions.id, existingVersions[0].id));
+            } else {
+              // Create new version
+              await tx.insert(questionVersions).values({
+                questionId: question.id,
+                versionNumber: versionData.version_number,
+                ...versionPayload
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error updating questions for refresh:', error);
         throw error; // This will rollback the transaction
       }
     });

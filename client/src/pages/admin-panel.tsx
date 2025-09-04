@@ -17,7 +17,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -527,6 +528,13 @@ export default function AdminPanel() {
     jsonData: "",
   });
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<{
+    current: number;
+    total: number;
+    errors: Array<{ questionSetId: string; title: string; error: string }>;
+  } | null>(null);
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -757,6 +765,60 @@ export default function AdminPanel() {
       });
     },
   });
+
+  // Bulk refresh mutation
+  const bulkRefreshMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/bubble/bulk-refresh-question-sets");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setIsRefreshing(false);
+      setShowRefreshConfirm(false);
+      
+      const hasErrors = data.results?.errors?.length > 0;
+      
+      if (hasErrors) {
+        setRefreshProgress({
+          current: data.results.refreshed,
+          total: data.results.totalSets,
+          errors: data.results.errors
+        });
+        toast({
+          title: "Bulk refresh completed with errors",
+          description: `Refreshed: ${data.results.refreshed}, Failed: ${data.results.failed}`,
+          variant: "default",
+        });
+      } else {
+        setRefreshProgress(null);
+        toast({
+          title: "Bulk refresh completed successfully",
+          description: `All ${data.results.refreshed} question sets refreshed`,
+        });
+      }
+      
+      // Refresh the question sets list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    },
+    onError: (error: Error) => {
+      setIsRefreshing(false);
+      setRefreshProgress(null);
+      toast({
+        title: "Failed to refresh question sets",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Start bulk refresh
+  const handleBulkRefresh = () => {
+    setShowRefreshConfirm(false);
+    setIsRefreshing(true);
+    setRefreshProgress({ current: 0, total: 0, errors: [] });
+    bulkRefreshMutation.mutate();
+  };
 
   // Event handlers
   const onCreateCourse = (data: z.infer<typeof courseSchema>) => {
@@ -1037,8 +1099,90 @@ export default function AdminPanel() {
                       </Form>
                     </DialogContent>
                   </Dialog>
+                  
+                  {/* Bulk Refresh Button */}
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowRefreshConfirm(true)}
+                    disabled={isRefreshing}
+                  >
+                    {isRefreshing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh All
+                      </>
+                    )}
+                  </Button>
                   </div>
+                  
+                  {/* Progress Indicator */}
+                  {isRefreshing && refreshProgress && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">
+                          Refreshing question sets...
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {refreshProgress.current}/{refreshProgress.total} complete
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(refreshProgress.current / refreshProgress.total) * 100} 
+                        className="h-2"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Error Display */}
+                  {refreshProgress?.errors && refreshProgress.errors.length > 0 && (
+                    <Alert variant="destructive" className="mt-4">
+                      <XCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-medium mb-2">Failed to refresh {refreshProgress.errors.length} question set(s):</div>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {refreshProgress.errors.slice(0, 5).map((error, idx) => (
+                            <li key={idx} className="text-sm">
+                              <strong>{error.title}</strong>: {error.error}
+                            </li>
+                          ))}
+                          {refreshProgress.errors.length > 5 && (
+                            <li className="text-sm italic">
+                              ...and {refreshProgress.errors.length - 5} more errors
+                            </li>
+                          )}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
+                
+                {/* Confirmation Dialog for Bulk Refresh */}
+                <AlertDialog open={showRefreshConfirm} onOpenChange={setShowRefreshConfirm}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Refresh All Question Sets</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will refresh all existing question sets with the latest data from the Bubble repository. 
+                        This operation will update question content while preserving analytics data.
+                        
+                        <div className="mt-2 font-medium">
+                          This process may take several minutes depending on the number of question sets.
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBulkRefresh}>
+                        Start Refresh
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 <div className="space-y-6">
                   {coursesLoading ? (
