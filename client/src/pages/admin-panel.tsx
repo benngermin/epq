@@ -1104,24 +1104,6 @@ export default function AdminPanel() {
                     )}
                   </Button>
                   
-                  {/* Import Question Sets from Bubble */}
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import Question Sets
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Import Question Sets from Bubble Repository</DialogTitle>
-                        <DialogDescription>
-                          Fetch and import question sets from ti-content-repository.bubbleapps.io
-                        </DialogDescription>
-                      </DialogHeader>
-                      <BubbleImportSection />
-                    </DialogContent>
-                  </Dialog>
                   </div>
                   </div>
                   
