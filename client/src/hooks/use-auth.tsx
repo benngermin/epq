@@ -61,13 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: isDemo ? true : undefined, // Always enable for demo mode
   });
 
-  // Clear the "Before You Start" modal for benn@modia.ai for testing
-  useEffect(() => {
-    if (user && user.email === 'benn@modia.ai') {
-      localStorage.removeItem('epq_agreed_to_terms');
-    }
-  }, [user]);
-
   const { data: authConfig } = useQuery<AuthConfig>({
     queryKey: ["/api/auth/config"],
     queryFn: async () => {
