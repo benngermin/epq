@@ -3646,14 +3646,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
 
       // Import to database
-      await storage.importCourseMaterials(materials);
+      const result = await storage.importCourseMaterials(materials);
       
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      const message = `Successfully imported ${materials.length} learning objects in ${duration}s`;
+      const message = `Import completed: ${result.imported} new, ${result.updated} updated, ${result.skipped} unchanged (${duration}s)`;
       
       res.json({ 
         message,
         count: materials.length,
+        imported: result.imported,
+        updated: result.updated,
+        skipped: result.skipped,
         duration
       });
     } catch (error) {
@@ -3671,11 +3674,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ message: "Materials must be an array" });
       }
 
-      await storage.importCourseMaterials(materials);
+      const result = await storage.importCourseMaterials(materials);
       
       res.json({ 
-        message: `Successfully imported ${materials.length} course materials`,
-        count: materials.length 
+        message: `Import completed: ${result.imported} new, ${result.updated} updated, ${result.skipped} unchanged`,
+        count: materials.length,
+        imported: result.imported,
+        updated: result.updated,
+        skipped: result.skipped
       });
     } catch (error) {
       console.error("Error importing course materials:", error);

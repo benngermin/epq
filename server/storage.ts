@@ -88,7 +88,7 @@ export interface IStorage {
   // Bulk import methods
   importQuestions(questionSetId: number, questions: QuestionImport[]): Promise<void>;
   updateQuestionsForRefresh(questionSetId: number, questions: QuestionImport[]): Promise<void>;
-  importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void>;
+  importCourseMaterials(materials: InsertCourseMaterial[]): Promise<{ imported: number; updated: number; skipped: number }>;
   updateQuestionSetCount(questionSetId: number): Promise<void>;
   
   // Course material methods
@@ -1017,24 +1017,53 @@ export class DatabaseStorage implements IStorage {
     await this.updateQuestionSet(questionSetId, { questionCount: questions.length });
   }
 
-  async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<void> {
+  async importCourseMaterials(materials: InsertCourseMaterial[]): Promise<{ imported: number; updated: number; skipped: number }> {
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    
     // Use transaction to ensure atomic operation
     await db.transaction(async (tx) => {
       try {
-        // Clear existing course materials
-        await tx.delete(courseMaterials);
-        
-        // Insert new materials in batches
-        const batchSize = 100;
-        for (let i = 0; i < materials.length; i += batchSize) {
-          const batch = materials.slice(i, i + batchSize);
-          await tx.insert(courseMaterials).values(batch);
+        // Process materials one by one for upsert logic
+        for (const material of materials) {
+          // Check if material with this loid already exists
+          const existing = await tx.select()
+            .from(courseMaterials)
+            .where(eq(courseMaterials.loid, material.loid))
+            .limit(1);
+          
+          if (existing.length > 0) {
+            // Update existing material only if content has changed
+            const existingMaterial = existing[0];
+            if (existingMaterial.content !== material.content ||
+                existingMaterial.assignment !== material.assignment ||
+                existingMaterial.course !== material.course) {
+              await tx.update(courseMaterials)
+                .set({
+                  assignment: material.assignment,
+                  course: material.course,
+                  content: material.content
+                })
+                .where(eq(courseMaterials.loid, material.loid));
+              updated++;
+            } else {
+              // Material is identical, skip
+              skipped++;
+            }
+          } else {
+            // Insert new material
+            await tx.insert(courseMaterials).values(material);
+            imported++;
+          }
         }
       } catch (error) {
         console.error('Error importing course materials:', error);
         throw error; // This will rollback the transaction
       }
     });
+    
+    return { imported, updated, skipped };
   }
 
   async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {
