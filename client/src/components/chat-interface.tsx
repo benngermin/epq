@@ -22,8 +22,14 @@ interface ChatMessage {
   id?: string;
 }
 
+interface ConversationMessage {
+  role: "system" | "assistant" | "user";
+  content: string;
+}
+
 export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const [hasRequestedInitial, setHasRequestedInitial] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -41,6 +47,40 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
 
 
   const currentQuestionKey = `${questionVersionId}-${chosenAnswer}-${correctAnswer}`;
+
+  // Helper function to build conversation history from UI messages
+  const buildConversationHistory = (): ConversationMessage[] => {
+    if (conversationHistory.length === 0) {
+      return [];
+    }
+    
+    // Always preserve the system message as the first message if it exists
+    const systemMessage = conversationHistory.find(msg => msg.role === "system");
+    const otherMessages = conversationHistory.filter(msg => msg.role !== "system");
+    
+    if (systemMessage) {
+      return [systemMessage, ...otherMessages];
+    }
+    
+    return otherMessages;
+  };
+
+  // Helper function to update conversation history after successful response
+  const updateConversationHistoryWithResponse = (userMessage: string, assistantResponse: string) => {
+    setConversationHistory(prev => {
+      const updated = [...prev];
+      
+      // Add user message if not already present
+      if (!updated.some(msg => msg.role === "user" && msg.content === userMessage)) {
+        updated.push({ role: "user", content: userMessage });
+      }
+      
+      // Add assistant response
+      updated.push({ role: "assistant", content: assistantResponse });
+      
+      return updated;
+    });
+  };
 
   // Stream chat response function using WebSocket-style approach
   const streamChatResponse = async (userMessage?: string) => {
@@ -93,6 +133,7 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
           chosenAnswer,
           userMessage,
           isMobile,
+          conversationHistory: buildConversationHistory(),
         }),
         credentials: 'include',
       });
@@ -153,6 +194,25 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
                   : msg
               );
             });
+            
+            // Update conversation history from server response (preferred) or build locally
+            if (chunkData.conversationHistory && Array.isArray(chunkData.conversationHistory)) {
+              // Use the conversation history from the server as the authoritative source
+              setConversationHistory(chunkData.conversationHistory);
+            } else {
+              // Fallback to building conversation history locally
+              if (finalContent && userMessage) {
+                updateConversationHistoryWithResponse(userMessage, finalContent);
+              } else if (finalContent && !userMessage) {
+                // This is the initial response, we need to capture it
+                setConversationHistory(prev => {
+                  const updated = [...prev];
+                  // For the first response, add the assistant message
+                  updated.push({ role: "assistant", content: finalContent });
+                  return updated;
+                });
+              }
+            }
             
             // Clean up streaming state after completion
             currentStreamIdRef.current = "";
@@ -296,9 +356,10 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     // Perform cleanup
     cleanup();
     
-    // Reset messages and initial request flag
+    // Reset messages, conversation history, and initial request flag
     setHasRequestedInitial(false);
     setMessages([]);
+    setConversationHistory([]);
     
     // Return cleanup function for component unmount
     return cleanup;
@@ -314,7 +375,9 @@ export function ChatInterface({ questionVersionId, chosenAnswer, correctAnswer }
     };
     setMessages(prev => [newUserMessage, ...prev]);
     
-    streamChatResponse(userInput);
+    // Store the user input for conversation history update
+    const currentUserInput = userInput;
+    streamChatResponse(currentUserInput);
     setUserInput("");
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };

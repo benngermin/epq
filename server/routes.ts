@@ -1550,7 +1550,8 @@ export function registerRoutes(app: Express): Server {
       newContent, // New incremental content
       cursor: fullContent.length, // New cursor position
       done: stream.done,
-      error: stream.error
+      error: stream.error,
+      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
     });
     
     // Clean up finished streams
@@ -4255,7 +4256,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       newContent, // New incremental content
       cursor: fullContent.length, // New cursor position
       done: stream.done,
-      error: stream.error
+      error: stream.error,
+      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
     });
     
     // Clean up finished streams
