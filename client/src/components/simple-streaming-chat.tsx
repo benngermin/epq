@@ -75,6 +75,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isDemo = window.location.pathname.startsWith('/demo');
     
     try {
+      // Debug logging for conversation history
+      if (userMessage && messages.length > 0) {
+        console.log("=== CLIENT CONVERSATION HISTORY ===");
+        console.log("Sending conversation history with", messages.length, "messages");
+        console.log("Message roles being sent:", messages.map(m => m.role));
+        console.log("Note: Client never tracks system messages (only user/assistant)");
+        console.log("===================================");
+      }
+      
       // Initialize streaming - pass conversation history for follow-up messages
       const response = await fetch(isDemo ? '/api/demo/chatbot/stream-init' : '/api/chatbot/stream-init', {
         method: 'POST',

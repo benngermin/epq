@@ -286,6 +286,16 @@ async function streamOpenRouterToBuffer(
       messages = [...conversationHistory];
       // Add the new user message to the existing conversation
       messages.push({ role: "user", content: prompt });
+      
+      // Debug: Log if system message is present in conversation history
+      if (process.env.NODE_ENV === 'development') {
+        const hasSystemMessage = messages.some(msg => msg.role === "system");
+        console.log("=== CONVERSATION HISTORY DEBUG ===");
+        console.log("Has system message in history:", hasSystemMessage);
+        console.log("Total messages in history:", messages.length);
+        console.log("Message roles:", messages.map(m => m.role));
+        console.log("==================================");
+      }
     } else {
       // Initial conversation - use system message if provided
       if (systemMessage) {
@@ -1764,16 +1774,16 @@ export function registerRoutes(app: Express): Server {
       }
       
       let prompt;
-      let systemMessage = undefined;
       
-      if (userMessage) {
-        // For follow-up messages, simply use the user's message as the prompt
-        // The conversation history will be maintained and passed to the API
-        prompt = userMessage;
-      } else {
-        // Initial explanation with variable substitution - this becomes the system message
-        systemMessage = activePrompt?.promptText || 
-          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+      // Format answer choices as a list (needed for both initial and follow-up)
+      const formattedChoices = questionVersion.answerChoices.join('\n');
+      
+      // Ensure chosenAnswer is not empty or undefined (needed for both initial and follow-up)
+      const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+      
+      // Always prepare the system message with variable substitution
+      const systemPromptTemplate = activePrompt?.promptText || 
+        `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
 
 First, carefully review the assessment content:
 
@@ -1807,40 +1817,43 @@ Remember, your goal is to support student comprehension through meaningful feedb
 - In 2-4 sentences, explain the concept that makes the choice right or wrong.
 - Paraphrase relevant ideas and reference section titles from the Source Material
 - End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+      
+      // Substitute variables in the system message
+      let systemMessage = systemPromptTemplate
+        .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+        .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+        .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+        .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+        .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
+      
+      // Debug logging for fill-in-the-blank questions
+      if (process.env.NODE_ENV === 'development') {
+        console.log("===== CHATBOT STREAM DEBUG =====");
+        console.log("Question Type:", questionVersion.questionType);
+        console.log("Question ID:", questionVersion.id);
+        console.log("Correct Answer from DB:", questionVersion.correctAnswer);
+        console.log("Answer Choices:", questionVersion.answerChoices);
+        console.log("Blanks:", questionVersion.blanks);
+        console.log("Source Material:", sourceMaterial?.substring(0, 100));
+        console.log("LOID:", baseQuestion?.loid);
+        console.log("Course Material Found:", courseMaterial ? "Yes" : "No");
+        console.log("System Message Preview (first 500 chars):", systemMessage?.substring(0, 500));
+        console.log("================================");
+      }
+      
+      if (userMessage) {
+        // For follow-up messages, simply use the user's message as the prompt
+        prompt = userMessage;
         
-        // Format answer choices as a list
-        const formattedChoices = questionVersion.answerChoices.join('\n');
-        
-        // Ensure chosenAnswer is not empty or undefined
-        const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-
-        // Debug logging for fill-in-the-blank questions
-        if (process.env.NODE_ENV === 'development') {
-          console.log("===== CHATBOT STREAM DEBUG =====");
-          console.log("Question Type:", questionVersion.questionType);
-          console.log("Question ID:", questionVersion.id);
-          console.log("Correct Answer from DB:", questionVersion.correctAnswer);
-          console.log("Answer Choices:", questionVersion.answerChoices);
-          console.log("Blanks:", questionVersion.blanks);
-          console.log("Source Material:", sourceMaterial?.substring(0, 100));
-          console.log("LOID:", baseQuestion?.loid);
-          console.log("Course Material Found:", courseMaterial ? "Yes" : "No");
+        // Store the initial system message in conversation history if not already present
+        if (stream.conversationHistory) {
+          const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
+          if (!hasSystemMessage) {
+            stream.conversationHistory.unshift({ role: "system", content: systemMessage });
+          }
         }
-        
-        // Substitute variables in the prompt
-        systemMessage = systemMessage
-          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log("System Message Preview (first 500 chars):", systemMessage?.substring(0, 500));
-          console.log("================================");
-        }
-        
-        // For the initial message, the prompt is empty - the system message contains everything
+      } else {
+        // Initial message - set the prompt and store system message in history
         prompt = "Please provide feedback on my answer.";
         
         // Store the initial system message in conversation history
@@ -4157,15 +4170,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
           const activePrompt = await storage.getActivePromptVersion();
           
           let prompt;
-          let systemMessage = undefined;
           
-          if (userMessage) {
-            // For follow-up messages, simply use the user's message as the prompt
-            prompt = userMessage;
-          } else {
-            // Initial explanation with variable substitution
-            systemMessage = activePrompt?.promptText || 
-              `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+          // Format answer choices as a list (needed for both initial and follow-up)
+          const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
+          
+          // Ensure chosenAnswer is not empty or undefined (needed for both initial and follow-up)
+          const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+          
+          // Always prepare the system message with variable substitution
+          const systemPromptTemplate = activePrompt?.promptText || 
+            `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
 
 First, carefully review the assessment content:
 
@@ -4186,22 +4200,28 @@ First, carefully review the assessment content:
 </correct_answer>
 
 Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive.`;
+          
+          // Substitute variables in the system message
+          let systemMessage = systemPromptTemplate
+            .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+            .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+            .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+            .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+            .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+          
+          if (userMessage) {
+            // For follow-up messages, simply use the user's message as the prompt
+            prompt = userMessage;
             
-            // Format answer choices as a list
-            const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
-            
-            // Ensure chosenAnswer is not empty or undefined
-            const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-            
-            // Substitute variables in the prompt
-            systemMessage = systemMessage
-              .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-              .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-              .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-              .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-              .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
-            
-            // For the initial message, the prompt is empty - the system message contains everything
+            // Store the initial system message in conversation history if not already present
+            if (stream.conversationHistory) {
+              const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
+              if (!hasSystemMessage) {
+                stream.conversationHistory.unshift({ role: "system", content: systemMessage });
+              }
+            }
+          } else {
+            // Initial message - set the prompt and store system message in history
             prompt = "Please provide feedback on my answer.";
             
             // Store the initial system message in conversation history
