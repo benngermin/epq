@@ -13,10 +13,16 @@ async function hashPassword(password: string) {
 }
 
 async function createAdminUser() {
-  const email = "benn@modia.ai";
-  const password = "temp123!";
+  const email = process.env.ADMIN_EMAIL || "benn@modia.ai";
+  const password = process.env.ADMIN_PASSWORD;
   const firstName = "Benn";
   const lastName = "Admin";
+
+  if (!password) {
+    console.error('❌ Missing required environment variable: ADMIN_PASSWORD');
+    console.log('💡 Set ADMIN_PASSWORD environment variable with a secure password');
+    process.exit(1);
+  }
 
   try {
     // Check if user already exists
@@ -54,12 +60,12 @@ async function createAdminUser() {
       
       console.log(`✅ Admin user created successfully:`);
       console.log(`   Email: ${email}`);
-      console.log(`   Password: temp123!`);
+      console.log(`   Password: [HIDDEN]`);
       console.log(`   Admin: true`);
     }
     
-    console.log(`\n📝 You can now login at /auth with these credentials in development mode`);
-    console.log(`🔐 Remember to change the password after first login!`);
+    console.log(`\n📝 You can now login at /auth with your credentials in development mode`);
+    console.log(`🔐 Use the password you set via ADMIN_PASSWORD environment variable`);
     
   } catch (error) {
     console.error("❌ Error creating admin user:", error);

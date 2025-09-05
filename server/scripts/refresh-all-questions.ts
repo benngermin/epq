@@ -4,9 +4,12 @@ import { questions, questionVersions, questionSets } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { normalizeQuestionBlanks } from '../utils/blank-normalizer';
 
-// Set environment variables for this script
-process.env.BUBBLE_API_KEY = 'f3c17ebbeac064ee7d622172e95092d7';
-process.env.DATABASE_URL = 'postgresql://neondb_owner:npg_aBw2IZM9CHYj@ep-lively-rain-adt804hv.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require';
+// Environment variables should be set externally, not hardcoded
+// Required: BUBBLE_API_KEY and DATABASE_URL
+if (!process.env.BUBBLE_API_KEY || !process.env.DATABASE_URL) {
+  console.error('❌ Missing required environment variables: BUBBLE_API_KEY and DATABASE_URL');
+  process.exit(1);
+}
 
 async function refreshAllQuestions() {
   try {

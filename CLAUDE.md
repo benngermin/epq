@@ -60,17 +60,7 @@ The EPQ system was incorrectly marking correct answers as wrong for various ques
 - **drag_and_drop**: `correct_answer` stored as JSON string
 - **multiple_response**: `correct_answer` stored as JSON string array
 
-### Replit-Specific Configurations
-
-#### Environment Detection
-```javascript
-const isReplitEnv = Boolean(
-  process.env.REPL_ID || 
-  process.env.REPLIT_DEV_DOMAIN ||
-  process.env.REPLIT_DB_URL ||
-  req.get('host')?.includes('.replit.')
-);
-```
+### Environment Configuration
 
 #### Required Environment Variables
 - `DATABASE_URL` - PostgreSQL connection (Neon)
@@ -79,11 +69,12 @@ const isReplitEnv = Boolean(
 - `COGNITO_*` - AWS SSO configuration
 - `BUBBLE_API_KEY` - Content repository integration
 
-#### Node.js & Dependencies
-- Uses `tsx` for TypeScript execution
-- Drizzle ORM v0.39.1 for database
-- ESM module system
-- Vite for frontend bundling
+#### Technology Stack
+- **Backend**: Node.js with TypeScript (tsx runtime)
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Frontend**: React with Vite bundling
+- **Module System**: ESM
+- **Authentication**: AWS Cognito SSO with local fallback
 
 ### Testing
 - **Test Command**: `npm run test:validation`
@@ -159,7 +150,7 @@ const isReplitEnv = Boolean(
 
 1. **No Partial Credit**: All questions require complete correctness
 2. **JSON Safety**: All JSON parsing wrapped in try-catch with fallbacks
-3. **Logging**: Debug mode respects `NODE_ENV` and Replit environment
+3. **Environment-Aware Logging**: Debug mode respects `NODE_ENV` settings
 4. **Backward Compatibility**: Handles existing data formats
 5. **Performance**: Validation logic optimized for large question sets
 
@@ -190,9 +181,10 @@ server/
 
 ### Deployment Process
 1. Push to GitHub: `git push origin main`
-2. Pull in Replit: `git pull origin main`
-3. Test: `npm run test:validation`
-4. Restart: `npm run dev`
+2. Pull in production: `git pull origin main`
+3. Install dependencies: `npm install`
+4. Run tests: `npm run test:validation`
+5. Restart application: `npm run dev`
 
 ---
 
@@ -242,9 +234,43 @@ Implemented a proper question versioning system that preserves historical data i
 
 ---
 
+## AI Assistant Conversation History Fix (January 2025)
+
+### Issue Context
+The AI assistant was losing system prompt context in multi-turn conversations, causing inconsistent responses after the first message. The system prompt contains crucial instructions that guide the AI's behavior and must persist throughout the entire conversation.
+
+### Root Cause
+Client-side code was not sending conversation history (containing the system prompt) in follow-up API requests to the server, causing the server to initialize empty conversation history and lose the original system prompt.
+
+### Solution Implementation
+**Files Modified:**
+- `client/src/components/chat-interface.tsx` - Added conversation history state management
+- `server/routes.ts` - Modified stream endpoints to return conversation history
+
+**Key Features:**
+- **Bi-directional sync**: Client sends conversation history to server, server returns updated history
+- **System prompt preservation**: System message always maintained as first message in conversation thread
+- **Proper thread structure**: Maintains `system → assistant → user → assistant → user...` format
+- **Automatic reset**: Conversation history clears when questions change
+- **Backward compatibility**: No breaking changes to existing API contracts
+
+### Technical Details
+1. **Client State Management**: Added `conversationHistory` state to track server-side conversation format
+2. **API Integration**: All streaming requests now include `conversationHistory` parameter
+3. **Server Response**: Stream completion returns updated conversation history to client
+4. **Context Preservation**: Every OpenRouter API call includes complete conversation history with system prompt
+
+### Benefits
+- ✅ System prompt persists across all multi-turn conversations
+- ✅ Full conversation context maintained for AI responses
+- ✅ No context loss between follow-up messages
+- ✅ Consistent AI behavior throughout conversation sessions
+
+---
+
 
 ### Development Workflow Instructions
-If any new tasks come up during development, add them to TASKS.md. Also, make sure to cross out completed tasks in TASKS.md as work progresses.
+When working on new features or fixes, use git commit messages that clearly describe the changes. Follow the established patterns for comprehensive commit messages with technical details.
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
