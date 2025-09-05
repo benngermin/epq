@@ -196,61 +196,52 @@ server/
 
 ---
 
-## Current Major Migration Project: Eliminating Duplicate Question Sets
+## Database Architecture (Updated January 2025)
 
-### Project Overview
-The EPQ app is currently deployed and running live in **Replit**, a cloud-based development and hosting platform. Replit is an online IDE that provides full-stack hosting capabilities, including database hosting through Neon (PostgreSQL provider). The current app has a shared database for both development and production because it was created before Replit offered separate dev/prod databases.
+### Current Schema
+- **Junction Table Architecture**: Question sets are shared across courses via `course_question_sets` table
+- **Deduplication**: 50% reduction in question sets (82 → 41) through intelligent matching
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Key Tables**:
+  - `courses` (includes `baseCourseNumber` for AI/Non-AI pairing)
+  - `question_sets` (no direct course relationship)
+  - `course_question_sets` (junction table linking courses to question sets)
+  - `questions` and `question_versions` (with new `isActive` field for version tracking)
 
-### The Problem: Duplicate Question Sets
-The client offers two versions of every course: "AI" and "Non-AI" versions. These courses are identical in content but differ in the services offered to students. This creates a structural problem:
+---
 
-- Each course version needs access to the same question sets
-- Current database design has a 1-to-1 relationship: `questionSets.courseId → courses.id`
-- This forces the creation of duplicate question sets for each course version
-- Results in data synchronization issues and maintenance complexity
-- Creates brittle architecture that's difficult to maintain
+## Question Versioning System Update (January 2025)
 
-### The Solution: Many-to-Many Relationship Architecture
-We're implementing a junction table approach to allow question sets to be shared across multiple courses:
+### Overview
+Implemented a proper question versioning system that preserves historical data instead of overwriting it. This ensures analytics integrity and enables rollback capabilities.
 
-**Current Schema:**
-```
-courses (isAi: true/false)
-  ↓ 1-to-many
-questionSets (courseId: FK)
-  ↓ 1-to-many  
-questions
-  ↓ 1-to-many
-questionVersions
-```
+### Key Changes
+1. **Schema Update**: Added `isActive` boolean field to `question_versions` table
+2. **Import Logic Rewrite**: Modified `updateQuestionsForRefresh()` to create new versions when content changes instead of overwriting existing versions
+3. **Version Management**: 
+   - Each question can have multiple versions (v1, v2, v3, etc.)
+   - Only ONE version per question is marked as active
+   - Previous versions remain in database for historical reference
+   - Version numbers auto-increment when content changes
 
-**New Schema:**
-```
-courses (baseCourseNumber: added)
-questionSets (courseId: REMOVED)
-courseQuestionSets (junction table)
-  ↓ courseId FK, questionSetId FK
-questions (unchanged)
-questionVersions (unchanged)
-```
+### Technical Implementation
+- **Files Modified**:
+  - `shared/schema.ts`: Added `isActive` field to questionVersions table
+  - `server/storage.ts`: Rewrote `updateQuestionsForRefresh()` with version comparison logic
+  - `server/utils/blank-normalizer.ts`: Fixed import paths for proper module resolution
+- **Migration Scripts Created**:
+  - `server/scripts/delete-all-questions.ts`: Cleanup script for fresh start
+  - `server/scripts/test-single-refresh.ts`: Testing script for validation
+  - `server/scripts/refresh-all-questions.ts`: Bulk refresh script for all question sets
 
-### Migration Context: New Replit App Required
-Because the current app lacks separate dev/prod databases, we need to:
+### Benefits
+- **No Data Loss**: Historical versions preserved for audit trail
+- **Analytics Integrity**: User answers always linked to the version they saw
+- **Change Tracking**: Know exactly what changed and when
+- **Rollback Capability**: Can revert to previous versions if needed
 
-1. Create a new Replit app by importing from GitHub
-2. This new app will have separate development and production databases
-3. Implement the new schema in the new app
-4. Migrate essential data from the old app's database to the new app
-5. Test thoroughly in the new app's development database
-6. Deploy the new app to production and switch the live domain
-7. Deprecate the old app once migration is validated
+---
 
-### Key Technical Considerations
-- **Zero Downtime**: Current app stays live throughout migration
-- **Data Preservation**: Critical user and analytics data must be preserved
-- **Schema Migration**: Database structure changes significantly
-- **Deduplication Logic**: Must identify and merge duplicate question sets intelligently
-- **Validation**: Comprehensive testing required before production cutover
 
 ### Development Workflow Instructions
 If any new tasks come up during development, add them to TASKS.md. Also, make sure to cross out completed tasks in TASKS.md as work progresses.

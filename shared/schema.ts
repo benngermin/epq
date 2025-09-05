@@ -88,6 +88,7 @@ export const questionVersions = pgTable("question_versions", {
     zone_id: number;
     zone_label: string;
   }>>(),
+  isActive: boolean("is_active").default(true).notNull(),
 });
 
 export const userTestRuns = pgTable("user_test_runs", {

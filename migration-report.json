@@ -1,0 +1,13 @@
+{
+  "coursesProcessed": 32,
+  "questionSetsOriginal": 82,
+  "questionSetsDeduplicated": 1,
+  "questionsProcessed": 1,
+  "questionVersionsProcessed": 0,
+  "mappingsCreated": 0,
+  "testRunsUpdated": 0,
+  "userAnswersUpdated": 0,
+  "errors": [
+    "Fatal error: PostgresError: column \"answer_choices\" is of type json but expression is of type record"
+  ]
+}

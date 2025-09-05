@@ -860,9 +860,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestionsForRefresh(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
-    // UPDATE existing questions instead of deleting - this preserves question IDs
-    // preserving their IDs is critical for maintaining analytics data
-    // Use transaction to ensure atomic operation
+    // NEW VERSIONING LOGIC: Create new versions when content changes instead of overwriting
+    // This preserves version history and maintains analytics data integrity
     await db.transaction(async (tx) => {
       try {
         // Get all existing questions for this question set
@@ -895,18 +894,18 @@ export class DatabaseStorage implements IStorage {
             }
           }
 
-          // Update or create question versions
+          // Process versions with NEW logic - preserve history
           for (const versionData of questionData.versions) {
-            // Check if this version exists
-            const existingVersions = await tx.select()
+            // Get current active version to compare against
+            const currentActiveVersion = await tx.select()
               .from(questionVersions)
               .where(and(
                 eq(questionVersions.questionId, question.id),
-                eq(questionVersions.versionNumber, versionData.version_number)
+                eq(questionVersions.isActive, true)
               ))
               .limit(1);
-            
-            const versionPayload = {
+
+            const newVersionPayload = {
               topicFocus: versionData.topic_focus,
               questionText: versionData.question_text,
               questionType: versionData.question_type || questionData.type || "multiple_choice",
@@ -923,18 +922,61 @@ export class DatabaseStorage implements IStorage {
               dropZones: versionData.drop_zones as any,
             };
 
-            if (existingVersions.length > 0) {
-              // Update existing version
-              await tx.update(questionVersions)
-                .set(versionPayload)
-                .where(eq(questionVersions.id, existingVersions[0].id));
-            } else {
-              // Create new version
+            if (currentActiveVersion.length === 0) {
+              // No active version exists - this is the first version (fresh start scenario)
               await tx.insert(questionVersions).values({
                 questionId: question.id,
-                versionNumber: versionData.version_number,
-                ...versionPayload
+                versionNumber: 1,
+                isActive: true,
+                ...newVersionPayload
               });
+            } else {
+              // Compare content with current active version
+              const currentVersion = currentActiveVersion[0];
+              const contentChanged = (
+                currentVersion.topicFocus !== newVersionPayload.topicFocus ||
+                currentVersion.questionText !== newVersionPayload.questionText ||
+                currentVersion.questionType !== newVersionPayload.questionType ||
+                JSON.stringify(currentVersion.answerChoices) !== JSON.stringify(newVersionPayload.answerChoices) ||
+                currentVersion.correctAnswer !== newVersionPayload.correctAnswer ||
+                JSON.stringify(currentVersion.acceptableAnswers) !== JSON.stringify(newVersionPayload.acceptableAnswers) ||
+                currentVersion.caseSensitive !== newVersionPayload.caseSensitive ||
+                currentVersion.allowMultiple !== newVersionPayload.allowMultiple ||
+                JSON.stringify(currentVersion.matchingPairs) !== JSON.stringify(newVersionPayload.matchingPairs) ||
+                JSON.stringify(currentVersion.correctOrder) !== JSON.stringify(newVersionPayload.correctOrder) ||
+                JSON.stringify(currentVersion.blanks) !== JSON.stringify(newVersionPayload.blanks) ||
+                JSON.stringify(currentVersion.dropZones) !== JSON.stringify(newVersionPayload.dropZones)
+              );
+
+              if (contentChanged) {
+                // Content has changed - create new version
+                // First, get the highest version number for this question
+                const maxVersionResult = await tx.select({
+                  maxVersion: sql<number>`COALESCE(MAX(${questionVersions.versionNumber}), 0)`
+                })
+                .from(questionVersions)
+                .where(eq(questionVersions.questionId, question.id));
+
+                const newVersionNumber = (maxVersionResult[0]?.maxVersion || 0) + 1;
+
+                // Deactivate current active version
+                await tx.update(questionVersions)
+                  .set({ isActive: false })
+                  .where(eq(questionVersions.id, currentVersion.id));
+
+                // Create new active version
+                await tx.insert(questionVersions).values({
+                  questionId: question.id,
+                  versionNumber: newVersionNumber,
+                  isActive: true,
+                  ...newVersionPayload
+                });
+
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`Created new version ${newVersionNumber} for question ${question.originalQuestionNumber} due to content changes`);
+                }
+              }
+              // If content hasn't changed, do nothing - keep current active version
             }
           }
         }

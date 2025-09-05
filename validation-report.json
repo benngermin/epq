@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "checks": [
+    {
+      "name": "All courses have baseCourseNumber",
+      "passed": true,
+      "message": "✅ All courses have baseCourseNumber populated",
+      "details": []
+    },
+    {
+      "name": "Fatal error",
+      "passed": false,
+      "message": "❌ Fatal error during validation: PostgresError: syntax error at or near \"NOT\""
+    }
+  ]
+}

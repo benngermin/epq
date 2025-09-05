@@ -33,11 +33,11 @@ export async function createDatabaseIndexes() {
     `);
     
 
-    
-    // Indexes for course-question set junction table
+    // Indexes for junction table (replaces old question_sets.course_id)
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_course_question_sets_course_id ON course_question_sets(course_id);
       CREATE INDEX IF NOT EXISTS idx_course_question_sets_question_set_id ON course_question_sets(question_set_id);
+      CREATE INDEX IF NOT EXISTS idx_course_question_sets_display_order ON course_question_sets(course_id, display_order);
     `);
     
     // Indexes for chatbot logs (for analytics)
