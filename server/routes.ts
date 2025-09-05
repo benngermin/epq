@@ -775,25 +775,34 @@ export function registerRoutes(app: Express): Server {
       const courseId = parseInt(req.params.courseId);
       const questionSets = await storage.getQuestionSetsByCourse(courseId);
       
-      // Get question count for each question set
-      const questionSetsWithCounts = await Promise.all(
+      // Get question count and sharing info for each question set
+      const questionSetsWithDetails = await Promise.all(
         questionSets.map(async (questionSet) => {
           const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
+          const associatedCourses = await storage.getCoursesForQuestionSet(questionSet.id);
+          
           return {
             ...questionSet,
-            questionCount: questions.length
+            questionCount: questions.length,
+            courseCount: associatedCourses.length,
+            isShared: associatedCourses.length > 1,
+            sharedCourses: associatedCourses.filter(course => course.id !== courseId).map(course => ({
+              id: course.id,
+              courseNumber: course.courseNumber,
+              isAi: course.isAi
+            }))
           };
         })
       );
       
       // Sort question sets by title (extracting numbers for proper numerical sorting)
-      questionSetsWithCounts.sort((a, b) => {
+      questionSetsWithDetails.sort((a, b) => {
         const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
         const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
         return aNum - bNum;
       });
       
-      res.json(questionSetsWithCounts);
+      res.json(questionSetsWithDetails);
     } catch (error) {
       console.error("Error fetching question sets:", error);
       res.status(500).json({ message: "Failed to fetch question sets" });

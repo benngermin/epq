@@ -1907,13 +1907,9 @@ function QuestionSetsSection({
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">
                     {questionSet.title}
-                    {isAiCourse !== undefined && (
-                      <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                        isAiCourse 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {isAiCourse ? 'AI' : 'Non-AI'}
+                    {questionSet.isShared && (
+                      <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700" title={`Shared with: ${questionSet.sharedCourses?.map((c: any) => `${c.courseNumber} (${c.isAi ? 'AI' : 'Non-AI'})`).join(', ')}`}>
+                        🔗 Shared
                       </span>
                     )}
                     {refreshError && (
@@ -1922,7 +1918,14 @@ function QuestionSetsSection({
                       </span>
                     )}
                   </h4>
-                  <p className="text-sm text-gray-600 mt-1">{questionSet.questionCount || 0} questions</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {questionSet.questionCount || 0} questions
+                    {questionSet.isShared && questionSet.sharedCourses && (
+                      <span className="ml-2 text-xs text-green-600">
+                        • Also used by {questionSet.sharedCourses.map((c: any) => `${c.courseNumber} ${c.isAi ? 'AI' : 'Non-AI'}`).join(', ')}
+                      </span>
+                    )}
+                  </p>
                   {refreshError && (
                     <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
                       <div className="font-semibold">Error: {refreshError.error}</div>
@@ -1969,18 +1972,14 @@ function QuestionSetsSection({
                     <DialogHeader>
                       <DialogTitle>
                         Questions in {questionSet.title}
-                        {isAiCourse !== undefined && (
-                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                            isAiCourse 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {isAiCourse ? 'AI' : 'Non-AI'}
+                        {questionSet.isShared && (
+                          <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                            🔗 Shared
                           </span>
                         )}
                       </DialogTitle>
                     </DialogHeader>
-                    <QuestionsList questionSetId={questionSet.id} isAiCourse={isAiCourse} />
+                    <QuestionsList questionSetId={questionSet.id} />
                   </DialogContent>
                 </Dialog>
                 <AlertDialog>
@@ -2214,7 +2213,7 @@ function QuestionSetsSection({
   );
 }
 
-function QuestionsList({ questionSetId, isAiCourse }: { questionSetId: number; isAiCourse?: boolean }) {
+function QuestionsList({ questionSetId }: { questionSetId: number }) {
   const { data: questions, isLoading } = useQuery({
     queryKey: ["/api/admin/questions", questionSetId],
     queryFn: () => fetch(`/api/admin/questions/${questionSetId}`).then(res => res.json()),
@@ -2239,15 +2238,6 @@ function QuestionsList({ questionSetId, isAiCourse }: { questionSetId: number; i
           <div className="flex justify-between items-start mb-2">
             <h4 className="font-medium text-sm">
               Question {question.originalQuestionNumber || index + 1}
-              {isAiCourse !== undefined && (
-                <span className={`ml-2 px-1.5 py-0.5 text-xs font-medium rounded ${
-                  isAiCourse 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'bg-gray-50 text-gray-600'
-                }`}>
-                  {isAiCourse ? 'AI' : 'Non-AI'}
-                </span>
-              )}
             </h4>
             <span className="text-xs bg-secondary px-2 py-1 rounded">
               {question.questionType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Multiple Choice'}
