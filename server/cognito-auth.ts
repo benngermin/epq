@@ -170,7 +170,7 @@ export class CognitoAuth {
       req.session.save((err) => {
         if (err) {
           console.error('Failed to save session:', err);
-          return res.redirect('/auth?error=session_save_failed');
+          return res.redirect('/auth?error=session_save_failed&message=' + encodeURIComponent('Unable to save session. Please try again.'));
         }
 
         if (process.env.NODE_ENV === 'development') {
@@ -207,7 +207,7 @@ export class CognitoAuth {
               if (process.env.NODE_ENV === 'development') {
                 console.log('State mismatch detected');
               }
-              return res.redirect('/auth?error=state_mismatch');
+              return res.redirect('/auth?error=state_mismatch&message=' + encodeURIComponent('Security verification failed. Please try logging in again.'));
             }
           }
         } catch (error) {
@@ -216,7 +216,7 @@ export class CognitoAuth {
           }
           // Fall back to original state verification
           if (!isDevelopment && req.query.state !== req.session.state) {
-            return res.redirect('/auth?error=state_mismatch');
+            return res.redirect('/auth?error=state_mismatch&message=' + encodeURIComponent('Security verification failed. Please try logging in again.'));
           }
         }
         
@@ -230,7 +230,7 @@ export class CognitoAuth {
           console.log('State verified or skipped, authenticating with Cognito...');
         }
         passport.authenticate('cognito', {
-          failureRedirect: '/auth?error=cognito_failed',
+          failureRedirect: '/auth?error=cognito_failed&message=' + encodeURIComponent('Authentication failed. Please check your credentials and try again.'),
         })(req, res, next);
       },
       async (req: Request, res: Response) => {

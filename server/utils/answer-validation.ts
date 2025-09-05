@@ -37,13 +37,18 @@ interface ValidationOptions {
  */
 function safeJsonParse(jsonString: string, fallback: any = null): any {
   if (!jsonString || typeof jsonString !== 'string') {
+    debugLog('Invalid JSON input - not a string', { input: jsonString, type: typeof jsonString });
     return fallback;
   }
   
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    debugLog('Failed to parse JSON', { input: jsonString, error });
+    debugLog('Failed to parse JSON', { 
+      input: jsonString.substring(0, 100), // Log first 100 chars to avoid huge logs
+      error: error instanceof Error ? error.message : String(error),
+      fullLength: jsonString.length 
+    });
     return fallback;
   }
 }
