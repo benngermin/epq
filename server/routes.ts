@@ -747,7 +747,9 @@ export function registerRoutes(app: Express): Server {
       const questionSetsWithDetails = await Promise.all(
         allQuestionSets.map(async (questionSet) => {
           const questions = await storage.getQuestionsByQuestionSet(questionSet.id);
-          const course = courseMap.get(questionSet.courseId);
+          // Get courses associated with this question set
+          const associatedCourses = await storage.getCoursesForQuestionSet(questionSet.id);
+          const course = associatedCourses.length > 0 ? associatedCourses[0] : null;
           return {
             ...questionSet,
             questionCount: questions.length,
@@ -1030,6 +1032,16 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Question set not found" });
       }
       
+      // Get the courses associated with this question set
+      const courses = await withCircuitBreaker(() => storage.getCoursesForQuestionSet(id));
+      
+      // Add the first course ID to the question set for backward compatibility
+      // This helps the frontend code that expects questionSet.courseId
+      const questionSetWithCourse = {
+        ...questionSet,
+        courseId: courses.length > 0 ? courses[0].id : null
+      };
+      
       // User is viewing this question set
       
       // Update daily activity to track unique users
@@ -1038,7 +1050,7 @@ export function registerRoutes(app: Express): Server {
       // Note: We're not creating a test run here yet - that happens on first answer
       // This just tracks that the user viewed the question set
       
-      res.json(questionSet);
+      res.json(questionSetWithCourse);
     } catch (error) {
       console.error("Error fetching question set:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -1057,20 +1069,23 @@ export function registerRoutes(app: Express): Server {
     
     try {
       // Get the data using the same logic as the practice-data endpoint
-      const [questionSet, questions] = await Promise.all([
+      const [questionSet, questions, courses] = await Promise.all([
         withCircuitBreaker(() => storage.getQuestionSet(questionSetId)),
-        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId))
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId)),
+        withCircuitBreaker(() => storage.getCoursesForQuestionSet(questionSetId))
       ]);
       
       if (!questionSet) {
         return res.status(404).json({ message: "Question set not found" });
       }
       
+      // Get the first course associated with this question set
+      const course = courses.length > 0 ? courses[0] : null;
+      
       // Get course and question sets info
-      const [course, courseQuestionSets] = await Promise.all([
-        withCircuitBreaker(() => storage.getCourse(questionSet.courseId)),
-        withCircuitBreaker(() => storage.getQuestionSetsByCourse(questionSet.courseId))
-      ]);
+      const courseQuestionSets = course 
+        ? await withCircuitBreaker(() => storage.getQuestionSetsByCourse(course.id))
+        : [];
       
       // Sort question sets
       courseQuestionSets.sort((a, b) => {
@@ -1632,8 +1647,10 @@ export function registerRoutes(app: Express): Server {
                 questionSetId = questionSet.id;
                 questionSetTitle = questionSet.title;
                 
-                const course = await storage.getCourse(questionSet.courseId);
-                if (course) {
+                // Get courses associated with this question set
+                const courses = await storage.getCoursesForQuestionSet(questionSet.id);
+                if (courses.length > 0) {
+                  const course = courses[0];
                   courseId = course.id;
                   courseName = course.courseTitle;
                   courseNumber = course.courseNumber; // Capture course number (e.g., "CPCU 500")
@@ -2881,12 +2898,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
           let isExistingQuestionSet = false;
           
           if (questionSet) {
-            // Update existing question set
+            // Update existing question set (without courseId field)
             await storage.updateQuestionSet(questionSet.id, {
-              courseId: course.id,
               title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
               description: bubbleQuestionSet.description || null,
             });
+            
+            // Ensure course-questionset mapping exists
+            // Try to create mapping - will fail silently if already exists
+            try {
+              await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
+            } catch (err) {
+              // Mapping likely already exists, which is fine
+            }
             
             isExistingQuestionSet = true;
             updateResults.updated++;
@@ -3080,7 +3104,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const batch = bubbleQuestionSets.slice(i, Math.min(i + BATCH_SIZE, bubbleQuestionSets.length));
         
         // Process batch in parallel
-        await Promise.all(batch.map(async (bubbleQuestionSet) => {
+        await Promise.all(batch.map(async (bubbleQuestionSet: any) => {
           try {
             const bubbleId = bubbleQuestionSet._id;
             const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
@@ -3133,19 +3157,25 @@ Remember, your goal is to support student comprehension through meaningful feedb
                 questionSetId: bubbleId,
                 title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
                 courseId: course.id,
-                courseName: course.name,
+                courseName: course.courseTitle,
                 error: "Question set does not exist",
                 details: "Bulk refresh only updates existing question sets. Use 'Update All' to import new sets."
               });
               return;
             }
             
-            // Update existing question set
+            // Update existing question set (without courseId field)
             await storage.updateQuestionSet(questionSet.id, {
-              courseId: course.id,
               title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
               description: bubbleQuestionSet.description || null,
             });
+            
+            // Ensure course-questionset mapping exists
+            try {
+              await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
+            } catch (err) {
+              // Mapping likely already exists, which is fine
+            }
             
             // Process and update questions
             if (parsedQuestions.length > 0) {
@@ -3215,7 +3245,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               if (courseBubbleId) {
                 const course = await storage.getCourseByBubbleId(courseBubbleId);
                 if (course) {
-                  courseName = course.name;
+                  courseName = course.courseTitle;
                   courseId = course.id;
                 }
               }
@@ -3433,8 +3463,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           statusText: response.statusText,
           url: url,
           responseBody: responseText,
-          externalId: questionSet.externalId,
-          isAi: questionSet.isAi
+          externalId: questionSet.externalId
         });
         return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
       }
