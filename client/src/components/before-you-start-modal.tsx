@@ -79,7 +79,7 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
               className="text-gray-700 cursor-pointer select-none"
             >
               I understand this is a practice tool with AI assistance that may have
-              limitations, and I will verify information with official study materials.
+              limitations.
             </label>
           </div>
 
