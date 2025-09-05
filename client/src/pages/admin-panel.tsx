@@ -38,7 +38,13 @@ const courseSchema = z.object({
 
 const questionSetSchema = z.object({
   title: z.string().min(1, "Question set title is required"),
+  description: z.string().optional(),
+});
+
+const courseQuestionSetSchema = z.object({
   courseId: z.number().min(1, "Course selection is required"),
+  questionSetId: z.number().min(1, "Question set selection is required"),
+  displayOrder: z.number().default(0),
 });
 
 const aiSettingsSchema = z.object({
@@ -552,7 +558,12 @@ export default function AdminPanel() {
 
   const standaloneQuestionSetForm = useForm<z.infer<typeof questionSetSchema>>({
     resolver: zodResolver(questionSetSchema),
-    defaultValues: { title: "", courseId: undefined as any },
+    defaultValues: { title: "", description: "" },
+  });
+
+  const courseQuestionSetForm = useForm<z.infer<typeof courseQuestionSetSchema>>({
+    resolver: zodResolver(courseQuestionSetSchema),
+    defaultValues: { courseId: undefined as any, questionSetId: undefined as any, displayOrder: 0 },
   });
 
   // Queries
@@ -620,6 +631,45 @@ export default function AdminPanel() {
     onError: (error: Error) => {
       toast({
         title: "Failed to create question set",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createCourseQuestionSetMappingMutation = useMutation({
+    mutationFn: async ({ courseId, questionSetId, displayOrder = 0 }: { courseId: number; questionSetId: number; displayOrder?: number }) => {
+      const res = await apiRequest("POST", `/api/admin/courses/${courseId}/question-sets/${questionSetId}`, { displayOrder });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Question set linked to course successfully" });
+      courseQuestionSetForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to link question set to course",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeCourseQuestionSetMappingMutation = useMutation({
+    mutationFn: async ({ courseId, questionSetId }: { courseId: number; questionSetId: number }) => {
+      const res = await apiRequest("DELETE", `/api/admin/courses/${courseId}/question-sets/${questionSetId}`);
+      return res;
+    },
+    onSuccess: () => {
+      toast({ title: "Question set unlinked from course successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to unlink question set from course",
         description: error.message,
         variant: "destructive",
       });
@@ -1031,37 +1081,10 @@ export default function AdminPanel() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Create New Question Set</DialogTitle>
-                        <DialogDescription>Add a new question set to a course</DialogDescription>
+                        <DialogDescription>Create a new shared question set. You can link it to courses after creation.</DialogDescription>
                       </DialogHeader>
                       <Form {...standaloneQuestionSetForm}>
                         <form onSubmit={standaloneQuestionSetForm.handleSubmit(onCreateStandaloneQuestionSet)} className="space-y-4">
-                          <FormField
-                            control={standaloneQuestionSetForm.control}
-                            name="courseId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Select Course</FormLabel>
-                                <Select 
-                                  onValueChange={(value) => field.onChange(parseInt(value))} 
-                                  value={field.value?.toString()}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select a course" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {courses && Array.isArray(courses) && courses.map((course: any) => (
-                                      <SelectItem key={course.id} value={course.id.toString()}>
-                                        {course.courseNumber}: {course.courseTitle}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
                           <FormField
                             control={standaloneQuestionSetForm.control}
                             name="title"
@@ -1070,6 +1093,19 @@ export default function AdminPanel() {
                                 <FormLabel>Question Set Title</FormLabel>
                                 <FormControl>
                                   <Input placeholder="e.g., Question Set 1" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={standaloneQuestionSetForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description (Optional)</FormLabel>
+                                <FormControl>
+                                  <Textarea placeholder="Enter question set description" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

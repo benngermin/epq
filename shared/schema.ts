@@ -20,6 +20,7 @@ export const courses = pgTable("courses", {
   externalId: text("external_id").unique(), // Client's course ID
   bubbleUniqueId: text("bubble_unique_id").unique(), // Bubble's unique course ID
   isAi: boolean("is_ai").default(true).notNull(), // Keep the column we already added
+  baseCourseNumber: text("base_course_number"), // Base course number without AI/Non-AI suffix
 });
 
 export const courseExternalMappings = pgTable("course_external_mappings", {
@@ -30,14 +31,29 @@ export const courseExternalMappings = pgTable("course_external_mappings", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const questionSets = pgTable("question_sets", {
+// Junction table for many-to-many relationship between courses and question sets
+export const courseQuestionSets = pgTable("course_question_sets", {
   id: serial("id").primaryKey(),
   courseId: integer("course_id").references(() => courses.id).notNull(),
+  questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
+  displayOrder: integer("display_order").default(0).notNull(), // For ordering question sets within a course
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  // Unique constraint to prevent duplicate mappings
+  uniqueCourseQuestionSet: {
+    columns: [table.courseId, table.questionSetId],
+    name: "unique_course_question_set",
+  },
+}));
+
+export const questionSets = pgTable("question_sets", {
+  id: serial("id").primaryKey(),
+  // courseId removed - now using junction table
   title: text("title").notNull(),
   description: text("description"),
   questionCount: integer("question_count").default(0).notNull(),
   externalId: text("external_id").unique(), // Bubble question set ID
-  isAi: boolean("is_ai").default(true).notNull(), // Track if this is an AI or Non-AI question set
+  // isAi removed - question sets are now shared between AI and Non-AI courses
 });
 
 
@@ -185,16 +201,26 @@ export const userCourseProgressRelations = relations(userCourseProgress, ({ one 
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
-  questionSets: many(questionSets),
+  courseQuestionSets: many(courseQuestionSets),
+  courseProgress: many(userCourseProgress),
 }));
 
-export const questionSetsRelations = relations(questionSets, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [questionSets.courseId],
-    references: [courses.id],
-  }),
+export const questionSetsRelations = relations(questionSets, ({ many }) => ({
+  courseQuestionSets: many(courseQuestionSets),
   questions: many(questions),
   testRuns: many(userTestRuns),
+}));
+
+// Relations for the junction table
+export const courseQuestionSetsRelations = relations(courseQuestionSets, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseQuestionSets.courseId],
+    references: [courses.id],
+  }),
+  questionSet: one(questionSets, {
+    fields: [courseQuestionSets.questionSetId],
+    references: [questionSets.id],
+  }),
 }));
 
 
@@ -250,8 +276,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export const insertCourseSchema = createInsertSchema(courses).extend({
   externalId: z.string().optional(),
+  baseCourseNumber: z.string().optional(),
 });
-export const insertQuestionSetSchema = createInsertSchema(questionSets);
+export const insertQuestionSetSchema = createInsertSchema(questionSets).omit({
+  // Removed fields that no longer exist
+});
+export const insertCourseQuestionSetSchema = createInsertSchema(courseQuestionSets);
 
 export const insertQuestionSchema = createInsertSchema(questions);
 export const insertQuestionVersionSchema = createInsertSchema(questionVersions);
@@ -274,6 +304,8 @@ export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type QuestionSet = typeof questionSets.$inferSelect;
 export type InsertQuestionSet = z.infer<typeof insertQuestionSetSchema>;
+export type CourseQuestionSet = typeof courseQuestionSets.$inferSelect;
+export type InsertCourseQuestionSet = z.infer<typeof insertCourseQuestionSetSchema>;
 
 export type Question = typeof questions.$inferSelect;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;

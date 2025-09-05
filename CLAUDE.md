@@ -193,3 +193,70 @@ server/
 2. Pull in Replit: `git pull origin main`
 3. Test: `npm run test:validation`
 4. Restart: `npm run dev`
+
+---
+
+## Current Major Migration Project: Eliminating Duplicate Question Sets
+
+### Project Overview
+The EPQ app is currently deployed and running live in **Replit**, a cloud-based development and hosting platform. Replit is an online IDE that provides full-stack hosting capabilities, including database hosting through Neon (PostgreSQL provider). The current app has a shared database for both development and production because it was created before Replit offered separate dev/prod databases.
+
+### The Problem: Duplicate Question Sets
+The client offers two versions of every course: "AI" and "Non-AI" versions. These courses are identical in content but differ in the services offered to students. This creates a structural problem:
+
+- Each course version needs access to the same question sets
+- Current database design has a 1-to-1 relationship: `questionSets.courseId → courses.id`
+- This forces the creation of duplicate question sets for each course version
+- Results in data synchronization issues and maintenance complexity
+- Creates brittle architecture that's difficult to maintain
+
+### The Solution: Many-to-Many Relationship Architecture
+We're implementing a junction table approach to allow question sets to be shared across multiple courses:
+
+**Current Schema:**
+```
+courses (isAi: true/false)
+  ↓ 1-to-many
+questionSets (courseId: FK)
+  ↓ 1-to-many  
+questions
+  ↓ 1-to-many
+questionVersions
+```
+
+**New Schema:**
+```
+courses (baseCourseNumber: added)
+questionSets (courseId: REMOVED)
+courseQuestionSets (junction table)
+  ↓ courseId FK, questionSetId FK
+questions (unchanged)
+questionVersions (unchanged)
+```
+
+### Migration Context: New Replit App Required
+Because the current app lacks separate dev/prod databases, we need to:
+
+1. Create a new Replit app by importing from GitHub
+2. This new app will have separate development and production databases
+3. Implement the new schema in the new app
+4. Migrate essential data from the old app's database to the new app
+5. Test thoroughly in the new app's development database
+6. Deploy the new app to production and switch the live domain
+7. Deprecate the old app once migration is validated
+
+### Key Technical Considerations
+- **Zero Downtime**: Current app stays live throughout migration
+- **Data Preservation**: Critical user and analytics data must be preserved
+- **Schema Migration**: Database structure changes significantly
+- **Deduplication Logic**: Must identify and merge duplicate question sets intelligently
+- **Validation**: Comprehensive testing required before production cutover
+
+### Development Workflow Instructions
+If any new tasks come up during development, add them to TASKS.md. Also, make sure to cross out completed tasks in TASKS.md as work progresses.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

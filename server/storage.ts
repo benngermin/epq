@@ -1,9 +1,10 @@
 import {
-  users, courses, courseExternalMappings, questionSets, questions, questionVersions, 
+  users, courses, courseExternalMappings, courseQuestionSets, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
   chatbotFeedback, userCourseProgress, dailyActivitySummary,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
+  type CourseQuestionSet, type InsertCourseQuestionSet,
   type Question, type InsertQuestion, type QuestionVersion, type InsertQuestionVersion, 
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
@@ -47,6 +48,12 @@ export interface IStorage {
   createQuestionSet(questionSet: InsertQuestionSet): Promise<QuestionSet>;
   updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined>;
   deleteQuestionSet(id: number): Promise<boolean>;
+  
+  // Junction table methods for many-to-many relationship
+  createCourseQuestionSetMapping(courseId: number, questionSetId: number, displayOrder?: number): Promise<CourseQuestionSet>;
+  removeCourseQuestionSetMapping(courseId: number, questionSetId: number): Promise<boolean>;
+  getCoursesForQuestionSet(questionSetId: number): Promise<Course[]>;
+  getCoursesByBaseCourseNumber(baseCourseNumber: string): Promise<Course[]>;
   
 
   
@@ -514,10 +521,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
-    const qSets = await db.select()
-      .from(questionSets)
-      .where(eq(questionSets.courseId, courseId))
-      .orderBy(asc(questionSets.id)); // Add explicit ordering
+    // Now using junction table to get question sets for a course
+    const results = await db.select({
+      questionSet: questionSets,
+    })
+      .from(courseQuestionSets)
+      .innerJoin(questionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .where(eq(courseQuestionSets.courseId, courseId))
+      .orderBy(asc(courseQuestionSets.displayOrder), asc(questionSets.id));
+    
+    // Extract question sets from the results
+    const qSets = results.map(r => r.questionSet);
     
     // Debug logging for AIC 300 issue
     if (process.env.NODE_ENV === 'development') {
@@ -599,7 +613,43 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Junction table methods for many-to-many relationship
+  async createCourseQuestionSetMapping(courseId: number, questionSetId: number, displayOrder: number = 0): Promise<CourseQuestionSet> {
+    const [mapping] = await db.insert(courseQuestionSets).values({
+      courseId,
+      questionSetId,
+      displayOrder,
+    }).returning();
+    return mapping;
+  }
 
+  async removeCourseQuestionSetMapping(courseId: number, questionSetId: number): Promise<boolean> {
+    const result = await db.delete(courseQuestionSets)
+      .where(and(
+        eq(courseQuestionSets.courseId, courseId),
+        eq(courseQuestionSets.questionSetId, questionSetId)
+      ));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getCoursesForQuestionSet(questionSetId: number): Promise<Course[]> {
+    const results = await db.select({
+      course: courses,
+    })
+      .from(courseQuestionSets)
+      .innerJoin(courses, eq(courseQuestionSets.courseId, courses.id))
+      .where(eq(courseQuestionSets.questionSetId, questionSetId))
+      .orderBy(asc(courses.courseNumber));
+    
+    return results.map(r => r.course);
+  }
+
+  async getCoursesByBaseCourseNumber(baseCourseNumber: string): Promise<Course[]> {
+    return await db.select()
+      .from(courses)
+      .where(eq(courses.baseCourseNumber, baseCourseNumber))
+      .orderBy(asc(courses.isAi));
+  }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
     return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));

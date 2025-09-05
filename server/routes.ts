@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
+  promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
@@ -841,6 +841,51 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error deleting question set:", error);
       res.status(500).json({ message: "Failed to delete question set" });
+    }
+  });
+
+  // New endpoints for managing course-questionset relationships
+  app.post("/api/admin/courses/:courseId/question-sets/:questionSetId", requireAdmin, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const questionSetId = parseInt(req.params.questionSetId);
+      const displayOrder = req.body.displayOrder || 0;
+      
+      const mapping = await storage.createCourseQuestionSetMapping(courseId, questionSetId, displayOrder);
+      res.status(201).json(mapping);
+    } catch (error) {
+      console.error("Error creating course-questionset mapping:", error);
+      res.status(500).json({ message: "Failed to create mapping" });
+    }
+  });
+
+  app.delete("/api/admin/courses/:courseId/question-sets/:questionSetId", requireAdmin, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      const deleted = await storage.removeCourseQuestionSetMapping(courseId, questionSetId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Mapping not found" });
+      }
+      
+      res.status(200).json({ message: "Mapping deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course-questionset mapping:", error);
+      res.status(500).json({ message: "Failed to delete mapping" });
+    }
+  });
+
+  // Get all courses using a specific question set
+  app.get("/api/admin/question-sets/:id/courses", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.id);
+      const courses = await storage.getCoursesForQuestionSet(questionSetId);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error getting courses for question set:", error);
+      res.status(500).json({ message: "Failed to get courses" });
     }
   });
 
@@ -1986,18 +2031,48 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // Admin routes
   app.get("/api/admin/all-question-sets", requireAdmin, async (req, res) => {
     try {
-      const allQuestionSets = await db
+      // Get all question sets with their associated courses
+      const allQuestionSetsRaw = await db
         .select({
           id: questionSets.id,
           title: questionSets.title,
-          courseId: questionSets.courseId,
-          courseTitle: courses.courseTitle
+          description: questionSets.description,
+          questionCount: questionSets.questionCount,
+          externalId: questionSets.externalId,
+          courseId: courses.id,
+          courseTitle: courses.courseTitle,
+          courseNumber: courses.courseNumber,
+          isAi: courses.isAi
         })
         .from(questionSets)
-        .leftJoin(courses, eq(questionSets.courseId, courses.id))
-        .orderBy(questionSets.courseId, questionSets.title);
+        .leftJoin(courseQuestionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
+        .leftJoin(courses, eq(courseQuestionSets.courseId, courses.id))
+        .orderBy(questionSets.title);
       
-      res.json(allQuestionSets);
+      // Group by question set to handle multiple course associations
+      const questionSetMap = new Map();
+      allQuestionSetsRaw.forEach(row => {
+        if (!questionSetMap.has(row.id)) {
+          questionSetMap.set(row.id, {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            questionCount: row.questionCount,
+            externalId: row.externalId,
+            courses: []
+          });
+        }
+        if (row.courseId) {
+          questionSetMap.get(row.id).courses.push({
+            id: row.courseId,
+            title: row.courseTitle,
+            courseNumber: row.courseNumber,
+            isAi: row.isAi
+          });
+        }
+      });
+      
+      res.json(Array.from(questionSetMap.values()));
     } catch (error) {
       console.error("Error fetching all question sets:", error);
       res.status(500).json({ message: "Failed to fetch all question sets" });
@@ -2643,12 +2718,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
             });
           }
 
-          // Create question set
+          // Create question set without courseId
           const questionSet = await storage.createQuestionSet({
-            courseId: course.id,
             title: bubbleQuestionSet.title || `Question Set ${bubbleQuestionSet._id}`,
             description: bubbleQuestionSet.description || null,
           });
+          
+          // Create junction table mapping
+          await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
 
           // Import questions if they exist in the Bubble data
           if (bubbleQuestionSet.questions && Array.isArray(bubbleQuestionSet.questions)) {
@@ -2804,13 +2881,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
             isExistingQuestionSet = true;
             updateResults.updated++;
           } else {
-            // Create new question set
+            // Create new question set without courseId
             questionSet = await storage.createQuestionSet({
-              courseId: course.id,
               title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
               description: bubbleQuestionSet.description || null,
               externalId: bubbleId
             });
+            
+            // Create junction table mapping
+            await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
             updateResults.created++;
           }
 
