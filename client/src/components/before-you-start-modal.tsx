@@ -49,17 +49,19 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Important section - plain text */}
+          {/* Important section with bullet points */}
           <div className="space-y-3">
-            <p className="text-gray-800 font-medium">
-              Important:
+            <p className="text-gray-800 font-bold">
+              Important
             </p>
-            <p className="text-gray-800 font-normal">
-              Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
-            </p>
-            <p className="text-gray-800 font-normal">
-              AI assistant explanations may occasionally be incorrect or incomplete.
-            </p>
+            <ul className="space-y-2 list-disc list-inside">
+              <li className="text-gray-800 font-normal">
+                Practice questions familiarize you with the exam format, but don't cover every possible topic that could be on the exam.
+              </li>
+              <li className="text-gray-800 font-normal">
+                AI assistant explanations may occasionally be incorrect or incomplete.
+              </li>
+            </ul>
             <p className="text-gray-600 text-base">
               Always use your official study materials to verify information and complete
               your exam preparation.
@@ -78,8 +80,7 @@ export function BeforeYouStartModal({ isOpen, onClose, onAgree }: BeforeYouStart
               htmlFor="understand"
               className="text-gray-700 cursor-pointer select-none"
             >
-              I understand this is a practice tool with AI assistance that may have
-              limitations.
+              I understand this is a practice tool with AI assistance that may have limitations.
             </label>
           </div>
 
