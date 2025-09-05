@@ -268,6 +268,55 @@ Client-side code was not sending conversation history (containing the system pro
 
 ---
 
+## Security Best Practices (Updated September 2025)
+
+### Critical Security Fix - September 2025
+**GitGuardian Security Alerts Resolved**: Removed exposed secrets from codebase and git history.
+
+### Secrets Management
+- **Never commit secrets**: All credentials must be stored as environment variables
+- **Required Environment Variables**:
+  - `DATABASE_URL` - PostgreSQL connection string
+  - `BUBBLE_API_KEY` - Content repository API access
+  - `ADMIN_PASSWORD` - Secure password for admin user creation
+  - `SESSION_SECRET` - Session encryption key
+  - AWS Cognito credentials (if using SSO)
+
+### Files That Previously Contained Exposed Secrets (FIXED)
+- ✅ `server/scripts/test-single-refresh.ts` - Now requires env vars
+- ✅ `server/scripts/refresh-all-questions.ts` - Now requires env vars  
+- ✅ `server/scripts/create-admin-user.ts` - Now requires ADMIN_PASSWORD env var
+- ✅ `.claude/settings.local.json` - File removed entirely
+
+### .gitignore Protection
+- `.env*` files automatically ignored
+- `.claude/**/*.json` settings files ignored
+- Certificate and key files ignored
+- Security cleanup scripts ignored
+
+### Running Scripts Securely
+```bash
+# ✅ CORRECT: Pass secrets via environment variables
+BUBBLE_API_KEY="your_key" DATABASE_URL="your_db" npm run script
+
+# ❌ WRONG: Never hardcode secrets in files
+process.env.API_KEY = "hardcoded_secret"  // NEVER DO THIS
+```
+
+### Git History Cleanup
+If you need to clean secrets from git history:
+1. Use the provided `clean-secrets.sh` script (if available)
+2. **WARNING**: This rewrites git history - coordinate with team
+3. Force push required: `git push --force-with-lease origin main`
+4. All collaborators must re-clone the repository
+
+### Database Security
+- All database connections use SSL (`sslmode=require`)
+- Production credentials stored in secure environment variables
+- Development uses separate database instances
+- Regular credential rotation recommended
+
+---
 
 ### Development Workflow Instructions
 When working on new features or fixes, use git commit messages that clearly describe the changes. Follow the established patterns for comprehensive commit messages with technical details.

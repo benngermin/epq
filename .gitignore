@@ -4,3 +4,20 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment files and secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.p12
+*.p8
+
+# Claude settings (may contain credentials)
+.claude/settings.local.json
+.claude/**/*.json
+
+# Security cleanup scripts
+clean-secrets.sh
