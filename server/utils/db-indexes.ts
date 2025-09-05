@@ -34,9 +34,10 @@ export async function createDatabaseIndexes() {
     
 
     
-    // Indexes for question sets
+    // Indexes for course-question set junction table
     await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_question_sets_course_id ON question_sets(course_id);
+      CREATE INDEX IF NOT EXISTS idx_course_question_sets_course_id ON course_question_sets(course_id);
+      CREATE INDEX IF NOT EXISTS idx_course_question_sets_question_set_id ON course_question_sets(question_set_id);
     `);
     
     // Indexes for chatbot logs (for analytics)
