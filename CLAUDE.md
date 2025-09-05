@@ -268,10 +268,33 @@ Client-side code was not sending conversation history (containing the system pro
 
 ---
 
+## AI Assistant HTML Rendering Fix (September 2025)
+
+### Issue Context
+AI Assistant responses were being truncated mid-content and had excessive line breaks between paragraphs.
+
+### Root Cause
+Complex regex pattern in `HtmlLinkRenderer` component was mismatching nested HTML structures, causing content loss.
+
+### Solution Implementation
+**File Modified:** `client/src/components/html-link-renderer.tsx`
+- Replaced regex-based parsing with native DOMParser API
+- Converts DOM nodes to React elements recursively
+- CSS-based spacing instead of literal line breaks
+- Enhanced XSS protection
+
+### Technical Details
+- **Old approach**: Complex regex `/<(a|b|i|...)>([\s\S]*?)<\/\1>/gi`
+- **New approach**: `DOMParser().parseFromString()` with recursive node conversion
+- **Spacing**: Uses CSS classes (`mb-2`, `mb-3`, `my-2`) instead of `\n\n`
+- **Security**: Enhanced URL and style sanitization
+
+---
+
 ## Security Best Practices (Updated September 2025)
 
-### Critical Security Fix - September 2025
-**GitGuardian Security Alerts Resolved**: Removed exposed secrets from codebase and git history.
+### Critical Security Fixes - September 2025
+**GitGuardian Security Alerts Resolved**: Removed all exposed secrets from codebase.
 
 ### Secrets Management
 - **Never commit secrets**: All credentials must be stored as environment variables
