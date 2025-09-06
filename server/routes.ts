@@ -1517,7 +1517,8 @@ export function registerRoutes(app: Express): Server {
         done: false, 
         lastActivity: Date.now(),
         aborted: false,
-        conversationHistory: conversationHistory || [] // Use provided history or initialize empty
+        conversationHistory: conversationHistory || [], // Use provided history or initialize empty
+        storedSystemMessage: undefined // Will be set on first message
       });
       
       // Start background processing with mobile flag
@@ -1781,23 +1782,66 @@ export function registerRoutes(app: Express): Server {
         // For follow-up messages, simply use the user's message as the prompt
         prompt = userMessage;
         
-        // Check if we have a stored system message from the initial request
-        if (stream.storedSystemMessage) {
-          systemMessage = stream.storedSystemMessage;
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log("=== FOLLOW-UP MESSAGE ===");
-            console.log("Using stored system message (not reconstructing)");
-            console.log("Stored system message exists:", !!stream.storedSystemMessage);
-            console.log("=========================");
-          }
-          
-          // Ensure it's in the conversation history
-          if (stream.conversationHistory) {
-            const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
-            if (!hasSystemMessage) {
-              stream.conversationHistory.unshift({ role: "system", content: systemMessage });
-            }
+        // For follow-up messages, we need to ensure the system message exists
+        // Since each request creates a new stream, we must reconstruct it
+        const formattedChoices = questionVersion.answerChoices.join('\n');
+        const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+        
+        const systemPromptTemplate = activePrompt?.promptText || 
+          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Next, review the provided source material that was used to create this assessment content:
+<course_material>
+{{COURSE_MATERIAL}}
+</course_material>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
+
+##Criteria:
+- Only use the provided content
+- Use clear, jargon-free wording
+- State clearly why each choice is ✅ Correct or ❌ Incorrect.
+- In 2-4 sentences, explain the concept that makes the choice right or wrong.
+- Paraphrase relevant ideas and reference section titles from the Source Material
+- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+        
+        // Substitute variables in the system message
+        systemMessage = systemPromptTemplate
+          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== FOLLOW-UP MESSAGE ===");
+          console.log("Reconstructing system message for new stream");
+          console.log("=========================");
+        }
+        
+        // Ensure it's in the conversation history
+        if (stream.conversationHistory) {
+          const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
+          if (!hasSystemMessage) {
+            stream.conversationHistory.unshift({ role: "system", content: systemMessage });
           }
         }
       } else {
@@ -4190,23 +4234,53 @@ Remember, your goal is to support student comprehension through meaningful feedb
             // For follow-up messages, simply use the user's message as the prompt
             prompt = userMessage;
             
-            // Check if we have a stored system message from the initial request
-            if (stream.storedSystemMessage) {
-              systemMessage = stream.storedSystemMessage;
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log("=== DEMO FOLLOW-UP MESSAGE ===");
-                console.log("Using stored system message (not reconstructing)");
-                console.log("Stored system message exists:", !!stream.storedSystemMessage);
-                console.log("==============================");
-              }
-              
-              // Ensure it's in the conversation history
-              if (stream.conversationHistory) {
-                const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
-                if (!hasSystemMessage) {
-                  stream.conversationHistory.unshift({ role: "system", content: systemMessage });
-                }
+            // For follow-up messages, we need to ensure the system message exists
+            // Since each request creates a new stream, we must reconstruct it
+            const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
+            const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+            
+            const systemPromptTemplate = activePrompt?.promptText || 
+              `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive.`;
+            
+            // Substitute variables in the system message
+            systemMessage = systemPromptTemplate
+              .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+              .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+              .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+              .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+              .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log("=== DEMO FOLLOW-UP MESSAGE ===");
+              console.log("Reconstructing system message for new stream");
+              console.log("==============================");
+            }
+            
+            // Ensure it's in the conversation history
+            if (stream.conversationHistory) {
+              const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
+              if (!hasSystemMessage) {
+                stream.conversationHistory.unshift({ role: "system", content: systemMessage });
               }
             }
           } else {
