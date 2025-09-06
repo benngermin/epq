@@ -243,8 +243,31 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
     }
     
     try {
+      // First, preserve newlines by converting them to <br> tags
+      // This ensures line breaks in AI responses are maintained
+      let processedText = text;
+      
+      // Check if the content already contains HTML tags
+      const hasHtmlTags = /<[^>]+>/.test(text);
+      
+      if (!hasHtmlTags) {
+        // If it's plain text, convert newlines to <br> tags
+        // and wrap paragraphs separated by double newlines
+        processedText = text
+          .split(/\n\n+/) // Split on double newlines for paragraphs
+          .map(paragraph => {
+            // Within each paragraph, replace single newlines with <br>
+            return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
+          })
+          .join('');
+      } else {
+        // If it already has HTML, just ensure newlines within text nodes are preserved
+        // by converting them to <br> tags, but only outside of existing tags
+        processedText = text.replace(/(\n)(?![^<]*>)/g, '<br>');
+      }
+      
       // Sanitize input by removing potential script tags and other dangerous elements
-      const sanitizedText = text
+      const sanitizedText = processedText
         .replace(/<script[\s\S]*?<\/script>/gi, '')
         .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
         .replace(/<object[\s\S]*?<\/object>/gi, '')
