@@ -291,6 +291,46 @@ Complex regex pattern in `HtmlLinkRenderer` component was mismatching nested HTM
 
 ---
 
+## AI Assistant Conversation History Fix (September 2025)
+
+### Issue Context
+The AI assistant was losing conversation context between follow-up messages in the same question thread. Users would get an initial response with proper context, but subsequent follow-up questions would receive responses as if the AI had no memory of the previous conversation, breaking the conversational flow.
+
+### Root Cause Analysis
+The issue stemmed from two critical problems in conversation history management:
+
+1. **Client-side History Loss**: The client component received the server's complete conversation history (including system message) after each response but never stored it. Instead, it attempted to reconstruct history from UI message state, which lacked the crucial system message with question context.
+
+2. **Server-side Stream Isolation**: The server created streams with user-based IDs and cleaned up all streams per user, rather than isolating per question. This could potentially cause cross-question contamination.
+
+### Solution Implementation
+**Files Modified:**
+- `client/src/components/simple-streaming-chat.tsx` - Added server conversation history state management
+- `server/routes.ts` - Enhanced stream isolation and conversation validation
+
+**Key Features:**
+- **Server History Storage**: Client now stores complete conversation history received from server
+- **System Message Preservation**: Server conversation history (with system message) sent in follow-up requests
+- **Question-based Isolation**: Stream IDs now include question version ID for better isolation
+- **Conversation Validation**: Server validates that conversation history contains required system message
+- **Automatic Reset**: Conversation history clears when switching between questions
+- **Enhanced Logging**: Development-mode logging for debugging conversation flow
+
+### Technical Details
+1. **Client State Management**: Added `serverConversationHistory` state to track complete server-provided conversation thread
+2. **API Integration**: All follow-up streaming requests include validated server conversation history
+3. **Stream Isolation**: Stream IDs format: `${userId}_q${questionVersionId}_${timestamp}_${random}`
+4. **Context Preservation**: Every OpenRouter API call includes complete conversation history with system prompt
+
+### Benefits
+- ✅ System message with question context persists throughout entire conversation
+- ✅ Full conversation thread maintained for multi-turn interactions
+- ✅ No context loss between follow-up messages
+- ✅ Proper isolation prevents cross-question conversation contamination
+- ✅ Enhanced debugging capabilities for conversation flow issues
+
+---
+
 ## Security Best Practices (Updated September 2025)
 
 ### Critical Security Fixes - September 2025
