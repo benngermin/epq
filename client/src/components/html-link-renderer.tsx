@@ -121,7 +121,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         
       case 'p':
         return (
-          <div key={key} className="mb-3">
+          <div key={key} className="mb-2">
             {children}
           </div>
         );
@@ -251,15 +251,21 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
       const hasHtmlTags = /<[^>]+>/.test(text);
       
       if (!hasHtmlTags) {
-        // If it's plain text, convert newlines to <br> tags
-        // and wrap paragraphs separated by double newlines
-        processedText = text
-          .split(/\n\n+/) // Split on double newlines for paragraphs
-          .map(paragraph => {
-            // Within each paragraph, replace single newlines with <br>
-            return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
-          })
-          .join('');
+        // If it's plain text, only wrap in paragraphs if there are actual paragraph breaks
+        const paragraphs = text.split(/\n\n+/);
+        
+        if (paragraphs.length > 1) {
+          // Multiple paragraphs - wrap each in <p> tags
+          processedText = paragraphs
+            .map(paragraph => {
+              // Within each paragraph, replace single newlines with <br>
+              return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
+            })
+            .join('');
+        } else {
+          // Single paragraph or simple text - just replace newlines with <br>
+          processedText = text.replace(/\n/g, '<br>');
+        }
       } else {
         // If it already has HTML, just ensure newlines within text nodes are preserved
         // by converting them to <br> tags, but only outside of existing tags
