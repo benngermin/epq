@@ -18,7 +18,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const originalChosenAnswerRef = useRef(chosenAnswer);
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant"}>>([]);
+  const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant", questionVersionId?: number}>>([]);
   const [hasInitialResponse, setHasInitialResponse] = useState(false);
 
   const { toast } = useToast();
@@ -75,18 +75,24 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isDemo = window.location.pathname.startsWith('/demo');
     
     try {
+      // Initialize streaming - pass conversation history for follow-up messages
+      // Only include messages that belong to the current question
+      const filteredHistory = userMessage && messages.length > 0 
+        ? messages.filter(m => m.questionVersionId === questionVersionId)
+        : undefined;
+      
       // Debug logging for conversation history
       if (userMessage && messages.length > 0) {
         console.log("=== CLIENT CONVERSATION HISTORY ===");
-        console.log("Question Version ID:", questionVersionId);
-        console.log("Sending conversation history with", messages.length, "messages");
-        console.log("Message roles being sent:", messages.map(m => m.role));
-        console.log("Message IDs being sent:", messages.map(m => m.id));
-        console.log("Note: Client never tracks system messages (only user/assistant)");
+        console.log("Current Question Version ID:", questionVersionId);
+        console.log("All messages in state:", messages.length, "messages");
+        console.log("Filtered messages for current question:", filteredHistory?.length || 0, "messages");
+        console.log("Filtered message roles:", filteredHistory?.map(m => m.role) || []);
+        console.log("Filtered message IDs:", filteredHistory?.map(m => m.id) || []);
+        console.log("Note: Only sending messages for questionVersionId", questionVersionId);
         console.log("===================================");
       }
       
-      // Initialize streaming - pass conversation history for follow-up messages
       const response = await fetch(isDemo ? '/api/demo/chatbot/stream-init' : '/api/chatbot/stream-init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,7 +101,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           chosenAnswer: finalChosenAnswer, 
           userMessage, 
           isMobile,
-          conversationHistory: userMessage ? messages : undefined // Pass history only for follow-ups
+          conversationHistory: filteredHistory // Pass filtered history only for follow-ups
         }),
         credentials: 'include',
         signal: abortControllerRef.current.signal,
@@ -294,7 +300,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         setMessages([{
           id: "initial-response",
           content: "",
-          role: "assistant"
+          role: "assistant",
+          questionVersionId: questionVersionId
         }]);
         loadAiResponse();                       // kick off first answer
         
@@ -353,12 +360,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       {
         id: Date.now().toString(),
         content: msg,
-        role: "user"
+        role: "user",
+        questionVersionId: questionVersionId
       },
       {
         id: (Date.now() + 1).toString(),
         content: "Loading response...",
-        role: "assistant"
+        role: "assistant",
+        questionVersionId: questionVersionId
       }
     ]);
     
