@@ -136,7 +136,8 @@ const activeStreams = new Map<string, {
   lastActivity: number,
   aborted?: boolean,
   conversationHistory?: Array<{ role: string, content: string }>, // Store conversation history
-  storedSystemMessage?: string // Store the system message once when created
+  storedSystemMessage?: string, // Store the system message once when created
+  questionVersionId?: number // Track which question this stream belongs to
 }>();
 
 // Heartbeat interval to detect stalled streams
@@ -1518,7 +1519,8 @@ export function registerRoutes(app: Express): Server {
         lastActivity: Date.now(),
         aborted: false,
         conversationHistory: conversationHistory || [], // Use provided history or initialize empty
-        storedSystemMessage: undefined // Will be set on first message
+        storedSystemMessage: undefined, // Will be set on first message
+        questionVersionId: questionVersionId // Track which question this stream belongs to
       });
       
       // Start background processing with mobile flag
@@ -1731,6 +1733,15 @@ export function registerRoutes(app: Express): Server {
     if (!stream || stream.aborted) return;
     
     try {
+      // Log conversation history validation
+      if (process.env.NODE_ENV === 'development' && userMessage) {
+        console.log("=== CONVERSATION VALIDATION ===");
+        console.log("Current Question Version ID:", questionVersionId);
+        console.log("Stream Question Version ID:", stream.questionVersionId);
+        console.log("Conversation History Length:", stream.conversationHistory?.length || 0);
+        console.log("Is Follow-up Message:", !!userMessage);
+        console.log("================================");
+      }
 
       // Process stream with proper chosenAnswer handling
 

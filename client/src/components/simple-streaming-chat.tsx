@@ -78,8 +78,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       // Debug logging for conversation history
       if (userMessage && messages.length > 0) {
         console.log("=== CLIENT CONVERSATION HISTORY ===");
+        console.log("Question Version ID:", questionVersionId);
         console.log("Sending conversation history with", messages.length, "messages");
         console.log("Message roles being sent:", messages.map(m => m.role));
+        console.log("Message IDs being sent:", messages.map(m => m.id));
         console.log("Note: Client never tracks system messages (only user/assistant)");
         console.log("===================================");
       }
