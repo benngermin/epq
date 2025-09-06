@@ -121,14 +121,14 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         
       case 'p':
         return (
-          <div key={key} className="mb-2">
+          <div key={key}>
             {children}
           </div>
         );
         
       case 'div':
         return (
-          <div key={key} className="mb-2">
+          <div key={key}>
             {children}
           </div>
         );
