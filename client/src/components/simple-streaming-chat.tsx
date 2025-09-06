@@ -272,14 +272,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
    * --------------------------------------------------------- */
   useEffect(() => {
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
-    if (isNewQuestion && chosenAnswer) {
-      // Start fresh with initial assistant message
-      setMessages([{
-        id: "initial-response",
-        content: "",
-        role: "assistant"
-      }]);
+    
+    if (isNewQuestion) {
+      // Question changed - always clear messages to prevent history contamination
+      setMessages([]);
       setHasInitialResponse(false);
+      setUserInput(""); // Also clear any pending user input
       
       // Abort any ongoing request with a reason
       if (abortControllerRef.current) {
@@ -287,14 +285,24 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
-      loadAiResponse();                       // kick off first answer
       
-      // Auto-scroll when initial message is added
-      requestAnimationFrame(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        }
-      });
+      // If we have a chosen answer for the new question, start loading AI response
+      if (chosenAnswer) {
+        // Start fresh with initial assistant message
+        setMessages([{
+          id: "initial-response",
+          content: "",
+          role: "assistant"
+        }]);
+        loadAiResponse();                       // kick off first answer
+        
+        // Auto-scroll when initial message is added
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          }
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionVersionId, chosenAnswer]);
