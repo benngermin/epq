@@ -1494,15 +1494,15 @@ export function registerRoutes(app: Express): Server {
       const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
 
-      // Include user ID in stream ID for better tracking and cleanup
-      const streamId = `${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Include user ID and question ID in stream ID for better tracking and isolation
+      const streamId = `${userId}_q${questionVersionId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Clean up any existing streams for this user to prevent conflicts
+      // Clean up any existing streams for this user AND question to prevent conflicts
       const streamEntries = Array.from(activeStreams.entries());
-      const userIdPattern = new RegExp(`^${userId}_`);
+      const questionStreamPattern = new RegExp(`^${userId}_q${questionVersionId}_`);
       for (const [existingStreamId, stream] of streamEntries) {
-        // Use regex for more accurate user ID matching
-        if (userIdPattern.test(existingStreamId)) {
+        // Only clean up streams for the same user AND same question
+        if (questionStreamPattern.test(existingStreamId)) {
           // Mark old stream as aborted before deletion
           stream.aborted = true;
           stream.done = true;
@@ -1512,13 +1512,27 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Initialize stream with timestamp - use provided conversation history if available
+      // Validate conversation history if provided
+      let validatedHistory = conversationHistory || [];
+      if (conversationHistory && conversationHistory.length > 0) {
+        // Check if the conversation history has a system message
+        const hasSystemMessage = conversationHistory.some((msg: any) => msg.role === "system");
+        if (!hasSystemMessage) {
+          console.warn(`Warning: Conversation history for question ${questionVersionId} missing system message`);
+          // Reset to empty if system message is missing
+          validatedHistory = [];
+        } else if (process.env.NODE_ENV === 'development') {
+          console.log(`✓ Valid conversation history with system message for question ${questionVersionId}`);
+        }
+      }
+      
+      // Initialize stream with timestamp - use validated conversation history
       activeStreams.set(streamId, { 
         chunks: [], 
         done: false, 
         lastActivity: Date.now(),
         aborted: false,
-        conversationHistory: conversationHistory || [], // Use provided history or initialize empty
+        conversationHistory: validatedHistory, // Use validated history
         storedSystemMessage: undefined, // Will be set on first message
         questionVersionId: questionVersionId // Track which question this stream belongs to
       });

@@ -20,6 +20,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string, content: string, role: "user" | "assistant", questionVersionId?: number}>>([]);
   const [hasInitialResponse, setHasInitialResponse] = useState(false);
+  // Store server conversation history to maintain system message context
+  const [serverConversationHistory, setServerConversationHistory] = useState<Array<{role: string, content: string}> | null>(null);
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -75,21 +77,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isDemo = window.location.pathname.startsWith('/demo');
     
     try {
-      // Initialize streaming - pass conversation history for follow-up messages
-      // Only include messages that belong to the current question
-      const filteredHistory = userMessage && messages.length > 0 
-        ? messages.filter(m => m.questionVersionId === questionVersionId)
-        : undefined;
+      // Initialize streaming - pass server conversation history for follow-up messages
+      // Use server conversation history if available (for follow-ups), otherwise undefined (for initial)
+      const conversationToSend = userMessage && serverConversationHistory ? serverConversationHistory : undefined;
       
       // Debug logging for conversation history
-      if (userMessage && messages.length > 0) {
+      if (userMessage && serverConversationHistory) {
         console.log("=== CLIENT CONVERSATION HISTORY ===");
         console.log("Current Question Version ID:", questionVersionId);
-        console.log("All messages in state:", messages.length, "messages");
-        console.log("Filtered messages for current question:", filteredHistory?.length || 0, "messages");
-        console.log("Filtered message roles:", filteredHistory?.map(m => m.role) || []);
-        console.log("Filtered message IDs:", filteredHistory?.map(m => m.id) || []);
-        console.log("Note: Only sending messages for questionVersionId", questionVersionId);
+        console.log("Server conversation history length:", serverConversationHistory.length);
+        console.log("Conversation roles:", serverConversationHistory.map(m => m.role));
+        console.log("Has system message:", serverConversationHistory.some(m => m.role === "system"));
         console.log("===================================");
       }
       
@@ -101,7 +99,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           chosenAnswer: finalChosenAnswer, 
           userMessage, 
           isMobile,
-          conversationHistory: filteredHistory // Pass filtered history only for follow-ups
+          conversationHistory: conversationToSend // Pass server conversation history for follow-ups
         }),
         credentials: 'include',
         signal: abortControllerRef.current.signal,
@@ -166,6 +164,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
                 return updated;
               });
             }
+            
+            // Store the server's conversation history for future follow-ups
+            if (chunkData.conversationHistory && !chunkData.error) {
+              setServerConversationHistory(chunkData.conversationHistory);
+              console.log("Stored server conversation history with", chunkData.conversationHistory.length, "messages");
+            }
+            
             done = true;
             break;
           }
@@ -282,10 +287,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
     
     if (isNewQuestion) {
-      // Question changed - always clear messages to prevent history contamination
+      // Question changed - always clear messages and server history to prevent contamination
       setMessages([]);
       setHasInitialResponse(false);
       setUserInput(""); // Also clear any pending user input
+      setServerConversationHistory(null); // Clear server conversation history
       
       // Abort any ongoing request with a reason
       if (abortControllerRef.current) {
