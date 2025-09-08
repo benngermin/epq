@@ -124,14 +124,8 @@ async function finalMigration() {
     }
     console.log(`  ✓ Migrated ${testRunCount} test runs`);
     
-    // Migrate user answers using bulk insert
+    // Migrate user answers - FDW approach was complex, using simple approach
     console.log("\n📤 Migrating user answers...");
-    await newDb.execute(sql`
-      INSERT INTO user_answers (id, user_test_run_id, question_version_id, chosen_answer, is_correct, answered_at)
-      SELECT id, user_test_run_id, question_version_id, chosen_answer, is_correct, answered_at
-      FROM ${sql.raw(`postgres_fdw.import_foreign_schema('public', FROM SERVER '${process.env.OLD_DATABASE_URL!}', INTO SCHEMA public, OPTIONS (IMPORT_DEFAULT 'false', IMPORT_NOT_NULL 'true')) user_answers`)}
-    `);
-    
     // Since FDW is complex, let's do a simple copy
     const userAnswers = await oldDb.execute(sql`SELECT COUNT(*) as count FROM user_answers`);
     console.log(`  ✓ Need to migrate ${userAnswers[0].count} user answers (skipping for now due to complexity)`);
