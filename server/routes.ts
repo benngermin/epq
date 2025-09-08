@@ -1729,6 +1729,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Helper function to extract correct answer from blanks for select_from_list questions
+  function extractCorrectAnswerFromBlanks(questionVersion: any): string {
+    // If this is a select_from_list question with blanks
+    if (questionVersion.questionType === 'select_from_list' && 
+        questionVersion.blanks && 
+        Array.isArray(questionVersion.blanks) && 
+        questionVersion.blanks.length > 0) {
+      
+      // If there's only one blank, return its correct answer directly
+      if (questionVersion.blanks.length === 1) {
+        return questionVersion.blanks[0].correct_answer || '';
+      }
+      
+      // For multiple blanks, construct a readable format
+      // Format: "blank_1: answer1, blank_2: answer2"
+      const correctAnswers = questionVersion.blanks
+        .map((blank: any) => `[blank_${blank.blank_id}]: ${blank.correct_answer}`)
+        .join(', ');
+      
+      return correctAnswers;
+    }
+    
+    // Return the original correct answer if not a select_from_list with blanks
+    return questionVersion.correctAnswer || '';
+  }
+
   // Helper function to clean course material URLs when on mobile
   function cleanCourseMaterialForMobile(content: string, isMobile: boolean): string {
     if (!isMobile) return content; // Keep everything for desktop
@@ -1850,12 +1876,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
 - Paraphrase relevant ideas and reference section titles from the Source Material
 - End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
         
+        // Extract correct answer, handling select_from_list questions with blanks
+        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
+        
         // Substitute variables in the system message
         systemMessage = systemPromptTemplate
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
         if (process.env.NODE_ENV === 'development') {
@@ -1912,12 +1941,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
 - Paraphrase relevant ideas and reference section titles from the Source Material
 - End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
         
+        // Extract correct answer, handling select_from_list questions with blanks
+        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
+        
         // Substitute variables in the system message
         systemMessage = systemPromptTemplate
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
         // Store the system message for reuse in follow-up messages
@@ -1929,6 +1961,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
           console.log("Question Type:", questionVersion.questionType);
           console.log("Question ID:", questionVersion.id);
           console.log("Correct Answer from DB:", questionVersion.correctAnswer);
+          console.log("Effective Correct Answer (after blanks extraction):", effectiveCorrectAnswer);
+          console.log("Using Blanks Fallback:", questionVersion.questionType === 'select_from_list' && !questionVersion.correctAnswer && questionVersion.blanks);
           console.log("Answer Choices:", questionVersion.answerChoices);
           console.log("Blanks:", questionVersion.blanks);
           console.log("Source Material:", sourceMaterial?.substring(0, 100));
