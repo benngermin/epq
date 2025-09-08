@@ -23,6 +23,9 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    // Create an abort controller for cleanup
+    const abortController = new AbortController();
+    
     // Process once we have courses data
     if (!coursesLoading && !userLoading && courses && courses.length > 0) {
       const processCourseSelection = async () => {
@@ -65,11 +68,15 @@ export default function Dashboard() {
         if (courseIdParam) {
           // Fetch course by external ID using the API endpoint
           try {
+            // Check if operation was aborted
+            if (abortController.signal.aborted) return;
+            
             const response = await fetch(isDemo ? `/api/demo/courses/by-external-id/${courseIdParam}` : `/api/courses/by-external-id/${courseIdParam}`, {
               headers: {
                 'Content-Type': 'application/json',
               },
               credentials: 'include',
+              signal: abortController.signal,
             });
             
             if (response.ok) {
@@ -82,9 +89,13 @@ export default function Dashboard() {
               if (!targetCourse) {
                 console.log(`Course ${courseData.courseNumber} (ID: ${courseData.id}) not in courses array, fetching question sets...`);
                 // Course exists but isn't in the courses array, fetch its question sets
+                // Check if operation was aborted before second fetch
+                if (abortController.signal.aborted) return;
+                
                 const qsResponse = await fetch(isDemo ? `/api/demo/courses/${courseData.id}/question-sets` : `/api/courses/${courseData.id}/question-sets`, {
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
+                  signal: abortController.signal,
                 });
                 
                 if (qsResponse.ok) {
@@ -187,7 +198,12 @@ export default function Dashboard() {
         }
       });
     }
-  }, [coursesLoading, userLoading, courses, setLocation, isDemo]);
+    
+    // Cleanup function to abort pending operations
+    return () => {
+      abortController.abort();
+    };
+  }, [coursesLoading, userLoading, courses, setLocation, isDemo, user]);
 
   // Show loading state while processing
   if (coursesLoading || userLoading || !user) {
