@@ -271,45 +271,86 @@ export function QuestionCard({
                 correctZones = question.latestVersion.correctAnswer;
               }
               
-              // Normalize both user and correct zones to use consistent key format
-              // Handle both "zone_1" and "1" formats
-              const normalizedUserZones: Record<string, string[]> = {};
-              const normalizedCorrectZones: Record<string, string[]> = {};
+              // Create zone mapping if dropZones is provided
+              // This maps between zone_id (like zone_1) and zone_label (like "Current Assets")
+              const zoneIdToLabel: Record<string, string> = {};
+              const zoneLabelToId: Record<string, string> = {};
               
-              // Normalize user zones
-              for (const key in userZones) {
-                // Convert to "zone_X" format if not already
-                const normalizedKey = key.startsWith('zone_') ? key : `zone_${key}`;
-                normalizedUserZones[normalizedKey] = userZones[key] || [];
+              if (question.latestVersion.dropZones && question.latestVersion.dropZones.length > 0) {
+                for (const zone of question.latestVersion.dropZones) {
+                  const zoneKey = `zone_${zone.zone_id}`;
+                  zoneIdToLabel[zoneKey] = zone.zone_label;
+                  zoneLabelToId[zone.zone_label] = zoneKey;
+                }
               }
               
-              // Normalize correct zones (they should already be in "zone_X" format from DB)
-              for (const key in correctZones) {
-                const normalizedKey = key.startsWith('zone_') ? key : `zone_${key}`;
-                normalizedCorrectZones[normalizedKey] = correctZones[key] || [];
-              }
+              // Normalize zone keys function
+              const normalizeZoneKey = (key: string): string => {
+                // First check if it's already in zone_N format
+                if (key.startsWith('zone_')) {
+                  return key;
+                }
+                // Check if it's a number
+                if (/^\d+$/.test(key)) {
+                  return `zone_${key}`;
+                }
+                // Otherwise return as-is (might be a label like "Current Assets")
+                return key;
+              };
+              
+              // Transform zones to a common format for comparison
+              const transformZones = (zones: Record<string, string[]>): Record<string, string[]> => {
+                const transformed: Record<string, string[]> = {};
+                
+                for (const key in zones) {
+                  const normalizedKey = normalizeZoneKey(key);
+                  
+                  // If we have a mapping and this key is a zone ID, keep it as zone_N
+                  // If this key is a label, convert it to zone_N
+                  let finalKey = normalizedKey;
+                  
+                  if (question.latestVersion.dropZones && question.latestVersion.dropZones.length > 0) {
+                    // Check if this is a label that needs to be converted to zone_N
+                    if (zoneLabelToId[key]) {
+                      finalKey = zoneLabelToId[key];
+                    } else if (zoneIdToLabel[normalizedKey]) {
+                      // It's already a zone_N format, keep it
+                      finalKey = normalizedKey;
+                    } else {
+                      // Not in our mapping, keep as-is
+                      finalKey = normalizedKey;
+                    }
+                  }
+                  
+                  transformed[finalKey] = Array.isArray(zones[key]) ? zones[key] : [];
+                }
+                
+                return transformed;
+              };
+              
+              // Transform both user and correct zones
+              const transformedUserZones = transformZones(userZones);
+              const transformedCorrectZones = transformZones(correctZones);
               
               // Compare each zone's contents
               isAnswerCorrect = true;
               
+              // Get all unique zone keys
+              const allZoneKeys = new Set([
+                ...Object.keys(transformedUserZones),
+                ...Object.keys(transformedCorrectZones)
+              ]);
+              
               // Check if all zones have the same items (order doesn't matter within a zone)
-              for (const zoneId in normalizedCorrectZones) {
-                const correctItems = normalizedCorrectZones[zoneId] || [];
-                const userItems = normalizedUserZones[zoneId] || [];
+              for (const zoneId of allZoneKeys) {
+                const correctItems = transformedCorrectZones[zoneId] || [];
+                const userItems = transformedUserZones[zoneId] || [];
                 
                 // Sort both arrays to compare regardless of order within the zone
                 const sortedCorrect = [...correctItems].sort();
                 const sortedUser = [...userItems].sort();
                 
                 if (JSON.stringify(sortedCorrect) !== JSON.stringify(sortedUser)) {
-                  isAnswerCorrect = false;
-                  break;
-                }
-              }
-              
-              // Also check if user has items in zones that shouldn't have any
-              for (const zoneId in normalizedUserZones) {
-                if (!normalizedCorrectZones[zoneId] && normalizedUserZones[zoneId] && normalizedUserZones[zoneId].length > 0) {
                   isAnswerCorrect = false;
                   break;
                 }
