@@ -377,6 +377,27 @@ function validateDragAndDrop(
 }
 
 /**
+ * Extract option letter from full option text
+ * e.g., "A. Maria must sign" -> "A"
+ * e.g., "B" -> "B"
+ */
+function extractOptionLetter(optionText: string): string {
+  // If it's already just a letter or short identifier, return as-is
+  if (optionText.length <= 2) {
+    return optionText.toUpperCase();
+  }
+  
+  // Try to extract letter from format like "A. Option text" or "A) Option text"
+  const match = optionText.match(/^([A-Z])[.)]\s/i);
+  if (match) {
+    return match[1].toUpperCase();
+  }
+  
+  // Return the original text if no pattern matches
+  return optionText;
+}
+
+/**
  * Validate multiple response answer
  */
 function validateMultipleResponse(
@@ -410,8 +431,21 @@ function validateMultipleResponse(
     return false;
   }
   
+  // Extract option letters from both user selections and correct selections
+  // This handles cases where frontend sends full text like "A. Maria must sign"
+  // but backend has just "A"
+  const normalizedUserSelections = userSelections.map(sel => extractOptionLetter(String(sel)));
+  const normalizedCorrectSelections = correctSelections.map(sel => extractOptionLetter(String(sel)));
+  
+  debugLog('Multiple response validation', {
+    originalUser: userSelections,
+    originalCorrect: correctSelections,
+    normalizedUser: normalizedUserSelections,
+    normalizedCorrect: normalizedCorrectSelections
+  });
+  
   // Compare as sets (order doesn't matter)
-  return compareArraysAsSet(userSelections, correctSelections);
+  return compareArraysAsSet(normalizedUserSelections, normalizedCorrectSelections);
 }
 
 /**
