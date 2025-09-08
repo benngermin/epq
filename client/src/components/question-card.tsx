@@ -114,6 +114,83 @@ export function QuestionCard({
       
       switch (questionType) {
         case "numerical_entry":
+          // Special handling for numerical_entry to support multi-blank
+          if (answerString.startsWith('{')) {
+            try {
+              const userBlanks = JSON.parse(answerString);
+              const blankValues = Object.values(userBlanks).map((v: any) => String(v).trim());
+              
+              // For numerical_entry, clean the correct answer format
+              // Remove "[blank_X]:" prefixes to get just the values
+              const correctAnswer = question.latestVersion.correctAnswer;
+              const correctCleaned = correctAnswer.replace(/\[blank_\d+\]:\s*/g, '').trim();
+              
+              // Join with comma and space to match server-side logic
+              const userFullAnswer = blankValues.join(', ');
+              
+              // First try exact match
+              if (userFullAnswer === correctCleaned) {
+                isAnswerCorrect = true;
+              } else {
+                // Try numerical comparison for each value
+                const correctValues = correctCleaned.split(',').map(v => v.trim());
+                
+                if (blankValues.length === correctValues.length) {
+                  isAnswerCorrect = blankValues.every((userVal, index) => {
+                    const userNum = parseFloat(userVal);
+                    const correctNum = parseFloat(correctValues[index]);
+                    
+                    if (!isNaN(userNum) && !isNaN(correctNum)) {
+                      // Allow for floating point precision issues
+                      return Math.abs(userNum - correctNum) < 0.0001;
+                    }
+                    // Fall back to string comparison if not numeric
+                    return userVal === correctValues[index];
+                  });
+                }
+              }
+              
+              // Check acceptable answers if provided
+              if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+                isAnswerCorrect = question.latestVersion.acceptableAnswers.some((acceptable: string) => 
+                  userFullAnswer === acceptable
+                );
+              }
+            } catch (e) {
+              // If JSON parse fails, treat as single numerical answer
+              const userNum = parseFloat(answerString);
+              const correctNum = parseFloat(question.latestVersion.correctAnswer);
+              
+              if (!isNaN(userNum) && !isNaN(correctNum)) {
+                isAnswerCorrect = Math.abs(userNum - correctNum) < 0.0001;
+              } else {
+                isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+              }
+            }
+          } else {
+            // Single numerical answer
+            const userNum = parseFloat(answerString);
+            const correctNum = parseFloat(question.latestVersion.correctAnswer);
+            
+            if (!isNaN(userNum) && !isNaN(correctNum)) {
+              isAnswerCorrect = Math.abs(userNum - correctNum) < 0.0001;
+            } else {
+              isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
+            }
+            
+            // Check acceptable answers
+            if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
+              isAnswerCorrect = question.latestVersion.acceptableAnswers.some((acceptable: string) => {
+                const acceptableNum = parseFloat(acceptable);
+                if (!isNaN(userNum) && !isNaN(acceptableNum)) {
+                  return Math.abs(userNum - acceptableNum) < 0.0001;
+                }
+                return answerString === acceptable;
+              });
+            }
+          }
+          break;
+          
         case "short_answer":
           const caseSensitive = question.latestVersion.caseSensitive;
           
@@ -125,8 +202,8 @@ export function QuestionCard({
                 caseSensitive ? String(v) : String(v).toLowerCase()
               );
               
-              // Join the blank values with spaces to create the full answer
-              const userFullAnswer = blankValues.join(' ');
+              // Join the blank values with comma and space to match server logic
+              const userFullAnswer = blankValues.join(', ');
               const correctFullAnswer = caseSensitive 
                 ? question.latestVersion.correctAnswer 
                 : question.latestVersion.correctAnswer.toLowerCase();
