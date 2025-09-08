@@ -370,8 +370,19 @@ export function QuestionCard({
           const userResponses = Array.isArray(answerString) ? answerString : JSON.parse(answerString);
           const correctResponses = Array.isArray(question.latestVersion.correctAnswer)
             ? question.latestVersion.correctAnswer
-            : [question.latestVersion.correctAnswer];
-          isAnswerCorrect = JSON.stringify(userResponses.sort()) === JSON.stringify(correctResponses.sort());
+            : JSON.parse(question.latestVersion.correctAnswer);
+          
+          // Extract option letters from full text (e.g., "A. Maria must sign" -> "A")
+          const extractLetter = (option: string) => {
+            if (option.length <= 2) return option.toUpperCase();
+            const match = option.match(/^([A-Z])[.)]\s/i);
+            return match ? match[1].toUpperCase() : option;
+          };
+          
+          const normalizedUser = userResponses.map((r: string) => extractLetter(r));
+          const normalizedCorrect = correctResponses.map((r: string) => extractLetter(r));
+          
+          isAnswerCorrect = JSON.stringify(normalizedUser.sort()) === JSON.stringify(normalizedCorrect.sort());
           break;
           
         case "either_or":
