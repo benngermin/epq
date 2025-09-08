@@ -998,9 +998,10 @@ export class DatabaseStorage implements IStorage {
       .from(userAnswers)
       .innerJoin(userTestRuns, eq(userAnswers.userTestRunId, userTestRuns.id))
       .innerJoin(questionSets, eq(userTestRuns.questionSetId, questionSets.id))
+      .innerJoin(courseQuestionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
       .where(and(
         eq(userTestRuns.userId, userId),
-        eq(questionSets.courseId, courseId)
+        eq(courseQuestionSets.courseId, courseId)
       ));
 
       const row = result[0];

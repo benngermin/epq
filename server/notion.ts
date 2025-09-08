@@ -440,10 +440,10 @@ export async function createFeedbackInNotion(feedbackData: {
         }
         return response;
     } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-            console.error("Error creating feedback in Notion:", error);
-        }
+        // Always log errors, not just in development
+        console.error("Error creating feedback in Notion:", error);
         // Don't throw - we don't want to break the main feedback flow if Notion sync fails
+        // But return error info so caller can handle it appropriately
         return null;
     }
 }
