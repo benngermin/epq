@@ -286,46 +286,88 @@ function validateDragAndDrop(
     return false;
   }
   
+  // Create zone mapping if dropZones is provided
+  // This maps between zone_id (like zone_1) and zone_label (like "Current Assets")
+  const zoneIdToLabel: Record<string, string> = {};
+  const zoneLabelToId: Record<string, string> = {};
+  
+  if (options.dropZones && options.dropZones.length > 0) {
+    for (const zone of options.dropZones) {
+      const zoneKey = `zone_${zone.zone_id}`;
+      zoneIdToLabel[zoneKey] = zone.zone_label;
+      zoneLabelToId[zone.zone_label] = zoneKey;
+    }
+  }
+  
   // Normalize zone keys (handle both "zone_1" and "1" formats)
   const normalizeZoneKey = (key: string): string => {
-    return key.startsWith('zone_') ? key : `zone_${key}`;
+    // First check if it's already in zone_N format
+    if (key.startsWith('zone_')) {
+      return key;
+    }
+    // Check if it's a number
+    if (/^\d+$/.test(key)) {
+      return `zone_${key}`;
+    }
+    // Otherwise return as-is (might be a label like "Current Assets")
+    return key;
   };
   
-  const normalizedUserZones: Record<string, string[]> = {};
-  const normalizedCorrectZones: Record<string, string[]> = {};
+  // Transform zones to a common format for comparison
+  const transformZones = (zones: Record<string, string[]>): Record<string, string[]> => {
+    const transformed: Record<string, string[]> = {};
+    
+    for (const key in zones) {
+      const normalizedKey = normalizeZoneKey(key);
+      
+      // If we have a mapping and this key is a zone ID, keep it as zone_N
+      // If this key is a label, convert it to zone_N
+      let finalKey = normalizedKey;
+      
+      if (options.dropZones && options.dropZones.length > 0) {
+        // Check if this is a label that needs to be converted to zone_N
+        if (zoneLabelToId[key]) {
+          finalKey = zoneLabelToId[key];
+        } else if (zoneIdToLabel[normalizedKey]) {
+          // It's already a zone_N format, keep it
+          finalKey = normalizedKey;
+        } else {
+          // Not in our mapping, keep as-is
+          finalKey = normalizedKey;
+        }
+      }
+      
+      transformed[finalKey] = Array.isArray(zones[key]) ? zones[key] : [];
+    }
+    
+    return transformed;
+  };
   
-  // Normalize user zones
-  for (const key in userZones) {
-    const normalizedKey = normalizeZoneKey(key);
-    normalizedUserZones[normalizedKey] = Array.isArray(userZones[key]) 
-      ? userZones[key] 
-      : [];
-  }
-  
-  // Normalize correct zones
-  for (const key in correctZones) {
-    const normalizedKey = normalizeZoneKey(key);
-    normalizedCorrectZones[normalizedKey] = Array.isArray(correctZones[key])
-      ? correctZones[key]
-      : [];
-  }
+  // Transform both user and correct zones
+  const transformedUserZones = transformZones(userZones);
+  const transformedCorrectZones = transformZones(correctZones);
   
   // Get all unique zone keys
   const allZoneKeys = new Set([
-    ...Object.keys(normalizedUserZones),
-    ...Object.keys(normalizedCorrectZones)
+    ...Object.keys(transformedUserZones),
+    ...Object.keys(transformedCorrectZones)
   ]);
   
   // Compare each zone's contents (order doesn't matter within a zone)
   for (const zoneId of allZoneKeys) {
-    const userItems = normalizedUserZones[zoneId] || [];
-    const correctItems = normalizedCorrectZones[zoneId] || [];
+    const userItems = transformedUserZones[zoneId] || [];
+    const correctItems = transformedCorrectZones[zoneId] || [];
     
     if (!compareArraysAsSet(userItems, correctItems)) {
       debugLog('Zone mismatch in drag and drop', {
         zoneId,
         userItems,
-        correctItems
+        correctItems,
+        zoneIdToLabel,
+        userZones,
+        correctZones,
+        transformedUserZones,
+        transformedCorrectZones
       });
       return false;
     }
