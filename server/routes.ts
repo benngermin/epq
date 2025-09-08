@@ -1715,6 +1715,8 @@ export function registerRoutes(app: Express): Server {
         courseName,
         courseNumber,
         questionSetTitle,
+        questionNumber: questionId,
+        questionSetNumber: questionSetId,
         baseUrl,
       });
 

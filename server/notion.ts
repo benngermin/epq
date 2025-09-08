@@ -32,6 +32,8 @@ export async function createFeedbackInNotion(feedbackData: {
     courseNumber?: string;
     questionSetTitle?: string;
     loid?: string;
+    questionNumber?: number;
+    questionSetNumber?: number;
     createdAt: Date;
     conversation?: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
     baseUrl: string;
@@ -216,6 +218,38 @@ export async function createFeedbackInNotion(feedbackData: {
                 properties[loidField] = {
                     title: [{
                         text: { content: feedbackData.loid }
+                    }]
+                };
+            }
+        }
+        
+        // Question # - specific field requested by user
+        const questionNumberField = findProperty(['Question #', 'QuestionNumber', 'Question Number']);
+        if (questionNumberField && feedbackData.questionNumber !== undefined) {
+            if (schemaProps[questionNumberField]?.type === 'number') {
+                properties[questionNumberField] = {
+                    number: feedbackData.questionNumber
+                };
+            } else if (schemaProps[questionNumberField]?.type === 'rich_text') {
+                properties[questionNumberField] = {
+                    rich_text: [{
+                        text: { content: feedbackData.questionNumber.toString() }
+                    }]
+                };
+            }
+        }
+        
+        // Question Set # - specific field requested by user
+        const questionSetNumberField = findProperty(['Question Set #', 'QuestionSetNumber', 'Question Set Number']);
+        if (questionSetNumberField && feedbackData.questionSetNumber !== undefined) {
+            if (schemaProps[questionSetNumberField]?.type === 'number') {
+                properties[questionSetNumberField] = {
+                    number: feedbackData.questionSetNumber
+                };
+            } else if (schemaProps[questionSetNumberField]?.type === 'rich_text') {
+                properties[questionSetNumberField] = {
+                    rich_text: [{
+                        text: { content: feedbackData.questionSetNumber.toString() }
                     }]
                 };
             }

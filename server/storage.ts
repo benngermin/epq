@@ -1258,6 +1258,8 @@ export class DatabaseStorage implements IStorage {
     courseName?: string;
     courseNumber?: string;
     questionSetTitle?: string;
+    questionNumber?: number;
+    questionSetNumber?: number;
     baseUrl?: string;
   }): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
@@ -1288,6 +1290,8 @@ export class DatabaseStorage implements IStorage {
         courseNumber: feedback.courseNumber || undefined,
         questionSetTitle: feedback.questionSetTitle || undefined,
         loid: newFeedback.loid || undefined,
+        questionNumber: feedback.questionNumber || undefined,
+        questionSetNumber: feedback.questionSetNumber || undefined,
         createdAt: newFeedback.createdAt,
         conversation: feedback.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
         baseUrl: feedback.baseUrl || 'https://527b9a23-074e-4c21-9784-9dcc9ff1004c-00-4cn4oqxqndqq.janeway.replit.dev',
