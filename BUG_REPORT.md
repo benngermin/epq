@@ -105,6 +105,70 @@ After conducting a comprehensive analysis of your application, I've identified s
 
 **Recommendation**: Consider implementing nonce-based CSP for better security.
 
+## 11. NEW ISSUE: Empty Catch Block Suppressing Errors
+
+**Location**: `server/routes.ts` (line 3350)
+
+**Issue**: An empty catch block silently suppresses errors when fetching course information during bulk refresh operations.
+
+```javascript
+try {
+  const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
+  if (courseBubbleId) {
+    const course = await storage.getCourseByBubbleId(courseBubbleId);
+    if (course) {
+      courseName = course.courseTitle;
+      courseId = course.id;
+    }
+  }
+} catch {} // Empty catch - errors are silently ignored
+```
+
+**Impact**: Important errors that occur when fetching course information are hidden, making debugging difficult.
+
+**Fix Required**: Add proper error logging at minimum:
+```javascript
+} catch (error) {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Failed to fetch course info:', error);
+  }
+}
+```
+
+## 12. NEW ISSUE: Console Logging Sensitive Data in Production
+
+**Location**: `server/routes.ts` (lines 297-301)
+
+**Issue**: Debug logging of conversation history is not wrapped in development environment check.
+
+**Impact**: Exposes potentially sensitive conversation data and message content in production logs.
+
+**Fix Required**: Wrap debug logs in development check:
+```javascript
+if (process.env.NODE_ENV === 'development') {
+  console.log("=== CONVERSATION HISTORY DEBUG ===");
+  // ... rest of logs
+}
+```
+
+## 13. NEW ISSUE: SessionStorage Access Without Existence Check
+
+**Location**: `client/src/hooks/use-performance-monitor.ts` (lines 36-46)
+
+**Issue**: The hook accesses sessionStorage without checking if it exists, which can throw errors in environments where storage is disabled.
+
+**Impact**: Application crashes in private browsing mode or when storage is disabled.
+
+**Fix Required**: Add existence check before accessing storage:
+```javascript
+if (typeof window !== 'undefined' && window.sessionStorage) {
+  const existingMetrics = JSON.parse(
+    sessionStorage.getItem('performance-metrics') || '[]'
+  );
+  // ... rest of code
+}
+```
+
 ## Summary
 
 The application is generally well-structured with good error handling patterns in place. Most critical issues have been fixed:
@@ -117,14 +181,20 @@ The application is generally well-structured with good error handling patterns i
 ✅ **MINOR**: Inefficient question status calculation - Fixed with memoization
 ✅ **MINOR**: Stale closure risk in active streams cleanup - Fixed
 
-### Remaining Issues (Non-Critical):
+### Newly Discovered Issues (September 8, 2025):
+- **HIGH**: Empty catch block suppressing errors (Bug #11)
+- **MODERATE**: Console logging sensitive data in production (Bug #12)
+- **MODERATE**: SessionStorage access without existence check (Bug #13)
+
+### Other Remaining Issues (Non-Critical):
 - **WARNING**: Event listener memory leak in useIsMobile hook (already using correct API, minimal impact)
 - **MODERATE**: Missing error handling in Cognito Auth Callback (already redirects to error page)
 - **PERFORMANCE**: Database query optimization opportunities
 - **WARNING**: Content Security Policy allows unsafe-inline (required for React/Tailwind)
 
 **Fixed Issues**: 6 (1 Critical, 1 Moderate, 4 Minor/Warning)
-**Remaining Issues**: 4 (1 Moderate, 3 Performance/Security - all with minimal impact)
+**Newly Found Issues**: 3 (1 High, 2 Moderate)
+**Other Remaining Issues**: 4 (1 Moderate, 3 Performance/Security - all with minimal impact)
 
 ## Recommendations
 
