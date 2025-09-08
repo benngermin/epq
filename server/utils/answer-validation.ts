@@ -95,13 +95,63 @@ function validateMultipleChoice(userAnswer: string, correctAnswer: string): bool
 }
 
 /**
- * Validate numerical entry answer
+ * Validate numerical entry answer (supports both single and multi-blank)
  */
 function validateNumericalEntry(
   userAnswer: string,
   correctAnswer: string,
   options: ValidationOptions
 ): boolean {
+  // Check if this is a multi-blank answer (JSON format)
+  if (userAnswer.startsWith('{')) {
+    const userBlanks = safeJsonParse(userAnswer, {});
+    
+    if (Object.keys(userBlanks).length > 0) {
+      // Multi-blank numerical answer - join all values with comma and space
+      const blankValues = Object.values(userBlanks).map((v: any) => String(v).trim());
+      const userFullAnswer = blankValues.join(', ');
+      
+      // Normalize for comparison
+      const normalizedUser = normalizeString(userFullAnswer);
+      const normalizedCorrect = normalizeString(correctAnswer);
+      
+      // Check exact match first
+      if (normalizedUser === normalizedCorrect) return true;
+      
+      // Check acceptable answers if provided
+      if (options.acceptableAnswers && options.acceptableAnswers.length > 0) {
+        return options.acceptableAnswers.some(
+          acceptable => normalizeString(acceptable) === normalizedUser
+        );
+      }
+      
+      // For multi-blank numerical, also try comparing each value numerically
+      // Parse correct answer format: "[blank_1]: 3, [blank_2]: 1" -> "3, 1"
+      const correctCleaned = correctAnswer.replace(/\[blank_\d+\]:\s*/g, '').trim();
+      const correctValues = correctCleaned.split(',').map(v => v.trim());
+      
+      // If we have the same number of values, compare numerically
+      if (blankValues.length === correctValues.length) {
+        const allMatch = blankValues.every((userVal, index) => {
+          const userNum = parseFloat(userVal);
+          const correctNum = parseFloat(correctValues[index]);
+          
+          if (!isNaN(userNum) && !isNaN(correctNum)) {
+            // Allow for floating point precision issues
+            return Math.abs(userNum - correctNum) < 0.0001;
+          }
+          // Fall back to string comparison if not numeric
+          return userVal === correctValues[index];
+        });
+        
+        if (allMatch) return true;
+      }
+      
+      return false;
+    }
+  }
+  
+  // Single answer handling (existing logic)
   const normalized = normalizeString(userAnswer);
   const correct = normalizeString(correctAnswer);
   
