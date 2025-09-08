@@ -169,7 +169,9 @@ export class CognitoAuth {
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
-          console.error('Failed to save session:', err);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to save session:', err);
+          }
           return res.redirect('/auth?error=session_save_failed&message=' + encodeURIComponent('Unable to save session. Please try again.'));
         }
 

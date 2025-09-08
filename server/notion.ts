@@ -44,7 +44,9 @@ export async function createFeedbackInNotion(feedbackData: {
                 database_id: FEEDBACK_DATABASE_ID
             });
         } catch (error) {
-            console.error("Error retrieving database schema:", error);
+            if (process.env.NODE_ENV === 'development') {
+                console.error("Error retrieving database schema:", error);
+            }
             // Continue anyway - we'll try to add with common field names
         }
 
@@ -433,10 +435,14 @@ export async function createFeedbackInNotion(feedbackData: {
             children: children.length > 0 ? children : undefined
         });
 
-        console.log("✓ Feedback synced to Notion successfully");
+        if (process.env.NODE_ENV === 'development') {
+            console.log("✓ Feedback synced to Notion successfully");
+        }
         return response;
     } catch (error) {
-        console.error("Error creating feedback in Notion:", error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error("Error creating feedback in Notion:", error);
+        }
         // Don't throw - we don't want to break the main feedback flow if Notion sync fails
         return null;
     }
