@@ -181,7 +181,7 @@ export default function Dashboard() {
       
       processCourseSelection();
     }
-  }, [coursesLoading, userLoading, courses, setLocation]);
+  }, [coursesLoading, userLoading, courses, setLocation, isDemo]);
 
   // Show loading state while processing
   if (coursesLoading || userLoading || !user) {
