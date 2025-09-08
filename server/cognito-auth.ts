@@ -72,29 +72,18 @@ export class CognitoAuth {
         // 1) Try to find user by cognito_sub first
         let user = await storage.getUserByCognitoSub(sub);
 
-        // 2) Fallback: try by email (case-insensitive)
+        // 2) If not found by sub, use upsert by email
         if (!user) {
-          const existingUser = await storage.getUserByEmailCI(email);
-          if (existingUser) {
-            // Link existing user with Cognito sub
-            if (process.env.NODE_ENV === 'development') {
-              console.info('Linking existing user to Cognito');
-            }
-            user = await storage.updateUser(existingUser.id, { 
-              cognitoSub: sub,
-              email // Update with normalized email
-            });
-          } else {
-            // 3) Truly new user - use upsert to handle race conditions
-            if (process.env.NODE_ENV === 'development') {
-              console.info('Creating new user via Cognito');
-            }
-            user = await storage.upsertUserByEmail({ 
-              email, 
-              name, 
-              cognitoSub: sub 
-            });
+          if (process.env.NODE_ENV === 'development') {
+            console.info('User not found by Cognito sub, attempting upsert by email');
           }
+          
+          // Use the improved upsertUserByEmail that handles race conditions
+          user = await storage.upsertUserByEmail({ 
+            email, 
+            name, 
+            cognitoSub: sub 
+          });
         }
 
         return done(null, user);

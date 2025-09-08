@@ -344,34 +344,42 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUserByEmail(user: { email: string; name?: string; cognitoSub?: string }): Promise<User> {
     try {
-      // First check if user exists (case-insensitive)
-      const existingUser = await this.getUserByEmailCI(user.email);
+      const normalizedEmail = user.email.trim().toLowerCase();
       
-      if (existingUser) {
-        // Update existing user
-        const updates: any = {};
-        if (user.cognitoSub) updates.cognitoSub = user.cognitoSub;
-        if (user.name) updates.name = user.name;
-        // Always update email to the normalized version
-        updates.email = user.email.trim().toLowerCase();
-        
-        const [updated] = await db.update(users)
-          .set(updates)
-          .where(eq(users.id, existingUser.id))
-          .returning();
-        return updated;
-      } else {
-        // Create new user
-        const [newUser] = await db.insert(users)
-          .values({
-            email: user.email.trim().toLowerCase(),
-            name: user.name || 'User',
-            cognitoSub: user.cognitoSub || null
-          })
-          .returning();
-        return newUser;
+      // Use PostgreSQL's ON CONFLICT to handle race conditions atomically
+      // This will insert if the email doesn't exist, or update if it does
+      const query = sql`
+        INSERT INTO users (email, name, cognito_sub)
+        VALUES (${normalizedEmail}, ${user.name || 'User'}, ${user.cognitoSub || null})
+        ON CONFLICT (email) 
+        DO UPDATE SET
+          cognito_sub = COALESCE(EXCLUDED.cognito_sub, users.cognito_sub),
+          name = CASE 
+            WHEN EXCLUDED.cognito_sub IS NOT NULL AND users.cognito_sub IS NULL 
+            THEN EXCLUDED.name 
+            ELSE users.name 
+          END
+        RETURNING *
+      `;
+      
+      const result = await db.execute(query);
+      const upsertedUser = result.rows[0] as User;
+      
+      if (!upsertedUser) {
+        throw new Error('Failed to upsert user');
       }
+      
+      return upsertedUser;
     } catch (error) {
+      // Check if it's a Cognito sub conflict (different error)
+      if (error instanceof Error && error.message.includes('cognito_sub')) {
+        // If there's a conflict on cognito_sub, try to find and return the existing user
+        const existingUser = await this.getUserByCognitoSub(user.cognitoSub!);
+        if (existingUser) {
+          return existingUser;
+        }
+      }
+      
       console.error('Error upserting user by email:', error);
       throw error;
     }
