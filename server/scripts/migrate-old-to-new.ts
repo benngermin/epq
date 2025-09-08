@@ -285,20 +285,19 @@ async function migrateFromOldToNew(
     
     for (const tableName of tables) {
       try {
-        const rows = await oldDb.execute(sql.raw(`SELECT * FROM ${tableName}`));
+        const rows = await oldDb.execute(sql`SELECT * FROM ${sql.identifier(tableName)}`);
         if (rows.length > 0) {
           // Get column names
           const columns = Object.keys(rows[0]);
-          const columnList = columns.join(', ');
-          const placeholders = columns.map(() => '?').join(', ');
           
           for (const row of rows) {
             const values = columns.map(col => row[col]);
-            await newDb.execute(sql.raw(`
-              INSERT INTO ${tableName} (${columnList})
-              VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')})
+            // Build parameterized query using proper sql template literal
+            await newDb.execute(sql`
+              INSERT INTO ${sql.identifier(tableName)} (${sql.raw(columns.join(', '))}) 
+              VALUES (${sql.join(values, sql`, `)})
               ON CONFLICT DO NOTHING
-            `, values));
+            `);
           }
         }
       } catch (error) {
