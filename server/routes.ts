@@ -2049,7 +2049,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
 Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. 
 Student selected: ${selectedAnswerText}
-The correct answer is ${questionVersion.correctAnswer}.
+The correct answer is ${extractCorrectAnswerFromBlanks(questionVersion)}.
 
 Relevant course material:
 ${sourceMaterial}
@@ -2101,12 +2101,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Ensure chosenAnswer is not empty or undefined
         const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
 
+        // Extract correct answer, handling select_from_list questions with blanks
+        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
+        
         // Substitute variables in the prompt
         systemPrompt = systemPrompt
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
           .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
           .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
           .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
         
 
