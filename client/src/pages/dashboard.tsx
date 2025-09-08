@@ -179,7 +179,13 @@ export default function Dashboard() {
         }
       };
       
-      processCourseSelection();
+      processCourseSelection().catch(error => {
+        console.error('Failed to process course selection:', error);
+        // Don't show alert if user is not authenticated, as they'll be redirected
+        if (user) {
+          alert('An error occurred while loading your course. Please refresh the page and try again.');
+        }
+      });
     }
   }, [coursesLoading, userLoading, courses, setLocation, isDemo]);
 
