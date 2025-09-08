@@ -188,7 +188,9 @@ function cleanupStream(streamId: string) {
       activeStreams.delete(streamId);
     }
   } catch (error) {
-    console.error('Error cleaning up stream:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error cleaning up stream:', error);
+    }
     // Force delete even if there was an error
     activeStreams.delete(streamId);
   } finally {

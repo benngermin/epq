@@ -981,7 +981,9 @@ export class DatabaseStorage implements IStorage {
           }
         }
       } catch (error) {
-        console.error('Error updating questions for refresh:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error updating questions for refresh:', error);
+        }
         throw error; // This will rollback the transaction
       }
     });
@@ -1007,7 +1009,9 @@ export class DatabaseStorage implements IStorage {
         totalAnswers: row?.totalAnswers || 0,
       };
     } catch (error) {
-      console.error("Error getting user course progress:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error getting user course progress:", error);
+      }
       return { correctAnswers: 0, totalAnswers: 0 };
     }
   }
