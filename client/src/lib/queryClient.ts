@@ -20,16 +20,33 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  retryCount: number = 0,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    // Handle 401 with retry for session race conditions
+    if (res.status === 401 && retryCount < 1 && url.includes('/api/user')) {
+      // Wait a bit for session to be established
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return apiRequest(method, url, data, retryCount + 1);
+    }
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    // If network error and haven't retried yet, try once more
+    if (retryCount < 1 && error instanceof TypeError && error.message.includes('fetch')) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return apiRequest(method, url, data, retryCount + 1);
+    }
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -37,10 +54,17 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+  async ({ queryKey }, retryCount = 0): Promise<T | null> => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
     });
+
+    // Handle 401 with retry for /api/user endpoint
+    if (res.status === 401 && retryCount < 1 && queryKey[0] === '/api/user') {
+      // Wait a bit for session to be established
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return getQueryFn<T>({ on401: unauthorizedBehavior })({ queryKey }, retryCount + 1);
+    }
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
