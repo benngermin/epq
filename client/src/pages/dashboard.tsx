@@ -26,8 +26,8 @@ export default function Dashboard() {
     // Create an abort controller for cleanup
     const abortController = new AbortController();
     
-    // Process once we have courses data
-    if (!coursesLoading && !userLoading && courses && courses.length > 0) {
+    // Process once we have courses data and user is authenticated
+    if (!coursesLoading && !userLoading && user && courses && courses.length > 0) {
       const processCourseSelection = async () => {
         try {
           console.log('Dashboard: Processing course selection', {
@@ -122,16 +122,30 @@ export default function Dashboard() {
             targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
           }
         } else {
-          // No course_id parameter, default to CPCU 500
-          const cpcu500 = courses.find(course => course.courseNumber === 'CPCU 500');
+          // No course_id parameter, default to CPCU 500 or first available course with question sets
+          const cpcu500 = courses.find(course => 
+            course.courseNumber === 'CPCU 500' && 
+            course.questionSets && 
+            course.questionSets.length > 0
+          );
           
           if (cpcu500) {
             targetCourse = cpcu500;
             console.log('No course_id parameter, defaulting to CPCU 500');
           } else {
-            // Fallback to first course if CPCU 500 not found
-            targetCourse = courses[0];
-            console.log('CPCU 500 not found, using first course');
+            // Fallback to first course with question sets
+            const firstCourseWithQuestionSets = courses.find(course => 
+              course.questionSets && course.questionSets.length > 0
+            );
+            
+            if (firstCourseWithQuestionSets) {
+              targetCourse = firstCourseWithQuestionSets;
+              console.log(`CPCU 500 not found or has no question sets, using ${firstCourseWithQuestionSets.courseNumber}`);
+            } else {
+              // No courses with question sets available
+              targetCourse = courses[0];
+              console.log('No courses have question sets, using first course');
+            }
           }
         }
       

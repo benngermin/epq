@@ -59,19 +59,20 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "fallback-secret-for-development",
-    resave: true, // Changed from false to ensure session persistence
+    resave: false, // Don't resave unchanged sessions to reduce database writes
     saveUninitialized: false, // Don't save empty sessions
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
-      sameSite: process.env.NODE_ENV === "production" ? 'lax' : 'lax', // Changed from 'none' to 'lax' for better reliability
+      sameSite: 'lax', // Use 'lax' for both dev and production for consistency
       path: '/', // Explicitly set path to ensure cookie is sent with all requests
       domain: undefined // Let the browser handle domain automatically
     },
     rolling: true, // Reset expiration on each request
     name: 'connect.sid', // Standard session name for better compatibility
+    proxy: true, // Trust the proxy (required for secure cookies behind proxy)
   };
 
   app.set("trust proxy", 1);
