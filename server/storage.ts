@@ -255,9 +255,10 @@ export class DatabaseStorage implements IStorage {
       const PgSession = ConnectPgSimple(session);
       this.sessionStore = new PgSession({
         conString: process.env.DATABASE_URL,
-        tableName: 'session', // Use existing session table
-        createTableIfMissing: false, // Table already exists
+        tableName: 'session',
+        createTableIfMissing: true, // Create table if it doesn't exist to prevent session errors
         pruneSessionInterval: 60 * 60, // Prune expired sessions every hour
+        ttl: 7 * 24 * 60 * 60, // 7 days TTL to match cookie maxAge
         errorLog: (error: any) => {
           // Only log non-duplicate key errors and non-connection errors
           if (!error.message?.includes('already exists') && 
