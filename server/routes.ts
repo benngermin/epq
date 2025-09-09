@@ -1659,6 +1659,7 @@ export function registerRoutes(app: Express): Server {
       let questionSetTitle = undefined;
       let questionId = undefined;
       let loid = undefined;
+      let originalQuestionNumber = undefined;
       
       if (parsed.questionVersionId) {
         try {
@@ -1671,6 +1672,7 @@ export function registerRoutes(app: Express): Server {
             if (question) {
               questionId = question.id;
               loid = question.loid; // Capture the LOID
+              originalQuestionNumber = question.originalQuestionNumber; // Capture the actual question number
               
               const questionSet = await storage.getQuestionSet(question.questionSetId);
               if (questionSet) {
@@ -1715,7 +1717,7 @@ export function registerRoutes(app: Express): Server {
         courseName,
         courseNumber,
         questionSetTitle,
-        questionNumber: questionId,
+        questionNumber: originalQuestionNumber,
         questionSetNumber: questionSetId,
         baseUrl,
       });
