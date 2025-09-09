@@ -624,6 +624,20 @@ export class DatabaseStorage implements IStorage {
 
   // Junction table methods for many-to-many relationship
   async createCourseQuestionSetMapping(courseId: number, questionSetId: number, displayOrder: number = 0): Promise<CourseQuestionSet> {
+    // Check if mapping already exists
+    const existing = await db.select()
+      .from(courseQuestionSets)
+      .where(and(
+        eq(courseQuestionSets.courseId, courseId),
+        eq(courseQuestionSets.questionSetId, questionSetId)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      return existing[0];  // Return existing mapping instead of creating duplicate
+    }
+    
+    // Create new mapping only if it doesn't exist
     const [mapping] = await db.insert(courseQuestionSets).values({
       courseId,
       questionSetId,
