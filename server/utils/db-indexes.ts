@@ -51,8 +51,15 @@ export async function createDatabaseIndexes() {
       CREATE INDEX IF NOT EXISTS idx_course_materials_loid ON course_materials(loid);
     `);
     
+    // Fix user sequence to prevent duplicate key errors
+    // This ensures the sequence is always higher than the maximum existing user ID
+    await db.execute(sql`
+      SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);
+    `);
+    
     if (process.env.NODE_ENV === 'development') {
       console.log('Database indexes created successfully');
+      console.log('User sequence updated to prevent duplicate key errors');
     }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
