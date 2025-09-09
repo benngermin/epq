@@ -15,17 +15,9 @@ export function useIsMobile() {
     mql.addEventListener("change", onChange)
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     
-    // Modern cleanup using removeEventListener (not the deprecated removeListener)
+    // Modern cleanup using removeEventListener
     return () => {
-      // Try-catch to handle older browsers that might not support removeEventListener
-      try {
-        mql.removeEventListener("change", onChange)
-      } catch (e) {
-        // Fallback for older browsers (though unlikely in modern React apps)
-        if ('removeListener' in mql) {
-          (mql as any).removeListener(onChange)
-        }
-      }
+      mql.removeEventListener("change", onChange)
     }
   }, [])
 
