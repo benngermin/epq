@@ -257,16 +257,27 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      // Ensure session is properly destroyed
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error('Failed to destroy session:', destroyErr);
+          return next(destroyErr);
+        }
+        res.clearCookie('connect.sid'); // Clear the session cookie
+        res.sendStatus(200);
+      });
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     // Add session debugging
     if (!req.session) {
       console.error('No session object found on request');
       return res.status(500).json({ message: "Session not initialized" });
     }
+
+    // Touch the session to keep it alive
+    req.session.touch();
 
     if (!req.isAuthenticated() || !req.user) {
       // Authentication failed - minimal logging in development only
@@ -275,7 +286,15 @@ export function setupAuth(app: Express) {
       }
       return res.status(401).json({ message: "Not authenticated" });
     }
-    res.json(req.user);
+    
+    // Ensure session is saved before responding
+    req.session.save((err) => {
+      if (err) {
+        console.error('Failed to save session:', err);
+        return res.status(500).json({ message: "Session save failed" });
+      }
+      res.json(req.user);
+    });
   });
 
   // Authentication configuration endpoint

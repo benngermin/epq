@@ -30,10 +30,11 @@ export async function apiRequest(
       credentials: "include",
     });
 
-    // Handle 401 with retry for session race conditions
-    if (res.status === 401 && retryCount < 1 && url.includes('/api/user')) {
-      // Wait a bit for session to be established
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Handle 401 with retry for session race conditions - increased retries
+    if (res.status === 401 && retryCount < 3 && url.includes('/api/user')) {
+      // Wait progressively longer for session to be established
+      const delay = Math.min(500 * Math.pow(2, retryCount), 2000); // 500ms, 1s, 2s
+      await new Promise(resolve => setTimeout(resolve, delay));
       return apiRequest(method, url, data, retryCount + 1);
     }
 
@@ -59,10 +60,11 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
     });
 
-    // Handle 401 with retry for /api/user endpoint
-    if (res.status === 401 && retryCount < 1 && queryKey[0] === '/api/user') {
-      // Wait a bit for session to be established
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Handle 401 with retry for /api/user endpoint - increased retries for better session handling
+    if (res.status === 401 && retryCount < 3 && queryKey[0] === '/api/user') {
+      // Wait progressively longer for session to be established
+      const delay = Math.min(500 * Math.pow(2, retryCount), 2000); // 500ms, 1s, 2s
+      await new Promise(resolve => setTimeout(resolve, delay));
       return getQueryFn<T>({ on401: unauthorizedBehavior })({ queryKey }, retryCount + 1);
     }
 
