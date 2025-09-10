@@ -12,10 +12,12 @@ export default function Dashboard() {
   // Check if we're in demo mode
   const isDemo = window.location.pathname.startsWith('/demo');
   
-  // Version indicator to verify new dashboard loads
-  console.log("Dashboard Version: 3.0 - Direct-to-Assessment");
-  console.log("Features: URL parameter based course resolution");
-  console.log("Demo mode:", isDemo);
+  // Version indicator to verify new dashboard loads (only in development)
+  if (import.meta.env.DEV) {
+    console.log("Dashboard Version: 3.0 - Direct-to-Assessment");
+    console.log("Features: URL parameter based course resolution");
+    console.log("Demo mode:", isDemo);
+  }
 
   const { data: courses, isLoading: coursesLoading } = useQuery<any[]>({
     queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
@@ -30,12 +32,14 @@ export default function Dashboard() {
     if (!coursesLoading && !userLoading && user && courses && courses.length > 0) {
       const processCourseSelection = async () => {
         try {
-          console.log('Dashboard: Processing course selection', {
-            coursesCount: courses.length,
-            firstCourse: courses[0],
-            hasQuestionSets: courses[0]?.questionSets !== undefined,
-            questionSetsCount: courses[0]?.questionSets?.length
-          });
+          if (import.meta.env.DEV) {
+            console.log('Dashboard: Processing course selection', {
+              coursesCount: courses.length,
+              firstCourse: courses[0],
+              hasQuestionSets: courses[0]?.questionSets !== undefined,
+              questionSetsCount: courses[0]?.questionSets?.length
+            });
+          }
           
           // Parse URL parameters - normalize to handle case-insensitive matching
           const urlParams = new URLSearchParams(window.location.search);
@@ -57,11 +61,13 @@ export default function Dashboard() {
             (window as any).currentAssignmentName = assignmentName;
           }
         
-        // Log parameter parsing
-        console.log('URL Parameters:', {
-          course_id: courseIdParam,
-          assignment_name: assignmentName
-        });
+        // Log parameter parsing (only in development)
+        if (import.meta.env.DEV) {
+          console.log('URL Parameters:', {
+            course_id: courseIdParam,
+            assignment_name: assignmentName
+          });
+        }
         
         let targetCourse: any;
         
@@ -81,13 +87,17 @@ export default function Dashboard() {
             
             if (response.ok) {
               const courseData = await response.json();
-              console.log(`API returned course:`, courseData);
+              if (import.meta.env.DEV) {
+                console.log(`API returned course:`, courseData);
+              }
               
               // Find the full course object with question sets from the courses array
               targetCourse = courses.find(c => c.id === courseData.id);
               
               if (!targetCourse) {
-                console.log(`Course ${courseData.courseNumber} (ID: ${courseData.id}) not in courses array, fetching question sets...`);
+                if (import.meta.env.DEV) {
+                  console.log(`Course ${courseData.courseNumber} (ID: ${courseData.id}) not in courses array, fetching question sets...`);
+                }
                 // Course exists but isn't in the courses array, fetch its question sets
                 // Check if operation was aborted before second fetch
                 if (abortController.signal.aborted) return;
@@ -104,46 +114,48 @@ export default function Dashboard() {
                     ...courseData,
                     questionSets: questionSets
                   };
-                  console.log(`Fetched ${questionSets.length} question sets for course ${courseData.courseNumber}`);
+                  if (import.meta.env.DEV) {
+                    console.log(`Fetched ${questionSets.length} question sets for course ${courseData.courseNumber}`);
+                  }
                 } else {
-                  console.error(`Failed to fetch question sets for course ${courseData.courseNumber}`);
+                  if (import.meta.env.DEV) {
+                    console.error(`Failed to fetch question sets for course ${courseData.courseNumber}`);
+                  }
                   targetCourse = courseData; // Use course data without question sets
                 }
               } else {
-                console.log(`Found course in array: ${targetCourse.courseNumber}`);
+                if (import.meta.env.DEV) {
+                  console.log(`Found course in array: ${targetCourse.courseNumber}`);
+                }
               }
             } else {
-              // If not found, default to CPCU 500
-              console.warn(`Course with id '${courseIdParam}' not found. Defaulting to CPCU 500.`);
+              // If not found, default to first available course
+              if (import.meta.env.DEV) {
+                console.warn(`Course with id '${courseIdParam}' not found. Using first available course.`);
+              }
               targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
             }
           } catch (error) {
-            console.error('Error fetching course by external ID:', error);
-            targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
+            if (import.meta.env.DEV) {
+              console.error('Error fetching course by external ID:', error);
+            }
+            targetCourse = courses[0];
           }
         } else {
-          // No course_id parameter, default to CPCU 500 or first available course with question sets
-          const cpcu500 = courses.find(course => 
-            course.courseNumber === 'CPCU 500' && 
-            course.questionSets && 
-            course.questionSets.length > 0
+          // No course_id parameter, default to first available course with question sets
+          const firstCourseWithQuestionSets = courses.find(course => 
+            course.questionSets && course.questionSets.length > 0
           );
           
-          if (cpcu500) {
-            targetCourse = cpcu500;
-            console.log('No course_id parameter, defaulting to CPCU 500');
+          if (firstCourseWithQuestionSets) {
+            targetCourse = firstCourseWithQuestionSets;
+            if (import.meta.env.DEV) {
+              console.log(`No course_id parameter, using first available course: ${firstCourseWithQuestionSets.courseNumber}`);
+            }
           } else {
-            // Fallback to first course with question sets
-            const firstCourseWithQuestionSets = courses.find(course => 
-              course.questionSets && course.questionSets.length > 0
-            );
-            
-            if (firstCourseWithQuestionSets) {
-              targetCourse = firstCourseWithQuestionSets;
-              console.log(`CPCU 500 not found or has no question sets, using ${firstCourseWithQuestionSets.courseNumber}`);
-            } else {
-              // No courses with question sets available
-              targetCourse = courses[0];
+            // No courses with question sets available
+            targetCourse = courses[0];
+            if (import.meta.env.DEV) {
               console.log('No courses have question sets, using first course');
             }
           }
@@ -152,14 +164,16 @@ export default function Dashboard() {
       // Set current course globally for other components
       (window as any).currentCourse = targetCourse;
       
-      // Log all courses and their question sets for debugging
-      console.log('All courses with question sets:', courses.map(c => ({
-        id: c.id,
-        courseNumber: c.courseNumber,
-        courseTitle: c.courseTitle,
-        externalId: c.externalId,
-        questionSetCount: c.questionSets?.length || 0
-      })));
+      // Log all courses and their question sets for debugging (only in development)
+      if (import.meta.env.DEV) {
+        console.log('All courses with question sets:', courses.map(c => ({
+          id: c.id,
+          courseNumber: c.courseNumber,
+          courseTitle: c.courseTitle,
+          externalId: c.externalId,
+          questionSetCount: c.questionSets?.length || 0
+        })));
+      }
       
       // Find first question set
       if (targetCourse.questionSets && targetCourse.questionSets.length > 0) {
@@ -172,12 +186,15 @@ export default function Dashboard() {
         
         const firstQuestionSet = sortedQuestionSets[0];
         
-        console.log(`Navigating to question set: ${firstQuestionSet.title} (ID: ${firstQuestionSet.id})`);
+        if (import.meta.env.DEV) {
+          console.log(`Navigating to question set: ${firstQuestionSet.title} (ID: ${firstQuestionSet.id})`);
+        }
         
         // Navigate to the question set practice page
         setLocation(isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`);
       } else {
-        console.error('No question sets available for the selected course', {
+        if (import.meta.env.DEV) {
+          console.error('No question sets available for the selected course', {
           courseId: targetCourse?.id,
           courseNumber: targetCourse?.courseNumber,
           courseTitle: targetCourse?.courseTitle,
@@ -185,6 +202,7 @@ export default function Dashboard() {
           questionSetsArray: targetCourse?.questionSets,
           allCoursesWithQuestionSets: courses.filter(c => c.questionSets && c.questionSets.length > 0).map(c => c.courseNumber)
         });
+        }
         
         // Check if any course has question sets
         const anyCoursesWithQuestionSets = courses.some(c => c.questionSets && c.questionSets.length > 0);
@@ -199,13 +217,17 @@ export default function Dashboard() {
         }
       }
         } catch (error) {
-          console.error('Error processing course selection:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error processing course selection:', error);
+          }
           alert('An error occurred while loading your course. Please refresh the page and try again.');
         }
       };
       
       processCourseSelection().catch(error => {
-        console.error('Failed to process course selection:', error);
+        if (import.meta.env.DEV) {
+          console.error('Failed to process course selection:', error);
+        }
         // Don't show alert if user is not authenticated, as they'll be redirected
         if (user) {
           alert('An error occurred while loading your course. Please refresh the page and try again.');
