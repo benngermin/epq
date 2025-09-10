@@ -1762,15 +1762,19 @@ export function registerRoutes(app: Express): Server {
       correctAnswer = questionVersion.correctAnswer || '';
     }
     
+    // Format the primary correct answer with label
+    let formattedAnswer = `Primary Correct Answer: ${correctAnswer}`;
+    
     // Check if there are acceptable answers to include
     if (questionVersion.acceptableAnswers && 
         Array.isArray(questionVersion.acceptableAnswers) && 
         questionVersion.acceptableAnswers.length > 0) {
-      // Format with acceptable answers
-      correctAnswer += '\n\n--\n\n' + questionVersion.acceptableAnswers.join('\n');
+      // Format with labeled acceptable answers
+      formattedAnswer += '\n\n---\n\nAcceptable Answers:\n';
+      formattedAnswer += questionVersion.acceptableAnswers.map(answer => answer).join('\n');
     }
     
-    return correctAnswer;
+    return formattedAnswer;
   }
 
   // Helper function to clean course material URLs when on mobile
