@@ -1739,6 +1739,8 @@ export function registerRoutes(app: Express): Server {
 
   // Helper function to extract correct answer from blanks for select_from_list questions
   function extractCorrectAnswerFromBlanks(questionVersion: any): string {
+    let correctAnswer = '';
+    
     // If this is a select_from_list question with blanks
     if (questionVersion.questionType === 'select_from_list' && 
         questionVersion.blanks && 
@@ -1747,20 +1749,28 @@ export function registerRoutes(app: Express): Server {
       
       // If there's only one blank, return its correct answer directly
       if (questionVersion.blanks.length === 1) {
-        return questionVersion.blanks[0].correct_answer || '';
+        correctAnswer = questionVersion.blanks[0].correct_answer || '';
+      } else {
+        // For multiple blanks, construct a readable format
+        // Format: "blank_1: answer1, blank_2: answer2"
+        correctAnswer = questionVersion.blanks
+          .map((blank: any) => `[blank_${blank.blank_id}]: ${blank.correct_answer}`)
+          .join(', ');
       }
-      
-      // For multiple blanks, construct a readable format
-      // Format: "blank_1: answer1, blank_2: answer2"
-      const correctAnswers = questionVersion.blanks
-        .map((blank: any) => `[blank_${blank.blank_id}]: ${blank.correct_answer}`)
-        .join(', ');
-      
-      return correctAnswers;
+    } else {
+      // Use the regular correct answer
+      correctAnswer = questionVersion.correctAnswer || '';
     }
     
-    // Return the original correct answer if not a select_from_list with blanks
-    return questionVersion.correctAnswer || '';
+    // Check if there are acceptable answers to include
+    if (questionVersion.acceptableAnswers && 
+        Array.isArray(questionVersion.acceptableAnswers) && 
+        questionVersion.acceptableAnswers.length > 0) {
+      // Format with acceptable answers
+      correctAnswer += '\n\n--\n\n' + questionVersion.acceptableAnswers.join('\n');
+    }
+    
+    return correctAnswer;
   }
 
   // Helper function to clean course material URLs when on mobile
