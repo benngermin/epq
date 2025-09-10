@@ -1660,6 +1660,7 @@ export function registerRoutes(app: Express): Server {
       let questionId = undefined;
       let loid = undefined;
       let originalQuestionNumber = undefined;
+      let questionSetDisplayOrder = undefined;
       
       if (parsed.questionVersionId) {
         try {
@@ -1686,6 +1687,9 @@ export function registerRoutes(app: Express): Server {
                   courseId = course.id;
                   courseName = course.courseTitle;
                   courseNumber = course.courseNumber; // Capture course number (e.g., "CPCU 500")
+                  
+                  // Get the display order (question set number) for this question set in this course
+                  questionSetDisplayOrder = await storage.getQuestionSetDisplayOrder(courseId, questionSetId);
                 }
               }
             }
@@ -1718,7 +1722,7 @@ export function registerRoutes(app: Express): Server {
         courseNumber,
         questionSetTitle,
         questionNumber: originalQuestionNumber,
-        questionSetNumber: questionSetId,
+        questionSetNumber: questionSetDisplayOrder,
         baseUrl,
       });
 

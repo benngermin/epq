@@ -54,6 +54,7 @@ export interface IStorage {
   removeCourseQuestionSetMapping(courseId: number, questionSetId: number): Promise<boolean>;
   getCoursesForQuestionSet(questionSetId: number): Promise<Course[]>;
   getCoursesByBaseCourseNumber(baseCourseNumber: string): Promise<Course[]>;
+  getQuestionSetDisplayOrder(courseId: number, questionSetId: number): Promise<number | undefined>;
   
 
   
@@ -672,6 +673,20 @@ export class DatabaseStorage implements IStorage {
       .from(courses)
       .where(eq(courses.baseCourseNumber, baseCourseNumber))
       .orderBy(asc(courses.isAi));
+  }
+
+  async getQuestionSetDisplayOrder(courseId: number, questionSetId: number): Promise<number | undefined> {
+    const [result] = await db.select({
+      displayOrder: courseQuestionSets.displayOrder
+    })
+      .from(courseQuestionSets)
+      .where(and(
+        eq(courseQuestionSets.courseId, courseId),
+        eq(courseQuestionSets.questionSetId, questionSetId)
+      ))
+      .limit(1);
+    
+    return result?.displayOrder;
   }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
