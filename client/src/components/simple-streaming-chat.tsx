@@ -54,7 +54,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Cancel any ongoing requests with a reason
     if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-      abortControllerRef.current.abort("Starting new request");
+      abortControllerRef.current.abort(new DOMException('Starting new request', 'AbortError'));
       // Wait a bit for cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -102,7 +102,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           conversationHistory: conversationToSend // Pass server conversation history for follow-ups
         }),
         credentials: 'include',
-        signal: abortControllerRef.current?.signal,
+        signal: abortControllerRef.current.signal,
       });
 
       
@@ -227,20 +227,16 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             await new Promise(resolve => setTimeout(resolve, pollDelay));
           }
 
-        } catch (pollError: any) {
-          // Handle AbortError specifically
-          if (pollError.name === 'AbortError' || abortControllerRef.current?.signal?.aborted) {
-            // Silently break on abort
-            break;
-          }
-          
-          // Break the loop if stream is not found (404 error)
+        } catch (pollError) {
+          // Break the loop if stream is not found (404 error) or aborted
           const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
-          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('aborted')) {
             break;
           }
-          
-          // For other errors, retry with delay
+          // Don't retry if aborted
+          if (abortControllerRef.current?.signal?.aborted) {
+            break;
+          }
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
@@ -297,14 +293,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setUserInput(""); // Also clear any pending user input
       setServerConversationHistory(null); // Clear server conversation history
       
-      // Abort any ongoing request with a simple reason
-      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-        try {
-          // Provide a simple string reason to avoid "aborted without reason" error
-          abortControllerRef.current.abort("Question changed");
-        } catch (e) {
-          // Ignore abort errors
-        }
+      // Abort any ongoing request with a reason
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort(new DOMException('Question changed', 'AbortError'));
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -338,40 +329,21 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
       }
-      
-      // Mark that we're cleaning up to prevent any state updates
-      const isCleaningUp = true;
-      
-      // Abort any ongoing fetch operations
       if (abortControllerRef.current) {
-        try {
-          // Only abort if not already aborted
-          if (!abortControllerRef.current.signal.aborted) {
-            abortControllerRef.current.abort("Component unmounting");
-          }
-        } catch (e) {
-          // Silently ignore any abort errors during cleanup
-        }
+        abortControllerRef.current.abort(new DOMException('Component unmounting', 'AbortError'));
         abortControllerRef.current = null;
       }
-      
       // Abort any active stream on server
       if (currentStreamIdRef.current) {
         const streamId = currentStreamIdRef.current;
         currentStreamIdRef.current = "";
         const isDemo = window.location.pathname.startsWith('/demo');
-        
-        // Use a promise that always resolves to prevent unhandled rejections
-        Promise.resolve()
-          .then(() => {
-            return fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
-              method: 'POST',
-              credentials: 'include',
-            });
-          })
-          .catch(() => {
-            // Silently ignore any errors during cleanup
-          });
+        fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(() => {
+          // Ignore abort errors on cleanup
+        });
       }
     };
   }, []);
