@@ -89,6 +89,8 @@ export const questionVersions = pgTable("question_versions", {
     zone_label: string;
   }>>(),
   isActive: boolean("is_active").default(true).notNull(),
+  isCalculation: boolean("is_calculation").default(false).notNull(),
+  staticExplanation: text("static_explanation"),
 });
 
 export const userTestRuns = pgTable("user_test_runs", {
@@ -360,6 +362,8 @@ export const questionImportSchema = z.object({
       zone_id: z.number(),
       zone_label: z.string(),
     })).optional(),
+    isCalculation: z.boolean().optional().default(false), // For calculation questions
+    staticExplanation: z.string().optional(), // Static explanation for calculation questions
   })),
 });
 
