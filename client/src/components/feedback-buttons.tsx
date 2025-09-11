@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
 import { AboutAIAssistantModal } from "./about-ai-assistant-modal";
@@ -19,15 +19,6 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAboutAIModalOpen, setIsAboutAIModalOpen] = useState(false);
   const { toast } = useToast();
-  const isMountedRef = useRef(true);
-
-  // Track if component is mounted
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
     setIsSubmitting(true);
@@ -52,31 +43,23 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         throw new Error("Failed to submit feedback");
       }
 
-      // Only update state and show toast if component is still mounted
-      if (isMountedRef.current) {
-        setFeedbackState(type);
-        toast({
-          title: "Thank you!",
-          description: "Your feedback has been received.",
-          className: "bg-green-500 text-white border-green-600",
-          duration: 3000,
-        });
+      setFeedbackState(type);
+      toast({
+        title: "Thank you!",
+        description: "Your feedback has been received.",
+        className: "bg-green-500 text-white border-green-600",
+        duration: 3000,
+      });
 
-        onFeedbackSubmitted?.();
-      }
+      onFeedbackSubmitted?.();
     } catch (error) {
-      // Only show error toast if component is still mounted
-      if (isMountedRef.current) {
-        toast({
-          title: "Error",
-          description: "Failed to submit feedback. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      if (isMountedRef.current) {
-        setIsSubmitting(false);
-      }
+      setIsSubmitting(false);
     }
   };
 
