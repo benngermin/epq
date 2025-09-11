@@ -82,7 +82,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
 
   return (
     <>
-      <div className="flex items-center justify-between mt-[0px] mb-[0px]">
+      <div className="flex items-center justify-between mt-[2px] mb-[2px]">
         <div className="flex gap-2">
           <button
             onClick={handleThumbsUp}
