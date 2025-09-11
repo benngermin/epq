@@ -417,41 +417,15 @@ export function QuestionCard({
             <Card className="w-full h-full bg-card border shadow-sm flex flex-col">
               <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col h-full overflow-hidden">
                 <div className="mb-1 sm:mb-2 md:mb-4 flex justify-between items-center flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "w-fit text-sm font-medium px-3 py-1",
-                        questionTypeConfig[questionType]?.color || "bg-accent text-accent-foreground border"
-                      )}
-                    >
-                      {questionTypeConfig[questionType]?.label || "Question"}
-                    </Badge>
-                    {/* Show answer status after submission */}
-                    {hasAnswer && (
-                      <Badge
-                        variant={isCorrect ? "default" : "destructive"}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1",
-                          isCorrect 
-                            ? "bg-green-500/20 text-green-700 border-green-500/30" 
-                            : "bg-red-500/20 text-red-700 border-red-500/30"
-                        )}
-                      >
-                        {isCorrect ? (
-                          <>
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Correct!
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-3.5 w-3.5" />
-                            Incorrect
-                          </>
-                        )}
-                      </Badge>
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "w-fit text-sm font-medium px-3 py-1",
+                      questionTypeConfig[questionType]?.color || "bg-accent text-accent-foreground border"
                     )}
-                  </div>
+                  >
+                    {questionTypeConfig[questionType]?.label || "Question"}
+                  </Badge>
                   <span className="text-sm font-medium text-muted-foreground">
                     Question {(question.questionIndex || 0) + 1}
                   </span>
