@@ -13,14 +13,10 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center p-4 border-b">
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-lg">Explanation</h3>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <BookOpen className="h-4 w-4 mr-2" />
-          <span>Pre-written calculation explanation</span>
         </div>
       </div>
 
@@ -39,19 +35,27 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
         </div>
       </div>
 
-      {/* Footer with Review Question button - matching AI agent card layout */}
-      <div className="p-4 border-t">
-        {onReviewQuestion && (
-          <Button
-            onClick={onReviewQuestion}
-            variant="outline"
-            className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            data-testid="button-review-question"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Review Question
-          </Button>
-        )}
+      {/* Footer with description and Review Question button */}
+      <div className="border-t">
+        <div className="p-4 pb-2 bg-muted/10">
+          <div className="flex items-center justify-center text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4 mr-2" />
+            <span>This is a pre-written explanation for this calculation question</span>
+          </div>
+        </div>
+        <div className="p-4 pt-2">
+          {onReviewQuestion && (
+            <Button
+              onClick={onReviewQuestion}
+              variant="outline"
+              className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              data-testid="button-review-question"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Review Question
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
