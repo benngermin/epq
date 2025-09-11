@@ -53,7 +53,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
             conversation={[
               { id: messageId, role: "assistant", content: explanation }
             ]}
-            disclaimerText="Pre-written explanation because AI can't be trusted to explain this topic"
+            disclaimerText="Expert-authored explanation for this complex topic"
           />
         </div>
         
