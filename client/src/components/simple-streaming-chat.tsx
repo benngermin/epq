@@ -54,7 +54,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Cancel any ongoing requests with a reason
     if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-      abortControllerRef.current.abort(new DOMException('Starting new request', 'AbortError'));
+      abortControllerRef.current.abort("Starting new request");
       // Wait a bit for cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
     }
