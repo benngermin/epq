@@ -21,16 +21,16 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center p-3 border-b">
+      <div className="flex items-center p-2 border-b">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-lg">Explanation</h3>
+          <BookOpen className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold">Explanation</h3>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="max-w-3xl mx-auto space-y-3">
           {paragraphs.map((paragraph, index) => (
             <p 
               key={index} 
@@ -46,7 +46,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
         {/* Feedback section with custom props */}
-        <div className="p-2">
+        <div className="px-3 py-1.5">
           <FeedbackButtons
             messageId={messageId}
             questionVersionId={questionVersionId || 0}
@@ -58,7 +58,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
         </div>
         
         {/* Review Question button */}
-        <div className="px-3 pb-2 pt-0">
+        <div className="px-3 pb-2">
           {onReviewQuestion && (
             <Button
               onClick={onReviewQuestion}
