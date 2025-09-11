@@ -293,9 +293,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setUserInput(""); // Also clear any pending user input
       setServerConversationHistory(null); // Clear server conversation history
       
-      // Abort any ongoing request with a reason
+      // Abort any ongoing request without throwing an error
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort(new DOMException('Question changed', 'AbortError'));
+        try {
+          abortControllerRef.current.abort();
+        } catch (e) {
+          // Ignore abort errors
+        }
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -330,7 +334,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort(new DOMException('Component unmounting', 'AbortError'));
+        // Simply abort without throwing an error - this prevents unhandled promise rejections
+        try {
+          abortControllerRef.current.abort();
+        } catch (e) {
+          // Ignore abort errors
+        }
         abortControllerRef.current = null;
       }
       // Abort any active stream on server

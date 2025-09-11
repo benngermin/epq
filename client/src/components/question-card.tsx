@@ -134,7 +134,7 @@ export function QuestionCard({
                 isAnswerCorrect = true;
               } else {
                 // Try numerical comparison for each value
-                const correctValues = correctCleaned.split(',').map(v => v.trim());
+                const correctValues = correctCleaned.split(',').map((v: string) => v.trim());
                 
                 if (blankValues.length === correctValues.length) {
                   isAnswerCorrect = blankValues.every((userVal, index) => {
@@ -343,7 +343,7 @@ export function QuestionCard({
               ]);
               
               // Check if all zones have the same items (order doesn't matter within a zone)
-              for (const zoneId of allZoneKeys) {
+              for (const zoneId of Array.from(allZoneKeys)) {
                 const correctItems = transformedCorrectZones[zoneId] || [];
                 const userItems = transformedUserZones[zoneId] || [];
                 
