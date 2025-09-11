@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
+import { AlertTriangle } from "lucide-react";
 
 interface AboutStaticExplanationsModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export function AboutStaticExplanationsModal({ isOpen, onClose }: AboutStaticExp
       <DialogContent className="max-w-2xl">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-900">
-            About This Explanation
+            About Static Explanations
           </DialogTitle>
         </DialogHeader>
         
