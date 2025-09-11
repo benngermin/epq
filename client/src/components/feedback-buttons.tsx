@@ -125,7 +125,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         
         {/* AI disclaimer text */}
         <div className="text-xs text-gray-500 flex items-center gap-1">
-          <span>🤖 AI responses may be inaccurate • </span>
+          <span>🤖 Pre-written explanation because AI can't be trusted to explain this topic • </span>
           <button
             onClick={() => setIsAboutAIModalOpen(true)}
             className="text-blue-600 hover:text-blue-700 underline"
