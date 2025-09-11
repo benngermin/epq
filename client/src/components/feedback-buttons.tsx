@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
 import { AboutAIAssistantModal } from "./about-ai-assistant-modal";
+import { AboutStaticExplanationsModal } from "./about-static-explanations-modal";
 import { useToast } from "@/hooks/use-toast";
 
 interface FeedbackButtonsProps {
@@ -18,6 +19,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const [modalType, setModalType] = useState<"positive" | "negative">("positive");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAboutAIModalOpen, setIsAboutAIModalOpen] = useState(false);
+  const [isAboutStaticModalOpen, setIsAboutStaticModalOpen] = useState(false);
   const { toast } = useToast();
 
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
@@ -82,7 +84,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
 
   return (
     <>
-      <div className="flex items-center justify-between mt-[0px] mb-[0px]">
+      <div className="flex items-center justify-between mt-[2px] mb-[2px]">
         <div className="flex gap-2">
           <button
             onClick={handleThumbsUp}
@@ -128,8 +130,9 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         <div className="text-xs text-gray-500 flex items-center gap-1">
           <span>{disclaimerText ? "📝" : "🤖"} {disclaimerText || "AI responses may be inaccurate"} • </span>
           <button
-            onClick={() => setIsAboutAIModalOpen(true)}
+            onClick={() => disclaimerText ? setIsAboutStaticModalOpen(true) : setIsAboutAIModalOpen(true)}
             className="text-blue-600 hover:text-blue-700 underline"
+            data-testid={disclaimerText ? "button-learn-more-static" : "button-learn-more-ai"}
           >
             Learn more
           </button>
@@ -146,6 +149,11 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
       <AboutAIAssistantModal
         isOpen={isAboutAIModalOpen}
         onClose={() => setIsAboutAIModalOpen(false)}
+      />
+      
+      <AboutStaticExplanationsModal
+        isOpen={isAboutStaticModalOpen}
+        onClose={() => setIsAboutStaticModalOpen(false)}
       />
     </>
   );
