@@ -739,6 +739,7 @@ export function QuestionCard({
                   <StaticExplanation
                     explanation={question.latestVersion.staticExplanation}
                     onReviewQuestion={handleReviewQuestion}
+                    questionVersionId={question.latestVersion?.id}
                   />
                 ) : (
                   <SimpleStreamingChat

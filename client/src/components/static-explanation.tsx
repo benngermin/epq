@@ -1,14 +1,22 @@
 import { Button } from "@/components/ui/button";
-import { RotateCcw, BookOpen } from "lucide-react";
+import { RotateCcw, BookOpen, AlertCircle } from "lucide-react";
+import { FeedbackButtons } from "@/components/feedback-buttons";
+import { AboutStaticExplanationsModal } from "@/components/about-static-explanations-modal";
+import { useState } from "react";
 
 interface StaticExplanationProps {
   explanation: string;
   onReviewQuestion?: () => void;
+  questionVersionId?: number;
 }
 
-export function StaticExplanation({ explanation, onReviewQuestion }: StaticExplanationProps) {
+export function StaticExplanation({ explanation, onReviewQuestion, questionVersionId }: StaticExplanationProps) {
   // Split explanation by newlines to handle paragraph formatting
   const paragraphs = explanation.split('\n').filter(line => line.trim());
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  
+  // Create a unique message ID for feedback
+  const messageId = `static-${questionVersionId}-${Date.now()}`;
 
   return (
     <div className="flex flex-col h-full">
@@ -35,15 +43,35 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
         </div>
       </div>
 
-      {/* Footer with description and Review Question button */}
+      {/* Footer with feedback and Review Question button */}
       <div className="border-t">
-        <div className="p-4 pb-2 bg-muted/10">
-          <div className="flex items-center justify-center text-sm text-muted-foreground">
-            <BookOpen className="h-4 w-4 mr-2" />
-            <span>This is a static answer provided for this specific question.</span>
+        {/* Feedback section */}
+        <div className="p-4 space-y-3">
+          <FeedbackButtons
+            messageId={messageId}
+            questionVersionId={questionVersionId || 0}
+            conversation={[
+              { id: messageId, role: "assistant", content: explanation }
+            ]}
+          />
+          
+          {/* Note about static explanations - matching AI assistant format */}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>Static explanations provided</span>
+            <span>•</span>
+            <button
+              onClick={() => setIsAboutModalOpen(true)}
+              className="text-blue-600 hover:text-blue-700 underline"
+              data-testid="button-learn-more-static"
+            >
+              Learn more
+            </button>
           </div>
         </div>
-        <div className="p-4 pt-2">
+        
+        {/* Review Question button */}
+        <div className="p-4 pt-0">
           {onReviewQuestion && (
             <Button
               onClick={onReviewQuestion}
@@ -57,6 +85,12 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
           )}
         </div>
       </div>
+      
+      {/* About Static Explanations Modal */}
+      <AboutStaticExplanationsModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
     </div>
   );
 }
