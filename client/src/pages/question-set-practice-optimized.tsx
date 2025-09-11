@@ -181,38 +181,7 @@ export default function QuestionSetPractice() {
         const course = courseRes.ok ? await courseRes.json() : null;
         const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
 
-        // ============ TEMPORARY TEST DATA FOR CALCULATION QUESTIONS ============
-        // ADD A MOCK CALCULATION QUESTION FOR TESTING
-        // This will be the first question for easy testing
-        const mockCalculationQuestion = {
-          id: 999999, // Fake ID to avoid conflicts
-          questionSetId: questionSetId,
-          originalQuestionNumber: 0, // Will be first question
-          loid: "TEST_CALCULATION_001",
-          latestVersion: {
-            id: 999999,
-            questionId: 999999,
-            versionNumber: 1,
-            topicFocus: "Calculation Testing",
-            questionText: "Calculate the annual premium for a policy with the following details:\n- Base rate: $500\n- Territory multiplier: 1.2\n- Experience modification: 0.95\n- Policy fee: $50",
-            questionType: "multiple_choice",
-            answerChoices: ["$520", "$570", "$620", "$670"],
-            correctAnswer: "$620",
-            isActive: true,
-            // New calculation fields
-            isCalculation: true,
-            staticExplanation: "To calculate the annual premium:\n\nStep 1: Apply territory multiplier to base rate\n$500 × 1.2 = $600\n\nStep 2: Apply experience modification\n$600 × 0.95 = $570\n\nStep 3: Add policy fee\n$570 + $50 = $620\n\nTherefore, the annual premium is $620.\n\nKey concept: Premium calculation follows the formula:\n(Base Rate × Territory Multiplier × Experience Modification) + Policy Fee"
-          }
-        };
-
-        // Prepend the mock question to the beginning of the questions array
-        questions = [mockCalculationQuestion, ...questions];
-        
-        console.log("🧪 TEST MODE: Added mock calculation question as first question");
-        console.log("Mock calculation question:", mockCalculationQuestion);
-        // ============ END OF TEST DATA ============
-
-        debugLog(`Loaded ${questions.length} questions for question set ${questionSetId} (including 1 mock calculation question)`);
+        debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
         
         // Check for any issues with questions around #36
         const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
