@@ -55,19 +55,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
             ]}
           />
           
-          {/* Note about static explanations - matching AI assistant format */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="h-3.5 w-3.5" />
-            <span>Static explanations provided</span>
-            <span>•</span>
-            <button
-              onClick={() => setIsAboutModalOpen(true)}
-              className="text-blue-600 hover:text-blue-700 underline"
-              data-testid="button-learn-more-static"
-            >
-              Learn more
-            </button>
-          </div>
+          
         </div>
         
         {/* Review Question button */}
