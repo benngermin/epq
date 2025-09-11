@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, MessageSquare, RotateCcw, ChevronRight } from "lucide-react";
 import { SimpleStreamingChat } from "./simple-streaming-chat";
+import { StaticExplanation } from "./static-explanation";
 import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
 
@@ -734,14 +735,21 @@ export function QuestionCard({
             <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               {/* Remove overflow-hidden from Card to allow proper flex behavior */}
               {showChatbot && (
-                <SimpleStreamingChat
-                  /* key forces a fresh instance when we change questions or reset all */
-                  key={`${question.id}-${chatResetTimestamp || 0}`}
-                  questionVersionId={question.latestVersion?.id || question.id}
-                  chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
-                  correctAnswer={question.latestVersion?.correctAnswer || ""}
-                  onReviewQuestion={handleReviewQuestion}
-                />
+                question.latestVersion?.isCalculation && question.latestVersion?.staticExplanation ? (
+                  <StaticExplanation
+                    explanation={question.latestVersion.staticExplanation}
+                    onReviewQuestion={handleReviewQuestion}
+                  />
+                ) : (
+                  <SimpleStreamingChat
+                    /* key forces a fresh instance when we change questions or reset all */
+                    key={`${question.id}-${chatResetTimestamp || 0}`}
+                    questionVersionId={question.latestVersion?.id || question.id}
+                    chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
+                    correctAnswer={question.latestVersion?.correctAnswer || ""}
+                    onReviewQuestion={handleReviewQuestion}
+                  />
+                )
               )}
             </Card>
           </div>
