@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
 import { AboutAIAssistantModal } from "./about-ai-assistant-modal";
+import { AboutStaticExplanationsModal } from "./about-static-explanations-modal";
 import { useToast } from "@/hooks/use-toast";
 
 interface FeedbackButtonsProps {
@@ -10,14 +11,15 @@ interface FeedbackButtonsProps {
   conversation?: Array<{id: string, content: string, role: "user" | "assistant"}>;
   onFeedbackSubmitted?: () => void;
   disclaimerText?: string;
+  variant?: 'ai' | 'static';
 }
 
-export function FeedbackButtons({ messageId, questionVersionId, conversation, onFeedbackSubmitted, disclaimerText }: FeedbackButtonsProps) {
+export function FeedbackButtons({ messageId, questionVersionId, conversation, onFeedbackSubmitted, disclaimerText, variant = 'ai' }: FeedbackButtonsProps) {
   const [feedbackState, setFeedbackState] = useState<"positive" | "negative" | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"positive" | "negative">("positive");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAboutAIModalOpen, setIsAboutAIModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const { toast } = useToast();
 
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
@@ -128,8 +130,9 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         <div className="text-xs text-gray-500 flex items-center gap-1">
           <span>{disclaimerText ? "📝" : "🤖"} {disclaimerText || "AI responses may be inaccurate"} • </span>
           <button
-            onClick={() => setIsAboutAIModalOpen(true)}
+            onClick={() => setIsAboutModalOpen(true)}
             className="text-blue-600 hover:text-blue-700 underline"
+            data-testid={`button-learn-more-${variant}`}
           >
             Learn more
           </button>
@@ -143,10 +146,17 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         feedbackType={modalType}
       />
       
-      <AboutAIAssistantModal
-        isOpen={isAboutAIModalOpen}
-        onClose={() => setIsAboutAIModalOpen(false)}
-      />
+      {variant === 'ai' ? (
+        <AboutAIAssistantModal
+          isOpen={isAboutModalOpen}
+          onClose={() => setIsAboutModalOpen(false)}
+        />
+      ) : (
+        <AboutStaticExplanationsModal
+          isOpen={isAboutModalOpen}
+          onClose={() => setIsAboutModalOpen(false)}
+        />
+      )}
     </>
   );
 }

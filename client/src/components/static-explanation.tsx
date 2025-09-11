@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { RotateCcw, BookOpen, AlertCircle } from "lucide-react";
+import { RotateCcw, BookOpen } from "lucide-react";
 import { FeedbackButtons } from "@/components/feedback-buttons";
-import { AboutStaticExplanationsModal } from "@/components/about-static-explanations-modal";
-import { useState } from "react";
 
 interface StaticExplanationProps {
   explanation: string;
@@ -13,7 +11,6 @@ interface StaticExplanationProps {
 export function StaticExplanation({ explanation, onReviewQuestion, questionVersionId }: StaticExplanationProps) {
   // Split explanation by newlines to handle paragraph formatting
   const paragraphs = explanation.split('\n').filter(line => line.trim());
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   
   // Create a unique message ID for feedback
   const messageId = `static-${questionVersionId}-${Date.now()}`;
@@ -54,6 +51,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
               { id: messageId, role: "assistant", content: explanation }
             ]}
             disclaimerText="Expert-authored explanation for this complex topic"
+            variant="static"
           />
         </div>
         
@@ -72,12 +70,6 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           )}
         </div>
       </div>
-      
-      {/* About Static Explanations Modal */}
-      <AboutStaticExplanationsModal
-        isOpen={isAboutModalOpen}
-        onClose={() => setIsAboutModalOpen(false)}
-      />
     </div>
   );
 }
