@@ -46,7 +46,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
         {/* Feedback section with custom props */}
-        <div className="px-3 py-1">
+        <div className="px-3 py-0.5">
           <FeedbackButtons
             messageId={messageId}
             questionVersionId={questionVersionId || 0}
