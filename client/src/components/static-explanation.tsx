@@ -13,23 +13,15 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-muted/20">
+      <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-lg">Explanation</h3>
         </div>
-        {onReviewQuestion && (
-          <Button
-            onClick={onReviewQuestion}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            data-testid="button-review-question"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Review Question
-          </Button>
-        )}
+        <div className="flex items-center text-sm text-muted-foreground">
+          <BookOpen className="h-4 w-4 mr-2" />
+          <span>Pre-written calculation explanation</span>
+        </div>
       </div>
 
       {/* Content */}
@@ -47,12 +39,19 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t bg-muted/10">
-        <div className="flex items-center justify-center text-sm text-muted-foreground">
-          <BookOpen className="h-4 w-4 mr-2" />
-          <span>This is a pre-written explanation for this calculation question</span>
-        </div>
+      {/* Footer with Review Question button - matching AI agent card layout */}
+      <div className="p-4 border-t">
+        {onReviewQuestion && (
+          <Button
+            onClick={onReviewQuestion}
+            variant="outline"
+            className="w-full gap-2"
+            data-testid="button-review-question"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Review Question
+          </Button>
+        )}
       </div>
     </div>
   );
