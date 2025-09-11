@@ -293,10 +293,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setUserInput(""); // Also clear any pending user input
       setServerConversationHistory(null); // Clear server conversation history
       
-      // Abort any ongoing request without throwing an error
-      if (abortControllerRef.current) {
+      // Abort any ongoing request with a simple reason
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
         try {
-          abortControllerRef.current.abort();
+          // Provide a simple string reason to avoid "aborted without reason" error
+          abortControllerRef.current.abort("Question changed");
         } catch (e) {
           // Ignore abort errors
         }
@@ -333,10 +334,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
       }
-      if (abortControllerRef.current) {
-        // Simply abort without throwing an error - this prevents unhandled promise rejections
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        // Simply abort with a reason to prevent "aborted without reason" errors
         try {
-          abortControllerRef.current.abort();
+          abortControllerRef.current.abort("Component unmounting");
         } catch (e) {
           // Ignore abort errors
         }
