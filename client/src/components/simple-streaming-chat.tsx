@@ -102,7 +102,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           conversationHistory: conversationToSend // Pass server conversation history for follow-ups
         }),
         credentials: 'include',
-        signal: abortControllerRef.current.signal,
+        signal: abortControllerRef.current?.signal,
       });
 
       
@@ -227,16 +227,20 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             await new Promise(resolve => setTimeout(resolve, pollDelay));
           }
 
-        } catch (pollError) {
-          // Break the loop if stream is not found (404 error) or aborted
+        } catch (pollError: any) {
+          // Handle AbortError specifically
+          if (pollError.name === 'AbortError' || abortControllerRef.current?.signal?.aborted) {
+            // Silently break on abort
+            break;
+          }
+          
+          // Break the loop if stream is not found (404 error)
           const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
-          if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('aborted')) {
+          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
             break;
           }
-          // Don't retry if aborted
-          if (abortControllerRef.current?.signal?.aborted) {
-            break;
-          }
+          
+          // For other errors, retry with delay
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
@@ -334,26 +338,40 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = null;
       }
-      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-        // Simply abort with a reason to prevent "aborted without reason" errors
+      
+      // Mark that we're cleaning up to prevent any state updates
+      const isCleaningUp = true;
+      
+      // Abort any ongoing fetch operations
+      if (abortControllerRef.current) {
         try {
-          abortControllerRef.current.abort("Component unmounting");
+          // Only abort if not already aborted
+          if (!abortControllerRef.current.signal.aborted) {
+            abortControllerRef.current.abort("Component unmounting");
+          }
         } catch (e) {
-          // Ignore abort errors
+          // Silently ignore any abort errors during cleanup
         }
         abortControllerRef.current = null;
       }
+      
       // Abort any active stream on server
       if (currentStreamIdRef.current) {
         const streamId = currentStreamIdRef.current;
         currentStreamIdRef.current = "";
         const isDemo = window.location.pathname.startsWith('/demo');
-        fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
-          method: 'POST',
-          credentials: 'include',
-        }).catch(() => {
-          // Ignore abort errors on cleanup
-        });
+        
+        // Use a promise that always resolves to prevent unhandled rejections
+        Promise.resolve()
+          .then(() => {
+            return fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
+              method: 'POST',
+              credentials: 'include',
+            });
+          })
+          .catch(() => {
+            // Silently ignore any errors during cleanup
+          });
       }
     };
   }, []);
