@@ -29,7 +29,7 @@ export function AboutAIAssistantModal({ isOpen, onClose }: AboutAIAssistantModal
             actual course content, making it more accurate than general AI
             tools. However, like all generative AI, it can still make mistakes,
             provide incomplete explanations, or misinterpret concepts.
-            Calculations in particular may sometimes be incorrect.
+            Static answers in particular may sometimes be incorrect.
           </p>
 
           {/* Yellow warning box */}

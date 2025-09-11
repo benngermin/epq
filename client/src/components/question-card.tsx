@@ -735,7 +735,7 @@ export function QuestionCard({
             <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               {/* Remove overflow-hidden from Card to allow proper flex behavior */}
               {showChatbot && (
-                question.latestVersion?.isCalculation && question.latestVersion?.staticExplanation ? (
+                question.latestVersion?.isStaticAnswer && question.latestVersion?.staticExplanation ? (
                   <StaticExplanation
                     explanation={question.latestVersion.staticExplanation}
                     onReviewQuestion={handleReviewQuestion}

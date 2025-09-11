@@ -89,7 +89,7 @@ export const questionVersions = pgTable("question_versions", {
     zone_label: string;
   }>>(),
   isActive: boolean("is_active").default(true).notNull(),
-  isCalculation: boolean("is_calculation").default(false).notNull(),
+  isStaticAnswer: boolean("is_static_answer").default(false).notNull(),
   staticExplanation: text("static_explanation"),
 });
 
@@ -362,8 +362,8 @@ export const questionImportSchema = z.object({
       zone_id: z.number(),
       zone_label: z.string(),
     })).optional(),
-    isCalculation: z.boolean().optional().default(false), // For calculation questions
-    staticExplanation: z.string().optional(), // Static explanation for calculation questions
+    isStaticAnswer: z.boolean().optional().default(false), // For static answer questions
+    staticExplanation: z.string().optional(), // Static explanation for static answer questions
   })),
 });
 
