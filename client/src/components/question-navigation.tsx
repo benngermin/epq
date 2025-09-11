@@ -177,7 +177,7 @@ export function QuestionNavigation({
                         isVisited 
                           ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
                           : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
-                        isCurrent && "ring-1 ring-primary ring-offset-1 border-primary bg-primary/5"
+                        isCurrent && "ring-2 ring-primary border-primary bg-primary/5"
                       )}
                       onClick={() => onQuestionClick(index)}
                     >
@@ -219,7 +219,7 @@ export function QuestionNavigation({
                   isVisited 
                     ? "border-border bg-card text-foreground hover:border-primary hover:bg-accent"
                     : "border-border/50 bg-muted text-muted-foreground hover:border-border hover:bg-accent",
-                  isCurrent && "ring-1 ring-primary ring-offset-1 border-primary bg-primary/5",
+                  isCurrent && "ring-2 ring-primary border-primary bg-primary/5",
                   status === "correct" && "bg-green-50 border-green-200 text-green-800",
                   status === "incorrect" && "bg-red-50 border-red-200 text-red-800"
                 )}
