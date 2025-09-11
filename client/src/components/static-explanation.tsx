@@ -40,7 +40,7 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
         <div className="p-4 pb-2 bg-muted/10">
           <div className="flex items-center justify-center text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4 mr-2" />
-            <span>This is a pre-written explanation for this calculation question</span>
+            <span>This is a pre-written explanation because AI can not be trusted to explain this topic.</span>
           </div>
         </div>
         <div className="p-4 pt-2">
