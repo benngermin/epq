@@ -45,32 +45,20 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
 
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
-        {/* Feedback section */}
-        <div className="p-3 space-y-2">
+        {/* Feedback section with custom props */}
+        <div className="p-2">
           <FeedbackButtons
             messageId={messageId}
             questionVersionId={questionVersionId || 0}
             conversation={[
               { id: messageId, role: "assistant", content: explanation }
             ]}
+            disclaimerText="Pre-written explanation because AI can't be trusted to explain this topic"
           />
-          
-          {/* Note about static explanations */}
-          <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-            <span>🤖 Pre-written explanation because AI can't be trusted to explain this topic</span>
-            <span>•</span>
-            <button
-              onClick={() => setIsAboutModalOpen(true)}
-              className="text-blue-600 hover:text-blue-700 underline"
-              data-testid="button-learn-more-static"
-            >
-              Learn more
-            </button>
-          </div>
         </div>
         
         {/* Review Question button */}
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-2 pt-0">
           {onReviewQuestion && (
             <Button
               onClick={onReviewQuestion}

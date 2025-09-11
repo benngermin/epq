@@ -9,9 +9,10 @@ interface FeedbackButtonsProps {
   questionVersionId?: number;
   conversation?: Array<{id: string, content: string, role: "user" | "assistant"}>;
   onFeedbackSubmitted?: () => void;
+  disclaimerText?: string;
 }
 
-export function FeedbackButtons({ messageId, questionVersionId, conversation, onFeedbackSubmitted }: FeedbackButtonsProps) {
+export function FeedbackButtons({ messageId, questionVersionId, conversation, onFeedbackSubmitted, disclaimerText }: FeedbackButtonsProps) {
   const [feedbackState, setFeedbackState] = useState<"positive" | "negative" | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"positive" | "negative">("positive");
@@ -125,7 +126,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         
         {/* AI disclaimer text */}
         <div className="text-xs text-gray-500 flex items-center gap-1">
-          <span>🤖 Pre-written explanation because AI can't be trusted to explain this topic • </span>
+          <span>🤖 {disclaimerText || "AI responses may be inaccurate"} • </span>
           <button
             onClick={() => setIsAboutAIModalOpen(true)}
             className="text-blue-600 hover:text-blue-700 underline"
