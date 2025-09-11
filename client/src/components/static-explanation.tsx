@@ -45,10 +45,10 @@ export function StaticExplanation({ explanation, onReviewQuestion }: StaticExpla
           <Button
             onClick={onReviewQuestion}
             variant="outline"
-            className="w-full gap-2"
+            className="w-full py-2 md:py-3 text-sm md:text-base border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             data-testid="button-review-question"
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4 mr-2" />
             Review Question
           </Button>
         )}
