@@ -9,6 +9,11 @@ An advanced AI-powered platform for insurance professional certification exam pr
   - Fixed Submit Answer button accessibility on mobile by adjusting scroll areas and z-index stacking
   - Added proper safe area insets for iOS devices
   - Improved sticky footer behavior to prevent content overlap
+- **Calculation Question Support**:
+  - Added support for static explanations on calculation questions
+  - New database fields: `isCalculation` and `staticExplanation` in question_versions table
+  - Questions marked as calculations display pre-written explanations instead of AI responses
+  - Maintains all existing question types while adding calculation modifier
 
 ## Project Architecture
 
@@ -50,6 +55,7 @@ An advanced AI-powered platform for insurance professional certification exam pr
    - Response logging for quality monitoring
    - User feedback system with thumbs up/down ratings
    - Detailed feedback modal for negative responses
+   - Static explanations for calculation questions (bypasses AI for mathematical problems)
 
 5. **Admin Dashboard**
    - User management
