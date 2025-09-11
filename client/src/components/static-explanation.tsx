@@ -21,7 +21,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center p-4 border-b">
+      <div className="flex items-center p-3 border-b">
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-lg">Explanation</h3>
@@ -46,7 +46,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
         {/* Feedback section */}
-        <div className="p-4 space-y-3">
+        <div className="p-3 space-y-2">
           <FeedbackButtons
             messageId={messageId}
             questionVersionId={questionVersionId || 0}
@@ -55,11 +55,22 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
             ]}
           />
           
-          
+          {/* Note about static explanations */}
+          <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
+            <span>🤖 Pre-written explanation because AI can't be trusted to explain this topic</span>
+            <span>•</span>
+            <button
+              onClick={() => setIsAboutModalOpen(true)}
+              className="text-blue-600 hover:text-blue-700 underline"
+              data-testid="button-learn-more-static"
+            >
+              Learn more
+            </button>
+          </div>
         </div>
         
         {/* Review Question button */}
-        <div className="p-4 pt-0">
+        <div className="px-3 pb-3">
           {onReviewQuestion && (
             <Button
               onClick={onReviewQuestion}
