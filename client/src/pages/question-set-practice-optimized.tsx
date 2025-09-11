@@ -248,6 +248,22 @@ export default function QuestionSetPractice() {
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
       debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
+      
+      // Handle mock calculation question without database
+      if (questionVersionId === 999999) {
+        console.log("🧪 TEST MODE: Simulating answer submission for mock calculation question");
+        // Simulate the response for the mock question
+        const isCorrect = answer === "$620";
+        return {
+          id: 999999,
+          questionVersionId: 999999,
+          chosenAnswer: answer,
+          isCorrect: isCorrect,
+          answeredAt: new Date().toISOString(),
+          questionId: 999999
+        };
+      }
+      
       const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
         questionVersionId,
         answer,
