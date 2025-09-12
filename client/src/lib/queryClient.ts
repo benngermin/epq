@@ -51,30 +51,47 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+export function getQueryFn<T>(options: {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }, retryCount = 0): Promise<T | null> => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+}): QueryFunction<T> {
+  const { on401: unauthorizedBehavior } = options;
+  
+  // Create the actual query function with retry logic
+  const queryFn: QueryFunction<T> = async ({ queryKey }) => {
+    let retryCount = 0;
+    
+    while (retryCount <= 3) {
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+      });
 
-    // Handle 401 with retry for /api/user endpoint - increased retries for better session handling
-    if (res.status === 401 && retryCount < 3 && queryKey[0] === '/api/user') {
-      // Wait progressively longer for session to be established
-      const delay = Math.min(500 * Math.pow(2, retryCount), 2000); // 500ms, 1s, 2s
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return getQueryFn<T>({ on401: unauthorizedBehavior })({ queryKey }, retryCount + 1);
+      // Handle 401 with retry for /api/user endpoint - increased retries for better session handling
+      if (res.status === 401 && retryCount < 3 && queryKey[0] === '/api/user') {
+        // Wait progressively longer for session to be established
+        const delay = Math.min(500 * Math.pow(2, retryCount), 2000); // 500ms, 1s, 2s
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retryCount++;
+        continue; // Retry the request
+      }
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null as T;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json() as T;
     }
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    
+    // If we've exhausted retries, handle as a normal 401
+    if (unauthorizedBehavior === "returnNull") {
+      return null as T;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
+    
+    throw new Error("401: Authentication failed after retries");
   };
+  
+  return queryFn;
+}
 
 
 
