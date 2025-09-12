@@ -54,7 +54,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Cancel any ongoing requests with a reason
     if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-      abortControllerRef.current.abort();
+      try {
+        abortControllerRef.current.abort('Starting new request');
+      } catch (e) {
+        // Ignore abort errors
+      }
       // Wait a bit for cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -255,11 +259,19 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         abortControllerRef.current = null;
       }
       
-      // Don't show error toast for aborted requests
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      // Don't show error toast for aborted requests - check multiple conditions
+      if (error.name === 'AbortError' || 
+          error.message?.includes('aborted') ||
+          error.message?.includes('Question changed') ||
+          error.message?.includes('Component unmounting') ||
+          error.message === 'signal is aborted without reason' ||
+          abortControllerRef.current?.signal?.aborted) {
+        // Silently return for all abort scenarios
         return;
       }
       
+      // Only show toast for real errors, not aborts
+      console.error('AI streaming error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to get response from AI assistant",
@@ -303,7 +315,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       // Abort any ongoing request
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort('Question changed');
+        try {
+          abortControllerRef.current.abort('Question changed');
+        } catch (e) {
+          // Ignore abort errors when switching questions
+        }
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -338,7 +354,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort('Component unmounting');
+        // Wrap in try-catch to prevent any unhandled rejection
+        try {
+          abortControllerRef.current.abort('Component unmounting');
+        } catch (e) {
+          // Ignore abort errors
+        }
         abortControllerRef.current = null;
       }
       // Abort any active stream on server - use setTimeout to avoid blocking
