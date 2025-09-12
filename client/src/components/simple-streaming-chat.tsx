@@ -262,18 +262,27 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         abortControllerRef.current = null;
       }
       
-      // Don't show error toast for aborted requests - check multiple conditions
-      if (error.name === 'AbortError' || 
-          error.message?.includes('aborted') ||
-          error.message?.includes('Question changed') ||
-          error.message?.includes('Component unmounting') ||
-          error.message === 'signal is aborted without reason' ||
-          abortControllerRef.current?.signal?.aborted) {
-        // Silently return for all abort scenarios
+      // Check if this is an abort/unmount scenario - be very comprehensive
+      const isAbortError = 
+        error.name === 'AbortError' || 
+        error.message?.includes('aborted') ||
+        error.message?.includes('abort') ||
+        error.message?.includes('Question changed') ||
+        error.message?.includes('Component unmounting') ||
+        error.message?.includes('unmount') ||
+        error.message === 'signal is aborted without reason' ||
+        error.message?.includes('Failed to fetch') || // Often happens during unmount
+        error.code === 'ABORT_ERR' ||
+        error.code === 20 || // DOMException abort code
+        abortControllerRef.current?.signal?.aborted ||
+        !document.body.contains(scrollContainerRef.current); // Component no longer in DOM
+      
+      if (isAbortError) {
+        // This is expected behavior during navigation - silently return
         return;
       }
       
-      // Only show toast for real errors, not aborts
+      // Only log and show toast for actual unexpected errors
       console.error('AI streaming error:', error);
       toast({
         title: "Error",
