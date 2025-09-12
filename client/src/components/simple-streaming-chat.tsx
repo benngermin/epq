@@ -303,7 +303,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       // Abort any ongoing request
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortControllerRef.current.abort('Question changed');
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -338,7 +338,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortControllerRef.current.abort('Component unmounting');
         abortControllerRef.current = null;
       }
       // Abort any active stream on server - use setTimeout to avoid blocking
