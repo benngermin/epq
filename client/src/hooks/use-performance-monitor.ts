@@ -52,5 +52,6 @@ export function usePerformanceMonitor(componentName: string) {
         }
       }
     }
-  }); // No dependency array - run on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }); // Intentionally runs on every render to measure performance
 }
