@@ -54,7 +54,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     // Cancel any ongoing requests with a reason
     if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-      abortControllerRef.current.abort(new DOMException('Starting new request', 'AbortError'));
+      abortControllerRef.current.abort();
       // Wait a bit for cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -107,7 +107,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
       
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => 'Unknown error');
         throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
       }
       
@@ -128,6 +128,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           const chunkResponse = await fetch(isDemo ? `/api/demo/chatbot/stream-chunk/${streamId}?cursor=${cursor}` : `/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
             signal: abortControllerRef.current?.signal,
+          }).catch(error => {
+            // If it's an abort error, throw it to be handled by the outer catch
+            if (error.name === 'AbortError') {
+              throw error;
+            }
+            // For other errors, rethrow them
+            throw error;
           });
 
           if (!chunkResponse.ok) {
@@ -227,16 +234,17 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             await new Promise(resolve => setTimeout(resolve, pollDelay));
           }
 
-        } catch (pollError) {
-          // Break the loop if stream is not found (404 error) or aborted
+        } catch (pollError: any) {
+          // Break the loop if it's an abort error
+          if (pollError.name === 'AbortError' || abortControllerRef.current?.signal?.aborted) {
+            break;
+          }
+          // Break the loop if stream is not found (404 error)
           const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
-          if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('aborted')) {
+          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
             break;
           }
-          // Don't retry if aborted
-          if (abortControllerRef.current?.signal?.aborted) {
-            break;
-          }
+          // For other errors, retry with delay
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
@@ -293,9 +301,9 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setUserInput(""); // Also clear any pending user input
       setServerConversationHistory(null); // Clear server conversation history
       
-      // Abort any ongoing request with a reason
+      // Abort any ongoing request
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort(new DOMException('Question changed', 'AbortError'));
+        abortControllerRef.current.abort();
       }
       abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
@@ -330,20 +338,23 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         initTimeoutRef.current = null;
       }
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort(new DOMException('Component unmounting', 'AbortError'));
+        abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
-      // Abort any active stream on server
+      // Abort any active stream on server - use setTimeout to avoid blocking
       if (currentStreamIdRef.current) {
         const streamId = currentStreamIdRef.current;
         currentStreamIdRef.current = "";
         const isDemo = window.location.pathname.startsWith('/demo');
-        fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
-          method: 'POST',
-          credentials: 'include',
-        }).catch(() => {
-          // Ignore abort errors on cleanup
-        });
+        // Use setTimeout to avoid blocking unmount
+        setTimeout(() => {
+          fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
+            method: 'POST',
+            credentials: 'include',
+          }).catch(() => {
+            // Ignore all errors on cleanup
+          });
+        }, 0);
       }
     };
   }, []);
