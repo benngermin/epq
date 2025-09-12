@@ -3332,6 +3332,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
               await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
             } catch (err) {
               // Mapping likely already exists, which is fine
+              // Log the error in development for debugging
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Course-questionset mapping already exists or error occurred:', err);
+              }
             }
             
             // Process and update questions

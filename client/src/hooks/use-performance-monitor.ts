@@ -33,19 +33,22 @@ export function usePerformanceMonitor(componentName: string) {
         };
         
         try {
-          const existingMetrics = JSON.parse(
-            sessionStorage.getItem('performance-metrics') || '[]'
-          );
-          existingMetrics.push(metrics);
-          
-          // Keep only last 50 metrics to reduce memory usage
-          if (existingMetrics.length > 50) {
-            existingMetrics.splice(0, existingMetrics.length - 50);
+          // Check if sessionStorage is available before using it
+          if (typeof sessionStorage !== 'undefined' && sessionStorage !== null) {
+            const existingMetrics = JSON.parse(
+              sessionStorage.getItem('performance-metrics') || '[]'
+            );
+            existingMetrics.push(metrics);
+            
+            // Keep only last 50 metrics to reduce memory usage
+            if (existingMetrics.length > 50) {
+              existingMetrics.splice(0, existingMetrics.length - 50);
+            }
+            
+            sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
           }
-          
-          sessionStorage.setItem('performance-metrics', JSON.stringify(existingMetrics));
         } catch (e) {
-          // Ignore sessionStorage errors (quota exceeded, etc.)
+          // Ignore sessionStorage errors (quota exceeded, private browsing, etc.)
           if (import.meta.env.DEV) {
             console.warn('Failed to store performance metrics:', e);
           }
