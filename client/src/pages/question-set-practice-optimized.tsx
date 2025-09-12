@@ -19,7 +19,7 @@ import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCir
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { OptimizedImage } from "@/components/optimized-image";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 import { BeforeYouStartModal } from "@/components/before-you-start-modal";
@@ -72,6 +72,10 @@ export default function QuestionSetPractice() {
     return false;
   });
   const [chatResetTimestamp, setChatResetTimestamp] = useState(Date.now());
+  
+  // Refs to maintain current values for keyboard navigation without recreating effects
+  const currentQuestionIndexRef = useRef(currentQuestionIndex);
+  const practiceDataRef = useRef<any>(undefined);
 
   // Handle the case where route doesn't match
   if (!actualMatch || !actualParams?.id) {
@@ -94,6 +98,11 @@ export default function QuestionSetPractice() {
   }
 
   const questionSetId = parseInt(actualParams.id);
+  
+  // Keep currentQuestionIndex ref updated
+  useEffect(() => {
+    currentQuestionIndexRef.current = currentQuestionIndex;
+  }, [currentQuestionIndex]);
   
   // Listen for storage changes (e.g., from other tabs)
   useEffect(() => {
@@ -203,6 +212,11 @@ export default function QuestionSetPractice() {
     enabled: !!questionSetId && (isDemo || !!user), // Only fetch when we have a user (or in demo mode)
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
+  
+  // Keep practiceData ref updated after query is defined
+  useEffect(() => {
+    practiceDataRef.current = practiceData;
+  }, [practiceData]);
 
   // Show the modal when practice data is loaded and user hasn't agreed yet
   useEffect(() => {
@@ -311,7 +325,7 @@ export default function QuestionSetPractice() {
     }
   };
 
-  // Add keyboard navigation
+  // Add keyboard navigation - setup once on mount, cleanup on unmount
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Don't trigger navigation if user is typing in an input field
@@ -320,21 +334,39 @@ export default function QuestionSetPractice() {
         return;
       }
 
+      // Use refs to get current values without causing effect recreation
+      const currentIndex = currentQuestionIndexRef.current;
+      const currentPracticeData = practiceDataRef.current;
+      
+      if (!currentPracticeData?.questions || currentPracticeData.questions.length === 0) {
+        return;
+      }
+
       switch (event.key) {
         case 'ArrowRight':
           event.preventDefault();
-          handleNextQuestion();
+          const maxIndex = currentPracticeData.questions.length - 1;
+          if (currentIndex < maxIndex) {
+            debugLog(`Keyboard nav: from question ${currentIndex + 1} to ${currentIndex + 2}`);
+            setCurrentQuestionIndex(prev => Math.min(prev + 1, maxIndex));
+            setShowChat(false);
+            setSelectedAnswer("");
+          }
           break;
         case 'ArrowLeft':
           event.preventDefault();
-          handlePreviousQuestion();
+          if (currentIndex > 0) {
+            setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
+            setShowChat(false);
+            setSelectedAnswer("");
+          }
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, practiceData]);
+  }, []); // Empty dependency array - only run once on mount
 
   const resetMutation = useMutation({
     mutationFn: async () => {
