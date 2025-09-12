@@ -75,7 +75,6 @@ export default function QuestionSetPractice() {
   
   // Refs to maintain current values for keyboard navigation without recreating effects
   const currentQuestionIndexRef = useRef(currentQuestionIndex);
-  const practiceDataRef = useRef<any>(undefined);
 
   // Handle the case where route doesn't match
   if (!actualMatch || !actualParams?.id) {
@@ -212,6 +211,9 @@ export default function QuestionSetPractice() {
     enabled: !!questionSetId && (isDemo || !!user), // Only fetch when we have a user (or in demo mode)
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
+  
+  // Create ref for practiceData after it's defined to avoid initialization errors
+  const practiceDataRef = useRef<any>(undefined);
   
   // Keep practiceData ref updated after query is defined
   useEffect(() => {
