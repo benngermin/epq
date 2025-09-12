@@ -19,7 +19,7 @@ import { ArrowLeft, GraduationCap, BookOpen, ChevronRight, ChevronLeft, CheckCir
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 import { OptimizedImage } from "@/components/optimized-image";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { QuestionCard } from "@/components/question-card";
 import { SimpleStreamingChat } from "@/components/simple-streaming-chat";
 import { BeforeYouStartModal } from "@/components/before-you-start-modal";
@@ -28,16 +28,51 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { AssessmentErrorFallback } from "@/components/assessment-error-fallback";
 import type { Course } from "@shared/schema";
 
+// Navigation Error Boundary Wrapper Component
+function NavigationErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary 
+      fallback={(props) => (
+        <div className="p-4 text-center">
+          <p className="text-sm text-muted-foreground">Navigation error occurred</p>
+          <Button onClick={() => props.resetError()} size="sm" className="mt-2">
+            Retry
+          </Button>
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 export default function QuestionSetPractice() {
   const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
   const [demoMatch, demoParams] = useRoute("/demo/question-set/:id");
   
+  // Track component mount status for cleanup
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
   // Check if we're in demo mode
   const isDemo = window.location.pathname.startsWith('/demo');
   const actualMatch = isDemo ? demoMatch : match;
   const actualParams = isDemo ? demoParams : params;
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      // Cancel any pending API requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
   
   // Redirect to auth if not logged in (except in demo mode)
   useEffect(() => {
@@ -148,11 +183,23 @@ export default function QuestionSetPractice() {
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
     queryKey: [isDemo ? "/api/demo/practice-data" : "/api/practice-data", questionSetId],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
+        // Create new abort controller for this request
+        abortControllerRef.current = new AbortController();
+        
+        // Link the query signal to our abort controller
+        if (signal) {
+          signal.addEventListener('abort', () => {
+            abortControllerRef.current?.abort();
+          });
+        }
         // First check if we're authenticated (skip in demo mode)
         if (!isDemo) {
-          const authRes = await fetch('/api/user', { credentials: "include" });
+          const authRes = await fetch('/api/user', { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          });
           if (!authRes.ok) {
             console.error('Authentication check failed:', authRes.status);
             throw new Error('Authentication required');
@@ -160,9 +207,22 @@ export default function QuestionSetPractice() {
         }
 
         const [questionSetRes, questionsRes] = await Promise.all([
-          fetch(isDemo ? `/api/demo/question-sets/${questionSetId}` : `/api/question-sets/${questionSetId}`, { credentials: "include" }),
-          fetch(isDemo ? `/api/demo/questions/${questionSetId}` : `/api/questions/${questionSetId}`, { credentials: "include" })
-        ]);
+          fetch(isDemo ? `/api/demo/question-sets/${questionSetId}` : `/api/question-sets/${questionSetId}`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          }),
+          fetch(isDemo ? `/api/demo/questions/${questionSetId}` : `/api/questions/${questionSetId}`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          })
+        ]).catch(error => {
+          if (error.name === 'AbortError') {
+            debugLog('Fetch aborted due to component unmount');
+            throw error;
+          }
+          debugError('Failed to fetch practice data', error);
+          throw error;
+        });
 
         // Check if responses are JSON before parsing
         const contentType1 = questionSetRes.headers.get("content-type");
@@ -183,8 +243,14 @@ export default function QuestionSetPractice() {
         let questions = await questionsRes.json();
 
         // Fetch course and question sets info
-        const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { credentials: "include" });
-        const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { credentials: "include" });
+        const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { 
+          credentials: "include",
+          signal: abortControllerRef.current.signal 
+        });
+        const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { 
+          credentials: "include",
+          signal: abortControllerRef.current.signal 
+        });
 
         const course = courseRes.ok ? await courseRes.json() : null;
         const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
@@ -232,16 +298,35 @@ export default function QuestionSetPractice() {
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ questionVersionId, answer, questionId }: { questionVersionId: number; answer: string; questionId: number }) => {
+      if (!isMountedRef.current) {
+        throw new Error('Component unmounted');
+      }
+      
       debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
-      const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
-        questionVersionId,
-        answer,
-      });
-      const data = await res.json();
-      debugLog(`Answer submission response:`, data);
-      return { ...data, questionId };
+      
+      try {
+        const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
+          questionVersionId,
+          answer,
+        });
+        
+        if (!isMountedRef.current) {
+          throw new Error('Component unmounted');
+        }
+        
+        const data = await res.json();
+        debugLog(`Answer submission response:`, data);
+        return { ...data, questionId };
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Component unmounted') {
+          debugLog('Answer submission cancelled due to unmount');
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      if (!isMountedRef.current) return;
+      
       debugLog(`Answer submitted successfully:`, data);
       setSelectedAnswer(data.chosenAnswer);
       setShowChat(true);
@@ -257,6 +342,11 @@ export default function QuestionSetPractice() {
       }
     },
     onError: (error) => {
+      if (!isMountedRef.current) return;
+      
+      if (error instanceof Error && error.message === 'Component unmounted') {
+        return; // Ignore unmount errors
+      }
       debugError(`Answer submission failed:`, error);
     },
   });
@@ -287,7 +377,9 @@ export default function QuestionSetPractice() {
     }
   }, [currentQuestionIndex, practiceData]);
 
-  const handleSubmitAnswer = (answer: string) => {
+  const handleSubmitAnswer = useCallback((answer: string) => {
+    if (!isMountedRef.current) return;
+    
     debugLog(`handleSubmitAnswer called with answer: ${answer}`);
     if (!currentQuestion?.latestVersion?.id) {
       debugError(`Cannot submit answer - no question version id`, { currentQuestion });
@@ -305,9 +397,10 @@ export default function QuestionSetPractice() {
       answer,
       questionId: currentQuestion.id,
     });
-  };
+  }, [currentQuestion, submitAnswerMutation]);
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = useCallback(() => {
+    if (!isMountedRef.current) return;
     if (!practiceData?.questions || practiceData.questions.length === 0) return;
     
     const maxIndex = practiceData.questions.length - 1;
@@ -317,15 +410,16 @@ export default function QuestionSetPractice() {
       setShowChat(false);
       setSelectedAnswer("");
     }
-  };
+  }, [practiceData, currentQuestionIndex]);
 
-  const handlePreviousQuestion = () => {
+  const handlePreviousQuestion = useCallback(() => {
+    if (!isMountedRef.current) return;
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
       setShowChat(false);
       setSelectedAnswer("");
     }
-  };
+  }, [currentQuestionIndex]);
 
   // Add keyboard navigation - setup once on mount, cleanup on unmount
   useEffect(() => {
@@ -372,6 +466,10 @@ export default function QuestionSetPractice() {
 
   const resetMutation = useMutation({
     mutationFn: async () => {
+      if (!isMountedRef.current) {
+        throw new Error('Component unmounted');
+      }
+      
       // Reset all state to initial values
       setUserAnswers({});
       setCurrentQuestionIndex(0);
@@ -383,6 +481,14 @@ export default function QuestionSetPractice() {
       setChatResetTimestamp(Date.now());
       // Scroll to top of the page
       window.scrollTo(0, 0);
+    },
+    onError: (error) => {
+      if (!isMountedRef.current) return;
+      
+      if (error instanceof Error && error.message === 'Component unmounted') {
+        return; // Ignore unmount errors
+      }
+      debugError('Reset failed:', error);
     },
   });
 
@@ -819,29 +925,33 @@ export default function QuestionSetPractice() {
         p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
         z-30 md:z-auto
         pointer-events-none">
-        <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
-          <Button
-            variant="outline"
-            onClick={handlePreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Previous
-          </Button>
-          <div className="hidden sm:flex text-sm text-muted-foreground items-center pointer-events-none">
-            Question {currentQuestionIndex + 1} of {practiceData.questions.length}
+        <NavigationErrorBoundary>
+          <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
+            <Button
+              variant="outline"
+              onClick={handlePreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+              className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
+              data-testid="button-previous-question"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <div className="hidden sm:flex text-sm text-muted-foreground items-center pointer-events-none">
+              Question {currentQuestionIndex + 1} of {practiceData.questions.length}
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleNextQuestion}
+              disabled={currentQuestionIndex === practiceData.questions.length - 1}
+              className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
+              data-testid="button-next-question"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleNextQuestion}
-            disabled={currentQuestionIndex === practiceData.questions.length - 1}
-            className="min-w-[120px] bg-[#6B7280] border-[#6B7280] text-white hover:bg-[#6B7280]/90 hover:border-[#6B7280]/90 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
+        </NavigationErrorBoundary>
       </div>
 
       {/* Before You Begin Modal */}
