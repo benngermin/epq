@@ -119,7 +119,7 @@ export function QuestionCard({
           if (answerString.startsWith('{')) {
             try {
               const userBlanks = JSON.parse(answerString);
-              const blankValues = Object.values(userBlanks).map((v: any) => String(v).trim());
+              const blankValues = Object.values(userBlanks).map((v: unknown) => String(v).trim());
               
               // For numerical_entry, clean the correct answer format
               // Remove "[blank_X]:" prefixes to get just the values
@@ -134,7 +134,7 @@ export function QuestionCard({
                 isAnswerCorrect = true;
               } else {
                 // Try numerical comparison for each value
-                const correctValues = correctCleaned.split(',').map(v => v.trim());
+                const correctValues = correctCleaned.split(',').map((v: string) => v.trim());
                 
                 if (blankValues.length === correctValues.length) {
                   isAnswerCorrect = blankValues.every((userVal, index) => {
@@ -343,7 +343,7 @@ export function QuestionCard({
               ]);
               
               // Check if all zones have the same items (order doesn't matter within a zone)
-              for (const zoneId of allZoneKeys) {
+              for (const zoneId of Array.from(allZoneKeys)) {
                 const correctItems = transformedCorrectZones[zoneId] || [];
                 const userItems = transformedUserZones[zoneId] || [];
                 
