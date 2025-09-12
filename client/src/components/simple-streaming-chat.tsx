@@ -68,7 +68,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     /* Guard against accidental empty submissions */
     const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
-    if (!finalChosenAnswer && !userMessage) {
+    // Check for both empty and whitespace-only strings
+    if ((!finalChosenAnswer || finalChosenAnswer.trim() === "") && !userMessage) {
+      console.log('Skipping AI response - no answer provided');
+      setIsStreaming(false);
       return;
     }
     
@@ -325,7 +328,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       prevQuestionIdRef.current = questionVersionId;
       
       // If we have a chosen answer for the new question, start loading AI response
-      if (chosenAnswer) {
+      // Make sure chosenAnswer is not just an empty string
+      if (chosenAnswer && chosenAnswer.trim() !== "") {
         // Start fresh with initial assistant message
         setMessages([{
           id: "initial-response",
