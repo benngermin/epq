@@ -841,7 +841,7 @@ export default function QuestionSetPractice() {
                         onClick={() => {
                           setCurrentQuestionIndex(index);
                           setShowChat(false);
-                          setSelectedAnswer("");
+                          // Don't reset selectedAnswer when navigating
                           setSidebarOpen(false);
                         }}
                       >

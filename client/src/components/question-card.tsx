@@ -98,13 +98,27 @@ export function QuestionCard({
   // Show feedback section when we have an answer and it's not pending
   const showFeedback = hasAnswer && !isPending;
 
-  // Reset flip state when question changes
+  // Initialize state when question changes
   useEffect(() => {
     setIsFlipped(false);
-    setSelectedAnswerState("");
-    setSubmittedAnswer("");
-    setLocalAnswerState({ hasAnswer: false, isCorrect: undefined, isOptimistic: false });
     onFlipChange?.(false);
+    
+    // If this question has already been answered, restore that state
+    if (question?.userAnswer) {
+      const answer = question.userAnswer.chosenAnswer;
+      setSelectedAnswerState(answer);
+      setSubmittedAnswer(answer);
+      setLocalAnswerState({ 
+        hasAnswer: true, 
+        isCorrect: question.userAnswer.isCorrect,
+        isOptimistic: false 
+      });
+    } else {
+      // Only reset if question hasn't been answered
+      setSelectedAnswerState("");
+      setSubmittedAnswer("");
+      setLocalAnswerState({ hasAnswer: false, isCorrect: undefined, isOptimistic: false });
+    }
   }, [question?.id, onFlipChange]);
 
   // Sync local state with server response
