@@ -79,14 +79,18 @@ export function QuestionCard({
   const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
-  const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | null }>({
+  const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | undefined }>({
     hasAnswer: false,
-    isCorrect: null
+    isCorrect: undefined
   });
 
   // Use local state immediately after submission, otherwise use props
   const hasAnswer = localAnswerState.hasAnswer || !!question?.userAnswer;
-  const isCorrect = localAnswerState.isCorrect ?? question?.userAnswer?.isCorrect;
+  // isCorrect will be undefined while pending, then true/false after server response
+  const isCorrect = localAnswerState.isCorrect !== undefined 
+    ? localAnswerState.isCorrect 
+    : question?.userAnswer?.isCorrect;
+  const isPending = hasAnswer && isCorrect === undefined;
   const questionType = question?.latestVersion?.questionType || "multiple_choice";
 
   // Reset flip state when question changes
@@ -94,9 +98,21 @@ export function QuestionCard({
     setIsFlipped(false);
     setSelectedAnswerState("");
     setSubmittedAnswer("");
-    setLocalAnswerState({ hasAnswer: false, isCorrect: null });
+    setLocalAnswerState({ hasAnswer: false, isCorrect: undefined });
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
+
+  // Sync local state with server response
+  useEffect(() => {
+    // If we have a server response and we're currently in pending state
+    if (question?.userAnswer && localAnswerState.hasAnswer && localAnswerState.isCorrect === undefined) {
+      // Update local state with server's isCorrect value
+      setLocalAnswerState(prev => ({
+        ...prev,
+        isCorrect: question.userAnswer.isCorrect
+      }));
+    }
+  }, [question?.userAnswer, localAnswerState.hasAnswer, localAnswerState.isCorrect]);
 
   // Notify parent when flip state changes
   useEffect(() => {
@@ -129,8 +145,8 @@ export function QuestionCard({
 
     setSubmittedAnswer(answerString);
     
-    // Set local state immediately to show submission feedback
-    setLocalAnswerState({ hasAnswer: true, isCorrect: null });
+    // Set local state immediately to show submission is pending
+    setLocalAnswerState({ hasAnswer: true, isCorrect: undefined });
     
     // Submit to server
     onSubmitAnswer(answerString);
@@ -417,7 +433,20 @@ export function QuestionCard({
 
                 {/* Action buttons - always visible at bottom - add significant bottom padding on mobile for sticky footer clearance */}
                 <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-2 flex-shrink-0 border-t">
-                  {hasAnswer && isCorrect && (
+                  {/* Show pending state while waiting for evaluation */}
+                  {isPending && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center">
+                          <div className="h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin mr-2" />
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">Evaluating answer...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show correct feedback after server responds */}
+                  {hasAnswer && !isPending && isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                         <div className="flex items-center">
@@ -436,7 +465,8 @@ export function QuestionCard({
                     </div>
                   )}
 
-                  {hasAnswer && !isCorrect && (
+                  {/* Show incorrect feedback after server responds */}
+                  {hasAnswer && !isPending && !isCorrect && (
                     <div className="space-y-3">
                       <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <div className="flex items-center">
@@ -461,7 +491,7 @@ export function QuestionCard({
                       disabled={!selectedAnswerState || isSubmitting}
                       className="w-full py-2 sm:py-2.5 md:py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      {isSubmitting ? "Submitting..." : "Submit Answer"}
+                      {isSubmitting || isPending ? "Submitting..." : "Submit Answer"}
                     </Button>
                   )}
                 </div>
