@@ -15,7 +15,7 @@ neonConfig.webSocketConstructor = ws;
 // Create a connection pool with optimized limits to reduce churn
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Reduced max connections to avoid overloading database
+  max: 25, // Increased connections to handle more concurrent users
   min: 2, // Reduced minimum connections for better resource usage
   idleTimeoutMillis: 60000, // Reduced to 1 minute - balances connection reuse with resource cleanup
   connectionTimeoutMillis: 10000, // Timeout connection attempts after 10 seconds
