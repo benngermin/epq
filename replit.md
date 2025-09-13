@@ -14,6 +14,14 @@ An advanced AI-powered platform for insurance professional certification exam pr
   - New database fields: `isStaticAnswer` and `staticExplanation` in question_versions table
   - Questions marked as static answers display pre-written explanations instead of AI responses
   - Maintains all existing question types while adding static answer modifier
+- **Critical Bug Fixes (September 13, 2025)**:
+  - Fixed state synchronization issue that caused questions to flip from incorrect to correct
+  - Resolved chatbot not showing for incorrect answers with static explanations
+  - Added comprehensive validation for static explanation fields with proper fallbacks
+  - Implemented optimistic updates for instant feedback on simple question types
+  - Fixed state persistence issues during question navigation (no more flickering)
+  - Demo mode now uses deterministic evaluation instead of random results
+  - Added robust error handling for static explanation rendering with user-friendly messages
 
 ## Project Architecture
 
