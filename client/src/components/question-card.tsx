@@ -491,18 +491,6 @@ export function QuestionCard({
 
                 {/* Action buttons - always visible at bottom - add significant bottom padding on mobile for sticky footer clearance */}
                 <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-2 flex-shrink-0 border-t">
-                  {/* Show pending state only for complex types that need server evaluation */}
-                  {isPending && (
-                    <div className="space-y-3">
-                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin mr-2" />
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">Evaluating answer...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Show feedback after server responds */}
                   {showFeedback && (
                     <div className="space-y-3">
