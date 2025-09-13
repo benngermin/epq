@@ -1771,7 +1771,7 @@ export function registerRoutes(app: Express): Server {
         questionVersion.acceptableAnswers.length > 0) {
       // Format with labeled acceptable answers
       formattedAnswer += '\n\n---\n\nAcceptable Answers:\n';
-      formattedAnswer += questionVersion.acceptableAnswers.map(answer => answer).join('\n');
+      formattedAnswer += questionVersion.acceptableAnswers.map((answer: string) => answer).join('\n');
     }
     
     return formattedAnswer;
@@ -4262,15 +4262,41 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Demo answer submission - just returns success without storing
+  // Demo answer submission - validates answer without storing it
   app.post("/api/demo/question-sets/:questionSetId/answer", async (req, res) => {
     try {
       const { questionVersionId, answer } = req.body;
       
-      // Just return a mock success response for demo
+      // Validate input parameters
+      if (!questionVersionId || !answer) {
+        return res.status(400).json({ message: "Question version ID and answer are required" });
+      }
+      
+      // Get the question version to validate the answer
+      const questionVersion = await withCircuitBreaker(() => storage.getQuestionVersion(questionVersionId));
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+      
+      // Use centralized validation system for deterministic evaluation
+      const { validateAnswer } = await import('./utils/answer-validation');
+      
+      const isCorrect = validateAnswer(
+        answer,
+        questionVersion.correctAnswer,
+        questionVersion.questionType,
+        {
+          caseSensitive: questionVersion.caseSensitive || false,
+          acceptableAnswers: questionVersion.acceptableAnswers || [],
+          blanks: questionVersion.blanks || undefined,
+          dropZones: questionVersion.dropZones || undefined
+        }
+      );
+      
+      // Return real validation result (without storing)
       res.json({
         success: true,
-        isCorrect: Math.random() > 0.5, // Random for demo
+        isCorrect: isCorrect,
         chosenAnswer: answer,
         message: "Demo mode - answers are not saved"
       });
