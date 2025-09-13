@@ -79,9 +79,14 @@ export function QuestionCard({
   const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
+  const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | null }>({
+    hasAnswer: false,
+    isCorrect: null
+  });
 
-  const hasAnswer = !!question?.userAnswer;
-  const isCorrect = question?.userAnswer?.isCorrect;
+  // Use local state immediately after submission, otherwise use props
+  const hasAnswer = localAnswerState.hasAnswer || !!question?.userAnswer;
+  const isCorrect = localAnswerState.isCorrect ?? question?.userAnswer?.isCorrect;
   const questionType = question?.latestVersion?.questionType || "multiple_choice";
 
   // Reset flip state when question changes
@@ -89,6 +94,7 @@ export function QuestionCard({
     setIsFlipped(false);
     setSelectedAnswerState("");
     setSubmittedAnswer("");
+    setLocalAnswerState({ hasAnswer: false, isCorrect: null });
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
 
@@ -96,6 +102,21 @@ export function QuestionCard({
   useEffect(() => {
     onFlipChange?.(isFlipped);
   }, [isFlipped, onFlipChange]);
+
+  // Auto-flip for static questions after server responds
+  useEffect(() => {
+    // If we have a static answer question and the server has responded with isCorrect
+    if (question?.latestVersion?.isStaticAnswer && 
+        question?.userAnswer !== undefined && 
+        localAnswerState.hasAnswer && 
+        !question?.userAnswer?.isCorrect) {
+      // Auto-flip to show explanation after a short delay
+      const timer = setTimeout(() => {
+        setIsFlipped(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [question?.userAnswer, question?.latestVersion?.isStaticAnswer, localAnswerState.hasAnswer]);
 
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
@@ -107,294 +128,12 @@ export function QuestionCard({
     }
 
     setSubmittedAnswer(answerString);
+    
+    // Set local state immediately to show submission feedback
+    setLocalAnswerState({ hasAnswer: true, isCorrect: null });
+    
+    // Submit to server
     onSubmitAnswer(answerString);
-
-    // Check if answer is correct based on question type
-    setTimeout(() => {
-      let isAnswerCorrect = false;
-      
-      switch (questionType) {
-        case "numerical_entry":
-          // Special handling for numerical_entry to support multi-blank
-          if (answerString.startsWith('{')) {
-            try {
-              const userBlanks = JSON.parse(answerString);
-              const blankValues = Object.values(userBlanks).map((v: unknown) => String(v).trim());
-              
-              // For numerical_entry, clean the correct answer format
-              // Remove "[blank_X]:" prefixes to get just the values
-              const correctAnswer = question.latestVersion.correctAnswer;
-              const correctCleaned = correctAnswer.replace(/\[blank_\d+\]:\s*/g, '').trim();
-              
-              // Join with comma and space to match server-side logic
-              const userFullAnswer = blankValues.join(', ');
-              
-              // First try exact match
-              if (userFullAnswer === correctCleaned) {
-                isAnswerCorrect = true;
-              } else {
-                // Try numerical comparison for each value
-                const correctValues = correctCleaned.split(',').map((v: string) => v.trim());
-                
-                if (blankValues.length === correctValues.length) {
-                  isAnswerCorrect = blankValues.every((userVal, index) => {
-                    const userNum = parseFloat(userVal);
-                    const correctNum = parseFloat(correctValues[index]);
-                    
-                    if (!isNaN(userNum) && !isNaN(correctNum)) {
-                      // Allow for floating point precision issues
-                      return Math.abs(userNum - correctNum) < 0.0001;
-                    }
-                    // Fall back to string comparison if not numeric
-                    return userVal === correctValues[index];
-                  });
-                }
-              }
-              
-              // Check acceptable answers if provided
-              if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-                isAnswerCorrect = question.latestVersion.acceptableAnswers.some((acceptable: string) => 
-                  userFullAnswer === acceptable
-                );
-              }
-            } catch (e) {
-              // If JSON parse fails, treat as single numerical answer
-              const userNum = parseFloat(answerString);
-              const correctNum = parseFloat(question.latestVersion.correctAnswer);
-              
-              if (!isNaN(userNum) && !isNaN(correctNum)) {
-                isAnswerCorrect = Math.abs(userNum - correctNum) < 0.0001;
-              } else {
-                isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
-              }
-            }
-          } else {
-            // Single numerical answer
-            const userNum = parseFloat(answerString);
-            const correctNum = parseFloat(question.latestVersion.correctAnswer);
-            
-            if (!isNaN(userNum) && !isNaN(correctNum)) {
-              isAnswerCorrect = Math.abs(userNum - correctNum) < 0.0001;
-            } else {
-              isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
-            }
-            
-            // Check acceptable answers
-            if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-              isAnswerCorrect = question.latestVersion.acceptableAnswers.some((acceptable: string) => {
-                const acceptableNum = parseFloat(acceptable);
-                if (!isNaN(userNum) && !isNaN(acceptableNum)) {
-                  return Math.abs(userNum - acceptableNum) < 0.0001;
-                }
-                return answerString === acceptable;
-              });
-            }
-          }
-          break;
-          
-        case "short_answer":
-          const caseSensitive = question.latestVersion.caseSensitive;
-          
-          // Check if this is a multi-blank answer (JSON format)
-          if (answerString.startsWith('{')) {
-            try {
-              const userBlanks = JSON.parse(answerString);
-              const blankValues = Object.values(userBlanks).map((v: any) => 
-                caseSensitive ? String(v) : String(v).toLowerCase()
-              );
-              
-              // Join the blank values with comma and space to match server logic
-              const userFullAnswer = blankValues.join(', ');
-              const correctFullAnswer = caseSensitive 
-                ? question.latestVersion.correctAnswer 
-                : question.latestVersion.correctAnswer.toLowerCase();
-              
-              isAnswerCorrect = userFullAnswer === correctFullAnswer;
-              
-              // Check acceptable answers for multi-blank
-              if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-                const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
-                  caseSensitive ? a : a.toLowerCase()
-                );
-                isAnswerCorrect = acceptableAnswers.includes(userFullAnswer);
-              }
-            } catch (e) {
-              // If JSON parse fails, treat as single answer
-              const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
-              const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
-              isAnswerCorrect = userAnswer === correctAnswer;
-            }
-          } else {
-            // Single blank answer
-            const correctAnswer = caseSensitive ? question.latestVersion.correctAnswer : question.latestVersion.correctAnswer.toLowerCase();
-            const userAnswer = caseSensitive ? answerString : answerString.toLowerCase();
-            
-            isAnswerCorrect = userAnswer === correctAnswer;
-            
-            // Check acceptable answers
-            if (!isAnswerCorrect && question.latestVersion.acceptableAnswers) {
-              const acceptableAnswers = question.latestVersion.acceptableAnswers.map((a: string) => 
-                caseSensitive ? a : a.toLowerCase()
-              );
-              isAnswerCorrect = acceptableAnswers.includes(userAnswer);
-            }
-          }
-          break;
-          
-        case "select_from_list":
-          // For select_from_list with blanks in the text, compare JSON objects
-          if (question.latestVersion.blanks && question.latestVersion.questionText?.includes('___')) {
-            const userBlanks = JSON.parse(answerString);
-            const correctBlanks = question.latestVersion.blanks || [];
-            isAnswerCorrect = correctBlanks.every((blank: any) =>
-              userBlanks[blank.blank_id] === blank.correct_answer
-            );
-          } else if (question.latestVersion.blanks && question.latestVersion.blanks[0]) {
-            // For select_from_list with blanks data but no blanks in text (regular dropdown)
-            // The answer is the selected choice directly
-            isAnswerCorrect = answerString === question.latestVersion.blanks[0].correct_answer;
-          } else {
-            isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
-          }
-          break;
-          
-        case "drag_and_drop":
-          // Compare zone contents
-          if (question.latestVersion.dropZones) {
-            try {
-              const userZones = JSON.parse(answerString);
-              
-              // Parse correctAnswer if it's a string
-              let correctZones: Record<string, string[]>;
-              if (typeof question.latestVersion.correctAnswer === 'string') {
-                correctZones = JSON.parse(question.latestVersion.correctAnswer);
-              } else {
-                correctZones = question.latestVersion.correctAnswer;
-              }
-              
-              // Create zone mapping if dropZones is provided
-              // This maps between zone_id (like zone_1) and zone_label (like "Current Assets")
-              const zoneIdToLabel: Record<string, string> = {};
-              const zoneLabelToId: Record<string, string> = {};
-              
-              if (question.latestVersion.dropZones && question.latestVersion.dropZones.length > 0) {
-                for (const zone of question.latestVersion.dropZones) {
-                  const zoneKey = `zone_${zone.zone_id}`;
-                  zoneIdToLabel[zoneKey] = zone.zone_label;
-                  zoneLabelToId[zone.zone_label] = zoneKey;
-                }
-              }
-              
-              // Normalize zone keys function
-              const normalizeZoneKey = (key: string): string => {
-                // First check if it's already in zone_N format
-                if (key.startsWith('zone_')) {
-                  return key;
-                }
-                // Check if it's a number
-                if (/^\d+$/.test(key)) {
-                  return `zone_${key}`;
-                }
-                // Otherwise return as-is (might be a label like "Current Assets")
-                return key;
-              };
-              
-              // Transform zones to a common format for comparison
-              const transformZones = (zones: Record<string, string[]>): Record<string, string[]> => {
-                const transformed: Record<string, string[]> = {};
-                
-                for (const key in zones) {
-                  const normalizedKey = normalizeZoneKey(key);
-                  
-                  // If we have a mapping and this key is a zone ID, keep it as zone_N
-                  // If this key is a label, convert it to zone_N
-                  let finalKey = normalizedKey;
-                  
-                  if (question.latestVersion.dropZones && question.latestVersion.dropZones.length > 0) {
-                    // Check if this is a label that needs to be converted to zone_N
-                    if (zoneLabelToId[key]) {
-                      finalKey = zoneLabelToId[key];
-                    } else if (zoneIdToLabel[normalizedKey]) {
-                      // It's already a zone_N format, keep it
-                      finalKey = normalizedKey;
-                    } else {
-                      // Not in our mapping, keep as-is
-                      finalKey = normalizedKey;
-                    }
-                  }
-                  
-                  transformed[finalKey] = Array.isArray(zones[key]) ? zones[key] : [];
-                }
-                
-                return transformed;
-              };
-              
-              // Transform both user and correct zones
-              const transformedUserZones = transformZones(userZones);
-              const transformedCorrectZones = transformZones(correctZones);
-              
-              // Compare each zone's contents
-              isAnswerCorrect = true;
-              
-              // Get all unique zone keys
-              const allZoneKeys = new Set([
-                ...Object.keys(transformedUserZones),
-                ...Object.keys(transformedCorrectZones)
-              ]);
-              
-              // Check if all zones have the same items (order doesn't matter within a zone)
-              for (const zoneId of Array.from(allZoneKeys)) {
-                const correctItems = transformedCorrectZones[zoneId] || [];
-                const userItems = transformedUserZones[zoneId] || [];
-                
-                // Sort both arrays to compare regardless of order within the zone
-                const sortedCorrect = [...correctItems].sort();
-                const sortedUser = [...userItems].sort();
-                
-                if (JSON.stringify(sortedCorrect) !== JSON.stringify(sortedUser)) {
-                  isAnswerCorrect = false;
-                  break;
-                }
-              }
-            } catch (e) {
-              console.error('Error parsing drag and drop answer:', e);
-              isAnswerCorrect = false;
-            }
-          } else {
-            // Fallback for old format
-            isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
-          }
-          break;
-          
-        case "multiple_response":
-          // Handle array comparison for multiple responses
-          const userResponses = Array.isArray(answerString) ? answerString : JSON.parse(answerString);
-          const correctResponses = Array.isArray(question.latestVersion.correctAnswer)
-            ? question.latestVersion.correctAnswer
-            : JSON.parse(question.latestVersion.correctAnswer);
-          
-          // Extract option letters from full text (e.g., "A. Maria must sign" -> "A")
-          const extractLetter = (option: string) => {
-            if (option.length <= 2) return option.toUpperCase();
-            const match = option.match(/^([A-Z])[.)]\s/i);
-            return match ? match[1].toUpperCase() : option;
-          };
-          
-          const normalizedUser = userResponses.map((r: string) => extractLetter(r));
-          const normalizedCorrect = correctResponses.map((r: string) => extractLetter(r));
-          
-          isAnswerCorrect = JSON.stringify(normalizedUser.sort()) === JSON.stringify(normalizedCorrect.sort());
-          break;
-          
-        case "either_or":
-        default:
-          isAnswerCorrect = answerString === question.latestVersion.correctAnswer;
-      }
-      
-      if (!isAnswerCorrect) {
-        setIsFlipped(true);
-      }
-    }, 2500);
   };
 
   const handleReviewQuestion = () => {
