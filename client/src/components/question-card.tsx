@@ -122,10 +122,23 @@ export function QuestionCard({
     onFlipChange?.(isFlipped);
   }, [isFlipped, onFlipChange]);
 
+  // Validate static explanations - helper function
+  const hasValidStaticExplanation = () => {
+    try {
+      if (!question?.latestVersion?.isStaticAnswer) return false;
+      const explanation = question?.latestVersion?.staticExplanation;
+      // Check if explanation exists and has meaningful content (not just whitespace)
+      return explanation && typeof explanation === 'string' && explanation.trim().length > 10;
+    } catch (error) {
+      debugError('Error validating static explanation:', error);
+      return false;
+    }
+  };
+
   // Auto-flip for static questions after server responds
   useEffect(() => {
-    // If we have a static answer question and the server has responded with isCorrect
-    if (question?.latestVersion?.isStaticAnswer && 
+    // Only auto-flip if we have a valid static explanation
+    if (hasValidStaticExplanation() && 
         question?.userAnswer !== undefined && 
         localAnswerState.hasAnswer && 
         !question?.userAnswer?.isCorrect) {
@@ -135,7 +148,7 @@ export function QuestionCard({
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [question?.userAnswer, question?.latestVersion?.isStaticAnswer, localAnswerState.hasAnswer]);
+  }, [question?.userAnswer, question?.latestVersion?.isStaticAnswer, question?.latestVersion?.staticExplanation, localAnswerState.hasAnswer]);
 
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
@@ -516,22 +529,50 @@ export function QuestionCard({
             <Card className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 border shadow-sm overflow-hidden">
               {/* Remove overflow-hidden from Card to allow proper flex behavior */}
               {showChatbot && (
-                question.latestVersion?.isStaticAnswer && question.latestVersion?.staticExplanation ? (
-                  <StaticExplanation
-                    explanation={question.latestVersion.staticExplanation}
-                    onReviewQuestion={handleReviewQuestion}
-                    questionVersionId={question.latestVersion?.id}
-                  />
-                ) : (
-                  <SimpleStreamingChat
-                    /* key forces a fresh instance when we change questions or reset all */
-                    key={`${question.id}-${chatResetTimestamp || 0}`}
-                    questionVersionId={question.latestVersion?.id || question.id}
-                    chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
-                    correctAnswer={question.latestVersion?.correctAnswer || ""}
-                    onReviewQuestion={handleReviewQuestion}
-                  />
-                )
+                (() => {
+                  // Validate static explanation before deciding which component to render
+                  const shouldShowStaticExplanation = hasValidStaticExplanation();
+                  
+                  if (shouldShowStaticExplanation) {
+                    // Log validation success in development
+                    if (import.meta.env.DEV) {
+                      debugLog('Showing static explanation', {
+                        questionId: question.id,
+                        hasStaticExplanation: true,
+                        explanationLength: question.latestVersion?.staticExplanation?.length
+                      });
+                    }
+                    
+                    return (
+                      <StaticExplanation
+                        explanation={question.latestVersion.staticExplanation}
+                        onReviewQuestion={handleReviewQuestion}
+                        questionVersionId={question.latestVersion?.id}
+                      />
+                    );
+                  } else {
+                    // Log fallback to chat in development
+                    if (import.meta.env.DEV && question?.latestVersion?.isStaticAnswer) {
+                      debugLog('Falling back to chat despite static flag', {
+                        questionId: question.id,
+                        isStaticAnswer: question.latestVersion?.isStaticAnswer,
+                        hasExplanation: !!question.latestVersion?.staticExplanation,
+                        explanationLength: question.latestVersion?.staticExplanation?.length || 0
+                      });
+                    }
+                    
+                    return (
+                      <SimpleStreamingChat
+                        /* key forces a fresh instance when we change questions or reset all */
+                        key={`${question.id}-${chatResetTimestamp || 0}`}
+                        questionVersionId={question.latestVersion?.id || question.id}
+                        chosenAnswer={question.userAnswer?.chosenAnswer || submittedAnswer || selectedAnswer || ""}
+                        correctAnswer={question.latestVersion?.correctAnswer || ""}
+                        onReviewQuestion={handleReviewQuestion}
+                      />
+                    );
+                  }
+                })()
               )}
             </Card>
           </div>

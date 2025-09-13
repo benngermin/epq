@@ -54,6 +54,27 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
         dropZones: latestVersion.dropZones || latestVersion.drop_zones,
         blanks: latestVersion.blanks, // Include blanks field for select_from_list questions
       };
+      
+      // Validate static explanation fields for consistency
+      if (transformedLatestVersion.isStaticAnswer) {
+        const explanation = transformedLatestVersion.staticExplanation;
+        
+        // Check if explanation is valid (non-empty string with meaningful content)
+        const hasValidExplanation = explanation && 
+                                   typeof explanation === 'string' && 
+                                   explanation.trim().length > 10;
+        
+        if (!hasValidExplanation) {
+          // Log warning and clear the static flag to fall back to chat
+          console.warn(`Question version ${transformedLatestVersion.id} marked as static but has invalid explanation. Falling back to chat.`);
+          transformedLatestVersion.isStaticAnswer = false;
+          transformedLatestVersion.staticExplanation = null;
+        }
+      } else {
+        // If not a static answer, ensure staticExplanation is null for consistency
+        transformedLatestVersion.staticExplanation = null;
+      }
+      
       // Clean up snake_case versions if they exist
       if ('answer_choices' in transformedLatestVersion) {
         delete (transformedLatestVersion as any).answer_choices;

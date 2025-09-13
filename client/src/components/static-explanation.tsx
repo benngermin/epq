@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { RotateCcw, BookOpen } from "lucide-react";
+import { RotateCcw, BookOpen, AlertCircle } from "lucide-react";
 import { FeedbackButtons } from "@/components/feedback-buttons";
+import { useState, useEffect } from "react";
 
 interface StaticExplanationProps {
   explanation: string;
@@ -9,51 +10,107 @@ interface StaticExplanationProps {
 }
 
 export function StaticExplanation({ explanation, onReviewQuestion, questionVersionId }: StaticExplanationProps) {
-  // Split explanation by newlines to handle paragraph formatting
-  const paragraphs = explanation.split('\n').filter(line => line.trim());
+  const [hasError, setHasError] = useState(false);
+  const [processedParagraphs, setProcessedParagraphs] = useState<string[]>([]);
   
-  // Create a unique message ID for feedback
-  const messageId = `static-${questionVersionId}-${Date.now()}`;
+  useEffect(() => {
+    try {
+      // Validate and process explanation text
+      if (!explanation || typeof explanation !== 'string' || explanation.trim().length === 0) {
+        setHasError(true);
+        setProcessedParagraphs(['No explanation is available for this question.']);
+        return;
+      }
+      
+      // Sanitize explanation text (remove potentially harmful content)
+      const sanitizedExplanation = explanation
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
+        .trim();
+      
+      // Split explanation by newlines and filter out empty lines
+      // Handle edge cases: single line, multiple consecutive newlines, etc.
+      const lines = sanitizedExplanation.split(/\n+/);
+      const filtered = lines
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      // If no valid paragraphs after filtering, show error message
+      if (filtered.length === 0) {
+        setHasError(true);
+        setProcessedParagraphs(['The explanation content appears to be empty.']);
+      } else {
+        setHasError(false);
+        setProcessedParagraphs(filtered);
+      }
+    } catch (error) {
+      console.error('Error processing static explanation:', error);
+      setHasError(true);
+      setProcessedParagraphs(['An error occurred while processing the explanation.']);
+    }
+  }, [explanation]);
+  
+  // Create a unique message ID for feedback - handle missing questionVersionId
+  const messageId = `static-${questionVersionId || 'unknown'}-${Date.now()}`;
+  
+  // Use validated questionVersionId, default to 0 if invalid
+  const validQuestionVersionId = questionVersionId && questionVersionId > 0 ? questionVersionId : 0;
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center p-2 border-b">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold">Explanation</h3>
+          {hasError ? (
+            <AlertCircle className="h-4 w-4 text-orange-500" />
+          ) : (
+            <BookOpen className="h-4 w-4 text-primary" />
+          )}
+          <h3 className="font-semibold">
+            {hasError ? 'Explanation Unavailable' : 'Explanation'}
+          </h3>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="max-w-3xl mx-auto space-y-3">
-          {paragraphs.map((paragraph, index) => (
-            <p 
-              key={index} 
-              className="text-base leading-relaxed text-foreground whitespace-pre-wrap"
-              data-testid={`text-explanation-${index}`}
-            >
-              {paragraph}
+          {processedParagraphs.length > 0 ? (
+            processedParagraphs.map((paragraph, index) => (
+              <p 
+                key={`paragraph-${index}`} 
+                className={`text-base leading-relaxed whitespace-pre-wrap ${
+                  hasError ? 'text-muted-foreground italic' : 'text-foreground'
+                }`}
+                data-testid={`text-explanation-${index}`}
+              >
+                {paragraph}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted-foreground italic">
+              No explanation content available.
             </p>
-          ))}
+          )}
         </div>
       </div>
 
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
-        {/* Feedback section with custom props */}
-        <div className="px-3 py-1 pt-[0px] pb-[0px]">
-          <FeedbackButtons
-            messageId={messageId}
-            questionVersionId={questionVersionId || 0}
-            conversation={[
-              { id: messageId, role: "assistant", content: explanation }
-            ]}
-            disclaimerText="Expert-authored explanation for this complex topic"
-            variant="static"
-          />
-        </div>
+        {/* Only show feedback buttons if we have valid content and not an error */}
+        {!hasError && processedParagraphs.length > 0 && (
+          <div className="px-3 py-1 pt-[0px] pb-[0px]">
+            <FeedbackButtons
+              messageId={messageId}
+              questionVersionId={validQuestionVersionId}
+              conversation={[
+                { id: messageId, role: "assistant", content: processedParagraphs.join('\n\n') }
+              ]}
+              disclaimerText="Expert-authored explanation for this complex topic"
+              variant="static"
+            />
+          </div>
+        )}
         
         {/* Review Question button */}
         <div className="px-3 pb-2">
