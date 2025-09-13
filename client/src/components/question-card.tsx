@@ -155,20 +155,20 @@ export function QuestionCard({
     }
   };
 
-  // Auto-flip for static questions after server responds
+  // Auto-flip for incorrect answers to show help (static explanation or AI chat)
   useEffect(() => {
-    // Only auto-flip if we have a valid static explanation
-    if (hasValidStaticExplanation() && 
-        question?.userAnswer !== undefined && 
+    // Auto-flip for ANY incorrect answer after server responds
+    if (question?.userAnswer !== undefined && 
         localAnswerState.hasAnswer && 
-        !question?.userAnswer?.isCorrect) {
-      // Auto-flip to show explanation after a short delay
+        question?.userAnswer?.isCorrect === false &&
+        !isFlipped) {
+      // Auto-flip to show help (either static explanation or AI chat) after a short delay
       const timer = setTimeout(() => {
         setIsFlipped(true);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [question?.userAnswer, question?.latestVersion?.isStaticAnswer, question?.latestVersion?.staticExplanation, localAnswerState.hasAnswer]);
+  }, [question?.userAnswer, localAnswerState.hasAnswer, isFlipped]);
 
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
