@@ -92,6 +92,9 @@ export function QuestionCard({
     : question?.userAnswer?.isCorrect;
   const isPending = hasAnswer && isCorrect === undefined;
   const questionType = question?.latestVersion?.questionType || "multiple_choice";
+  
+  // Show feedback section when we have an answer and it's not pending
+  const showFeedback = hasAnswer && !isPending;
 
   // Reset flip state when question changes
   useEffect(() => {
@@ -445,39 +448,48 @@ export function QuestionCard({
                     </div>
                   )}
 
-                  {/* Show correct feedback after server responds */}
-                  {hasAnswer && !isPending && isCorrect && (
+                  {/* Show feedback after server responds */}
+                  {showFeedback && (
                     <div className="space-y-3">
-                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <div className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-success mr-2" />
-                          <span className="font-medium text-success text-sm">Correct!</span>
+                      {/* Show appropriate feedback based on correctness */}
+                      {isCorrect === true && (
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <div className="flex items-center">
+                            <CheckCircle className="h-4 w-4 text-success mr-2" />
+                            <span className="font-medium text-success text-sm">Correct!</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      
+                      {isCorrect === false && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <div className="flex items-center">
+                            <XCircle className="h-4 w-4 text-error mr-2" />
+                            <span className="font-medium text-error text-sm">Incorrect</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Edge case: answered but no clear correct/incorrect status */}
+                      {isCorrect !== true && isCorrect !== false && (
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                          <div className="flex items-center">
+                            <MessageSquare className="h-4 w-4 text-muted-foreground mr-2" />
+                            <span className="font-medium text-muted-foreground text-sm">Answer Submitted</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Always show Get Help button when feedback is shown */}
                       <Button
                         onClick={handleShowChatbot}
                         variant="outline"
-                        className="w-full py-3 border-muted-foreground/30 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Get Help
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Show incorrect feedback after server responds */}
-                  {hasAnswer && !isPending && !isCorrect && (
-                    <div className="space-y-3">
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <div className="flex items-center">
-                          <XCircle className="h-4 w-4 text-error mr-2" />
-                          <span className="font-medium text-error text-sm">Incorrect</span>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleShowChatbot}
-                        variant="outline"
-                        className="w-full py-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        className={cn(
+                          "w-full py-3",
+                          isCorrect === false 
+                            ? "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            : "border-muted-foreground/30 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Get Help
