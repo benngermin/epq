@@ -92,8 +92,11 @@ export function QuestionCard({
   const isCorrect = localAnswerState.isCorrect !== undefined 
     ? localAnswerState.isCorrect 
     : question?.userAnswer?.isCorrect;
-  const isPending = hasAnswer && isCorrect === undefined;
   const questionType = question?.latestVersion?.questionType || "multiple_choice";
+  
+  // For simple question types with optimistic updates, never show pending state
+  const canUseOptimisticUpdate = shouldShowOptimisticResult(questionType, question?.latestVersion?.correctAnswer);
+  const isPending = hasAnswer && isCorrect === undefined && !canUseOptimisticUpdate;
   
   // Show feedback section when we have an answer and it's not pending
   const showFeedback = hasAnswer && !isPending;
@@ -186,8 +189,9 @@ export function QuestionCard({
       ? validateAnswerClientSide(questionType, selectedAnswerState, question.latestVersion.correctAnswer)
       : undefined;
     
+    // Set state synchronously BEFORE calling onSubmitAnswer to prevent any flash
     if (clientValidation) {
-      // Show optimistic result immediately for simple types
+      // Show optimistic result immediately for simple types - no pending state ever
       setLocalAnswerState({ 
         hasAnswer: true, 
         isCorrect: clientValidation.isCorrect,
@@ -554,7 +558,7 @@ export function QuestionCard({
                       disabled={!selectedAnswerState || isSubmitting}
                       className="w-full py-2 sm:py-2.5 md:py-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      {isSubmitting || isPending ? "Submitting..." : "Submit Answer"}
+                      {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
                   )}
                 </div>
