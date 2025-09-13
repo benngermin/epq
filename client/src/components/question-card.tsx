@@ -188,7 +188,7 @@ export function QuestionCard({
                                 <DragDropZones
                                   answerChoices={question.latestVersion.answerChoices || []}
                                   dropZones={question.latestVersion.dropZones}
-                                  value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                  value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                   onChange={setSelectedAnswerState}
                                   disabled={hasAnswer || isSubmitting}
                                   correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
@@ -208,7 +208,7 @@ export function QuestionCard({
                               <div className="flex-1">
                                 <Ordering
                                   answerChoices={question.latestVersion?.answerChoices || []}
-                                  value={hasAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
+                                  value={hasAnswer && question.userAnswer ? JSON.parse(question.userAnswer.chosenAnswer) : selectedAnswerState}
                                   onChange={setSelectedAnswerState}
                                   disabled={hasAnswer || isSubmitting}
                                   correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
@@ -224,7 +224,7 @@ export function QuestionCard({
                         return (
                           <FillInBlank
                             questionText={question.latestVersion?.questionText || ""}
-                            value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                            value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                             onChange={setSelectedAnswerState}
                             disabled={hasAnswer || isSubmitting}
                             isCorrect={isCorrect}
@@ -244,7 +244,7 @@ export function QuestionCard({
                             <div className="flex-1">
                               <PickFromList
                                 answerChoices={question.latestVersion?.answerChoices || []}
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
                                 allowMultiple={true}
                                 disabled={hasAnswer || isSubmitting}
@@ -294,7 +294,7 @@ export function QuestionCard({
                               <SelectFromListBlank
                                 questionText={question.latestVersion.questionText}
                                 blanks={blanksData}
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
                                 disabled={hasAnswer || isSubmitting}
                                 correctAnswer={hasAnswer ? (question.latestVersion.blanks || blanksData) : undefined}
@@ -327,7 +327,7 @@ export function QuestionCard({
                               <div className="flex-1">
                                 <PickFromList
                                   answerChoices={answerChoices}
-                                  value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                  value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                   onChange={setSelectedAnswerState}
                                   allowMultiple={false}
                                   disabled={hasAnswer || isSubmitting}
@@ -352,7 +352,7 @@ export function QuestionCard({
                             <div className="flex-1">
                               <EitherOr
                                 answerChoices={question.latestVersion?.answerChoices || []}
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onChange={setSelectedAnswerState}
                                 disabled={hasAnswer || isSubmitting}
                                 correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
@@ -371,7 +371,7 @@ export function QuestionCard({
                             </div>
                             <div className="flex-1 overflow-y-auto max-h-[400px] pr-2">
                               <RadioGroup
-                                value={hasAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
                                 onValueChange={setSelectedAnswerState}
                                 disabled={hasAnswer || isSubmitting}
                                 className="flex flex-col justify-start gap-1 sm:gap-1.5 md:gap-2.5 lg:gap-3"
@@ -379,7 +379,7 @@ export function QuestionCard({
                                 {question.latestVersion?.answerChoices?.map((choice: string, index: number) => {
                                   const choiceLetter = String.fromCharCode(65 + index); // A, B, C, D
                                   const isSelected = hasAnswer 
-                                    ? question.userAnswer.chosenAnswer === choiceLetter
+                                    ? question.userAnswer?.chosenAnswer === choiceLetter
                                     : selectedAnswerState === choiceLetter;
                                   const isCorrectChoice = choiceLetter === question.latestVersion?.correctAnswer;
 
