@@ -9,6 +9,7 @@ import { SimpleStreamingChat } from "./simple-streaming-chat";
 import { StaticExplanation } from "./static-explanation";
 import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
+import { validateAnswerClientSide, shouldShowOptimisticResult } from "@/utils/client-validation";
 
 // Utility function to clean blank_n patterns, brackets, and asterisk patterns from question text
 const cleanQuestionText = (text: string): string => {
@@ -79,9 +80,10 @@ export function QuestionCard({
   const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
-  const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | undefined }>({
+  const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | undefined; isOptimistic?: boolean }>({
     hasAnswer: false,
-    isCorrect: undefined
+    isCorrect: undefined,
+    isOptimistic: false
   });
 
   // Use local state immediately after submission, otherwise use props
@@ -101,19 +103,23 @@ export function QuestionCard({
     setIsFlipped(false);
     setSelectedAnswerState("");
     setSubmittedAnswer("");
-    setLocalAnswerState({ hasAnswer: false, isCorrect: undefined });
+    setLocalAnswerState({ hasAnswer: false, isCorrect: undefined, isOptimistic: false });
     onFlipChange?.(false);
   }, [question?.id, onFlipChange]);
 
   // Sync local state with server response
   useEffect(() => {
-    // If we have a server response and we're currently in pending state
-    if (question?.userAnswer && localAnswerState.hasAnswer && localAnswerState.isCorrect === undefined) {
-      // Update local state with server's isCorrect value
-      setLocalAnswerState(prev => ({
-        ...prev,
-        isCorrect: question.userAnswer.isCorrect
-      }));
+    // If we have a server response
+    if (question?.userAnswer && localAnswerState.hasAnswer) {
+      // Update with server's authoritative result
+      // This handles both pending states and correcting any optimistic mismatches
+      if (localAnswerState.isCorrect !== question.userAnswer.isCorrect) {
+        setLocalAnswerState(prev => ({
+          ...prev,
+          isCorrect: question.userAnswer.isCorrect,
+          isOptimistic: false // Server result is always authoritative
+        }));
+      }
     }
   }, [question?.userAnswer, localAnswerState.hasAnswer, localAnswerState.isCorrect]);
 
@@ -161,10 +167,28 @@ export function QuestionCard({
 
     setSubmittedAnswer(answerString);
     
-    // Set local state immediately to show submission is pending
-    setLocalAnswerState({ hasAnswer: true, isCorrect: undefined });
+    // Try client-side validation for optimistic updates
+    const clientValidation = shouldShowOptimisticResult(questionType, question.latestVersion.correctAnswer) 
+      ? validateAnswerClientSide(questionType, selectedAnswerState, question.latestVersion.correctAnswer)
+      : undefined;
     
-    // Submit to server
+    if (clientValidation) {
+      // Show optimistic result immediately for simple types
+      setLocalAnswerState({ 
+        hasAnswer: true, 
+        isCorrect: clientValidation.isCorrect,
+        isOptimistic: true 
+      });
+    } else {
+      // Show pending state for complex types
+      setLocalAnswerState({ 
+        hasAnswer: true, 
+        isCorrect: undefined,
+        isOptimistic: false 
+      });
+    }
+    
+    // Always submit to server for verification
     onSubmitAnswer(answerString);
   };
 
@@ -449,7 +473,7 @@ export function QuestionCard({
 
                 {/* Action buttons - always visible at bottom - add significant bottom padding on mobile for sticky footer clearance */}
                 <div className="mt-4 pt-1 sm:pt-2 md:pt-4 pb-2 flex-shrink-0 border-t">
-                  {/* Show pending state while waiting for evaluation */}
+                  {/* Show pending state only for complex types that need server evaluation */}
                   {isPending && (
                     <div className="space-y-3">
                       <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
