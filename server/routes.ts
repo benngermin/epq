@@ -1270,19 +1270,38 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Use centralized validation system
-      const { validateAnswer } = await import('./utils/answer-validation');
+      const { validateAnswer, validateSelectFromListWithReport } = await import('./utils/answer-validation');
       
-      const isCorrect = validateAnswer(
+      const validationOptions = {
+        caseSensitive: questionVersion.caseSensitive || false,
+        acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+        blanks: questionVersion.blanks as any[] || undefined,
+        dropZones: questionVersion.dropZones as any[] || undefined
+      };
+      
+      let isCorrect = validateAnswer(
         answerData.chosenAnswer,
         questionVersion.correctAnswer,
         questionVersion.questionType,
-        {
-          caseSensitive: questionVersion.caseSensitive || false,
-          acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
-          blanks: questionVersion.blanks as any[] || undefined,
-          dropZones: questionVersion.dropZones as any[] || undefined
-        }
+        validationOptions
       );
+      
+      // Enhanced debugging for SELECT_FROM_LIST questions
+      if (process.env.DEBUG_VALIDATION === 'true' && questionVersion.questionType === 'select_from_list') {
+        const validationReport = validateSelectFromListWithReport(
+          answerData.chosenAnswer,
+          questionVersion.correctAnswer,
+          validationOptions
+        );
+        console.log('[VALIDATION_REPORT] Test Run', {
+          testRunId,
+          questionVersionId: answerData.questionVersionId,
+          questionType: questionVersion.questionType,
+          report: validationReport
+        });
+        // Use the report's result for consistency
+        isCorrect = validationReport.isCorrect;
+      }
       
       const answer = await storage.createUserAnswer({
         ...answerData,
@@ -1348,19 +1367,39 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Use centralized validation system
-      const { validateAnswer } = await import('./utils/answer-validation');
+      const { validateAnswer, validateSelectFromListWithReport } = await import('./utils/answer-validation');
       
-      const isCorrect = validateAnswer(
+      const validationOptions = {
+        caseSensitive: questionVersion.caseSensitive || false,
+        acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+        blanks: questionVersion.blanks as any[] || undefined,
+        dropZones: questionVersion.dropZones as any[] || undefined
+      };
+      
+      let isCorrect = validateAnswer(
         answer,
         questionVersion.correctAnswer,
         questionVersion.questionType,
-        {
-          caseSensitive: questionVersion.caseSensitive || false,
-          acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
-          blanks: questionVersion.blanks as any[] || undefined,
-          dropZones: questionVersion.dropZones as any[] || undefined
-        }
+        validationOptions
       );
+      
+      // Enhanced debugging for SELECT_FROM_LIST questions
+      let validationReport = null;
+      if (process.env.DEBUG_VALIDATION === 'true' && questionVersion.questionType === 'select_from_list') {
+        validationReport = validateSelectFromListWithReport(
+          answer,
+          questionVersion.correctAnswer,
+          validationOptions
+        );
+        console.log('[VALIDATION_REPORT] Question Set Practice', {
+          questionSetId,
+          questionVersionId,
+          questionType: questionVersion.questionType,
+          report: validationReport
+        });
+        // Use the report's result for consistency
+        isCorrect = validationReport.isCorrect;
+      }
 
       // Log this practice answer for analytics
       // First, find or create a practice test run for this user and question set
@@ -1409,12 +1448,17 @@ export function registerRoutes(app: Express): Server {
       }
 
       // For question set practice, we return the answer validation result
-      const answerData = {
+      const answerData: any = {
         questionVersionId,
         chosenAnswer: answer,
         isCorrect,
         correctAnswer: questionVersion.correctAnswer,
       };
+      
+      // Include validation report in debug mode
+      if (process.env.DEBUG_VALIDATION === 'true' && validationReport) {
+        answerData.validationReport = validationReport;
+      }
 
       res.json(answerData);
     } catch (error) {

@@ -32,23 +32,55 @@ interface ValidationOptions {
   }>;
 }
 
+// Validation report for detailed debugging
+interface ValidationReport {
+  isCorrect: boolean;
+  method: 'blanks_multi' | 'blanks_single' | 'direct' | 'normalized' | 'fallback' | 'error';
+  details: string;
+  comparisons?: Array<{
+    expected: string;
+    received: string;
+    matched: boolean;
+    context?: string;
+  }>;
+  debugInfo?: any;
+}
+
 /**
  * Safely parse JSON string with error handling
+ * Enhanced with debug mode support
  */
 function safeJsonParse(jsonString: string, fallback: any = null): any {
+  const debug = process.env.DEBUG_VALIDATION === 'true';
+  
   if (!jsonString || typeof jsonString !== 'string') {
-    debugLog('Invalid JSON input - not a string', { input: jsonString, type: typeof jsonString });
+    if (debug) {
+      debugLog('Invalid JSON input - not a string', { 
+        input: jsonString, 
+        type: typeof jsonString 
+      });
+    }
     return fallback;
   }
   
   try {
-    return JSON.parse(jsonString);
+    const parsed = JSON.parse(jsonString);
+    if (debug) {
+      debugLog('Successfully parsed JSON', {
+        inputLength: jsonString.length,
+        parsedType: typeof parsed,
+        parsedKeys: typeof parsed === 'object' && parsed !== null ? Object.keys(parsed) : null
+      });
+    }
+    return parsed;
   } catch (error) {
-    debugLog('Failed to parse JSON', { 
-      input: jsonString.substring(0, 100), // Log first 100 chars to avoid huge logs
-      error: error instanceof Error ? error.message : String(error),
-      fullLength: jsonString.length 
-    });
+    if (debug) {
+      debugLog('Failed to parse JSON', { 
+        input: jsonString.substring(0, 100), // Log first 100 chars to avoid huge logs
+        error: error instanceof Error ? error.message : String(error),
+        fullLength: jsonString.length 
+      });
+    }
     return fallback;
   }
 }
@@ -79,7 +111,9 @@ function compareArraysAsSet(arr1: any[], arr2: any[], caseSensitive: boolean = f
   
   if (set1.size !== set2.size) return false;
   
-  for (const item of set1) {
+  // Convert to array for iteration to avoid TypeScript issues
+  const items = Array.from(set1);
+  for (const item of items) {
     if (!set2.has(item)) return false;
   }
   
@@ -232,35 +266,163 @@ function validateShortAnswer(
 
 /**
  * Validate select from list (dropdowns in blanks)
+ * Enhanced with comprehensive logging and defensive checks
  */
 function validateSelectFromList(
   userAnswer: string,
   correctAnswer: string,
   options: ValidationOptions
 ): boolean {
-  // If we have blanks configuration, use it
-  if (options.blanks && options.blanks.length > 0) {
-    if (userAnswer.startsWith('{')) {
-      // Multi-blank dropdown format: {"1":"answer1","2":"answer2"}
-      const userBlanks = safeJsonParse(userAnswer, {});
-      
-      // Check if all blanks are answered correctly
-      for (const blank of options.blanks) {
-        const userAnswerForBlank = userBlanks[blank.blank_id.toString()];
-        if (userAnswerForBlank !== blank.correct_answer) {
-          return false;
-        }
+  const debug = process.env.DEBUG_VALIDATION === 'true';
+  
+  // Enhanced logging for debugging
+  if (debug) {
+    debugLog('[SELECT_FROM_LIST] Starting validation', {
+      userAnswerType: typeof userAnswer,
+      userAnswerLength: userAnswer?.length,
+      userAnswerPreview: userAnswer?.substring(0, 100),
+      correctAnswerType: typeof correctAnswer,
+      correctAnswerPreview: correctAnswer?.substring(0, 100),
+      hasBlanks: !!options.blanks,
+      blanksCount: options.blanks?.length,
+      blanksStructure: options.blanks?.map(b => ({
+        blank_id: b?.blank_id,
+        hasCorrectAnswer: !!b?.correct_answer,
+        correctAnswerPreview: b?.correct_answer?.substring(0, 50)
+      }))
+    });
+  }
+
+  // Step 1: Validate input
+  if (!userAnswer || userAnswer.trim() === '') {
+    if (debug) debugLog('[SELECT_FROM_LIST] Validation failed: Empty user answer');
+    return false;
+  }
+
+  // Step 2: Attempt to use blanks configuration if available
+  if (options.blanks && Array.isArray(options.blanks) && options.blanks.length > 0) {
+    // Validate blanks structure
+    const validBlanks = options.blanks.every(blank => 
+      blank && 
+      typeof blank === 'object' && 
+      'correct_answer' in blank &&
+      blank.correct_answer !== null &&
+      blank.correct_answer !== undefined
+    );
+    
+    if (!validBlanks) {
+      if (debug) {
+        debugLog('[SELECT_FROM_LIST] Invalid blanks structure detected, falling back to direct comparison', {
+          blanks: options.blanks,
+          validation: options.blanks.map(b => ({
+            hasBlank: !!b,
+            isObject: typeof b === 'object',
+            hasCorrectAnswer: b && 'correct_answer' in b,
+            correctAnswerValue: b?.correct_answer
+          }))
+        });
       }
-      
-      return true;
-    } else if (options.blanks.length === 1) {
-      // Single dropdown - direct comparison with first blank's correct answer
-      return userAnswer === options.blanks[0].correct_answer;
+      // Fall through to correctAnswer comparison
+    } else {
+      // Check if user answer is JSON (multi-blank)
+      if (userAnswer.startsWith('{')) {
+        const userBlanks = safeJsonParse(userAnswer, null);
+        
+        if (userBlanks === null) {
+          if (debug) {
+            debugLog('[SELECT_FROM_LIST] Failed to parse JSON answer, trying direct comparison', {
+              userAnswer
+            });
+          }
+          // Fall through to direct comparison
+        } else if (typeof userBlanks === 'object' && !Array.isArray(userBlanks)) {
+          // Multi-blank dropdown format: {"1":"answer1","2":"answer2"}
+          let allCorrect = true;
+          const comparisons: any[] = [];
+          
+          for (const blank of options.blanks) {
+            const blankIdStr = String(blank.blank_id);
+            const userAnswerForBlank = userBlanks[blankIdStr];
+            const isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            comparisons.push({
+              blank_id: blankIdStr,
+              userAnswer: userAnswerForBlank,
+              correctAnswer: blank.correct_answer,
+              isMatch
+            });
+            
+            if (!isMatch) {
+              allCorrect = false;
+            }
+          }
+          
+          if (debug) {
+            debugLog('[SELECT_FROM_LIST] Multi-blank validation result', {
+              allCorrect,
+              comparisons,
+              userBlanks
+            });
+          }
+          
+          if (allCorrect) return true;
+          // If not all correct, still try fallback comparison
+        }
+      } else if (options.blanks.length === 1) {
+        // Single dropdown - try blank's correct answer first
+        const blankCorrectAnswer = options.blanks[0].correct_answer;
+        const isMatch = userAnswer === blankCorrectAnswer;
+        
+        if (debug) {
+          debugLog('[SELECT_FROM_LIST] Single blank validation', {
+            userAnswer,
+            blankCorrectAnswer,
+            isMatch,
+            willFallback: !isMatch
+          });
+        }
+        
+        if (isMatch) return true;
+        // If no match, fall through to correctAnswer comparison
+      }
     }
+  } else if (debug) {
+    debugLog('[SELECT_FROM_LIST] No valid blanks configuration, using direct comparison');
   }
   
-  // Fallback to simple comparison
-  return userAnswer === correctAnswer;
+  // Step 3: Fallback to correctAnswer field comparison
+  // This ensures we always check the main correctAnswer field
+  const directMatch = userAnswer === correctAnswer;
+  
+  if (debug) {
+    debugLog('[SELECT_FROM_LIST] Fallback comparison result', {
+      userAnswer,
+      correctAnswer,
+      directMatch,
+      userAnswerLength: userAnswer.length,
+      correctAnswerLength: correctAnswer.length,
+      areEqual: directMatch
+    });
+  }
+  
+  // Step 4: Try normalized comparison as last resort
+  if (!directMatch) {
+    const normalizedUser = normalizeString(userAnswer);
+    const normalizedCorrect = normalizeString(correctAnswer);
+    const normalizedMatch = normalizedUser === normalizedCorrect;
+    
+    if (debug) {
+      debugLog('[SELECT_FROM_LIST] Normalized comparison attempt', {
+        normalizedUser,
+        normalizedCorrect,
+        normalizedMatch
+      });
+    }
+    
+    return normalizedMatch;
+  }
+  
+  return directMatch;
 }
 
 /**
@@ -354,7 +516,9 @@ function validateDragAndDrop(
   ]);
   
   // Compare each zone's contents (order doesn't matter within a zone)
-  for (const zoneId of allZoneKeys) {
+  // Convert Set to array for iteration
+  const zoneKeysArray = Array.from(allZoneKeys);
+  for (const zoneId of zoneKeysArray) {
     const userItems = transformedUserZones[zoneId] || [];
     const correctItems = transformedCorrectZones[zoneId] || [];
     
@@ -473,12 +637,27 @@ export function validateAnswer(
       return false;
     }
     
-    // Log validation attempt for debugging
-    debugLog('Validating answer', {
-      questionType,
-      userAnswerLength: userAnswer.length,
-      hasOptions: Object.keys(options).length > 0
-    });
+    // Enhanced validation logging
+    const debug = process.env.DEBUG_VALIDATION === 'true';
+    
+    if (debug) {
+      debugLog('Validating answer', {
+        questionType,
+        userAnswerLength: userAnswer.length,
+        userAnswerPreview: userAnswer.substring(0, 100),
+        correctAnswerPreview: correctAnswer.substring(0, 100),
+        hasOptions: Object.keys(options).length > 0,
+        options: {
+          caseSensitive: options.caseSensitive,
+          hasAcceptableAnswers: !!options.acceptableAnswers,
+          acceptableAnswersCount: options.acceptableAnswers?.length,
+          hasBlanks: !!options.blanks,
+          blanksCount: options.blanks?.length,
+          hasDropZones: !!options.dropZones,
+          dropZonesCount: options.dropZones?.length
+        }
+      });
+    }
     
     // Route to appropriate validator based on question type
     switch (questionType) {
@@ -492,7 +671,16 @@ export function validateAnswer(
         return validateShortAnswer(userAnswer, correctAnswer, options);
         
       case QuestionType.SELECT_FROM_LIST:
-        return validateSelectFromList(userAnswer, correctAnswer, options);
+        const result = validateSelectFromList(userAnswer, correctAnswer, options);
+        if (debug) {
+          debugLog('[SELECT_FROM_LIST] Final validation result', {
+            isCorrect: result,
+            questionType,
+            userAnswer: userAnswer.substring(0, 100),
+            correctAnswer: correctAnswer.substring(0, 100)
+          });
+        }
+        return result;
         
       case QuestionType.DRAG_AND_DROP:
         return validateDragAndDrop(userAnswer, correctAnswer, options);
@@ -515,6 +703,149 @@ export function validateAnswer(
     });
     return false;
   }
+}
+
+/**
+ * Enhanced validation with detailed reporting for select_from_list
+ * Returns detailed validation information for debugging
+ */
+export function validateSelectFromListWithReport(
+  userAnswer: string,
+  correctAnswer: string,
+  options: ValidationOptions = {}
+): ValidationReport {
+  const comparisons: Array<{ expected: string; received: string; matched: boolean; context?: string }> = [];
+  
+  // Validate input
+  if (!userAnswer || userAnswer.trim() === '') {
+    return {
+      isCorrect: false,
+      method: 'error',
+      details: 'Empty user answer provided',
+      comparisons: []
+    };
+  }
+
+  // Try blanks configuration first
+  if (options.blanks && Array.isArray(options.blanks) && options.blanks.length > 0) {
+    // Validate blanks structure
+    const validBlanks = options.blanks.every(blank => 
+      blank && 
+      typeof blank === 'object' && 
+      'correct_answer' in blank &&
+      blank.correct_answer !== null &&
+      blank.correct_answer !== undefined
+    );
+    
+    if (validBlanks) {
+      // Check if user answer is JSON (multi-blank)
+      if (userAnswer.startsWith('{')) {
+        const userBlanks = safeJsonParse(userAnswer, null);
+        
+        if (userBlanks && typeof userBlanks === 'object' && !Array.isArray(userBlanks)) {
+          // Multi-blank validation
+          let allCorrect = true;
+          
+          for (const blank of options.blanks) {
+            const blankIdStr = String(blank.blank_id);
+            const userAnswerForBlank = userBlanks[blankIdStr];
+            const isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            comparisons.push({
+              expected: blank.correct_answer,
+              received: userAnswerForBlank || '(empty)',
+              matched: isMatch,
+              context: `Blank ${blankIdStr}`
+            });
+            
+            if (!isMatch) allCorrect = false;
+          }
+          
+          if (allCorrect) {
+            return {
+              isCorrect: true,
+              method: 'blanks_multi',
+              details: 'All blanks matched correctly',
+              comparisons
+            };
+          }
+        }
+      } else if (options.blanks.length === 1) {
+        // Single blank validation
+        const blankCorrectAnswer = options.blanks[0].correct_answer;
+        const isMatch = userAnswer === blankCorrectAnswer;
+        
+        comparisons.push({
+          expected: blankCorrectAnswer,
+          received: userAnswer,
+          matched: isMatch,
+          context: 'Single blank'
+        });
+        
+        if (isMatch) {
+          return {
+            isCorrect: true,
+            method: 'blanks_single',
+            details: 'Single blank matched',
+            comparisons
+          };
+        }
+      }
+    }
+  }
+  
+  // Try direct comparison
+  const directMatch = userAnswer === correctAnswer;
+  comparisons.push({
+    expected: correctAnswer,
+    received: userAnswer,
+    matched: directMatch,
+    context: 'Direct comparison'
+  });
+  
+  if (directMatch) {
+    return {
+      isCorrect: true,
+      method: 'direct',
+      details: 'Direct match with correctAnswer field',
+      comparisons
+    };
+  }
+  
+  // Try normalized comparison
+  const normalizedUser = normalizeString(userAnswer);
+  const normalizedCorrect = normalizeString(correctAnswer);
+  const normalizedMatch = normalizedUser === normalizedCorrect;
+  
+  comparisons.push({
+    expected: normalizedCorrect,
+    received: normalizedUser,
+    matched: normalizedMatch,
+    context: 'Normalized comparison (case-insensitive, trimmed)'
+  });
+  
+  if (normalizedMatch) {
+    return {
+      isCorrect: true,
+      method: 'normalized',
+      details: 'Match after normalization',
+      comparisons
+    };
+  }
+  
+  // No match found
+  return {
+    isCorrect: false,
+    method: 'fallback',
+    details: 'No matching validation method succeeded',
+    comparisons,
+    debugInfo: {
+      userAnswerType: typeof userAnswer,
+      correctAnswerType: typeof correctAnswer,
+      hasBlanks: !!options.blanks,
+      blanksCount: options.blanks?.length
+    }
+  };
 }
 
 /**
