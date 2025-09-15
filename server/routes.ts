@@ -441,7 +441,9 @@ async function streamOpenRouterToBuffer(
             stream.chunks = [fullResponse];
           }
         } catch (e) {
-          console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
+          }
         }
       }
     }
@@ -601,7 +603,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(coursesWithProgress);
     } catch (error) {
-      console.error("Error fetching courses:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching courses:", error);
+      }
       res.status(500).json({ message: "Failed to fetch courses" });
     }
   });
@@ -611,7 +615,9 @@ export function registerRoutes(app: Express): Server {
       const courses = await storage.getCoursesWithQuestionSets();
       res.json(courses);
     } catch (error) {
-      console.error("Error fetching courses with question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching courses with question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch courses with question sets" });
     }
   });
@@ -637,7 +643,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(course);
     } catch (error) {
-      console.error("Error fetching course by external ID:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course by external ID:", error);
+      }
       res.status(500).json({ message: "Failed to fetch course" });
     }
   });
@@ -658,7 +666,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(course);
     } catch (error) {
-      console.error("Error fetching course:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course:", error);
+      }
       res.status(500).json({ message: "Failed to fetch course" });
     }
   });
@@ -669,7 +679,9 @@ export function registerRoutes(app: Express): Server {
       const course = await storage.createCourse(courseData);
       res.status(201).json(course);
     } catch (error) {
-      console.error("Error creating course:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error creating course:", error);
+      }
       res.status(400).json({ message: "Invalid course data" });
     }
   });
@@ -686,7 +698,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(course);
     } catch (error) {
-      console.error("Error updating course:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error updating course:", error);
+      }
       res.status(400).json({ message: "Invalid course data" });
     }
   });
@@ -702,7 +716,9 @@ export function registerRoutes(app: Express): Server {
       
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting course:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error deleting course:", error);
+      }
       res.status(500).json({ message: "Failed to delete course" });
     }
   });
@@ -738,7 +754,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(results);
     } catch (error) {
-      console.error("Error bulk inserting courses:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error bulk inserting courses:", error);
+      }
       res.status(400).json({ message: "Invalid course data" });
     }
   });
@@ -781,7 +799,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionSetsWithDetails);
     } catch (error) {
-      console.error("Error fetching all question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching all question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question sets" });
     }
   });
@@ -820,7 +840,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionSetsWithDetails);
     } catch (error) {
-      console.error("Error fetching question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question sets" });
     }
   });
@@ -831,7 +853,9 @@ export function registerRoutes(app: Express): Server {
       const questionSet = await storage.createQuestionSet(questionSetData);
       res.status(201).json(questionSet);
     } catch (error) {
-      console.error("Error creating question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error creating question set:", error);
+      }
       res.status(400).json({ message: "Invalid question set data" });
     }
   });
@@ -848,7 +872,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionSet);
     } catch (error) {
-      console.error("Error updating question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error updating question set:", error);
+      }
       res.status(400).json({ message: "Invalid question set data" });
     }
   });
@@ -864,7 +890,9 @@ export function registerRoutes(app: Express): Server {
       
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error deleting question set:", error);
+      }
       res.status(500).json({ message: "Failed to delete question set" });
     }
   });
@@ -879,7 +907,9 @@ export function registerRoutes(app: Express): Server {
       const mapping = await storage.createCourseQuestionSetMapping(courseId, questionSetId, displayOrder);
       res.status(201).json(mapping);
     } catch (error) {
-      console.error("Error creating course-questionset mapping:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error creating course-questionset mapping:", error);
+      }
       res.status(500).json({ message: "Failed to create mapping" });
     }
   });
@@ -897,7 +927,9 @@ export function registerRoutes(app: Express): Server {
       
       res.status(200).json({ message: "Mapping deleted successfully" });
     } catch (error) {
-      console.error("Error deleting course-questionset mapping:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error deleting course-questionset mapping:", error);
+      }
       res.status(500).json({ message: "Failed to delete mapping" });
     }
   });
@@ -909,7 +941,9 @@ export function registerRoutes(app: Express): Server {
       const courses = await storage.getCoursesForQuestionSet(questionSetId);
       res.json(courses);
     } catch (error) {
-      console.error("Error getting courses for question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error getting courses for question set:", error);
+      }
       res.status(500).json({ message: "Failed to get courses" });
     }
   });
@@ -984,7 +1018,9 @@ export function registerRoutes(app: Express): Server {
           
           importedCount++;
         } catch (error) {
-          console.error(`Error importing question ${questionData.question_number}:`, error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`Error importing question ${questionData.question_number}:`, error);
+          }
           const errorMessage = error instanceof Error ? error.message : String(error);
           errors.push(`Failed to import question ${questionData.question_number}: ${errorMessage}`);
         }
@@ -1000,7 +1036,9 @@ export function registerRoutes(app: Express): Server {
         errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
-      console.error("Error importing questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error importing questions:", error);
+      }
       res.status(500).json({ message: "Failed to import questions" });
     }
   });
@@ -1025,7 +1063,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionSets);
     } catch (error) {
-      console.error("Error fetching question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question sets" });
     }
   });
@@ -1066,7 +1106,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionSetWithCourse);
     } catch (error) {
-      console.error("Error fetching question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question set:", error);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       if (errorMessage.includes('Circuit breaker is OPEN')) {
@@ -1111,7 +1153,9 @@ export function registerRoutes(app: Express): Server {
       // Return combined data matching the expected format
       res.json({ questionSet, questions, course, courseQuestionSets });
     } catch (error) {
-      console.error("Error in optimized endpoint:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in optimized endpoint:", error);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       if (errorMessage.includes('Circuit breaker is OPEN')) {
@@ -1133,7 +1177,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json(questionsWithLatestVersions);
     } catch (error) {
-      console.error("Error fetching questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching questions:", error);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Provide more specific error messages
@@ -1172,7 +1218,9 @@ export function registerRoutes(app: Express): Server {
         questionSet,
       });
     } catch (error) {
-      console.error("Error fetching test run:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching test run:", error);
+      }
       res.status(500).json({ message: "Failed to fetch test run" });
     }
   });
@@ -1212,7 +1260,9 @@ export function registerRoutes(app: Express): Server {
         userAnswer,
       });
     } catch (error) {
-      console.error("Error fetching question:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question" });
     }
   });
@@ -1241,7 +1291,9 @@ export function registerRoutes(app: Express): Server {
 
       res.json(questionVersions.filter(q => q !== undefined));
     } catch (error) {
-      console.error("Error fetching all questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching all questions:", error);
+      }
       res.status(500).json({ message: "Failed to fetch questions" });
     }
   });
@@ -1293,12 +1345,14 @@ export function registerRoutes(app: Express): Server {
           questionVersion.correctAnswer,
           validationOptions
         );
-        console.log('[VALIDATION_REPORT] Test Run', {
-          testRunId,
-          questionVersionId: answerData.questionVersionId,
-          questionType: questionVersion.questionType,
-          report: validationReport
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VALIDATION_REPORT] Test Run', {
+            testRunId,
+            questionVersionId: answerData.questionVersionId,
+            questionType: questionVersion.questionType,
+            report: validationReport
+          });
+        }
         // Use the report's result for consistency
         isCorrect = validationReport.isCorrect;
       }
@@ -1314,7 +1368,9 @@ export function registerRoutes(app: Express): Server {
         correctAnswer: questionVersion.correctAnswer,
       });
     } catch (error) {
-      console.error("Error submitting answer:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error submitting answer:", error);
+      }
       res.status(500).json({ message: "Failed to submit answer" });
     }
   });
@@ -1338,7 +1394,9 @@ export function registerRoutes(app: Express): Server {
 
       res.json(updatedTestRun);
     } catch (error) {
-      console.error("Error completing test:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error completing test:", error);
+      }
       res.status(500).json({ message: "Failed to complete test" });
     }
   });
@@ -1391,12 +1449,14 @@ export function registerRoutes(app: Express): Server {
           questionVersion.correctAnswer,
           validationOptions
         );
-        console.log('[VALIDATION_REPORT] Question Set Practice', {
-          questionSetId,
-          questionVersionId,
-          questionType: questionVersion.questionType,
-          report: validationReport
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VALIDATION_REPORT] Question Set Practice', {
+            questionSetId,
+            questionVersionId,
+            questionType: questionVersion.questionType,
+            report: validationReport
+          });
+        }
         // Use the report's result for consistency
         isCorrect = validationReport.isCorrect;
       }
@@ -1462,7 +1522,9 @@ export function registerRoutes(app: Express): Server {
 
       res.json(answerData);
     } catch (error) {
-      console.error("Error submitting answer:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error submitting answer:", error);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       if (errorMessage.includes('Circuit breaker is OPEN')) {
@@ -1527,7 +1589,9 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ response });
     } catch (error) {
-      console.error("Simple chatbot error:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Simple chatbot error:", error);
+      }
       res.status(500).json({ error: "Failed to get AI response" });
     }
   });
@@ -1564,11 +1628,15 @@ export function registerRoutes(app: Express): Server {
         // Check if the conversation history has a system message
         const hasSystemMessage = conversationHistory.some((msg: any) => msg.role === "system");
         if (!hasSystemMessage) {
-          console.warn(`Warning: Conversation history for question ${questionVersionId} missing system message`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Warning: Conversation history for question ${questionVersionId} missing system message`);
+          }
           // Reset to empty if system message is missing
           validatedHistory = [];
         } else if (process.env.NODE_ENV === 'development') {
-          console.log(`✓ Valid conversation history with system message for question ${questionVersionId}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`✓ Valid conversation history with system message for question ${questionVersionId}`);
+          }
         }
       }
       
@@ -1739,7 +1807,9 @@ export function registerRoutes(app: Express): Server {
             }
           }
         } catch (err) {
-          console.error('Error fetching question context:', err);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching question context:', err);
+          }
         }
       }
 
@@ -1773,7 +1843,9 @@ export function registerRoutes(app: Express): Server {
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving feedback:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving feedback:", error);
+      }
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
       }
@@ -1843,12 +1915,14 @@ export function registerRoutes(app: Express): Server {
     try {
       // Log conversation history validation
       if (process.env.NODE_ENV === 'development' && userMessage) {
-        console.log("=== CONVERSATION VALIDATION ===");
-        console.log("Current Question Version ID:", questionVersionId);
-        console.log("Stream Question Version ID:", stream.questionVersionId);
-        console.log("Conversation History Length:", stream.conversationHistory?.length || 0);
-        console.log("Is Follow-up Message:", !!userMessage);
-        console.log("================================");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== CONVERSATION VALIDATION ===");
+          console.log("Current Question Version ID:", questionVersionId);
+          console.log("Stream Question Version ID:", stream.questionVersionId);
+          console.log("Conversation History Length:", stream.conversationHistory?.length || 0);
+          console.log("Is Follow-up Message:", !!userMessage);
+          console.log("================================");
+        }
       }
 
       // Process stream with proper chosenAnswer handling
@@ -1862,13 +1936,15 @@ export function registerRoutes(app: Express): Server {
       
       // Debug: Log the raw questionVersion data
       if (process.env.NODE_ENV === 'development') {
-        console.log("===== RAW QUESTION VERSION DATA =====");
-        console.log("Question Version ID:", questionVersionId);
-        console.log("Question Type:", questionVersion.questionType);
-        console.log("Correct Answer:", questionVersion.correctAnswer);
-        console.log("Answer Choices:", JSON.stringify(questionVersion.answerChoices));
-        console.log("Blanks:", JSON.stringify(questionVersion.blanks));
-        console.log("====================================");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("===== RAW QUESTION VERSION DATA =====");
+          console.log("Question Version ID:", questionVersionId);
+          console.log("Question Type:", questionVersion.questionType);
+          console.log("Correct Answer:", questionVersion.correctAnswer);
+          console.log("Answer Choices:", JSON.stringify(questionVersion.answerChoices));
+          console.log("Blanks:", JSON.stringify(questionVersion.blanks));
+          console.log("====================================");
+        }
       }
 
       // Get the base question to access LOID
@@ -2302,7 +2378,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(Array.from(questionSetMap.values()));
     } catch (error) {
-      console.error("Error fetching all question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching all question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch all question sets" });
     }
   });
@@ -2371,7 +2449,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(questionsWithVersions);
     } catch (error) {
-      console.error("Error fetching questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching questions:", error);
+      }
       res.status(500).json({ message: "Failed to fetch questions" });
     }
   });
@@ -2410,7 +2490,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(questionsWithVersions);
     } catch (error) {
-      console.error("Error fetching questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching questions:", error);
+      }
       res.status(500).json({ message: "Failed to fetch questions" });
     }
   });
@@ -2429,7 +2511,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json({ message: `Successfully imported ${validatedQuestions.length} questions` });
     } catch (error) {
-      console.error("Error importing questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error importing questions:", error);
+      }
       res.status(400).json({ message: "Failed to import questions" });
     }
   });
@@ -3378,7 +3462,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
               // Mapping likely already exists, which is fine
               // Log the error in development for debugging
               if (process.env.NODE_ENV === 'development') {
-                console.log('Course-questionset mapping already exists or error occurred:', err);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Course-questionset mapping already exists or error occurred:', err);
+                }
               }
             }
             
@@ -3465,13 +3551,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
               error: error instanceof Error ? error.message : 'Unknown error',
               details: error instanceof Error ? error.stack?.split('\n')[0] : undefined
             });
-            console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
+            }
           }
         }));
         
         // Send progress update via SSE
         const processed = Math.min(i + BATCH_SIZE, bubbleQuestionSets.length);
-        console.log(`📊 Progress: ${processed}/${bubbleQuestionSets.length} question sets processed`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📊 Progress: ${processed}/${bubbleQuestionSets.length} question sets processed`);
+        }
         
         res.write('data: ' + JSON.stringify({
           type: 'progress',
@@ -3497,7 +3587,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.end();
     } catch (error) {
-      console.error("❌ Critical error in bulk refresh:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("❌ Critical error in bulk refresh:", error);
+      }
       
       // Send error via SSE
       res.write('data: ' + JSON.stringify({
@@ -3544,7 +3636,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const response = await fetch(url, { headers });
       
       if (!response.ok) {
-        console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Bubble API error: ${response.status} ${response.statusText}`);
+        }
         
         if (response.status === 404) {
           return res.status(404).json({ 
@@ -3571,7 +3665,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
             newQuestions = contentJson.questions;
           }
         } catch (parseError) {
-          console.error("Error parsing question content:", parseError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error parsing question content:", parseError);
+          }
           return res.status(400).json({ message: "Invalid question content format in Bubble data" });
         }
       }
@@ -3623,7 +3719,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
       
     } catch (error) {
-      console.error("Error fetching refresh comparison data:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching refresh comparison data:", error);
+      }
       res.status(500).json({ message: "Failed to fetch refresh comparison data" });
     }
   });
@@ -3663,13 +3761,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       if (!response.ok) {
         const responseText = await response.text();
-        console.error(`Bubble API error for question set ${questionSetId}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          url: url,
-          responseBody: responseText,
-          externalId: questionSet.externalId
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Bubble API error for question set ${questionSetId}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            url: url,
+            responseBody: responseText,
+            externalId: questionSet.externalId
+          });
+        }
         return res.status(500).json({ message: `Failed to fetch from Bubble: ${response.statusText}` });
       }
       
@@ -3690,17 +3790,21 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             // Log the first question to debug the structure
             if (parsedQuestions.length > 0) {
-              console.log("📊 Sample question from Bubble (first question):");
-              console.log("  Question type:", parsedQuestions[0].question_type || "not specified");
-              console.log("  Question number:", parsedQuestions[0].question_number);
-              console.log("  LOID:", parsedQuestions[0].loid);
-              console.log("  Has blanks:", !!parsedQuestions[0].blanks);
-              console.log("  Has drop_zones:", !!parsedQuestions[0].drop_zones);
-              console.log("  Correct answer type:", typeof parsedQuestions[0].correct_answer);
+              if (process.env.NODE_ENV === 'development') {
+                console.log("📊 Sample question from Bubble (first question):");
+                console.log("  Question type:", parsedQuestions[0].question_type || "not specified");
+                console.log("  Question number:", parsedQuestions[0].question_number);
+                console.log("  LOID:", parsedQuestions[0].loid);
+                console.log("  Has blanks:", !!parsedQuestions[0].blanks);
+                console.log("  Has drop_zones:", !!parsedQuestions[0].drop_zones);
+                console.log("  Correct answer type:", typeof parsedQuestions[0].correct_answer);
+              }
             }
           }
         } catch (parseError) {
-          console.error("Error parsing question content:", parseError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error parsing question content:", parseError);
+          }
         }
       }
       
@@ -3711,11 +3815,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
       
       // Always use UPDATE approach to preserve question IDs and analytics
-      console.log(`📝 Updating question set ${questionSetId} while preserving all IDs and analytics data.`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📝 Updating question set ${questionSetId} while preserving all IDs and analytics data.`);
+      }
       
       // Import the updated questions using the UPDATE approach
       if (parsedQuestions.length > 0) {
-        console.log(`📥 Refreshing ${parsedQuestions.length} questions from Bubble...`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📥 Refreshing ${parsedQuestions.length} questions from Bubble...`);
+        }
         
         // Import blank normalizer
         const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
@@ -3733,7 +3841,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           
           // Log question types to verify parsing
           if (index < 5) {  // Log first 5 questions for debugging
-            console.log(`  Question ${q.question_number}: Type = ${questionType}, LOID = ${q.loid}`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`  Question ${q.question_number}: Type = ${questionType}, LOID = ${q.loid}`);
+            }
           }
           
           // Build the version object with all fields from the new format
@@ -3790,13 +3900,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
       
     } catch (error) {
-      console.error("Error updating question set from Bubble:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error updating question set from Bubble:", error);
+      }
       // Log more detailed error information
       if (error instanceof Error) {
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error details:", {
+            message: error.message,
+            stack: error.stack
+          });
+        }
       }
       res.status(500).json({ message: "Failed to update question set from Bubble" });
     }
@@ -3824,14 +3938,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let hasMore = true;
       let totalFetched = 0;
 
-      console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
+      }
 
       while (hasMore) {
         const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
         const response = await fetch(url, { headers });
         
         if (!response.ok) {
-          console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
+          }
           throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
         }
 
@@ -3842,13 +3960,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
           allLearningObjects = allLearningObjects.concat(results);
           cursor += results.length;
           totalFetched += results.length;
-          console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
+          }
         }
         
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
 
-      console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
+      }
 
       
       // Fetch course mapping from Bubble
@@ -3892,7 +4014,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         raw: allLearningObjects // Include raw data for debugging
       });
     } catch (error) {
-      console.error("Error fetching learning objects from Bubble:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching learning objects from Bubble:", error);
+      }
       res.status(500).json({ message: "Failed to fetch learning objects from Bubble repository" });
     }
   });
@@ -3921,7 +4045,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let hasMore = true;
       let totalFetched = 0;
 
-      console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Starting to fetch learning objects from Bubble.io (batch size: ${limit})...`);
+      }
 
       while (hasMore) {
         const url = `${baseUrl}?cursor=${cursor}&limit=${limit}`;
@@ -3938,13 +4064,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
           allLearningObjects = allLearningObjects.concat(results);
           cursor += results.length;
           totalFetched += results.length;
-          console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Fetched batch: ${results.length} items (total so far: ${totalFetched})`);
+          }
         }
         
         hasMore = results.length === limit && data.response?.remaining > 0;
       }
 
-      console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Completed fetching ${totalFetched} learning objects from Bubble.io`);
+      }
 
       
       // Fetch course mapping from Bubble
@@ -3997,7 +4127,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         duration
       });
     } catch (error) {
-      console.error("Error importing learning objects from Bubble:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error importing learning objects from Bubble:", error);
+      }
       res.status(500).json({ message: "Failed to import learning objects from Bubble repository" });
     }
   });
@@ -4021,7 +4153,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         skipped: result.skipped
       });
     } catch (error) {
-      console.error("Error importing course materials:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error importing course materials:", error);
+      }
       res.status(500).json({ message: "Failed to import course materials" });
     }
   });
@@ -4039,7 +4173,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // This will open the admin dashboard and automatically show the feedback modal
       res.redirect(`/admin?tab=logs&subtab=feedback&feedbackId=${feedbackId}`);
     } catch (error) {
-      console.error("Error redirecting to feedback:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error redirecting to feedback:", error);
+      }
       res.status(500).send("Failed to load feedback");
     }
   });
@@ -4050,7 +4186,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const materials = await db.select().from(courseMaterials);
       res.json(materials);
     } catch (error) {
-      console.error("Error fetching course materials:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course materials:", error);
+      }
       res.status(500).json({ message: "Failed to fetch course materials" });
     }
   });
@@ -4077,7 +4215,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(updated[0]);
     } catch (error) {
-      console.error("Error updating course material:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error updating course material:", error);
+      }
       res.status(500).json({ message: "Failed to update course material" });
     }
   });
@@ -4098,7 +4238,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json({ message: "Course material deleted successfully" });
     } catch (error) {
-      console.error("Error deleting course material:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error deleting course material:", error);
+      }
       res.status(500).json({ message: "Failed to delete course material" });
     }
   });
@@ -4111,7 +4253,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // In a real implementation, you'd fetch all users from the database
       res.json([]);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching users:", error);
+      }
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
@@ -4122,7 +4266,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const status = await getDebugStatus();
       res.json(status);
     } catch (error) {
-      console.error("Error getting debug status:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error getting debug status:", error);
+      }
       res.status(500).json({ 
         message: "Failed to get debug status", 
         error: error instanceof Error ? error.message : "Unknown error" 
@@ -4187,7 +4333,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(coursesWithProgress);
     } catch (error) {
-      console.error("Error fetching demo courses:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching demo courses:", error);
+      }
       res.status(500).json({ message: "Failed to fetch courses" });
     }
   });
@@ -4208,7 +4356,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(course);
     } catch (error) {
-      console.error("Error fetching course by external ID:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course by external ID:", error);
+      }
       res.status(500).json({ message: "Failed to fetch course" });
     }
   });
@@ -4229,7 +4379,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(course);
     } catch (error) {
-      console.error("Error fetching course:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course:", error);
+      }
       res.status(500).json({ message: "Failed to fetch course" });
     }
   });
@@ -4257,7 +4409,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(questionSetsWithCounts);
     } catch (error) {
-      console.error("Error fetching question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question sets:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question sets" });
     }
   });
@@ -4278,7 +4432,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(questionSet);
     } catch (error) {
-      console.error("Error fetching question set:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question set:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question set" });
     }
   });
@@ -4301,7 +4457,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json(shuffled);
     } catch (error) {
-      console.error("Error fetching questions:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching questions:", error);
+      }
       res.status(500).json({ message: "Failed to fetch questions" });
     }
   });
@@ -4345,7 +4503,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         message: "Demo mode - answers are not saved"
       });
     } catch (error) {
-      console.error("Error in demo answer submission:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in demo answer submission:", error);
+      }
       res.status(500).json({ message: "Failed to process answer" });
     }
   });
@@ -4431,9 +4591,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
               .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
             
             if (process.env.NODE_ENV === 'development') {
-              console.log("=== DEMO FOLLOW-UP MESSAGE ===");
-              console.log("Reconstructing system message for new stream");
-              console.log("==============================");
+              if (process.env.NODE_ENV === 'development') {
+                console.log("=== DEMO FOLLOW-UP MESSAGE ===");
+                console.log("Reconstructing system message for new stream");
+                console.log("==============================");
+              }
             }
             
             // Ensure it's in the conversation history
@@ -4513,7 +4675,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           }
           
         } catch (error) {
-          console.error("Error in demo chatbot stream processing:", error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error in demo chatbot stream processing:", error);
+          }
           if (stream) {
             stream.error = error instanceof Error ? error.message : "Unknown error occurred";
             stream.done = true;
@@ -4524,7 +4688,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       res.json({ streamId });
     } catch (error) {
-      console.error("Error initializing demo chatbot stream:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error initializing demo chatbot stream:", error);
+      }
       res.status(500).json({ message: "Failed to initialize chat stream" });
     }
   });
@@ -4626,7 +4792,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving demo feedback:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving demo feedback:", error);
+      }
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
       }
