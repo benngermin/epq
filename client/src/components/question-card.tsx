@@ -540,6 +540,7 @@ export function QuestionCard({
                     </div>
                   )}
 
+                  {/* Show submit button or pending state */}
                   {!hasAnswer && (
                     <Button
                       onClick={handleSubmit}
@@ -548,6 +549,16 @@ export function QuestionCard({
                     >
                       {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </Button>
+                  )}
+                  
+                  {/* Show pending state while waiting for server response */}
+                  {isPending && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                        <span className="font-medium text-muted-foreground text-sm">Checking answer...</span>
+                      </div>
+                    </div>
                   )}
                 </div>
               </CardContent>

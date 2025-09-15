@@ -87,11 +87,18 @@ function safeJsonParse(jsonString: string, fallback: any = null): any {
 
 /**
  * Normalize string for comparison
+ * Enhanced to handle punctuation issues in select_from_list questions
  */
 function normalizeString(str: string, caseSensitive: boolean = false): string {
   if (!str || typeof str !== 'string') return '';
-  const trimmed = str.trim();
-  return caseSensitive ? trimmed : trimmed.toLowerCase();
+  let normalized = str.trim();
+  
+  // Remove trailing punctuation that might cause mismatches (periods, commas, semicolons)
+  // This is especially important for select_from_list questions where
+  // answer choices might have periods but correct_answer doesn't
+  normalized = normalized.replace(/[.,;]+$/, '');
+  
+  return caseSensitive ? normalized : normalized.toLowerCase();
 }
 
 /**
@@ -343,7 +350,26 @@ function validateSelectFromList(
           for (const blank of options.blanks) {
             const blankIdStr = String(blank.blank_id);
             const userAnswerForBlank = userBlanks[blankIdStr];
-            const isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            // Try exact match first
+            let isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            // If no exact match, try normalized comparison (removes trailing punctuation)
+            if (!isMatch && userAnswerForBlank && blank.correct_answer) {
+              const normalizedUser = normalizeString(userAnswerForBlank);
+              const normalizedCorrect = normalizeString(blank.correct_answer);
+              isMatch = normalizedUser === normalizedCorrect;
+              
+              if (debug && isMatch) {
+                debugLog('[SELECT_FROM_LIST] Match found after normalization', {
+                  blank_id: blankIdStr,
+                  original_user: userAnswerForBlank,
+                  original_correct: blank.correct_answer,
+                  normalized_user: normalizedUser,
+                  normalized_correct: normalizedCorrect
+                });
+              }
+            }
             
             comparisons.push({
               blank_id: blankIdStr,
@@ -371,7 +397,24 @@ function validateSelectFromList(
       } else if (options.blanks.length === 1) {
         // Single dropdown - try blank's correct answer first
         const blankCorrectAnswer = options.blanks[0].correct_answer;
-        const isMatch = userAnswer === blankCorrectAnswer;
+        let isMatch = userAnswer === blankCorrectAnswer;
+        
+        // If no exact match, try normalized comparison (removes trailing punctuation)
+        if (!isMatch) {
+          const normalizedUser = normalizeString(userAnswer);
+          const normalizedCorrect = normalizeString(blankCorrectAnswer);
+          isMatch = normalizedUser === normalizedCorrect;
+          
+          if (debug) {
+            debugLog('[SELECT_FROM_LIST] Single blank normalization attempt', {
+              original_user: userAnswer,
+              original_correct: blankCorrectAnswer,
+              normalized_user: normalizedUser,
+              normalized_correct: normalizedCorrect,
+              isMatch
+            });
+          }
+        }
         
         if (debug) {
           debugLog('[SELECT_FROM_LIST] Single blank validation', {
@@ -749,7 +792,16 @@ export function validateSelectFromListWithReport(
           for (const blank of options.blanks) {
             const blankIdStr = String(blank.blank_id);
             const userAnswerForBlank = userBlanks[blankIdStr];
-            const isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            // Try exact match first
+            let isMatch = userAnswerForBlank === blank.correct_answer;
+            
+            // If no exact match, try normalized comparison
+            if (!isMatch && userAnswerForBlank && blank.correct_answer) {
+              const normalizedUser = normalizeString(userAnswerForBlank);
+              const normalizedCorrect = normalizeString(blank.correct_answer);
+              isMatch = normalizedUser === normalizedCorrect;
+            }
             
             comparisons.push({
               expected: blank.correct_answer,
@@ -773,20 +825,27 @@ export function validateSelectFromListWithReport(
       } else if (options.blanks.length === 1) {
         // Single blank validation
         const blankCorrectAnswer = options.blanks[0].correct_answer;
-        const isMatch = userAnswer === blankCorrectAnswer;
+        let isMatch = userAnswer === blankCorrectAnswer;
+        
+        // If no exact match, try normalized comparison
+        if (!isMatch) {
+          const normalizedUser = normalizeString(userAnswer);
+          const normalizedCorrect = normalizeString(blankCorrectAnswer);
+          isMatch = normalizedUser === normalizedCorrect;
+        }
         
         comparisons.push({
           expected: blankCorrectAnswer,
           received: userAnswer,
           matched: isMatch,
-          context: 'Single blank'
+          context: isMatch && userAnswer !== blankCorrectAnswer ? 'Single blank (normalized match)' : 'Single blank'
         });
         
         if (isMatch) {
           return {
             isCorrect: true,
             method: 'blanks_single',
-            details: 'Single blank matched',
+            details: isMatch && userAnswer !== blankCorrectAnswer ? 'Single blank matched after normalization' : 'Single blank matched',
             comparisons
           };
         }
