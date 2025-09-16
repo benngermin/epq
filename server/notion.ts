@@ -242,6 +242,10 @@ export async function createFeedbackInNotion(feedbackData: {
         // Question Set # - specific field requested by user
         const questionSetNumberField = findProperty(['Question Set #', 'QuestionSetNumber', 'Question Set Number']);
         if (questionSetNumberField && feedbackData.questionSetNumber !== undefined) {
+            // Debug log to verify question set number is being passed
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`Setting Question Set # field "${questionSetNumberField}" to value: ${feedbackData.questionSetNumber}`);
+            }
             if (schemaProps[questionSetNumberField]?.type === 'number') {
                 properties[questionSetNumberField] = {
                     number: feedbackData.questionSetNumber
