@@ -17,6 +17,8 @@ import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
 import { getTodayEST } from "./utils/logger";
 import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware/rate-limiter";
+import { requireAdmin } from "./middleware/admin";
+import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/csvParser";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -4799,6 +4801,179 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // Admin routes for static explanations
+  app.post("/api/admin/preview-explanations", requireAdmin, async (req, res) => {
+    try {
+      // Check if CSV content is provided in body
+      const csvContent = req.body.csvContent;
+      
+      if (!csvContent) {
+        return res.status(400).json({ 
+          error: "CSV content is required",
+          message: "Please provide CSV content in the request body"
+        });
+      }
+
+      let parsedRows: StaticExplanationRow[];
+      try {
+        parsedRows = parseStaticExplanationCSV(csvContent);
+      } catch (parseError: any) {
+        return res.status(400).json({ 
+          error: "CSV parsing failed",
+          message: parseError.message,
+          details: parseError
+        });
+      }
+
+      if (parsedRows.length === 0) {
+        return res.status(400).json({ 
+          error: "No data rows found",
+          message: "The CSV file appears to be empty or contains only headers"
+        });
+      }
+
+      // Find matching question versions for each row
+      const previewResults = await Promise.all(
+        parsedRows.map(async (row) => {
+          try {
+            const questionVersion = await storage.findQuestionVersionByDetails(
+              row.courseName,
+              row.questionSetNumber,
+              row.questionNumber,
+              row.loid
+            );
+
+            return {
+              row,
+              found: !!questionVersion,
+              questionVersionId: questionVersion?.id,
+              currentExplanation: questionVersion?.staticExplanation,
+              isStaticAnswer: questionVersion?.isStaticAnswer,
+              questionType: questionVersion?.questionType,
+              match: {
+                courseName: row.courseName,
+                questionSetNumber: row.questionSetNumber,
+                questionNumber: row.questionNumber,
+                loid: row.loid
+              }
+            };
+          } catch (error: any) {
+            return {
+              row,
+              found: false,
+              error: error.message || "Failed to find question version"
+            };
+          }
+        })
+      );
+
+      // Calculate statistics
+      const totalRows = previewResults.length;
+      const matchedRows = previewResults.filter(r => r.found).length;
+      const unmatchedRows = totalRows - matchedRows;
+
+      res.json({
+        success: true,
+        preview: true,
+        statistics: {
+          totalRows,
+          matchedRows,
+          unmatchedRows,
+          matchPercentage: ((matchedRows / totalRows) * 100).toFixed(2) + "%"
+        },
+        results: previewResults
+      });
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in preview-explanations:", error);
+      }
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to preview explanations"
+      });
+    }
+  });
+
+  app.post("/api/admin/upload-explanations", requireAdmin, async (req, res) => {
+    try {
+      // Expect the preview results to be sent back
+      const { previewResults } = req.body;
+      
+      if (!previewResults || !Array.isArray(previewResults)) {
+        return res.status(400).json({ 
+          error: "Invalid request",
+          message: "Preview results are required. Please run preview first."
+        });
+      }
+
+      // Filter only matched results
+      const toUpdate = previewResults.filter(r => r.found && r.questionVersionId);
+      
+      if (toUpdate.length === 0) {
+        return res.status(400).json({ 
+          error: "No matching questions",
+          message: "No questions were found to update"
+        });
+      }
+
+      // Update each question version
+      const updateResults = await Promise.all(
+        toUpdate.map(async (item) => {
+          try {
+            const updated = await storage.updateQuestionVersionStaticExplanation(
+              item.questionVersionId,
+              item.row.finalStaticExplanation
+            );
+            
+            return {
+              questionVersionId: item.questionVersionId,
+              success: !!updated,
+              courseName: item.row.courseName,
+              questionSetNumber: item.row.questionSetNumber,
+              questionNumber: item.row.questionNumber,
+              loid: item.row.loid,
+              previousExplanation: item.currentExplanation,
+              newExplanation: item.row.finalStaticExplanation
+            };
+          } catch (error: any) {
+            return {
+              questionVersionId: item.questionVersionId,
+              success: false,
+              error: error.message || "Failed to update",
+              courseName: item.row.courseName,
+              questionSetNumber: item.row.questionSetNumber,
+              questionNumber: item.row.questionNumber,
+              loid: item.row.loid
+            };
+          }
+        })
+      );
+
+      // Calculate statistics
+      const successfulUpdates = updateResults.filter(r => r.success).length;
+      const failedUpdates = updateResults.filter(r => !r.success).length;
+
+      res.json({
+        success: true,
+        statistics: {
+          totalProcessed: updateResults.length,
+          successfulUpdates,
+          failedUpdates,
+          successRate: ((successfulUpdates / updateResults.length) * 100).toFixed(2) + "%"
+        },
+        results: updateResults
+      });
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in upload-explanations:", error);
+      }
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to upload explanations"
+      });
     }
   });
 

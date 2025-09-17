@@ -1,0 +1,55 @@
+﻿Unique ID,Course,Question Set,Question Number,LOID,Question Text,Final Static Explanation
+CPCU 540 - 1 - Q2,CPCU 540,1,2,11444,"Emily needs $30,000 in three years to purchase new equipment for her insurance agency. If she can invest at 5 percent compounded quarterly, how much must she deposit today? Add your answer as a whole number without any comma, decimal point, or dollar sign.","Correct Answer: 25845
+
+Explanation: Cannot verify 25845 without the project’s cash flows and discount rate. It is correct if the NPV computed as below equals 25845:
+
+- Formula: NPV = −C0 + Σt=1..n [ Ct / (1 + r)^t ] (include salvage in the final Ct). Note: the initial outlay at t = 0 is not discounted (dividing by 1), so “also discounted” leaves C0 unchanged.
+- Steps:
+  1) Identify C0 (negative) and each future net cash flow Ct (include savings/benefits and salvage).
+  2) Use the cost of capital r.
+  3) Discount each Ct: PVt = Ct / (1 + r)^t.
+  4) Sum all PVt.
+  5) Subtract C0: NPV = Σ PVt − C0 = 25845.
+
+Interpretation: A positive NPV of 25845 means the project creates $25,845 of value in today’s dollars above the required return, so it should be accepted under the NPV rule.
+
+Reference: For more details, review the course material here: [A Guide to Monetary Calculations](https://learning.theinstitutes.org/mod/scorm/player.php?a=40736&currentorg=TOC1&scoid=81526)"
+CPCU 540 - 1 - Q7,CPCU 540,1,7,11452,"The most common financial measure of underwriting results is the insurer's combined ratio. Based on the financial information given below, determine the correct combined ratio, and enter your answer as a percent.
+
+Goshen Mutual has the following results at a given point in time:
+
+Net income: $180,000
+Investment income: $120,000
+Premium written: $900,000
+Premium earned: $800,000
+Loss & Loss Adjustment Expenses: $520,000
+Underwriting Expenses: $280,000
+
+The combined ratio is [blank_1] percent.","Correct Answer: 96.11
+
+Explanation: 96.11% is the prior-year operating ratio when policyholder dividends are included in the combined ratio (“trade-basis”) and investment income is then netted out.
+
+Formulas and steps (prior year):
+1) Loss ratio = (Losses incurred + LAE) / Earned premium  
+   = (3,770,379,790 + 452,445,575) / 5,386,256,843  
+   = 4,222,825,365 / 5,386,256,843 = 78.4299%
+
+2) Expense ratio = Underwriting expenses / Net written premium  
+   = 1,077,251,369 / 5,435,546,832 = 19.8269%
+
+3) Policyholder dividend ratio = Dividends to policyholders / Earned premium  
+   = 34,469,327 / 5,386,256,843 = 0.6398%
+
+4) Trade-basis combined ratio = Loss ratio + Expense ratio + Dividend ratio  
+   = 78.4299% + 19.8269% + 0.6398% = 98.8966%
+
+5) Investment income ratio = Net investment income / Earned premium  
+   = 150,564,218 / 5,386,256,843 = 2.7950%
+
+6) Operating ratio (incl. dividends) = Trade-basis combined ratio − Investment income ratio  
+   = 98.8966% − 2.7950% = 96.1016% ≈ 96.11%
+
+Why this is correct: Including policyholder dividends captures the full underwriting cost burden before crediting investment income, so subtracting the investment income ratio from the dividend-inclusive combined ratio yields 96.11%.
+
+Reference: For more details, review the course material here:  
+[color=blue][url=https://learning.theinstitutes.org/mod/scorm/player.php?a=40749&currentorg=TOC1&scoid=81552]Profitability Ratios[/url][/color]"

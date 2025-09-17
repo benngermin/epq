@@ -69,6 +69,11 @@ export interface IStorage {
   getQuestionVersion(id: number): Promise<QuestionVersion | undefined>;
   createQuestionVersion(version: InsertQuestionVersion): Promise<QuestionVersion>;
   
+  // Static explanation update methods
+  findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined>;
+  updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined>;
+  batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>>;
+  
   // Test run methods
   getUserTestRuns(userId: number): Promise<UserTestRun[]>;
   getUserTestRun(id: number): Promise<UserTestRun | undefined>;
@@ -725,6 +730,50 @@ export class DatabaseStorage implements IStorage {
     };
     const [newVersion] = await db.insert(questionVersions).values(versionData).returning();
     return newVersion;
+  }
+
+  async findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined> {
+    const results = await db.select({
+      questionVersion: questionVersions
+    })
+      .from(questionVersions)
+      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(and(
+        eq(courses.courseTitle, courseName),
+        eq(courseQuestionSets.displayOrder, questionSetNumber - 1), // display_order is 0-indexed
+        eq(questions.originalQuestionNumber, questionNumber),
+        eq(questions.loid, loid),
+        eq(questionVersions.isActive, true)
+      ))
+      .limit(1);
+    
+    return results[0]?.questionVersion;
+  }
+
+  async updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined> {
+    const [updated] = await db.update(questionVersions)
+      .set({
+        staticExplanation,
+        isStaticAnswer: true
+      })
+      .where(eq(questionVersions.id, questionVersionId))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>> {
+    const results = await Promise.all(
+      criteria.map(async (c) => {
+        const version = await this.findQuestionVersionByDetails(c.courseName, c.questionSetNumber, c.questionNumber, c.loid);
+        return { criteria: c, version };
+      })
+    );
+    
+    return results;
   }
 
   async getUserTestRuns(userId: number): Promise<UserTestRun[]> {
