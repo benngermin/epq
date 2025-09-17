@@ -99,43 +99,75 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
   return parsedRows;
 }
 
-// Helper function to parse CSV handling quoted values with commas
+// Helper function to parse CSV handling quoted values with commas and newlines
 function parseCSV(csvContent: string): string[][] {
   const rows: string[][] = [];
-  const lines = csvContent.split(/\r?\n/);
+  let currentRow: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+  let i = 0;
   
-  for (const line of lines) {
-    if (line.trim() === "") continue;
+  // Process character by character to handle multi-line fields
+  while (i < csvContent.length) {
+    const char = csvContent[i];
+    const nextChar = i + 1 < csvContent.length ? csvContent[i + 1] : null;
     
-    const row: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          // Escaped quote
-          current += '"';
-          i++; // Skip next character
+    if (char === '"') {
+      if (inQuotes) {
+        if (nextChar === '"') {
+          // Escaped quote within quoted field
+          currentField += '"';
+          i += 2; // Skip both quotes
         } else {
-          // Toggle quote mode
-          inQuotes = !inQuotes;
+          // End of quoted field
+          inQuotes = false;
+          i++;
         }
-      } else if (char === ',' && !inQuotes) {
-        // End of field
-        row.push(current);
-        current = "";
       } else {
-        current += char;
+        // Start of quoted field - only at beginning of field
+        if (currentField === "") {
+          inQuotes = true;
+          i++;
+        } else {
+          // Quote in middle of unquoted field - treat as literal
+          currentField += char;
+          i++;
+        }
       }
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      // End of row (not within quotes)
+      if (currentField !== "" || currentRow.length > 0) {
+        currentRow.push(currentField);
+        if (currentRow.length > 0 && !currentRow.every(cell => cell === "")) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentField = "";
+      }
+      // Skip \r\n combination
+      if (char === '\r' && nextChar === '\n') {
+        i += 2;
+      } else {
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      currentRow.push(currentField);
+      currentField = "";
+      i++;
+    } else {
+      // Regular character
+      currentField += char;
+      i++;
     }
-    
-    // Add last field
-    row.push(current);
-    rows.push(row);
+  }
+  
+  // Add last field and row if there's content
+  if (currentField !== "" || currentRow.length > 0) {
+    currentRow.push(currentField);
+    if (currentRow.length > 0 && !currentRow.every(cell => cell === "")) {
+      rows.push(currentRow);
+    }
   }
   
   return rows;

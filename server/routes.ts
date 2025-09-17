@@ -4899,48 +4899,94 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.post("/api/admin/upload-explanations", requireAdmin, async (req, res) => {
     try {
-      // Expect the preview results to be sent back
-      const { previewResults } = req.body;
-      
-      if (!previewResults || !Array.isArray(previewResults)) {
+      // Define Zod schema for validation
+      const uploadExplanationsSchema = z.object({
+        previewResults: z.array(z.object({
+          row: z.object({
+            uniqueId: z.string().optional(),
+            courseName: z.string(),
+            questionSetNumber: z.number(),
+            questionNumber: z.number(),
+            loid: z.string(),
+            questionText: z.string().optional(),
+            finalStaticExplanation: z.string()
+          }),
+          found: z.boolean().optional(),
+          questionVersionId: z.number().optional(),
+          currentExplanation: z.string().nullable().optional(),
+          isStaticAnswer: z.boolean().nullable().optional(),
+          questionType: z.string().nullable().optional(),
+          match: z.object({
+            courseName: z.string(),
+            questionSetNumber: z.number(),
+            questionNumber: z.number(),
+            loid: z.string()
+          }).optional()
+        }))
+      });
+
+      // Validate request body with Zod
+      let validatedData;
+      try {
+        validatedData = uploadExplanationsSchema.parse(req.body);
+      } catch (zodError) {
         return res.status(400).json({ 
-          error: "Invalid request",
+          error: "Invalid request data",
+          message: "Request validation failed",
+          details: zodError instanceof z.ZodError ? zodError.errors : zodError
+        });
+      }
+
+      const { previewResults } = validatedData;
+      
+      if (previewResults.length === 0) {
+        return res.status(400).json({ 
+          error: "No data provided",
           message: "Preview results are required. Please run preview first."
         });
       }
 
-      // Filter only matched results
-      const toUpdate = previewResults.filter(r => r.found && r.questionVersionId);
-      
-      if (toUpdate.length === 0) {
-        return res.status(400).json({ 
-          error: "No matching questions",
-          message: "No questions were found to update"
-        });
-      }
-
-      // Update each question version
+      // Re-validate each match on the server and update
       const updateResults = await Promise.all(
-        toUpdate.map(async (item) => {
+        previewResults.map(async (item) => {
           try {
+            // Re-validate the match on server side
+            const questionVersion = await storage.findQuestionVersionByDetails(
+              item.row.courseName,
+              item.row.questionSetNumber,
+              item.row.questionNumber,
+              item.row.loid
+            );
+
+            if (!questionVersion) {
+              return {
+                success: false,
+                error: "Question not found during re-validation",
+                courseName: item.row.courseName,
+                questionSetNumber: item.row.questionSetNumber,
+                questionNumber: item.row.questionNumber,
+                loid: item.row.loid
+              };
+            }
+
+            // Update the question version with the new static explanation
             const updated = await storage.updateQuestionVersionStaticExplanation(
-              item.questionVersionId,
+              questionVersion.id,
               item.row.finalStaticExplanation
             );
             
             return {
-              questionVersionId: item.questionVersionId,
+              questionVersionId: questionVersion.id,
               success: !!updated,
               courseName: item.row.courseName,
               questionSetNumber: item.row.questionSetNumber,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid,
-              previousExplanation: item.currentExplanation,
+              previousExplanation: questionVersion.staticExplanation,
               newExplanation: item.row.finalStaticExplanation
             };
           } catch (error: any) {
             return {
-              questionVersionId: item.questionVersionId,
               success: false,
               error: error.message || "Failed to update",
               courseName: item.row.courseName,
