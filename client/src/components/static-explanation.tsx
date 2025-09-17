@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, BookOpen, AlertCircle } from "lucide-react";
 import { FeedbackButtons } from "@/components/feedback-buttons";
 import { useState, useEffect } from "react";
+import { parseTextWithLinks } from "@/lib/text-parser";
 
 interface StaticExplanationProps {
   explanation: string;
@@ -84,7 +85,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
                 }`}
                 data-testid={`text-explanation-${index}`}
               >
-                {paragraph}
+                {hasError ? paragraph : parseTextWithLinks(paragraph)}
               </p>
             ))
           ) : (
