@@ -79,6 +79,7 @@ export function QuestionCard({
   }, [question?.id]);
   const [selectedAnswerState, setSelectedAnswerState] = useState<any>("");
   const [isFlipped, setIsFlipped] = useState(false);
+  const [hasAutoFlipped, setHasAutoFlipped] = useState(false); // Track if auto-flip has happened for current answer
   const [submittedAnswer, setSubmittedAnswer] = useState<string>("");
   const [localAnswerState, setLocalAnswerState] = useState<{ hasAnswer: boolean; isCorrect: boolean | undefined; isOptimistic?: boolean }>({
     hasAnswer: false,
@@ -104,6 +105,7 @@ export function QuestionCard({
   // Initialize state when question changes
   useEffect(() => {
     setIsFlipped(false);
+    setHasAutoFlipped(false); // Reset auto-flip flag for new question
     onFlipChange?.(false);
     
     // If this question has already been answered, restore that state
@@ -116,6 +118,11 @@ export function QuestionCard({
         isCorrect: question.userAnswer.isCorrect,
         isOptimistic: false 
       });
+      // If this question was already answered incorrectly, mark auto-flip as done
+      // to prevent auto-flipping again when returning to this question
+      if (question.userAnswer.isCorrect === false) {
+        setHasAutoFlipped(true);
+      }
     } else {
       // Only reset if question hasn't been answered
       setSelectedAnswerState("");
@@ -161,17 +168,20 @@ export function QuestionCard({
   // Auto-flip for incorrect answers to show help (static explanation or AI chat)
   useEffect(() => {
     // Auto-flip for ANY incorrect answer after server responds
+    // Only auto-flip if we haven't already auto-flipped for this answer
     if (question?.userAnswer !== undefined && 
         localAnswerState.hasAnswer && 
         question?.userAnswer?.isCorrect === false &&
-        !isFlipped) {
+        !isFlipped &&
+        !hasAutoFlipped) { // Only auto-flip once per answer
       // Auto-flip to show help (either static explanation or AI chat) after a short delay
       const timer = setTimeout(() => {
         setIsFlipped(true);
+        setHasAutoFlipped(true); // Mark that we've auto-flipped for this answer
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [question?.userAnswer, localAnswerState.hasAnswer, isFlipped]);
+  }, [question?.userAnswer, localAnswerState.hasAnswer, isFlipped, hasAutoFlipped]);
 
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
