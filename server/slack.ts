@@ -27,9 +27,6 @@ export async function sendFeedbackToSlack(feedbackData: {
     }
     
     try {
-        // Create the feedback URL
-        const feedbackUrl = `${feedbackData.baseUrl}/admin/feedback/${feedbackData.feedbackId}`;
-        
         // Format timestamp
         const timestamp = Math.floor(feedbackData.createdAt.getTime() / 1000);
         
@@ -114,19 +111,10 @@ export async function sendFeedbackToSlack(feedbackData: {
                 {
                     color: color,
                     title: 'Feedback Details',
-                    title_link: feedbackUrl,
                     text: mainText,
                     fields: fields,
                     footer: 'EPQ Feedback System',
-                    ts: timestamp,
-                    actions: [
-                        {
-                            type: 'button',
-                            text: 'View Full Feedback',
-                            url: feedbackUrl,
-                            style: feedbackData.feedbackType === 'negative' ? 'danger' : 'primary'
-                        }
-                    ]
+                    ts: timestamp
                 }
             ]
         };
