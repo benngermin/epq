@@ -1302,39 +1302,52 @@ export class DatabaseStorage implements IStorage {
   }): Promise<ChatbotFeedback> {
     const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
     
+    // Extract assistant message from conversation if available (used by both Notion and Slack)
+    let assistantMessage = null;
+    if (feedback.conversation && Array.isArray(feedback.conversation)) {
+      const message = feedback.conversation.find((msg: any) => msg.id === feedback.messageId && msg.role === 'assistant');
+      if (message) {
+        assistantMessage = message.content;
+      }
+    }
+    
+    // Prepare feedback data for external services
+    const feedbackData = {
+      feedbackId: newFeedback.id,
+      userName: feedback.userName || 'Anonymous User',
+      userEmail: feedback.userEmail || 'N/A',
+      feedbackType: feedback.feedbackType as 'positive' | 'negative',
+      feedbackMessage: feedback.feedbackMessage || null,
+      assistantMessage,
+      questionText: feedback.questionText || undefined,
+      courseName: feedback.courseName || undefined,
+      courseNumber: feedback.courseNumber || undefined,
+      questionSetTitle: feedback.questionSetTitle || undefined,
+      loid: newFeedback.loid || undefined,
+      questionNumber: feedback.questionNumber || undefined,
+      questionSetNumber: feedback.questionSetNumber || undefined,
+      createdAt: newFeedback.createdAt,
+      conversation: feedback.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
+      baseUrl: feedback.baseUrl || 'https://527b9a23-074e-4c21-9784-9dcc9ff1004c-00-4cn4oqxqndqq.janeway.replit.dev',
+    };
+    
     // Sync to Notion asynchronously - don't wait for it
     if (process.env.NOTION_INTEGRATION_SECRET && process.env.NOTION_PAGE_URL) {
       const { createFeedbackInNotion } = await import('./notion');
       
-      // Extract assistant message from conversation if available
-      let assistantMessage = null;
-      if (feedback.conversation && Array.isArray(feedback.conversation)) {
-        const message = feedback.conversation.find((msg: any) => msg.id === feedback.messageId && msg.role === 'assistant');
-        if (message) {
-          assistantMessage = message.content;
-        }
-      }
+      // Fire and forget - don't block the main flow
+      createFeedbackInNotion(feedbackData).catch(error => {
+        console.error('Failed to sync feedback to Notion:', error);
+      });
+    }
+    
+    // Send to Slack asynchronously - don't wait for it
+    if (process.env.SLACK_WEBHOOK_URL) {
+      const { sendFeedbackToSlack } = await import('./slack');
       
       // Fire and forget - don't block the main flow
-      createFeedbackInNotion({
-        feedbackId: newFeedback.id,
-        userName: feedback.userName || 'Anonymous User',
-        userEmail: feedback.userEmail || 'N/A',
-        feedbackType: feedback.feedbackType as 'positive' | 'negative',
-        feedbackMessage: feedback.feedbackMessage || null,
-        assistantMessage,
-        questionText: feedback.questionText || undefined,
-        courseName: feedback.courseName || undefined,
-        courseNumber: feedback.courseNumber || undefined,
-        questionSetTitle: feedback.questionSetTitle || undefined,
-        loid: newFeedback.loid || undefined,
-        questionNumber: feedback.questionNumber || undefined,
-        questionSetNumber: feedback.questionSetNumber || undefined,
-        createdAt: newFeedback.createdAt,
-        conversation: feedback.conversation as Array<{id: string, content: string, role: "user" | "assistant"}> | null,
-        baseUrl: feedback.baseUrl || 'https://527b9a23-074e-4c21-9784-9dcc9ff1004c-00-4cn4oqxqndqq.janeway.replit.dev',
-      }).catch(error => {
-        console.error('Failed to sync feedback to Notion:', error);
+      sendFeedbackToSlack(feedbackData).catch(error => {
+        console.error('Failed to send feedback to Slack:', error);
       });
     }
     
