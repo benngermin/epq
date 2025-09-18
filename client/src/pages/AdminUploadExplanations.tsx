@@ -324,7 +324,16 @@ export default function AdminUploadExplanations() {
                   });
                   const data = await response.json();
                   console.log("DIAGNOSTIC RESULTS:", data);
-                  alert(`Diagnostic Results:\n\nCPCU Courses: ${data.cpcu_courses_count}\nQuestions with LOIDs: ${data.questions_with_loids}\nTest Query Results: ${data.test_query_results}\nStorage Function Test: ${data.storage_function_test?.count || 0}\n\nCheck console for full details`);
+                  
+                  const summary = data.summary ? 
+                    `Tests: ${data.summary.passed} passed, ${data.summary.failed} failed\n` :
+                    'No test summary available\n';
+                    
+                  const details = data.tests ? 
+                    data.tests.map((t: any) => `${t.name}: ${t.status} ${t.error ? `- ${t.error}` : ''}`).join('\n') :
+                    'No test details available';
+                    
+                  alert(`Diagnostic Results:\n\n${summary}\n${details}\n\nCheck console for full details`);
                 } catch (error) {
                   console.error("Diagnostic error:", error);
                   alert("Diagnostic failed - check console");

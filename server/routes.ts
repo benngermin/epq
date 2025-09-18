@@ -4806,69 +4806,126 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   // Diagnostic endpoint to check the production database
   app.get("/api/admin/diagnostic", requireAdmin, async (req, res) => {
-    try {
-      // Check if we can find a specific question that should exist
-      const testResult = await db.select({
-        course: courses.courseNumber,
-        setNum: courseQuestionSets.displayOrder,
-        qNum: questions.originalQuestionNumber,
-        loid: questions.loid,
-        versionId: questionVersions.id,
-        isActive: questionVersions.isActive
-      })
-      .from(questionVersions)
-      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
-      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
-      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
-      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
-      .where(and(
-        eq(courses.courseNumber, 'CPCU 540'),
-        eq(courseQuestionSets.displayOrder, 1),
-        eq(questions.originalQuestionNumber, 2),
-        eq(questions.loid, '11444')
-      ))
-      .limit(5);
+    const results: any = {
+      database_connection: "UNKNOWN",
+      tests: []
+    };
 
-      // Count total CPCU courses
+    try {
+      // Test 1: Basic database connection
+      const dbTest = await db.select({ count: sql<number>`1` }).from(courses).limit(1);
+      results.database_connection = "OK";
+      results.tests.push({ name: "DB Connection", status: "PASS" });
+    } catch (error: any) {
+      results.database_connection = "FAILED";
+      results.tests.push({ name: "DB Connection", status: "FAIL", error: error.message });
+      return res.status(500).json(results);
+    }
+
+    try {
+      // Test 2: Count CPCU courses
       const cpuCourseCount = await db.select({
         count: sql<number>`COUNT(*)`
       })
       .from(courses)
       .where(sql`${courses.courseNumber} LIKE 'CPCU%'`);
+      
+      results.cpcu_courses_count = Number(cpuCourseCount[0]?.count || 0);
+      results.tests.push({ 
+        name: "CPCU Courses", 
+        status: results.cpcu_courses_count > 0 ? "PASS" : "FAIL",
+        count: results.cpcu_courses_count 
+      });
+    } catch (error: any) {
+      results.tests.push({ name: "CPCU Courses", status: "FAIL", error: error.message });
+    }
 
-      // Count total questions with LOIDs
+    try {
+      // Test 3: Check if courseQuestionSets table exists and has data
+      const cqsCount = await db.select({
+        count: sql<number>`COUNT(*)`
+      })
+      .from(courseQuestionSets);
+      
+      results.course_question_sets_count = Number(cqsCount[0]?.count || 0);
+      results.tests.push({ 
+        name: "CourseQuestionSets Table", 
+        status: results.course_question_sets_count > 0 ? "PASS" : "FAIL",
+        count: results.course_question_sets_count 
+      });
+    } catch (error: any) {
+      results.tests.push({ name: "CourseQuestionSets Table", status: "FAIL", error: error.message });
+    }
+
+    try {
+      // Test 4: Questions with LOIDs
       const questionsWithLoids = await db.select({
         count: sql<number>`COUNT(DISTINCT ${questions.loid})`
       })
       .from(questions)
       .where(sql`${questions.loid} IS NOT NULL AND ${questions.loid} != ''`);
-
-      // Test the storage function
-      const storageTest = await storage.findAllQuestionVersionsByDetails('CPCU 540', 1, 2, '11444');
-
-      res.json({
-        database_connection: "OK",
-        cpcu_courses_count: cpuCourseCount[0]?.count || 0,
-        questions_with_loids: questionsWithLoids[0]?.count || 0,
-        test_query_results: testResult.length,
-        test_query_data: testResult,
-        storage_function_test: {
-          count: storageTest.length,
-          versions: storageTest.map(v => ({ id: v.id, isActive: v.isActive }))
-        },
-        environment: {
-          NODE_ENV: process.env.NODE_ENV,
-          has_database_url: !!process.env.DATABASE_URL
-        }
+      
+      results.questions_with_loids = Number(questionsWithLoids[0]?.count || 0);
+      results.tests.push({ 
+        name: "Questions with LOIDs", 
+        status: results.questions_with_loids > 0 ? "PASS" : "FAIL",
+        count: results.questions_with_loids 
       });
     } catch (error: any) {
-      console.error("Diagnostic error:", error);
-      res.status(500).json({ 
-        error: "Diagnostic failed",
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      results.tests.push({ name: "Questions with LOIDs", status: "FAIL", error: error.message });
     }
+
+    try {
+      // Test 5: Simple join test
+      const joinTest = await db.select({
+        courseNumber: courses.courseNumber,
+        displayOrder: courseQuestionSets.displayOrder
+      })
+      .from(courseQuestionSets)
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(sql`${courses.courseNumber} LIKE 'CPCU%'`)
+      .limit(5);
+      
+      results.simple_join_test = joinTest.length;
+      results.tests.push({ 
+        name: "Simple Join Test", 
+        status: joinTest.length > 0 ? "PASS" : "FAIL",
+        count: joinTest.length,
+        sample: joinTest[0]
+      });
+    } catch (error: any) {
+      results.tests.push({ name: "Simple Join Test", status: "FAIL", error: error.message });
+    }
+
+    try {
+      // Test 6: Storage function test
+      const storageTest = await storage.findAllQuestionVersionsByDetails('CPCU 540', 1, 2, '11444');
+      results.storage_function_test = {
+        count: storageTest.length,
+        versions: storageTest.map((v: any) => ({ id: v.id, isActive: v.isActive }))
+      };
+      results.tests.push({ 
+        name: "Storage Function", 
+        status: storageTest.length > 0 ? "PASS" : "FAIL",
+        count: storageTest.length
+      });
+    } catch (error: any) {
+      results.tests.push({ name: "Storage Function", status: "FAIL", error: error.message });
+    }
+
+    // Summary
+    results.environment = {
+      NODE_ENV: process.env.NODE_ENV,
+      has_database_url: !!process.env.DATABASE_URL
+    };
+    
+    results.summary = {
+      total_tests: results.tests.length,
+      passed: results.tests.filter((t: any) => t.status === "PASS").length,
+      failed: results.tests.filter((t: any) => t.status === "FAIL").length
+    };
+
+    res.json(results);
   });
 
   // Admin routes for static explanations
