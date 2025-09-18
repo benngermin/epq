@@ -4804,6 +4804,73 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Diagnostic endpoint to check the production database
+  app.get("/api/admin/diagnostic", requireAdmin, async (req, res) => {
+    try {
+      // Check if we can find a specific question that should exist
+      const testResult = await db.select({
+        course: courses.courseNumber,
+        setNum: courseQuestionSets.displayOrder,
+        qNum: questions.originalQuestionNumber,
+        loid: questions.loid,
+        versionId: questionVersions.id,
+        isActive: questionVersions.isActive
+      })
+      .from(questionVersions)
+      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(and(
+        eq(courses.courseNumber, 'CPCU 540'),
+        eq(courseQuestionSets.displayOrder, 1),
+        eq(questions.originalQuestionNumber, 2),
+        eq(questions.loid, '11444')
+      ))
+      .limit(5);
+
+      // Count total CPCU courses
+      const cpuCourseCount = await db.select({
+        count: sql<number>`COUNT(*)`
+      })
+      .from(courses)
+      .where(sql`${courses.courseNumber} LIKE 'CPCU%'`);
+
+      // Count total questions with LOIDs
+      const questionsWithLoids = await db.select({
+        count: sql<number>`COUNT(DISTINCT ${questions.loid})`
+      })
+      .from(questions)
+      .where(sql`${questions.loid} IS NOT NULL AND ${questions.loid} != ''`);
+
+      // Test the storage function
+      const storageTest = await storage.findAllQuestionVersionsByDetails('CPCU 540', 1, 2, '11444');
+
+      res.json({
+        database_connection: "OK",
+        cpcu_courses_count: cpuCourseCount[0]?.count || 0,
+        questions_with_loids: questionsWithLoids[0]?.count || 0,
+        test_query_results: testResult.length,
+        test_query_data: testResult,
+        storage_function_test: {
+          count: storageTest.length,
+          versions: storageTest.map(v => ({ id: v.id, isActive: v.isActive }))
+        },
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          has_database_url: !!process.env.DATABASE_URL
+        }
+      });
+    } catch (error: any) {
+      console.error("Diagnostic error:", error);
+      res.status(500).json({ 
+        error: "Diagnostic failed",
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
+
   // Admin routes for static explanations
   app.post("/api/admin/preview-explanations", requireAdmin, async (req, res) => {
     try {

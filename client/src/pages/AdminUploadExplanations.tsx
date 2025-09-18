@@ -315,6 +315,26 @@ export default function AdminUploadExplanations() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/admin/diagnostic', {
+                    credentials: 'include'
+                  });
+                  const data = await response.json();
+                  console.log("DIAGNOSTIC RESULTS:", data);
+                  alert(`Diagnostic Results:\n\nCPCU Courses: ${data.cpcu_courses_count}\nQuestions with LOIDs: ${data.questions_with_loids}\nTest Query Results: ${data.test_query_results}\nStorage Function Test: ${data.storage_function_test?.count || 0}\n\nCheck console for full details`);
+                } catch (error) {
+                  console.error("Diagnostic error:", error);
+                  alert("Diagnostic failed - check console");
+                }
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Run Diagnostic Test
+            </button>
+          </div>
           {!previewData && !uploadResult && (
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
