@@ -4898,17 +4898,67 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
 
     try {
-      // Test 6: Storage function test
-      const storageTest = await storage.findAllQuestionVersionsByDetails('CPCU 540', 1, 2, '11444');
-      results.storage_function_test = {
-        count: storageTest.length,
-        versions: storageTest.map((v: any) => ({ id: v.id, isActive: v.isActive }))
-      };
-      results.tests.push({ 
-        name: "Storage Function", 
-        status: storageTest.length > 0 ? "PASS" : "FAIL",
-        count: storageTest.length
-      });
+      // Test 6: First check what CPCU courses actually exist
+      const cpucCourses = await db.select({
+        courseNumber: courses.courseNumber,
+        id: courses.id
+      })
+      .from(courses)
+      .where(sql`${courses.courseNumber} LIKE 'CPCU%'`)
+      .limit(1);
+      
+      if (cpucCourses.length > 0) {
+        // Test 6b: Find a real question with LOID to test with
+        const testQuestion = await db.select({
+          courseName: courses.courseNumber,
+          questionSetNumber: courseQuestionSets.displayOrder,
+          questionNumber: questions.originalQuestionNumber,
+          loid: questions.loid
+        })
+        .from(questions)
+        .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+        .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+        .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+        .where(and(
+          sql`${courses.courseNumber} LIKE 'CPCU%'`,
+          sql`${questions.loid} IS NOT NULL AND ${questions.loid} != ''`
+        ))
+        .limit(1);
+        
+        if (testQuestion.length > 0) {
+          const test = testQuestion[0];
+          console.log(`Testing storage function with real data: ${test.courseName}, set ${test.questionSetNumber}, q${test.questionNumber}, loid ${test.loid}`);
+          const storageTest = await storage.findAllQuestionVersionsByDetails(
+            test.courseName,
+            test.questionSetNumber,
+            test.questionNumber,
+            test.loid
+          );
+          results.storage_function_test = {
+            test_params: test,
+            count: storageTest.length,
+            versions: storageTest.map((v: any) => ({ id: v.id, isActive: v.isActive }))
+          };
+          results.tests.push({ 
+            name: "Storage Function", 
+            status: storageTest.length > 0 ? "PASS" : "FAIL",
+            count: storageTest.length,
+            test_data: test
+          });
+        } else {
+          results.tests.push({ 
+            name: "Storage Function", 
+            status: "FAIL", 
+            error: "No CPCU questions with LOIDs found to test" 
+          });
+        }
+      } else {
+        results.tests.push({ 
+          name: "Storage Function", 
+          status: "FAIL", 
+          error: "No CPCU courses found" 
+        });
+      }
     } catch (error: any) {
       results.tests.push({ name: "Storage Function", status: "FAIL", error: error.message });
     }
