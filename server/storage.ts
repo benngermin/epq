@@ -735,7 +735,8 @@ export class DatabaseStorage implements IStorage {
 
   async findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined> {
     const results = await db.select({
-      questionVersion: questionVersions
+      questionVersion: questionVersions,
+      questionVersionId: questionVersions.id
     })
       .from(questionVersions)
       .innerJoin(questions, eq(questions.id, questionVersions.questionId))
@@ -748,10 +749,18 @@ export class DatabaseStorage implements IStorage {
         eq(questions.originalQuestionNumber, questionNumber),
         eq(questions.loid, loid),
         eq(questionVersions.isActive, true)
-      ))
-      .limit(1);
+      ));
     
-    return results[0]?.questionVersion;
+    // Deduplicate by question version ID (when there are duplicate courses)
+    // Return the first unique question version
+    const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
+    results.forEach(r => {
+      if (!uniqueVersions.has(r.questionVersionId)) {
+        uniqueVersions.set(r.questionVersionId, r.questionVersion);
+      }
+    });
+    
+    return uniqueVersions.values().next().value || undefined;
   }
 
   async updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined> {
@@ -784,7 +793,13 @@ export class DatabaseStorage implements IStorage {
         eq(questionVersions.isActive, true)
       ));
     
-    return results.map(r => r.questionVersion);
+    // Deduplicate by question version ID (when there are duplicate courses)
+    const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
+    results.forEach(r => {
+      uniqueVersions.set(r.questionVersion.id, r.questionVersion);
+    });
+    
+    return Array.from(uniqueVersions.values());
   }
 
   async batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>> {
