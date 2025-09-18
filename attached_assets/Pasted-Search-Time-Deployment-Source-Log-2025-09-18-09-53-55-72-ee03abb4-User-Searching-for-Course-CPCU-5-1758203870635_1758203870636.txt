@@ -1,0 +1,241 @@
+Search
+Time
+Deployment
+Source
+Log
+2025-09-18 09:53:55.72
+ee03abb4
+User
+Searching for: Course="CPCU 520", Set=2, Q#=34, LOID="11533"
+2025-09-18 09:53:56.05
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=1, Q#=38, LOID="11439"
+2025-09-18 09:53:56.05
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:53:56.05
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=1, Q#=21, LOID="2522"
+2025-09-18 09:53:56.05
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:53:56.06
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:53:56.06
+ee03abb4
+User
+❌ No matches found for LOID 11440
+2025-09-18 09:53:56.06
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:53:56.06
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:53:56.06
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:53:56.06
+ee03abb4
+User
+❌ No matches found for LOID 11444
+2025-09-18 09:53:56.06
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=1, Q#=26, LOID="11444"
+2025-09-18 09:53:56.07
+ee03abb4
+User
+❌ No matches found for LOID 11449
+2025-09-18 09:53:56.07
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=2, Q#=54, LOID="11446"
+2025-09-18 09:53:56.07
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:53:56.07
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:53:56.07
+ee03abb4
+User
+❌ No matches found for LOID 11449
+2025-09-18 09:53:56.07
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=1, Q#=23, LOID="11448"
+2025-09-18 09:53:56.08
+ee03abb4
+User
+❌ No matches found for LOID 11451
+2025-09-18 09:53:56.08
+ee03abb4
+User
+Search params: Course="CPCU 540", Set=2, Q#=66, LOID="11451"
+2025-09-18 09:53:56.08
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:16.15
+ee03abb4
+User
+9:54:16 AM [express] GET /api/user 200 in 125ms :: {"id":9,"name":"Benn","email":"benn@modia.ai","pa…
+2025-09-18 09:54:16.34
+ee03abb4
+User
+9:54:16 AM [express] GET /api/auth/config 200 in 298ms :: {"hasLocalAuth":false,"hasCognitoSSO":true…
+2025-09-18 09:54:22.36
+ee03abb4
+User
+❌ No matches found for LOID 7431
+2025-09-18 09:54:22.36
+ee03abb4
+User
+Search params: Course="CPCU 556", Set=3, Q#=15, LOID="7431"
+2025-09-18 09:54:22.36
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.36
+ee03abb4
+User
+❌ No matches found for LOID 5510
+2025-09-18 09:54:22.36
+ee03abb4
+User
+Search params: Course="CPCU 556", Set=3, Q#=18, LOID="5510"
+2025-09-18 09:54:22.36
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.36
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.36
+ee03abb4
+User
+❌ No matches found for LOID 7659
+2025-09-18 09:54:22.38
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.40
+ee03abb4
+User
+Search params: Course="CPCU 552", Set=3, Q#=4, LOID="3258"
+2025-09-18 09:54:22.41
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.42
+ee03abb4
+User
+❌ No matches found for LOID 9015
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=2, Q#=11, LOID="9015"
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.42
+ee03abb4
+User
+❌ No matches found for LOID 10734
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=2, Q#=7, LOID="10734"
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.42
+ee03abb4
+User
+❌ No matches found for LOID 2154
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=2, Q#=18, LOID="2154"
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.42
+ee03abb4
+User
+❌ No matches found for LOID 10741
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=2, Q#=14, LOID="10741"
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.42
+ee03abb4
+User
+❌ No matches found for LOID 11471
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=2, Q#=22, LOID="11471"
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.42
+ee03abb4
+User
+Search params: Course="CPCU 551", Set=3, Q#=4, LOID="4959"
+2025-09-18 09:54:22.43
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
+2025-09-18 09:54:22.43
+ee03abb4
+User
+After deduplication: 0 unique question versions
+2025-09-18 09:54:22.43
+ee03abb4
+User
+Storage query returned 0 raw results before deduplication
