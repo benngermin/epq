@@ -3,6 +3,8 @@ import { RotateCcw, BookOpen, AlertCircle } from "lucide-react";
 import { FeedbackButtons } from "@/components/feedback-buttons";
 import { useState, useEffect } from "react";
 import { parseTextWithLinks } from "@/lib/text-parser";
+import { processMarkdown, isMarkdownContent, isHtmlContent } from "@/lib/markdown-processor";
+import { HtmlLinkRenderer } from "@/components/html-link-renderer";
 
 interface StaticExplanationProps {
   explanation: string;
@@ -12,43 +14,66 @@ interface StaticExplanationProps {
 
 export function StaticExplanation({ explanation, onReviewQuestion, questionVersionId }: StaticExplanationProps) {
   const [hasError, setHasError] = useState(false);
-  const [processedParagraphs, setProcessedParagraphs] = useState<string[]>([]);
+  const [processedContent, setProcessedContent] = useState<string | string[]>([]);
+  const [contentType, setContentType] = useState<'plain' | 'markdown' | 'html'>('plain');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
-    try {
-      // Validate and process explanation text
-      if (!explanation || typeof explanation !== 'string' || explanation.trim().length === 0) {
+    const processExplanation = async () => {
+      try {
+        // Validate and process explanation text
+        if (!explanation || typeof explanation !== 'string' || explanation.trim().length === 0) {
+          setHasError(true);
+          setProcessedContent(['No explanation is available for this question.']);
+          setContentType('plain');
+          return;
+        }
+        
+        // Sanitize explanation text (remove potentially harmful content)
+        const sanitizedExplanation = explanation
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
+          .trim();
+        
+        // Detect content type and process accordingly
+        if (isHtmlContent(sanitizedExplanation)) {
+          // HTML content - render directly with HtmlLinkRenderer
+          setContentType('html');
+          setProcessedContent(sanitizedExplanation);
+          setHasError(false);
+        } else if (isMarkdownContent(sanitizedExplanation)) {
+          // Markdown content - process to HTML then render
+          setIsProcessing(true);
+          setContentType('markdown');
+          const html = await processMarkdown(sanitizedExplanation);
+          setProcessedContent(html);
+          setHasError(false);
+          setIsProcessing(false);
+        } else {
+          // Plain text - use existing logic
+          setContentType('plain');
+          const lines = sanitizedExplanation.split(/\n+/);
+          const filtered = lines
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+          
+          if (filtered.length === 0) {
+            setHasError(true);
+            setProcessedContent(['The explanation content appears to be empty.']);
+          } else {
+            setHasError(false);
+            setProcessedContent(filtered);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing static explanation:', error);
         setHasError(true);
-        setProcessedParagraphs(['No explanation is available for this question.']);
-        return;
+        setProcessedContent(['An error occurred while processing the explanation.']);
+        setContentType('plain');
       }
-      
-      // Sanitize explanation text (remove potentially harmful content)
-      const sanitizedExplanation = explanation
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
-        .trim();
-      
-      // Split explanation by newlines and filter out empty lines
-      // Handle edge cases: single line, multiple consecutive newlines, etc.
-      const lines = sanitizedExplanation.split(/\n+/);
-      const filtered = lines
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-      
-      // If no valid paragraphs after filtering, show error message
-      if (filtered.length === 0) {
-        setHasError(true);
-        setProcessedParagraphs(['The explanation content appears to be empty.']);
-      } else {
-        setHasError(false);
-        setProcessedParagraphs(filtered);
-      }
-    } catch (error) {
-      console.error('Error processing static explanation:', error);
-      setHasError(true);
-      setProcessedParagraphs(['An error occurred while processing the explanation.']);
-    }
+    };
+    
+    processExplanation();
   }, [explanation]);
   
   // Create a unique message ID for feedback - handle missing questionVersionId
@@ -75,23 +100,36 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3">
-        <div className="max-w-3xl mx-auto space-y-3">
-          {processedParagraphs.length > 0 ? (
-            processedParagraphs.map((paragraph, index) => (
-              <p 
-                key={`paragraph-${index}`} 
-                className={`text-base leading-relaxed whitespace-pre-wrap ${
-                  hasError ? 'text-muted-foreground italic' : 'text-foreground'
-                }`}
-                data-testid={`text-explanation-${index}`}
-              >
-                {hasError ? paragraph : parseTextWithLinks(paragraph)}
-              </p>
-            ))
+        <div className="max-w-3xl mx-auto">
+          {isProcessing ? (
+            <p className="text-muted-foreground italic">Processing content...</p>
+          ) : contentType === 'html' || contentType === 'markdown' ? (
+            // Render HTML or processed Markdown with HtmlLinkRenderer
+            <HtmlLinkRenderer 
+              content={typeof processedContent === 'string' ? processedContent : ''} 
+              className="prose prose-sm dark:prose-invert max-w-none"
+            />
           ) : (
-            <p className="text-muted-foreground italic">
-              No explanation content available.
-            </p>
+            // Plain text rendering with parseTextWithLinks
+            <div className="space-y-3">
+              {Array.isArray(processedContent) && processedContent.length > 0 ? (
+                processedContent.map((paragraph, index) => (
+                  <p 
+                    key={`paragraph-${index}`} 
+                    className={`text-base leading-relaxed whitespace-pre-wrap ${
+                      hasError ? 'text-muted-foreground italic' : 'text-foreground'
+                    }`}
+                    data-testid={`text-explanation-${index}`}
+                  >
+                    {hasError ? paragraph : parseTextWithLinks(paragraph)}
+                  </p>
+                ))
+              ) : (
+                <p className="text-muted-foreground italic">
+                  No explanation content available.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -99,13 +137,13 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
       {/* Footer with feedback and Review Question button */}
       <div className="border-t">
         {/* Only show feedback buttons if we have valid content and not an error */}
-        {!hasError && processedParagraphs.length > 0 && (
+        {!hasError && !isProcessing && (Array.isArray(processedContent) ? processedContent.length > 0 : processedContent) && (
           <div className="px-3 py-1 pt-[0px] pb-[0px]">
             <FeedbackButtons
               messageId={messageId}
               questionVersionId={validQuestionVersionId}
               conversation={[
-                { id: messageId, role: "assistant", content: processedParagraphs.join('\n\n') }
+                { id: messageId, role: "assistant", content: Array.isArray(processedContent) ? processedContent.join('\n\n') : explanation }
               ]}
               disclaimerText="Expert-authored explanation for this complex topic"
               variant="static"
