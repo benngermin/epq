@@ -777,33 +777,41 @@ export class DatabaseStorage implements IStorage {
 
   // Find ALL question versions that match the given criteria
   async findAllQuestionVersionsByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion[]> {
-    const results = await db.select({
-      questionVersion: questionVersions
-    })
-      .from(questionVersions)
-      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
-      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
-      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
-      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
-      .where(and(
-        eq(courses.courseNumber, courseName), // Match on course number, not title
-        eq(courseQuestionSets.displayOrder, questionSetNumber), // display_order is 1-indexed in database
-        eq(questions.originalQuestionNumber, questionNumber),
-        eq(questions.loid, loid),
-        eq(questionVersions.isActive, true)
-      ));
-    
-    console.log(`   Storage query returned ${results.length} raw results before deduplication`);
-    
-    // Deduplicate by question version ID (when there are duplicate courses)
-    const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
-    results.forEach(r => {
-      uniqueVersions.set(r.questionVersion.id, r.questionVersion);
-    });
-    
-    console.log(`   After deduplication: ${uniqueVersions.size} unique question versions`);
-    
-    return Array.from(uniqueVersions.values());
+    try {
+      console.log(`   Storage function called with: courseName="${courseName}", setNum=${questionSetNumber}, qNum=${questionNumber}, loid="${loid}"`);
+      
+      const results = await db.select({
+        questionVersion: questionVersions
+      })
+        .from(questionVersions)
+        .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+        .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+        .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+        .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+        .where(and(
+          eq(courses.courseNumber, courseName), // Match on course number, not title
+          eq(courseQuestionSets.displayOrder, questionSetNumber), // display_order is 1-indexed in database
+          eq(questions.originalQuestionNumber, questionNumber),
+          eq(questions.loid, loid),
+          eq(questionVersions.isActive, true)
+        ));
+      
+      console.log(`   Storage query returned ${results.length} raw results before deduplication`);
+      
+      // Deduplicate by question version ID (when there are duplicate courses)
+      const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
+      results.forEach(r => {
+        uniqueVersions.set(r.questionVersion.id, r.questionVersion);
+      });
+      
+      console.log(`   After deduplication: ${uniqueVersions.size} unique question versions`);
+      
+      return Array.from(uniqueVersions.values());
+    } catch (error: any) {
+      console.error(`   Storage function error: ${error.message}`);
+      console.error(`   Full error:`, error);
+      throw error;
+    }
   }
 
   async batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>> {
