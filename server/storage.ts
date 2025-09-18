@@ -71,6 +71,7 @@ export interface IStorage {
   
   // Static explanation update methods
   findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined>;
+  findAllQuestionVersionsByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion[]>;
   updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined>;
   batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>>;
   
@@ -742,7 +743,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
       .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
       .where(and(
-        eq(courses.courseTitle, courseName),
+        eq(courses.courseNumber, courseName), // Match on course number, not title
         eq(courseQuestionSets.displayOrder, questionSetNumber - 1), // display_order is 0-indexed
         eq(questions.originalQuestionNumber, questionNumber),
         eq(questions.loid, loid),
@@ -763,6 +764,27 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updated || undefined;
+  }
+
+  // Find ALL question versions that match the given criteria
+  async findAllQuestionVersionsByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion[]> {
+    const results = await db.select({
+      questionVersion: questionVersions
+    })
+      .from(questionVersions)
+      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(and(
+        eq(courses.courseNumber, courseName), // Match on course number, not title
+        eq(courseQuestionSets.displayOrder, questionSetNumber - 1), // display_order is 0-indexed
+        eq(questions.originalQuestionNumber, questionNumber),
+        eq(questions.loid, loid),
+        eq(questionVersions.isActive, true)
+      ));
+    
+    return results.map(r => r.questionVersion);
   }
 
   async batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>> {

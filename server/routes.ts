@@ -4839,20 +4839,33 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const previewResults = await Promise.all(
         parsedRows.map(async (row) => {
           try {
-            const questionVersion = await storage.findQuestionVersionByDetails(
+            // Log the search criteria for debugging
+            console.log(`Searching for: Course="${row.courseName}", Set=${row.questionSetNumber}, Q#=${row.questionNumber}, LOID="${row.loid}"`);
+            
+            // Find ALL matching question versions (to check if there are multiple)
+            const allVersions = await storage.findAllQuestionVersionsByDetails(
               row.courseName,
               row.questionSetNumber,
               row.questionNumber,
               row.loid
             );
+            
+            const questionVersion = allVersions[0]; // Use first one for display
+            
+            if (allVersions.length > 0) {
+              console.log(`Found ${allVersions.length} matching version(s) for LOID ${row.loid}`);
+            } else {
+              console.log(`No matches found for LOID ${row.loid}`);
+            }
 
             return {
               row,
-              found: !!questionVersion,
+              found: allVersions.length > 0,
               questionVersionId: questionVersion?.id,
               currentExplanation: questionVersion?.staticExplanation,
               isStaticAnswer: questionVersion?.isStaticAnswer,
               questionType: questionVersion?.questionType,
+              matchCount: allVersions.length, // Show how many versions match
               match: {
                 courseName: row.courseName,
                 questionSetNumber: row.questionSetNumber,
@@ -4861,6 +4874,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               }
             };
           } catch (error: any) {
+            console.error(`Error searching for LOID ${row.loid}:`, error.message);
             return {
               row,
               found: false,
@@ -4950,40 +4964,48 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const updateResults = await Promise.all(
         previewResults.map(async (item) => {
           try {
-            // Re-validate the match on server side
-            const questionVersion = await storage.findQuestionVersionByDetails(
+            // Find ALL matching question versions (a question version can appear in multiple questions)
+            const questionVersions = await storage.findAllQuestionVersionsByDetails(
               item.row.courseName,
               item.row.questionSetNumber,
               item.row.questionNumber,
               item.row.loid
             );
 
-            if (!questionVersion) {
+            if (!questionVersions || questionVersions.length === 0) {
               return {
                 success: false,
                 error: "Question not found during re-validation",
                 courseName: item.row.courseName,
                 questionSetNumber: item.row.questionSetNumber,
                 questionNumber: item.row.questionNumber,
-                loid: item.row.loid
+                loid: item.row.loid,
+                updatedVersions: 0
               };
             }
 
-            // Update the question version with the new static explanation
-            const updated = await storage.updateQuestionVersionStaticExplanation(
-              questionVersion.id,
-              item.row.finalStaticExplanation
+            // Update ALL matching question versions with the new static explanation
+            const updatePromises = questionVersions.map(qv =>
+              storage.updateQuestionVersionStaticExplanation(
+                qv.id,
+                item.row.finalStaticExplanation
+              )
             );
             
+            const updateResults = await Promise.all(updatePromises);
+            const successfulUpdates = updateResults.filter(Boolean).length;
+            
             return {
-              questionVersionId: questionVersion.id,
-              success: !!updated,
+              questionVersionIds: questionVersions.map(qv => qv.id),
+              success: successfulUpdates > 0,
               courseName: item.row.courseName,
               questionSetNumber: item.row.questionSetNumber,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid,
-              previousExplanation: questionVersion.staticExplanation,
-              newExplanation: item.row.finalStaticExplanation
+              previousExplanation: questionVersions[0]?.staticExplanation,
+              newExplanation: item.row.finalStaticExplanation,
+              updatedVersions: successfulUpdates,
+              totalVersions: questionVersions.length
             };
           } catch (error: any) {
             return {
