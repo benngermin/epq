@@ -4964,18 +4964,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const updateResults = await Promise.all(
         previewResults.map(async (item) => {
           try {
-            // Find the SINGLE matching active question version for this exact criteria
-            const questionVersion = await storage.findQuestionVersionByDetails(
+            // Find ALL matching ACTIVE question versions (a question version can appear in multiple questions)
+            const questionVersions = await storage.findAllQuestionVersionsByDetails(
               item.row.courseName,
               item.row.questionSetNumber,
               item.row.questionNumber,
               item.row.loid
             );
 
-            if (!questionVersion) {
+            if (!questionVersions || questionVersions.length === 0) {
               return {
                 success: false,
-                error: "Question not found during re-validation",
+                error: "No active question versions found during re-validation",
                 courseName: item.row.courseName,
                 questionSetNumber: item.row.questionSetNumber,
                 questionNumber: item.row.questionNumber,
@@ -4984,22 +4984,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
               };
             }
 
-            // Update ONLY the single matching question version
-            const updated = await storage.updateQuestionVersionStaticExplanation(
-              questionVersion.id,
-              item.row.finalStaticExplanation
+            // Update ALL matching ACTIVE question versions with the new static explanation
+            const updatePromises = questionVersions.map(qv =>
+              storage.updateQuestionVersionStaticExplanation(
+                qv.id,
+                item.row.finalStaticExplanation
+              )
             );
             
+            const updateResults = await Promise.all(updatePromises);
+            const successfulUpdates = updateResults.filter(Boolean).length;
+            
             return {
-              questionVersionId: questionVersion.id,
-              success: !!updated,
+              questionVersionIds: questionVersions.map(qv => qv.id),
+              success: successfulUpdates > 0,
               courseName: item.row.courseName,
               questionSetNumber: item.row.questionSetNumber,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid,
-              previousExplanation: questionVersion.staticExplanation,
+              previousExplanation: questionVersions[0]?.staticExplanation,
               newExplanation: item.row.finalStaticExplanation,
-              updatedVersions: updated ? 1 : 0
+              updatedVersions: successfulUpdates,
+              totalVersions: questionVersions.length
             };
           } catch (error: any) {
             return {
