@@ -27,11 +27,15 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
     "Final Static Explanation"
   ];
   
-  // Map headers to indices
+  // Map headers to indices (Question Set is now optional)
   const headerMap: Record<string, number> = {};
   for (const required of requiredHeaders) {
     const index = headers.findIndex(h => h.toLowerCase() === required.toLowerCase());
     if (index === -1) {
+      // Question Set is now optional, skip if missing
+      if (required === "Question Set") {
+        continue;
+      }
       throw new Error(`Missing required column: ${required}`);
     }
     headerMap[required] = index;
@@ -48,22 +52,20 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
       continue;
     }
     
-    // Extract values
+    // Extract values (Question Set is optional)
     const uniqueId = row[headerMap["Unique ID"]]?.trim() || "";
     const courseName = row[headerMap["Course"]]?.trim() || "";
-    const questionSetStr = row[headerMap["Question Set"]]?.trim() || "";
+    const questionSetStr = headerMap["Question Set"] !== undefined ? row[headerMap["Question Set"]]?.trim() || "" : "";
     const questionNumberStr = row[headerMap["Question Number"]]?.trim() || "";
     const loid = row[headerMap["LOID"]]?.trim() || "";
     const questionText = row[headerMap["Question Text"]]?.trim() || "";
     const finalStaticExplanation = row[headerMap["Final Static Explanation"]]?.trim() || "";
     
-    // Validate required fields
+    // Validate required fields (Question Set is now optional)
     if (!courseName) {
       throw new Error(`Row ${i + 1}: Course name is required`);
     }
-    if (!questionSetStr) {
-      throw new Error(`Row ${i + 1}: Question Set is required`);
-    }
+    // Question Set is now optional - no validation needed
     if (!questionNumberStr) {
       throw new Error(`Row ${i + 1}: Question Number is required`);
     }
@@ -74,13 +76,13 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
       throw new Error(`Row ${i + 1}: Final Static Explanation is required`);
     }
     
-    // Parse numbers
-    const questionSetNumber = parseInt(questionSetStr, 10);
+    // Parse numbers (Question Set defaults to 0 if not provided or invalid)
+    const questionSetNumber = questionSetStr ? parseInt(questionSetStr, 10) : 0;
     const questionNumber = parseInt(questionNumberStr, 10);
     
-    if (isNaN(questionSetNumber)) {
-      throw new Error(`Row ${i + 1}: Question Set must be a number, got: ${questionSetStr}`);
-    }
+    // Question Set is optional, so default to 0 if invalid or missing
+    const finalQuestionSetNumber = isNaN(questionSetNumber) ? 0 : questionSetNumber;
+    
     if (isNaN(questionNumber)) {
       throw new Error(`Row ${i + 1}: Question Number must be a number, got: ${questionNumberStr}`);
     }
@@ -88,7 +90,7 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
     parsedRows.push({
       uniqueId,
       courseName,
-      questionSetNumber,
+      questionSetNumber: finalQuestionSetNumber,
       questionNumber,
       loid,
       questionText,

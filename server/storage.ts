@@ -745,7 +745,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
       .where(and(
         eq(courses.courseNumber, courseName), // Match on course number, not title
-        eq(courseQuestionSets.displayOrder, questionSetNumber), // display_order is 1-indexed in database
+        // Removed displayOrder condition - matching only on course, question number, and LOID
         eq(questions.originalQuestionNumber, questionNumber),
         eq(questions.loid, loid),
         eq(questionVersions.isActive, true)
@@ -790,7 +790,7 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
         .where(and(
           eq(courses.courseNumber, courseName), // Match on course number, not title
-          eq(courseQuestionSets.displayOrder, questionSetNumber), // display_order is 1-indexed in database
+          // Removed displayOrder condition - matching only on course, question number, and LOID
           eq(questions.originalQuestionNumber, questionNumber),
           eq(questions.loid, loid),
           eq(questionVersions.isActive, true)
