@@ -1,0 +1,51 @@
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[dotenv@17.2.0] injecting env (1) from .env (tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild)
+Creating database indexes for performance optimization...
+Database indexes created successfully
+User sequence updated to prevent duplicate key errors
+✓ Using dynamic redirect URI for development: https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/auth/cognito/callback
+Cognito authentication initialized successfully
+Setting up Cognito routes...
+✓ Cognito SSO authentication enabled
+✓ Redirect URI: https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/auth/cognito/callback
+1:41:13 AM [express] serving on port 5000
+9:41:19 PM [express] GET /api/user 304 in 94ms :: {"id":9,"name":"Benn","email":"benn@modia.ai","pas…
+9:41:19 PM [express] GET /api/auth/config 304 in 336ms :: {"hasLocalAuth":true,"hasCognitoSSO":true,…
+DEBUG: Getting question sets for AIC 300 (course ID: 16)
+  Found 2 question sets: [
+  { id: 43, title: 'Question set 1', questionCount: 100 },
+  { id: 44, title: 'Question set 2', questionCount: 100 }
+]
+DEBUG: Getting question sets for AIC 300 (course ID: 91)
+  Found 2 question sets: [
+  { id: 43, title: 'Question set 1', questionCount: 100 },
+  { id: 44, title: 'Question set 2', questionCount: 100 }
+]
+Authentication check failed for GET /api/user
+9:41:20 PM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+9:41:20 PM [express] GET /api/auth/config 200 in 1ms :: {"hasLocalAuth":true,"hasCognitoSSO":true,"s…
+9:41:20 PM [express] GET /api/courses 304 in 638ms :: [{"id":16,"courseNumber":"AIC 300","courseTitl…
+Authentication check failed for GET /api/user
+9:41:21 PM [express] GET /api/user 401 in 2ms :: {"message":"Not authenticated"}
+9:41:22 PM [express] GET /api/user 304 in 85ms :: {"id":9,"name":"Benn","email":"benn@modia.ai","pas…
+9:41:22 PM [express] GET /api/question-sets/43 304 in 114ms :: {"id":43,"title":"Question set 1","de…
+9:41:22 PM [express] GET /api/questions/43 304 in 204ms :: [{"id":4641,"questionSetId":43,"originalQ…
+9:41:22 PM [express] GET /api/courses/16 304 in 85ms :: {"id":16,"courseNumber":"AIC 300","courseTit…
+DEBUG: Getting question sets for AIC 300 (course ID: 16)
+  Found 2 question sets: [
+  { id: 43, title: 'Question set 1', questionCount: 100 },
+  { id: 44, title: 'Question set 2', questionCount: 100 }
+]
+9:41:23 PM [express] GET /api/courses/16/question-sets 304 in 112ms :: [{"id":43,"title":"Question s…
+9:48:13 PM [express] GET /api/auth/config 304 in 63ms :: {"hasLocalAuth":true,"hasCognitoSSO":true,"…
+9:48:13 PM [express] GET /api/user 304 in 84ms :: {"id":9,"name":"Benn","email":"benn@modia.ai","pas…
+9:48:17 PM [express] GET /api/auth/config 304 in 63ms :: {"hasLocalAuth":true,"hasCognitoSSO":true,"…
+9:48:17 PM [express] GET /api/user 304 in 84ms :: {"id":9,"name":"Benn","email":"benn@modia.ai","pas…
+Searching for: Course="CPCU 540", Set=1, Q#=2, LOID="11444"
+Searching for: Course="CPCU 540", Set=1, Q#=7, LOID="11452"
+Found 2 matching version(s) for LOID 11444
+Found 2 matching version(s) for LOID 11452
+9:48:24 PM [express] POST /api/admin/preview-explanations 200 in 167ms :: {"success":true,"preview":…
+9:48:38 PM [express] POST /api/admin/upload-explanations 200 in 260ms :: {"success":true,"statistics…
