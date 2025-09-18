@@ -793,11 +793,15 @@ export class DatabaseStorage implements IStorage {
         eq(questionVersions.isActive, true)
       ));
     
+    console.log(`   Storage query returned ${results.length} raw results before deduplication`);
+    
     // Deduplicate by question version ID (when there are duplicate courses)
     const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
     results.forEach(r => {
       uniqueVersions.set(r.questionVersion.id, r.questionVersion);
     });
+    
+    console.log(`   After deduplication: ${uniqueVersions.size} unique question versions`);
     
     return Array.from(uniqueVersions.values());
   }

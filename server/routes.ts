@@ -4853,9 +4853,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
             const questionVersion = allVersions[0]; // Use first one for display
             
             if (allVersions.length > 0) {
-              console.log(`Found ${allVersions.length} matching version(s) for LOID ${row.loid}`);
+              console.log(`✅ Found ${allVersions.length} matching version(s) for LOID ${row.loid}, Question Version ID: ${questionVersion?.id}`);
             } else {
-              console.log(`No matches found for LOID ${row.loid}`);
+              console.log(`❌ No matches found for LOID ${row.loid}`);
+              // Log what we're actually searching for vs what's in the database
+              console.log(`   Search params: Course="${row.courseName}", Set=${row.questionSetNumber}, Q#=${row.questionNumber}, LOID="${row.loid}"`);
             }
 
             return {
