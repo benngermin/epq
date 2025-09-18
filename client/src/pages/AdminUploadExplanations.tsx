@@ -43,26 +43,30 @@ interface CSVPreviewRow {
 
 interface PreviewResult {
   row: CSVPreviewRow;
-  isMatched: boolean;
-  matchedQuestion?: {
-    id: number;
-    questionSetId: number;
-    originalQuestionNumber: number;
+  found: boolean;
+  questionVersionId?: number;
+  currentExplanation?: string | null;
+  isStaticAnswer?: boolean;
+  questionType?: string;
+  match?: {
+    courseName: string;
+    questionSetNumber: number;
+    questionNumber: number;
     loid: string;
-    currentStaticExplanation?: string;
-    versionId?: number;
   };
   error?: string;
 }
 
 interface PreviewResponse {
   success: boolean;
-  results: PreviewResult[];
-  summary: {
-    total: number;
-    matched: number;
-    unmatched: number;
+  preview: boolean;
+  statistics: {
+    totalRows: number;
+    matchedRows: number;
+    unmatchedRows: number;
+    matchPercentage: number;
   };
+  results: PreviewResult[];
   message?: string;
 }
 
@@ -106,13 +110,13 @@ export default function AdminUploadExplanations() {
       // Initially select all matched rows
       if (data.results) {
         const matchedIndices = data.results
-          .map((result, index) => result.isMatched ? index : null)
+          .map((result, index) => result.found ? index : null)
           .filter((index): index is number => index !== null);
         setSelectedRows(new Set(matchedIndices));
       }
       toast({
         title: "CSV Preview Generated",
-        description: `Found ${data.summary.matched} matched questions out of ${data.summary.total} total rows`,
+        description: `Found ${data.statistics.matchedRows} matched questions out of ${data.statistics.totalRows} total rows`,
       });
     },
     onError: (error: Error) => {
@@ -237,7 +241,7 @@ export default function AdminUploadExplanations() {
   const selectAll = useCallback(() => {
     if (previewData?.results) {
       const allIndices = previewData.results
-        .map((result, index) => result.isMatched ? index : null)
+        .map((result, index) => result.found ? index : null)
         .filter((index): index is number => index !== null);
       setSelectedRows(new Set(allIndices));
     }
@@ -279,8 +283,8 @@ export default function AdminUploadExplanations() {
       return { total: 0, matched: 0, unmatched: 0, selected: 0 };
     }
     
-    const matched = previewData.results.filter(r => r.isMatched).length;
-    const selectedMatched = previewData.results.filter((r, i) => r.isMatched && selectedRows.has(i)).length;
+    const matched = previewData.results.filter(r => r.found).length;
+    const selectedMatched = previewData.results.filter((r, i) => r.found && selectedRows.has(i)).length;
     
     return {
       total: previewData.results.length,
@@ -427,19 +431,19 @@ export default function AdminUploadExplanations() {
                     {previewData.results.map((result, index) => (
                       <TableRow 
                         key={index}
-                        className={result.isMatched ? '' : 'opacity-50'}
+                        className={result.found ? '' : 'opacity-50'}
                         data-testid={`row-preview-${index}`}
                       >
                         <TableCell>
                           <Checkbox
                             checked={selectedRows.has(index)}
                             onCheckedChange={() => toggleRowSelection(index)}
-                            disabled={!result.isMatched}
+                            disabled={!result.found}
                             data-testid={`checkbox-row-${index}`}
                           />
                         </TableCell>
                         <TableCell>
-                          {result.isMatched ? (
+                          {result.found ? (
                             <CheckCircle className="h-5 w-5 text-green-600" />
                           ) : (
                             <XCircle className="h-5 w-5 text-red-600" />
@@ -460,8 +464,8 @@ export default function AdminUploadExplanations() {
                         </TableCell>
                         <TableCell className="max-w-[250px]">
                           <div className="truncate text-sm text-muted-foreground" 
-                               title={result.matchedQuestion?.currentStaticExplanation || 'No current explanation'}>
-                            {result.matchedQuestion?.currentStaticExplanation || 
+                               title={result.currentExplanation || 'No current explanation'}>
+                            {result.currentExplanation || 
                              <span className="italic">No current explanation</span>}
                           </div>
                         </TableCell>
