@@ -5014,8 +5014,20 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const previewResults = await Promise.all(
         parsedRows.map(async (row) => {
           try {
-            // Log the search criteria for debugging
-            console.log(`Searching for: Course="${row.courseName}", Set=${row.questionSetNumber}, Q#=${row.questionNumber}, LOID="${row.loid}"`);
+            // Enhanced diagnostic logging for production debugging
+            const searchCriteria = {
+              course: row.courseName,
+              set: row.questionSetNumber,
+              questionNum: row.questionNumber,
+              loid: row.loid,
+              hasText: !!row.questionText
+            };
+            
+            if (process.env.NODE_ENV === 'production') {
+              console.log(`[PROD SEARCH] Criteria:`, JSON.stringify(searchCriteria));
+            } else {
+              console.log(`Searching for: Course="${row.courseName}", Set=${row.questionSetNumber}, Q#=${row.questionNumber}, LOID="${row.loid}"`);
+            }
             
             // Find ALL matching question versions (to check if there are multiple)
             const allVersions = await storage.findAllQuestionVersionsByDetails(
@@ -5024,6 +5036,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
               row.questionNumber,
               row.loid
             );
+            
+            // Production diagnostic: log what was found
+            if (process.env.NODE_ENV === 'production' && allVersions.length === 0) {
+              console.log(`[PROD NO MATCH] LOID ${row.loid}: 0 results from DB query`);
+              // Check if any questions exist with this LOID at all
+              const anyWithLoid = await storage.checkQuestionExistsByLoid(row.loid);
+              if (anyWithLoid) {
+                console.log(`[PROD DEBUG] LOID ${row.loid} exists but with different metadata`);
+              } else {
+                console.log(`[PROD DEBUG] LOID ${row.loid} does not exist in database at all`);
+              }
+            }
             
             // Filter by normalized question text if provided
             let matchedVersions = allVersions;

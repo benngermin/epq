@@ -74,6 +74,7 @@ export interface IStorage {
   findAllQuestionVersionsByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion[]>;
   updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined>;
   batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>>;
+  checkQuestionExistsByLoid(loid: string): Promise<boolean>;
   
   // Test run methods
   getUserTestRuns(userId: number): Promise<UserTestRun[]>;
@@ -773,6 +774,16 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updated || undefined;
+  }
+  
+  // Helper method to check if a question exists with a given LOID
+  async checkQuestionExistsByLoid(loid: string): Promise<boolean> {
+    const result = await db.select({ id: questions.id })
+      .from(questions)
+      .where(eq(questions.loid, loid))
+      .limit(1);
+    
+    return result.length > 0;
   }
 
   // Find ALL question versions that match the given criteria
