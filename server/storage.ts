@@ -780,6 +780,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`   Storage function called with: courseName="${courseName}", setNum=${questionSetNumber}, qNum=${questionNumber}, loid="${loid}"`);
       
+      // Build where conditions
+      const whereConditions = [
+        eq(courses.courseNumber, courseName), // Match on course number, not title
+        eq(questions.originalQuestionNumber, questionNumber),
+        eq(questions.loid, loid),
+        eq(questionVersions.isActive, true)
+      ];
+      
+      // Add questionSetNumber filter if provided (not 0)
+      if (questionSetNumber > 0) {
+        whereConditions.push(eq(courseQuestionSets.displayOrder, questionSetNumber));
+      }
+      
       const results = await db.select({
         questionVersion: questionVersions
       })
@@ -788,13 +801,7 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
         .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
         .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
-        .where(and(
-          eq(courses.courseNumber, courseName), // Match on course number, not title
-          // Removed displayOrder condition - matching only on course, question number, and LOID
-          eq(questions.originalQuestionNumber, questionNumber),
-          eq(questions.loid, loid),
-          eq(questionVersions.isActive, true)
-        ));
+        .where(and(...whereConditions));
       
       console.log(`   Storage query returned ${results.length} raw results before deduplication`);
       
