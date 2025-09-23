@@ -27,13 +27,13 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
     "Final Static Explanation"
   ];
   
-  // Map headers to indices (Question Set is now optional)
+  // Map headers to indices (Question Set and Unique ID are now optional)
   const headerMap: Record<string, number> = {};
   for (const required of requiredHeaders) {
     const index = headers.findIndex(h => h.toLowerCase() === required.toLowerCase());
     if (index === -1) {
-      // Question Set is now optional, skip if missing
-      if (required === "Question Set") {
+      // Question Set and Unique ID are now optional, skip if missing
+      if (required === "Question Set" || required === "Unique ID") {
         continue;
       }
       throw new Error(`Missing required column: ${required}`);
@@ -52,8 +52,8 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
       continue;
     }
     
-    // Extract values (Question Set is optional)
-    const uniqueId = row[headerMap["Unique ID"]]?.trim() || "";
+    // Extract values (Question Set and Unique ID are optional)
+    const uniqueId = headerMap["Unique ID"] !== undefined ? row[headerMap["Unique ID"]]?.trim() || "" : "";
     const courseName = row[headerMap["Course"]]?.trim() || "";
     const questionSetStr = headerMap["Question Set"] !== undefined ? row[headerMap["Question Set"]]?.trim() || "" : "";
     const questionNumberStr = row[headerMap["Question Number"]]?.trim() || "";
