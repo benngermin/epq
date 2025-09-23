@@ -5234,7 +5234,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         previewResults.map(async (item) => {
           try {
             // Skip items that weren't found or were ambiguous in preview
-            if (!item.found || (item as any).status === 'ambiguous' || (item as any).status === 'not_found') {
+            if (!item.found || (item as any).status === 'not_found') {
               return {
                 success: false,
                 error: `Skipped: ${(item as any).reason || 'Not found in preview'}`,
@@ -5246,49 +5246,20 @@ Remember, your goal is to support student comprehension through meaningful feedb
               };
             }
             
-            // Find ALL matching ACTIVE question versions (a question version can appear in multiple questions)
-            const allVersions = await storage.findAllQuestionVersionsByDetails(
-              item.row.courseName,
-              item.row.questionSetNumber,
-              item.row.questionNumber,
-              item.row.loid
-            );
-
-            if (!allVersions || allVersions.length === 0) {
-              return {
-                success: false,
-                error: "No active question versions found during re-validation",
-                courseName: item.row.courseName,
-                questionSetNumber: item.row.questionSetNumber,
-                questionNumber: item.row.questionNumber,
-                loid: item.row.loid,
-                updatedVersions: 0
-              };
-            }
+            let matchedVersions: QuestionVersion[] = [];
             
-            // Filter by normalized question text if provided
-            let matchedVersions = allVersions;
+            // TEXT-FIRST MATCHING: Use same logic as preview
             if (item.row.questionText && item.row.questionText.trim() !== '') {
-              const normalizedCsvText = normalizeQuestionText(item.row.questionText);
-              matchedVersions = allVersions.filter(version => {
-                const normalizedDbText = normalizeQuestionText(version.questionText);
-                return normalizedDbText === normalizedCsvText;
-              });
+              const textHash = hashQuestionText(item.row.questionText);
+              console.log(`[UPLOAD] Using text-first matching with hash: ${textHash} for LOID ${item.row.loid}`);
               
-              if (matchedVersions.length === 0) {
+              // Find ALL questions with this text across ALL courses/sets
+              const allTextMatches = await storage.findQuestionVersionsByTextHash(textHash);
+              
+              if (allTextMatches.length === 0) {
                 return {
                   success: false,
-                  error: `Text mismatch during re-validation (${allVersions.length} candidates by metadata)`,
-                  courseName: item.row.courseName,
-                  questionSetNumber: item.row.questionSetNumber,
-                  questionNumber: item.row.questionNumber,
-                  loid: item.row.loid,
-                  updatedVersions: 0
-                };
-              } else if (matchedVersions.length > 1) {
-                return {
-                  success: false,
-                  error: `Ambiguous: ${matchedVersions.length} versions with same text`,
+                  error: "No questions found with matching text during upload",
                   courseName: item.row.courseName,
                   questionSetNumber: item.row.questionSetNumber,
                   questionNumber: item.row.questionNumber,
@@ -5296,29 +5267,60 @@ Remember, your goal is to support student comprehension through meaningful feedb
                   updatedVersions: 0
                 };
               }
-            } else if (allVersions.length > 1) {
-              // Without text to disambiguate, we can't update multiple versions
-              return {
-                success: false,
-                error: `Ambiguous: ${allVersions.length} versions without text to disambiguate`,
-                courseName: item.row.courseName,
-                questionSetNumber: item.row.questionSetNumber,
-                questionNumber: item.row.questionNumber,
-                loid: item.row.loid,
-                updatedVersions: 0
-              };
+              
+              matchedVersions = allTextMatches;
+              console.log(`[UPLOAD] Found ${matchedVersions.length} questions with matching text`);
+              
+            } else {
+              // No text provided - fall back to metadata matching
+              console.log(`[UPLOAD] No text provided, using metadata for LOID ${item.row.loid}`);
+              const metadataMatches = await storage.findAllQuestionVersionsByDetails(
+                item.row.courseName,
+                item.row.questionSetNumber,
+                item.row.questionNumber,
+                item.row.loid
+              );
+              
+              if (metadataMatches.length === 0) {
+                return {
+                  success: false,
+                  error: "No questions found by metadata during upload",
+                  courseName: item.row.courseName,
+                  questionSetNumber: item.row.questionSetNumber,
+                  questionNumber: item.row.questionNumber,
+                  loid: item.row.loid,
+                  updatedVersions: 0
+                };
+              } else if (metadataMatches.length > 1) {
+                return {
+                  success: false,
+                  error: `Ambiguous: ${metadataMatches.length} versions by metadata without text to disambiguate`,
+                  courseName: item.row.courseName,
+                  questionSetNumber: item.row.questionSetNumber,
+                  questionNumber: item.row.questionNumber,
+                  loid: item.row.loid,
+                  updatedVersions: 0
+                };
+              }
+              
+              matchedVersions = metadataMatches;
+              console.log(`[UPLOAD] Found ${matchedVersions.length} questions by metadata`);
             }
 
-            // Update only the single matched version
-            const updateResult = await storage.updateQuestionVersionStaticExplanation(
-              matchedVersions[0].id,
-              item.row.finalStaticExplanation
+            // Update ALL matched versions
+            console.log(`[UPLOAD] Updating ${matchedVersions.length} question versions with static explanation`);
+            const updatePromises = matchedVersions.map(version => 
+              storage.updateQuestionVersionStaticExplanation(
+                version.id,
+                item.row.finalStaticExplanation
+              )
             );
             
-            const successfulUpdates = updateResult ? 1 : 0;
+            const updateResults = await Promise.all(updatePromises);
+            const successfulUpdates = updateResults.filter(r => r !== undefined).length;
             
             return {
-              questionVersionIds: [matchedVersions[0].id],
+              questionVersionIds: matchedVersions.map(v => v.id),
               success: successfulUpdates > 0,
               courseName: item.row.courseName,
               questionSetNumber: item.row.questionSetNumber,
@@ -5327,7 +5329,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               previousExplanation: matchedVersions[0]?.staticExplanation,
               newExplanation: item.row.finalStaticExplanation,
               updatedVersions: successfulUpdates,
-              totalVersions: 1
+              totalVersions: matchedVersions.length
             };
           } catch (error: any) {
             return {
