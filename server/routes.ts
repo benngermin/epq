@@ -19,7 +19,7 @@ import { getTodayEST } from "./utils/logger";
 import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware/rate-limiter";
 import { requireAdmin } from "./middleware/admin";
 import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/csvParser";
-import { normalizeQuestionText, questionTextsMatch, hashQuestionText } from "./utils/text-normalizer";
+import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -5029,71 +5029,45 @@ Remember, your goal is to support student comprehension through meaningful feedb
             let matchReason = '';
             let candidateCount = 0;
             
-            // TEXT-FIRST MATCHING: Use question text as primary identifier
+            // DIRECT TEXT MATCHING: Use direct text comparison
             if (row.questionText && row.questionText.trim() !== '') {
-              const textHash = hashQuestionText(row.questionText);
-              console.log(`[TEXT-FIRST] Generated hash: ${textHash} for LOID ${row.loid}`);
+              console.log(`[DIRECT-TEXT] Searching for exact text match for LOID ${row.loid}`);
               
-              // Search by text hash first, scoped to course if provided
-              const textMatches = await storage.findQuestionVersionsByTextHash(textHash, row.courseName);
+              // Search by direct text comparison, scoped to course
+              const textMatches = await storage.findQuestionVersionsByDirectText(row.questionText, row.courseName);
               candidateCount = textMatches.length;
               
               if (textMatches.length === 0) {
-                // No text matches found, try broader search without course scope
-                const globalTextMatches = await storage.findQuestionVersionsByTextHash(textHash);
-                if (globalTextMatches.length > 0) {
+                // No exact text matches found
+                // Try metadata search to see if question exists
+                const metadataMatches = await storage.findAllQuestionVersionsByDetails(
+                  row.courseName,
+                  row.questionSetNumber,
+                  row.questionNumber,
+                  row.loid
+                );
+                
+                if (metadataMatches.length > 0) {
                   matchStatus = 'not_found';
-                  matchReason = `Text found in ${globalTextMatches.length} other courses but not in ${row.courseName}`;
-                  console.log(`❌ Text match in wrong course for LOID ${row.loid}`);
+                  matchReason = `Question found by metadata but text doesn't match exactly (${metadataMatches.length} found)`;
+                  console.log(`❌ Metadata match but text mismatch for LOID ${row.loid}`);
                 } else {
-                  // Fall back to metadata search to see if question exists at all
-                  const metadataMatches = await storage.findAllQuestionVersionsByDetails(
-                    row.courseName,
-                    row.questionSetNumber,
-                    row.questionNumber,
-                    row.loid
-                  );
-                  
-                  if (metadataMatches.length > 0) {
-                    matchStatus = 'not_found';
-                    matchReason = `Metadata match found but text doesn't match (found ${metadataMatches.length} by metadata)`;
-                    console.log(`❌ Metadata match but text mismatch for LOID ${row.loid}`);
-                  } else {
-                    matchStatus = 'not_found';
-                    matchReason = 'Question not found by text or metadata';
-                    console.log(`❌ No matches at all for LOID ${row.loid}`);
-                  }
+                  matchStatus = 'not_found';
+                  matchReason = 'Question not found by text or metadata';
+                  console.log(`❌ No matches at all for LOID ${row.loid}`);
                 }
               } else if (textMatches.length === 1) {
                 // Exactly one text match - perfect!
                 matchedVersions = textMatches;
                 matchStatus = 'matched';
-                matchReason = 'Matched by question text (unique match)';
-                console.log(`✅ Unique text match for LOID ${row.loid}, Version ID: ${textMatches[0].id}`);
+                matchReason = 'Matched by exact question text';
+                console.log(`✅ Exact text match for LOID ${row.loid}, Version ID: ${textMatches[0].id}`);
               } else {
-                // Multiple text matches - use metadata as tie-breakers
-                console.log(`⚠️ Multiple text matches (${textMatches.length}) for LOID ${row.loid}, applying tie-breakers`);
-                
-                // Tie-breaker 1: LOID match
-                let filtered = textMatches.filter(v => {
-                  // Need to get the question's LOID - this is a limitation we need to fix
-                  // For now, we'll use all matches but note the ambiguity
-                  return true;
-                });
-                
-                if (filtered.length === 1) {
-                  matchedVersions = filtered;
-                  matchStatus = 'matched';
-                  matchReason = 'Matched by text with LOID tie-breaker';
-                } else if (filtered.length > 1) {
-                  matchedVersions = [filtered[0]]; // Take first as best guess
-                  matchStatus = 'ambiguous';
-                  matchReason = `Multiple text matches (${filtered.length} versions), selected first`;
-                } else {
-                  matchedVersions = [textMatches[0]]; // Take first match
-                  matchStatus = 'ambiguous';
-                  matchReason = `Multiple text matches (${textMatches.length} versions), selected first`;
-                }
+                // Multiple exact text matches
+                matchedVersions = [textMatches[0]]; // Take first match
+                matchStatus = 'ambiguous';
+                matchReason = `Multiple exact text matches (${textMatches.length} versions), selected first`;
+                console.log(`⚠️ Multiple exact text matches for LOID ${row.loid}`);
               }
             } else {
               // No text provided - fall back to metadata-only matching
@@ -5248,13 +5222,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             let matchedVersions: QuestionVersion[] = [];
             
-            // TEXT-FIRST MATCHING: Use same logic as preview
+            // DIRECT TEXT MATCHING: Use same logic as preview
             if (item.row.questionText && item.row.questionText.trim() !== '') {
-              const textHash = hashQuestionText(item.row.questionText);
-              console.log(`[UPLOAD] Using text-first matching with hash: ${textHash} for LOID ${item.row.loid}`);
+              console.log(`[UPLOAD] Using direct text matching for LOID ${item.row.loid}`);
               
-              // Find ALL questions with this text across ALL courses/sets
-              const allTextMatches = await storage.findQuestionVersionsByTextHash(textHash);
+              // Find ALL questions with exact text match across ALL courses/sets
+              const allTextMatches = await storage.findQuestionVersionsByDirectText(item.row.questionText);
               
               if (allTextMatches.length === 0) {
                 return {
@@ -5269,7 +5242,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               }
               
               matchedVersions = allTextMatches;
-              console.log(`[UPLOAD] Found ${matchedVersions.length} questions with matching text`);
+              console.log(`[UPLOAD] Found ${matchedVersions.length} questions with exact matching text`);
               
             } else {
               // No text provided - fall back to metadata matching
