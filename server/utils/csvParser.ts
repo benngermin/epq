@@ -1,11 +1,11 @@
 export interface StaticExplanationRow {
-  uniqueId: string;
-  courseName: string;
-  questionSetNumber: number;
-  questionNumber: number;
-  loid: string;
-  questionText: string;
-  finalStaticExplanation: string;
+  uniqueId: string;  // Optional field, kept for backward compatibility
+  courseName: string;  // Required: Course number like "CPCU540"
+  questionSetTitle: string;  // Required: Question set title like "Question Set 1"
+  questionNumber: number;  // Required: Question position in set
+  loid: string;  // Optional field, kept for backward compatibility
+  questionText: string;  // Optional field, kept for reference
+  finalStaticExplanation: string;  // Required: The explanation to upload
 }
 
 export function parseStaticExplanationCSV(csvContent: string): StaticExplanationRow[] {
@@ -18,27 +18,36 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
   
   const headers = rows[0];
   const requiredHeaders = [
-    "Unique ID",
-    "Course", 
-    "Question Set",
-    "Question Number",
-    "LOID",
-    "Question Text",
-    "Final Static Explanation"
+    "Course",  // Required
+    "Question Set",  // Required - contains title like "Question Set 1"
+    "Question Number",  // Required
+    "Final Static Explanation"  // Required
   ];
   
-  // Map headers to indices (Question Set and Unique ID are now optional)
+  const optionalHeaders = [
+    "Unique ID",  // Optional
+    "LOID",  // Optional
+    "Question Text"  // Optional
+  ];
+  
+  // Map headers to indices
   const headerMap: Record<string, number> = {};
+  
+  // Check required headers
   for (const required of requiredHeaders) {
     const index = headers.findIndex(h => h.toLowerCase() === required.toLowerCase());
     if (index === -1) {
-      // Question Set and Unique ID are now optional, skip if missing
-      if (required === "Question Set" || required === "Unique ID") {
-        continue;
-      }
       throw new Error(`Missing required column: ${required}`);
     }
     headerMap[required] = index;
+  }
+  
+  // Map optional headers
+  for (const optional of optionalHeaders) {
+    const index = headers.findIndex(h => h.toLowerCase() === optional.toLowerCase());
+    if (index !== -1) {
+      headerMap[optional] = index;
+    }
   }
   
   // Parse data rows
@@ -52,45 +61,45 @@ export function parseStaticExplanationCSV(csvContent: string): StaticExplanation
       continue;
     }
     
-    // Extract values (Question Set and Unique ID are optional)
-    const uniqueId = headerMap["Unique ID"] !== undefined ? row[headerMap["Unique ID"]]?.trim() || "" : "";
+    // Extract required values
     const courseName = row[headerMap["Course"]]?.trim() || "";
-    const questionSetStr = headerMap["Question Set"] !== undefined ? row[headerMap["Question Set"]]?.trim() || "" : "";
+    const questionSetTitle = row[headerMap["Question Set"]]?.trim() || "";
     const questionNumberStr = row[headerMap["Question Number"]]?.trim() || "";
-    const loid = row[headerMap["LOID"]]?.trim() || "";
-    const questionText = row[headerMap["Question Text"]]?.trim() || "";
     const finalStaticExplanation = row[headerMap["Final Static Explanation"]]?.trim() || "";
     
-    // Validate required fields (Question Set is now optional)
+    // Extract optional values
+    const uniqueId = headerMap["Unique ID"] !== undefined ? row[headerMap["Unique ID"]]?.trim() || "" : "";
+    const loid = headerMap["LOID"] !== undefined ? row[headerMap["LOID"]]?.trim() || "" : "";
+    const questionText = headerMap["Question Text"] !== undefined ? row[headerMap["Question Text"]]?.trim() || "" : "";
+    
+    // Validate required fields
     if (!courseName) {
-      throw new Error(`Row ${i + 1}: Course name is required`);
+      throw new Error(`Row ${i + 1}: Course is required`);
     }
-    // Question Set is now optional - no validation needed
+    if (!questionSetTitle) {
+      throw new Error(`Row ${i + 1}: Question Set is required`);
+    }
     if (!questionNumberStr) {
       throw new Error(`Row ${i + 1}: Question Number is required`);
-    }
-    if (!loid) {
-      throw new Error(`Row ${i + 1}: LOID is required`);
     }
     if (!finalStaticExplanation) {
       throw new Error(`Row ${i + 1}: Final Static Explanation is required`);
     }
     
-    // Parse numbers (Question Set defaults to 0 if not provided or invalid)
-    const questionSetNumber = questionSetStr ? parseInt(questionSetStr, 10) : 0;
+    // Parse question number
     const questionNumber = parseInt(questionNumberStr, 10);
     
-    // Question Set is optional, so default to 0 if invalid or missing
-    const finalQuestionSetNumber = isNaN(questionSetNumber) ? 0 : questionSetNumber;
-    
-    if (isNaN(questionNumber)) {
-      throw new Error(`Row ${i + 1}: Question Number must be a number, got: ${questionNumberStr}`);
+    if (isNaN(questionNumber) || questionNumber <= 0) {
+      throw new Error(`Row ${i + 1}: Question Number must be a positive number, got: ${questionNumberStr}`);
     }
+    
+    // Normalize course name (remove spaces, uppercase)
+    const normalizedCourse = courseName.replace(/\s+/g, '').toUpperCase();
     
     parsedRows.push({
       uniqueId,
-      courseName,
-      questionSetNumber: finalQuestionSetNumber,
+      courseName: normalizedCourse,  // Normalized course number
+      questionSetTitle,  // Keep original title casing for now
       questionNumber,
       loid,
       questionText,
