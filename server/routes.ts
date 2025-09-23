@@ -5339,6 +5339,102 @@ Remember, your goal is to support student comprehension through meaningful feedb
       uptime: process.uptime()
     });
   });
+  
+  // Diagnostic endpoint to check database content (admin only)
+  app.get("/api/admin/diagnostic-check", requireAdmin, async (req, res) => {
+    try {
+      const { loid, course } = req.query;
+      
+      // If LOID is provided, check for that specific LOID
+      if (loid) {
+        const exists = await storage.checkQuestionExistsByLoid(loid as string);
+        
+        // Also get detailed info if it exists
+        if (exists) {
+          const questionInfo = await db.select({
+            id: questions.id,
+            loid: questions.loid,
+            originalQuestionNumber: questions.originalQuestionNumber,
+            questionSetId: questions.questionSetId,
+            courseNumber: courses.courseNumber,
+            courseTitle: courses.courseTitle
+          })
+          .from(questions)
+          .leftJoin(questionSets, eq(questions.questionSetId, questionSets.id))
+          .leftJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+          .leftJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+          .where(eq(questions.loid, loid as string))
+          .limit(5);
+          
+          return res.json({
+            loid: loid,
+            exists: true,
+            details: questionInfo,
+            message: `LOID ${loid} exists in database with ${questionInfo.length} matches`
+          });
+        } else {
+          return res.json({
+            loid: loid,
+            exists: false,
+            message: `LOID ${loid} does not exist in database`
+          });
+        }
+      }
+      
+      // If course is provided, show sample questions from that course
+      if (course) {
+        const sampleQuestions = await db.select({
+          loid: questions.loid,
+          questionNumber: questions.originalQuestionNumber,
+          courseNumber: courses.courseNumber
+        })
+        .from(questions)
+        .innerJoin(questionSets, eq(questions.questionSetId, questionSets.id))
+        .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+        .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+        .where(eq(courses.courseNumber, course as string))
+        .limit(10);
+        
+        return res.json({
+          course: course,
+          sampleCount: sampleQuestions.length,
+          samples: sampleQuestions,
+          message: `Found ${sampleQuestions.length} sample questions for course ${course}`
+        });
+      }
+      
+      // Default: show database statistics
+      const stats = await db.select({
+        totalQuestions: sql<number>`count(*)::int`
+      })
+      .from(questions);
+      
+      const courseStats = await db.select({
+        courseNumber: courses.courseNumber,
+        questionCount: sql<number>`count(${questions.id})::int`
+      })
+      .from(courses)
+      .leftJoin(courseQuestionSets, eq(courses.id, courseQuestionSets.courseId))
+      .leftJoin(questionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
+      .leftJoin(questions, eq(questions.questionSetId, questionSets.id))
+      .groupBy(courses.courseNumber)
+      .orderBy(courses.courseNumber)
+      .limit(20);
+      
+      res.json({
+        totalQuestions: stats[0]?.totalQuestions || 0,
+        courseBreakdown: courseStats,
+        message: "Database diagnostic information",
+        usage: {
+          checkLoid: "/api/admin/diagnostic-check?loid=YOUR_LOID",
+          checkCourse: "/api/admin/diagnostic-check?course=COURSE_NAME"
+        }
+      });
+    } catch (error: any) {
+      console.error("Diagnostic check error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
