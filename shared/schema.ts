@@ -91,6 +91,7 @@ export const questionVersions = pgTable("question_versions", {
   isActive: boolean("is_active").default(true).notNull(),
   isStaticAnswer: boolean("is_static_answer").default(false).notNull(),
   staticExplanation: text("static_explanation"),
+  normalizedTextHash: text("normalized_text_hash"),
 });
 
 export const userTestRuns = pgTable("user_test_runs", {

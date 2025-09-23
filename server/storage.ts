@@ -15,7 +15,7 @@ import {
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte, lt } from "drizzle-orm";
+import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte, lt, or } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
@@ -75,6 +75,11 @@ export interface IStorage {
   updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined>;
   batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>>;
   checkQuestionExistsByLoid(loid: string): Promise<boolean>;
+  
+  // Text-based search methods
+  findQuestionVersionsByTextHash(textHash: string, courseScope?: string): Promise<QuestionVersion[]>;
+  updateQuestionVersionTextHash(questionVersionId: number, textHash: string): Promise<void>;
+  backfillTextHashes(limit?: number): Promise<number>;
   
   // Test run methods
   getUserTestRuns(userId: number): Promise<UserTestRun[]>;
@@ -784,6 +789,80 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return result.length > 0;
+  }
+  
+  // Text-based search: find question versions by normalized text hash
+  async findQuestionVersionsByTextHash(textHash: string, courseScope?: string): Promise<QuestionVersion[]> {
+    try {
+      let query = db.select({
+        questionVersion: questionVersions
+      })
+      .from(questionVersions)
+      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(and(
+        eq(questionVersions.normalizedTextHash, textHash),
+        eq(questionVersions.isActive, true)
+      ));
+      
+      // If courseScope is provided, filter to that course or base course
+      if (courseScope) {
+        query = query.where(and(
+          eq(questionVersions.normalizedTextHash, textHash),
+          eq(questionVersions.isActive, true),
+          or(
+            eq(courses.courseNumber, courseScope),
+            eq(courses.baseCourseNumber, courseScope)
+          )
+        ));
+      }
+      
+      const results = await query;
+      
+      // Deduplicate by question version ID
+      const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
+      results.forEach(r => {
+        uniqueVersions.set(r.questionVersion.id, r.questionVersion);
+      });
+      
+      return Array.from(uniqueVersions.values());
+    } catch (error: any) {
+      console.error(`Error finding by text hash: ${error.message}`);
+      return [];
+    }
+  }
+  
+  // Update the normalized text hash for a question version
+  async updateQuestionVersionTextHash(questionVersionId: number, textHash: string): Promise<void> {
+    await db.update(questionVersions)
+      .set({ normalizedTextHash: textHash })
+      .where(eq(questionVersions.id, questionVersionId));
+  }
+  
+  // Backfill text hashes for existing question versions
+  async backfillTextHashes(limit: number = 100): Promise<number> {
+    const { normalizeQuestionText, hashQuestionText } = await import('./utils/text-normalizer');
+    
+    // Find question versions without text hash
+    const versionsToUpdate = await db.select()
+      .from(questionVersions)
+      .where(and(
+        isNull(questionVersions.normalizedTextHash),
+        eq(questionVersions.isActive, true)
+      ))
+      .limit(limit);
+    
+    let updatedCount = 0;
+    for (const version of versionsToUpdate) {
+      const textHash = hashQuestionText(version.questionText);
+      await this.updateQuestionVersionTextHash(version.id, textHash);
+      updatedCount++;
+    }
+    
+    console.log(`Backfilled text hashes for ${updatedCount} question versions`);
+    return updatedCount;
   }
 
   // Find ALL question versions that match the given criteria
