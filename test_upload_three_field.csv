@@ -1,0 +1,5 @@
+Course,Question Set,Question Number,Final Static Explanation
+AIC300,Question set 1,1,"This is a test explanation for AIC 300, Question Set 1, Question 1. The three-field matching should find this question based on course, set title, and question number."
+AIC300,Question set 1,2,"Test explanation for question 2. This tests the matching without relying on LOID or question text."
+AIC300,Question set 2,1,"Test explanation for a different question set. This should match to Question Set 2, Question 1."
+CPCU540,Question Set 1,1,"Test explanation for a different course that might not exist in the database."
