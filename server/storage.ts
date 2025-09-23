@@ -78,6 +78,7 @@ export interface IStorage {
   
   // Text-based search methods
   findQuestionVersionsByTextHash(textHash: string, courseScope?: string): Promise<QuestionVersion[]>;
+  findQuestionVersionsByDirectText(questionText: string, courseScope?: string): Promise<QuestionVersion[]>;
   updateQuestionVersionTextHash(questionVersionId: number, textHash: string): Promise<void>;
   backfillTextHashes(limit?: number): Promise<number>;
   
@@ -830,6 +831,51 @@ export class DatabaseStorage implements IStorage {
       return Array.from(uniqueVersions.values());
     } catch (error: any) {
       console.error(`Error finding by text hash: ${error.message}`);
+      return [];
+    }
+  }
+  
+  // Direct text matching - find question versions by exact text
+  async findQuestionVersionsByDirectText(questionText: string, courseScope?: string): Promise<QuestionVersion[]> {
+    try {
+      let query = db.select({
+        questionVersion: questionVersions,
+        courseName: courses.courseNumber
+      })
+      .from(questionVersions)
+      .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+      .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+      .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+      .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+      .where(eq(questionVersions.isActive, true));
+      
+      // Filter by course if provided
+      if (courseScope) {
+        query = query.where(and(
+          eq(questionVersions.isActive, true),
+          or(
+            eq(courses.courseNumber, courseScope),
+            eq(courses.baseCourseNumber, courseScope)
+          )
+        ));
+      }
+      
+      const results = await query;
+      
+      // Filter for exact text matches
+      const exactMatches = results.filter(r => 
+        r.questionVersion.questionText === questionText
+      );
+      
+      // Deduplicate by question version ID
+      const uniqueVersions = new Map<number, typeof exactMatches[0]['questionVersion']>();
+      exactMatches.forEach(r => {
+        uniqueVersions.set(r.questionVersion.id, r.questionVersion);
+      });
+      
+      return Array.from(uniqueVersions.values());
+    } catch (error: any) {
+      console.error(`Error finding by direct text: ${error.message}`);
       return [];
     }
   }
