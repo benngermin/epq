@@ -982,7 +982,9 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`[THREE-FIELD] Searching for: Course="${normalizedCourse}", Set Title="${questionSetTitle}", Question#=${questionNumber}`);
       
-      // Query using case-insensitive title comparison
+      // Query using case-insensitive title comparison and normalized course comparison
+      // The database course numbers have spaces and suffixes (e.g., "CPCU 540 AI")
+      // We need to normalize both sides for comparison
       const results = await db.select({
         questionVersion: questionVersions,
         questionSetTitle: questionSets.title
@@ -993,7 +995,9 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
         .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
         .where(and(
-          eq(courses.courseNumber, normalizedCourse),
+          // Normalize the database course number by removing spaces and non-alphanumeric chars
+          // Use COALESCE to prefer baseCourseNumber if available, otherwise use courseNumber
+          sql`UPPER(REGEXP_REPLACE(COALESCE(${courses.baseCourseNumber}, ${courses.courseNumber}), '[^A-Za-z0-9]', '', 'g')) = ${normalizedCourse}`,
           eq(questions.originalQuestionNumber, questionNumber),
           eq(questionVersions.isActive, true),
           sql`LOWER(${questionSets.title}) = ${normalizedTitle}`
