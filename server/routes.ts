@@ -5173,15 +5173,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const updateResults = await Promise.all(
         previewResults.map(async (item) => {
           try {
+            // Skip items that weren't found or were ambiguous in preview
+            if (!item.found || (item as any).status === 'ambiguous' || (item as any).status === 'not_found') {
+              return {
+                success: false,
+                error: `Skipped: ${(item as any).reason || 'Not found in preview'}`,
+                courseName: item.row.courseName,
+                questionSetNumber: item.row.questionSetNumber,
+                questionNumber: item.row.questionNumber,
+                loid: item.row.loid,
+                updatedVersions: 0
+              };
+            }
+            
             // Find ALL matching ACTIVE question versions (a question version can appear in multiple questions)
-            const questionVersions = await storage.findAllQuestionVersionsByDetails(
+            const allVersions = await storage.findAllQuestionVersionsByDetails(
               item.row.courseName,
               item.row.questionSetNumber,
               item.row.questionNumber,
               item.row.loid
             );
 
-            if (!questionVersions || questionVersions.length === 0) {
+            if (!allVersions || allVersions.length === 0) {
               return {
                 success: false,
                 error: "No active question versions found during re-validation",
@@ -5192,29 +5205,69 @@ Remember, your goal is to support student comprehension through meaningful feedb
                 updatedVersions: 0
               };
             }
+            
+            // Filter by normalized question text if provided
+            let matchedVersions = allVersions;
+            if (item.row.questionText && item.row.questionText.trim() !== '') {
+              const normalizedCsvText = normalizeQuestionText(item.row.questionText);
+              matchedVersions = allVersions.filter(version => {
+                const normalizedDbText = normalizeQuestionText(version.questionText);
+                return normalizedDbText === normalizedCsvText;
+              });
+              
+              if (matchedVersions.length === 0) {
+                return {
+                  success: false,
+                  error: `Text mismatch during re-validation (${allVersions.length} candidates by metadata)`,
+                  courseName: item.row.courseName,
+                  questionSetNumber: item.row.questionSetNumber,
+                  questionNumber: item.row.questionNumber,
+                  loid: item.row.loid,
+                  updatedVersions: 0
+                };
+              } else if (matchedVersions.length > 1) {
+                return {
+                  success: false,
+                  error: `Ambiguous: ${matchedVersions.length} versions with same text`,
+                  courseName: item.row.courseName,
+                  questionSetNumber: item.row.questionSetNumber,
+                  questionNumber: item.row.questionNumber,
+                  loid: item.row.loid,
+                  updatedVersions: 0
+                };
+              }
+            } else if (allVersions.length > 1) {
+              // Without text to disambiguate, we can't update multiple versions
+              return {
+                success: false,
+                error: `Ambiguous: ${allVersions.length} versions without text to disambiguate`,
+                courseName: item.row.courseName,
+                questionSetNumber: item.row.questionSetNumber,
+                questionNumber: item.row.questionNumber,
+                loid: item.row.loid,
+                updatedVersions: 0
+              };
+            }
 
-            // Update ALL matching ACTIVE question versions with the new static explanation
-            const updatePromises = questionVersions.map(qv =>
-              storage.updateQuestionVersionStaticExplanation(
-                qv.id,
-                item.row.finalStaticExplanation
-              )
+            // Update only the single matched version
+            const updateResult = await storage.updateQuestionVersionStaticExplanation(
+              matchedVersions[0].id,
+              item.row.finalStaticExplanation
             );
             
-            const updateResults = await Promise.all(updatePromises);
-            const successfulUpdates = updateResults.filter(Boolean).length;
+            const successfulUpdates = updateResult ? 1 : 0;
             
             return {
-              questionVersionIds: questionVersions.map(qv => qv.id),
+              questionVersionIds: [matchedVersions[0].id],
               success: successfulUpdates > 0,
               courseName: item.row.courseName,
               questionSetNumber: item.row.questionSetNumber,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid,
-              previousExplanation: questionVersions[0]?.staticExplanation,
+              previousExplanation: matchedVersions[0]?.staticExplanation,
               newExplanation: item.row.finalStaticExplanation,
               updatedVersions: successfulUpdates,
-              totalVersions: questionVersions.length
+              totalVersions: 1
             };
           } catch (error: any) {
             return {
