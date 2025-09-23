@@ -5376,6 +5376,25 @@ Remember, your goal is to support student comprehension through meaningful feedb
     });
   });
   
+  // Backfill text hashes for existing question versions (admin only)
+  app.post("/api/admin/backfill-text-hashes", requireAdmin, async (req, res) => {
+    try {
+      const { limit = 1000 } = req.body;
+      console.log(`Starting text hash backfill for up to ${limit} question versions...`);
+      
+      const updatedCount = await storage.backfillTextHashes(limit);
+      
+      res.json({
+        success: true,
+        message: `Successfully backfilled text hashes for ${updatedCount} question versions`,
+        updatedCount
+      });
+    } catch (error: any) {
+      console.error("Error backfilling text hashes:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Diagnostic endpoint to check database content (admin only)
   app.get("/api/admin/diagnostic-check", requireAdmin, async (req, res) => {
     try {
