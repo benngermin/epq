@@ -44,10 +44,14 @@ interface CSVPreviewRow {
 interface PreviewResult {
   row: CSVPreviewRow;
   found: boolean;
+  status?: 'matched' | 'matched_without_text' | 'ambiguous' | 'not_found';
+  reason?: string;
   questionVersionId?: number;
   currentExplanation?: string | null;
   isStaticAnswer?: boolean;
   questionType?: string;
+  candidateCount?: number;
+  matchCount?: number;
   match?: {
     courseName: string;
     questionSetNumber: number;
@@ -107,10 +111,13 @@ export default function AdminUploadExplanations() {
     },
     onSuccess: (data) => {
       setPreviewData(data);
-      // Initially select all matched rows
+      // Initially select only rows with status 'matched' or 'matched_without_text'
       if (data.results) {
         const matchedIndices = data.results
-          .map((result, index) => result.found ? index : null)
+          .map((result, index) => 
+            (result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status)) 
+              ? index : null
+          )
           .filter((index): index is number => index !== null);
         setSelectedRows(new Set(matchedIndices));
       }
@@ -241,7 +248,10 @@ export default function AdminUploadExplanations() {
   const selectAll = useCallback(() => {
     if (previewData?.results) {
       const allIndices = previewData.results
-        .map((result, index) => result.found ? index : null)
+        .map((result, index) => 
+          (result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status))
+            ? index : null
+        )
         .filter((index): index is number => index !== null);
       setSelectedRows(new Set(allIndices));
     }
@@ -280,16 +290,25 @@ export default function AdminUploadExplanations() {
   // Calculate statistics
   const statistics = useMemo(() => {
     if (!previewData?.results) {
-      return { total: 0, matched: 0, unmatched: 0, selected: 0 };
+      return { total: 0, matched: 0, unmatched: 0, selected: 0, ambiguous: 0 };
     }
     
-    const matched = previewData.results.filter(r => r.found).length;
-    const selectedMatched = previewData.results.filter((r, i) => r.found && selectedRows.has(i)).length;
+    const matched = previewData.results.filter(r => 
+      r.status === 'matched' || r.status === 'matched_without_text' || (r.found && !r.status)
+    ).length;
+    const ambiguous = previewData.results.filter(r => r.status === 'ambiguous').length;
+    const unmatched = previewData.results.filter(r => 
+      r.status === 'not_found' || (!r.found && !r.status)
+    ).length;
+    const selectedMatched = previewData.results.filter((r, i) => 
+      (r.status === 'matched' || r.status === 'matched_without_text' || (r.found && !r.status)) && selectedRows.has(i)
+    ).length;
     
     return {
       total: previewData.results.length,
       matched,
-      unmatched: previewData.results.length - matched,
+      unmatched,
+      ambiguous,
       selected: selectedMatched,
     };
   }, [previewData, selectedRows]);
@@ -390,7 +409,7 @@ export default function AdminUploadExplanations() {
           
           {previewData && !uploadResult && (
             <>
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-5 gap-4 mb-6">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{statistics.total}</div>
@@ -401,6 +420,12 @@ export default function AdminUploadExplanations() {
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold text-green-600">{statistics.matched}</div>
                     <p className="text-xs text-muted-foreground">Matched</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-yellow-600">{statistics.ambiguous}</div>
+                    <p className="text-xs text-muted-foreground">Ambiguous</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -460,23 +485,38 @@ export default function AdminUploadExplanations() {
                     {previewData.results.map((result, index) => (
                       <TableRow 
                         key={index}
-                        className={result.found ? '' : 'opacity-50'}
+                        className={
+                          result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status)
+                            ? '' 
+                            : 'opacity-50'
+                        }
                         data-testid={`row-preview-${index}`}
                       >
                         <TableCell>
                           <Checkbox
                             checked={selectedRows.has(index)}
                             onCheckedChange={() => toggleRowSelection(index)}
-                            disabled={!result.found}
+                            disabled={result.status === 'ambiguous' || result.status === 'not_found' || (!result.found && !result.status)}
                             data-testid={`checkbox-row-${index}`}
                           />
                         </TableCell>
                         <TableCell>
-                          {result.found ? (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <XCircle className="h-5 w-5 text-red-600" />
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {result.status === 'matched' || (result.found && !result.status) ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" title="Exact match found" />
+                            ) : result.status === 'matched_without_text' ? (
+                              <CheckCircle className="h-5 w-5 text-blue-600" title="Matched by metadata only" />
+                            ) : result.status === 'ambiguous' ? (
+                              <AlertTriangle className="h-5 w-5 text-yellow-600" title={result.reason || "Multiple matches"} />
+                            ) : (
+                              <XCircle className="h-5 w-5 text-red-600" title={result.reason || "No match"} />
+                            )}
+                            {result.reason && (
+                              <span className="text-xs text-muted-foreground max-w-[150px]" title={result.reason}>
+                                {result.reason.length > 30 ? result.reason.substring(0, 30) + '...' : result.reason}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="font-medium">
                           {result.row.courseName}
