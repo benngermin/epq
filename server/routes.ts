@@ -19,6 +19,7 @@ import { getTodayEST } from "./utils/logger";
 import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware/rate-limiter";
 import { requireAdmin } from "./middleware/admin";
 import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/csvParser";
+import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -5024,24 +5025,56 @@ Remember, your goal is to support student comprehension through meaningful feedb
               row.loid
             );
             
-            const questionVersion = allVersions[0]; // Use first one for display
+            // Filter by normalized question text if provided
+            let matchedVersions = allVersions;
+            let matchStatus = 'matched';
+            let matchReason = '';
             
-            if (allVersions.length > 0) {
-              console.log(`✅ Found ${allVersions.length} matching version(s) for LOID ${row.loid}, Question Version ID: ${questionVersion?.id}`);
-            } else {
+            if (row.questionText && row.questionText.trim() !== '') {
+              const normalizedCsvText = normalizeQuestionText(row.questionText);
+              matchedVersions = allVersions.filter(version => {
+                const normalizedDbText = normalizeQuestionText(version.questionText);
+                return normalizedDbText === normalizedCsvText;
+              });
+              
+              if (matchedVersions.length === 0) {
+                matchStatus = 'not_found';
+                matchReason = `Text mismatch (${allVersions.length} candidates found by metadata)`;
+                console.log(`❌ Text mismatch for LOID ${row.loid}: found ${allVersions.length} by metadata but 0 by text`);
+              } else if (matchedVersions.length > 1) {
+                matchStatus = 'ambiguous';
+                matchReason = `Multiple matches (${matchedVersions.length} versions with same text)`;
+                console.log(`⚠️ Ambiguous match for LOID ${row.loid}: ${matchedVersions.length} versions with same text`);
+              } else {
+                console.log(`✅ Exact match found for LOID ${row.loid}, Question Version ID: ${matchedVersions[0].id}`);
+              }
+            } else if (allVersions.length === 0) {
+              matchStatus = 'not_found';
+              matchReason = 'No matching questions found by metadata';
               console.log(`❌ No matches found for LOID ${row.loid}`);
-              // Log what we're actually searching for vs what's in the database
-              console.log(`   Search params: Course="${row.courseName}", Set=${row.questionSetNumber}, Q#=${row.questionNumber}, LOID="${row.loid}"`);
+            } else if (allVersions.length > 1) {
+              matchStatus = 'ambiguous';
+              matchReason = `Multiple matches without text (${allVersions.length} versions)`;
+              console.log(`⚠️ Multiple matches for LOID ${row.loid} without text to disambiguate`);
+            } else {
+              matchStatus = 'matched_without_text';
+              matchReason = 'Matched by metadata only (no text provided for validation)';
+              console.log(`✅ Matched by metadata for LOID ${row.loid} (no text validation)`);
             }
+            
+            const questionVersion = matchedVersions[0]; // Use first matched version for display
 
             return {
               row,
-              found: allVersions.length > 0,
+              found: matchedVersions.length === 1,
+              status: matchStatus,
+              reason: matchReason,
               questionVersionId: questionVersion?.id,
               currentExplanation: questionVersion?.staticExplanation,
               isStaticAnswer: questionVersion?.isStaticAnswer,
               questionType: questionVersion?.questionType,
-              matchCount: allVersions.length, // Show how many versions match
+              candidateCount: allVersions.length,
+              matchCount: matchedVersions.length,
               match: {
                 courseName: row.courseName,
                 questionSetNumber: row.questionSetNumber,
