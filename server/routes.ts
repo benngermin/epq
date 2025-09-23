@@ -5010,114 +5010,68 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
       }
 
-      // Find matching question versions for each row
+      // Find matching question versions for each row using THREE-FIELD MATCHING
       const previewResults = await Promise.all(
         parsedRows.map(async (row) => {
           try {
             const searchCriteria = {
               course: row.courseName,
-              set: row.questionSetNumber,
-              questionNum: row.questionNumber,
-              loid: row.loid,
-              hasText: !!row.questionText
+              questionSetTitle: row.questionSetTitle,
+              questionNumber: row.questionNumber
             };
             
-            console.log(`[TEXT-FIRST] Searching for row with LOID: ${row.loid}`);
+            console.log(`[THREE-FIELD] Searching: Course="${row.courseName}", Set="${row.questionSetTitle}", Q#=${row.questionNumber}`);
             
             let matchedVersions: QuestionVersion[] = [];
-            let matchStatus = 'not_found';
+            let matchStatus: 'matched' | 'ambiguous' | 'not_found' = 'not_found';
             let matchReason = '';
-            let candidateCount = 0;
             
-            // DIRECT TEXT MATCHING: Use direct text comparison
-            if (row.questionText && row.questionText.trim() !== '') {
-              console.log(`[DIRECT-TEXT] Searching for exact text match for LOID ${row.loid}`);
-              
-              // Search by direct text comparison, scoped to course
-              const textMatches = await storage.findQuestionVersionsByDirectText(row.questionText, row.courseName);
-              candidateCount = textMatches.length;
-              
-              if (textMatches.length === 0) {
-                // No exact text matches found
-                // Try metadata search to see if question exists
-                const metadataMatches = await storage.findAllQuestionVersionsByDetails(
-                  row.courseName,
-                  row.questionSetNumber,
-                  row.questionNumber,
-                  row.loid
-                );
-                
-                if (metadataMatches.length > 0) {
-                  matchStatus = 'not_found';
-                  matchReason = `Question found by metadata but text doesn't match exactly (${metadataMatches.length} found)`;
-                  console.log(`❌ Metadata match but text mismatch for LOID ${row.loid}`);
-                } else {
-                  matchStatus = 'not_found';
-                  matchReason = 'Question not found by text or metadata';
-                  console.log(`❌ No matches at all for LOID ${row.loid}`);
-                }
-              } else if (textMatches.length === 1) {
-                // Exactly one text match - perfect!
-                matchedVersions = textMatches;
-                matchStatus = 'matched';
-                matchReason = 'Matched by exact question text';
-                console.log(`✅ Exact text match for LOID ${row.loid}, Version ID: ${textMatches[0].id}`);
-              } else {
-                // Multiple exact text matches
-                matchedVersions = [textMatches[0]]; // Take first match
-                matchStatus = 'ambiguous';
-                matchReason = `Multiple exact text matches (${textMatches.length} versions), selected first`;
-                console.log(`⚠️ Multiple exact text matches for LOID ${row.loid}`);
-              }
+            // Use new three-field matching (Course + Question Set Title + Question Number)
+            const matches = await storage.findQuestionVersionByCourseSetTitle(
+              row.courseName,
+              row.questionSetTitle, 
+              row.questionNumber
+            );
+            
+            if (matches.length === 0) {
+              matchStatus = 'not_found';
+              matchReason = `No question found for Course: ${row.courseName}, Set: "${row.questionSetTitle}", Q#: ${row.questionNumber}`;
+              console.log(`❌ No match found`);
+            } else if (matches.length === 1) {
+              matchedVersions = matches;
+              matchStatus = 'matched';
+              matchReason = 'Uniquely matched by Course + Question Set + Question Number';
+              console.log(`✅ Unique match found, Version ID: ${matches[0].id}`);
             } else {
-              // No text provided - fall back to metadata-only matching
-              console.log(`[METADATA-ONLY] No text provided for LOID ${row.loid}, using metadata`);
-              const metadataMatches = await storage.findAllQuestionVersionsByDetails(
-                row.courseName,
-                row.questionSetNumber,
-                row.questionNumber,
-                row.loid
-              );
-              candidateCount = metadataMatches.length;
-              
-              if (metadataMatches.length === 0) {
-                matchStatus = 'not_found';
-                matchReason = 'No matching questions found by metadata';
-                console.log(`❌ No metadata matches for LOID ${row.loid}`);
-              } else if (metadataMatches.length === 1) {
-                matchedVersions = metadataMatches;
-                matchStatus = 'matched_without_text';
-                matchReason = 'Matched by metadata only (no text provided for validation)';
-                console.log(`✅ Unique metadata match for LOID ${row.loid}`);
-              } else {
-                matchStatus = 'ambiguous';
-                matchReason = `Multiple matches by metadata (${metadataMatches.length} versions)`;
-                console.log(`⚠️ Multiple metadata matches for LOID ${row.loid}`);
-              }
+              // Multiple matches (shouldn't happen with proper data, but handle it)
+              matchedVersions = matches;
+              matchStatus = 'ambiguous';
+              matchReason = `Multiple questions found (${matches.length}) for same Course/Set/Number combination`;
+              console.log(`⚠️ Ambiguous: ${matches.length} matches found`);
             }
             
             const questionVersion = matchedVersions[0]; // Use first matched version for display
 
             return {
               row,
-              found: matchedVersions.length === 1 && (matchStatus === 'matched' || matchStatus === 'matched_without_text'),
+              found: matchStatus === 'matched',
               status: matchStatus,
               reason: matchReason,
               questionVersionId: questionVersion?.id,
               currentExplanation: questionVersion?.staticExplanation,
               isStaticAnswer: questionVersion?.isStaticAnswer,
               questionType: questionVersion?.questionType,
-              candidateCount: candidateCount,
+              candidateCount: matches.length,
               matchCount: matchedVersions.length,
               match: {
                 courseName: row.courseName,
-                questionSetNumber: row.questionSetNumber,
+                questionSetTitle: row.questionSetTitle,
                 questionNumber: row.questionNumber,
-                loid: row.loid
+                loid: row.loid  // Keep for backward compatibility
               }
             };
           } catch (error: any) {
-            console.error(`Error searching for LOID ${row.loid}:`, error.message);
+            console.error(`Error searching for question (${row.courseName}/${row.questionSetTitle}/${row.questionNumber}):`, error.message);
             return {
               row,
               found: false,
@@ -5162,9 +5116,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           row: z.object({
             uniqueId: z.string().optional(),
             courseName: z.string(),
-            questionSetNumber: z.number(),
+            questionSetTitle: z.string(),  // Changed from questionSetNumber
             questionNumber: z.number(),
-            loid: z.string(),
+            loid: z.string().optional(),  // Now optional
             questionText: z.string().optional(),
             finalStaticExplanation: z.string()
           }),
@@ -5175,9 +5129,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           questionType: z.string().nullable().optional(),
           match: z.object({
             courseName: z.string(),
-            questionSetNumber: z.number(),
+            questionSetTitle: z.string(),  // Changed from questionSetNumber
             questionNumber: z.number(),
-            loid: z.string()
+            loid: z.string().optional()  // Now optional
           }).optional()
         }))
       });
@@ -5222,63 +5176,41 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             let matchedVersions: QuestionVersion[] = [];
             
-            // DIRECT TEXT MATCHING: Use same logic as preview
-            if (item.row.questionText && item.row.questionText.trim() !== '') {
-              console.log(`[UPLOAD] Using direct text matching for LOID ${item.row.loid}`);
-              
-              // Find ALL questions with exact text match across ALL courses/sets
-              const allTextMatches = await storage.findQuestionVersionsByDirectText(item.row.questionText);
-              
-              if (allTextMatches.length === 0) {
+            // THREE-FIELD MATCHING: Use same logic as preview
+            console.log(`[UPLOAD-THREE-FIELD] Course="${item.row.courseName}", Set="${item.row.questionSetTitle}", Q#=${item.row.questionNumber}`);
+            
+            // Find questions using three-field matching
+            const matches = await storage.findQuestionVersionByCourseSetTitle(
+              item.row.courseName,
+              item.row.questionSetTitle,
+              item.row.questionNumber
+            );
+            
+            if (matches.length === 0) {
                 return {
                   success: false,
-                  error: "No questions found with matching text during upload",
+                  error: "No questions found during upload - question not in database",
                   courseName: item.row.courseName,
-                  questionSetNumber: item.row.questionSetNumber,
+                  questionSetTitle: item.row.questionSetTitle,
+                  questionNumber: item.row.questionNumber,
+                  loid: item.row.loid,
+                  updatedVersions: 0
+                };
+              } else if (matches.length > 1) {
+                // Multiple matches - ambiguous
+                return {
+                  success: false,
+                  error: `Ambiguous: ${matches.length} questions found for same Course/Set/Number`,
+                  courseName: item.row.courseName,
+                  questionSetTitle: item.row.questionSetTitle,
                   questionNumber: item.row.questionNumber,
                   loid: item.row.loid,
                   updatedVersions: 0
                 };
               }
               
-              matchedVersions = allTextMatches;
-              console.log(`[UPLOAD] Found ${matchedVersions.length} questions with exact matching text`);
-              
-            } else {
-              // No text provided - fall back to metadata matching
-              console.log(`[UPLOAD] No text provided, using metadata for LOID ${item.row.loid}`);
-              const metadataMatches = await storage.findAllQuestionVersionsByDetails(
-                item.row.courseName,
-                item.row.questionSetNumber,
-                item.row.questionNumber,
-                item.row.loid
-              );
-              
-              if (metadataMatches.length === 0) {
-                return {
-                  success: false,
-                  error: "No questions found by metadata during upload",
-                  courseName: item.row.courseName,
-                  questionSetNumber: item.row.questionSetNumber,
-                  questionNumber: item.row.questionNumber,
-                  loid: item.row.loid,
-                  updatedVersions: 0
-                };
-              } else if (metadataMatches.length > 1) {
-                return {
-                  success: false,
-                  error: `Ambiguous: ${metadataMatches.length} versions by metadata without text to disambiguate`,
-                  courseName: item.row.courseName,
-                  questionSetNumber: item.row.questionSetNumber,
-                  questionNumber: item.row.questionNumber,
-                  loid: item.row.loid,
-                  updatedVersions: 0
-                };
-              }
-              
-              matchedVersions = metadataMatches;
-              console.log(`[UPLOAD] Found ${matchedVersions.length} questions by metadata`);
-            }
+              matchedVersions = matches;
+              console.log(`[UPLOAD] Found exactly 1 matching question to update`);
 
             // Update ALL matched versions
             console.log(`[UPLOAD] Updating ${matchedVersions.length} question versions with static explanation`);
@@ -5296,7 +5228,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               questionVersionIds: matchedVersions.map(v => v.id),
               success: successfulUpdates > 0,
               courseName: item.row.courseName,
-              questionSetNumber: item.row.questionSetNumber,
+              questionSetTitle: item.row.questionSetTitle,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid,
               previousExplanation: matchedVersions[0]?.staticExplanation,
@@ -5309,7 +5241,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               success: false,
               error: error.message || "Failed to update",
               courseName: item.row.courseName,
-              questionSetNumber: item.row.questionSetNumber,
+              questionSetTitle: item.row.questionSetTitle,
               questionNumber: item.row.questionNumber,
               loid: item.row.loid
             };
