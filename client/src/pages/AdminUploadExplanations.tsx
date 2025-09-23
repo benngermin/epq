@@ -34,7 +34,7 @@ import {
 interface CSVPreviewRow {
   uniqueId: string;
   courseName: string;
-  questionSetNumber: number;
+  questionSetTitle: string;  // Changed from questionSetNumber to title
   questionNumber: number;
   loid: string;
   questionText: string;
@@ -44,7 +44,7 @@ interface CSVPreviewRow {
 interface PreviewResult {
   row: CSVPreviewRow;
   found: boolean;
-  status?: 'matched' | 'matched_without_text' | 'ambiguous' | 'not_found';
+  status?: 'matched' | 'ambiguous' | 'not_found';  // Removed 'matched_without_text'
   reason?: string;
   questionVersionId?: number;
   currentExplanation?: string | null;
@@ -54,9 +54,9 @@ interface PreviewResult {
   matchCount?: number;
   match?: {
     courseName: string;
-    questionSetNumber: number;
+    questionSetTitle: string;  // Changed to title
     questionNumber: number;
-    loid: string;
+    loid?: string;  // Now optional
   };
   error?: string;
 }
@@ -111,11 +111,11 @@ export default function AdminUploadExplanations() {
     },
     onSuccess: (data) => {
       setPreviewData(data);
-      // Initially select only rows with status 'matched' or 'matched_without_text'
+      // Initially select only rows with status 'matched'
       if (data.results) {
         const matchedIndices = data.results
           .map((result, index) => 
-            (result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status)) 
+            (result.status === 'matched' || (result.found && !result.status)) 
               ? index : null
           )
           .filter((index): index is number => index !== null);
@@ -249,7 +249,7 @@ export default function AdminUploadExplanations() {
     if (previewData?.results) {
       const allIndices = previewData.results
         .map((result, index) => 
-          (result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status))
+          (result.status === 'matched' || (result.found && !result.status))
             ? index : null
         )
         .filter((index): index is number => index !== null);
@@ -294,14 +294,14 @@ export default function AdminUploadExplanations() {
     }
     
     const matched = previewData.results.filter(r => 
-      r.status === 'matched' || r.status === 'matched_without_text' || (r.found && !r.status)
+      r.status === 'matched' || (r.found && !r.status)
     ).length;
     const ambiguous = previewData.results.filter(r => r.status === 'ambiguous').length;
     const unmatched = previewData.results.filter(r => 
       r.status === 'not_found' || (!r.found && !r.status)
     ).length;
     const selectedMatched = previewData.results.filter((r, i) => 
-      (r.status === 'matched' || r.status === 'matched_without_text' || (r.found && !r.status)) && selectedRows.has(i)
+      (r.status === 'matched' || (r.found && !r.status)) && selectedRows.has(i)
     ).length;
     
     return {
@@ -334,35 +334,6 @@ export default function AdminUploadExplanations() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/admin/diagnostic', {
-                    credentials: 'include'
-                  });
-                  const data = await response.json();
-                  console.log("DIAGNOSTIC RESULTS:", data);
-                  
-                  const summary = data.summary ? 
-                    `Tests: ${data.summary.passed} passed, ${data.summary.failed} failed\n` :
-                    'No test summary available\n';
-                    
-                  const details = data.tests ? 
-                    data.tests.map((t: any) => `${t.name}: ${t.status} ${t.error ? `- ${t.error}` : ''}`).join('\n') :
-                    'No test details available';
-                    
-                  alert(`Diagnostic Results:\n\n${summary}\n${details}\n\nCheck console for full details`);
-                } catch (error) {
-                  console.error("Diagnostic error:", error);
-                  alert("Diagnostic failed - check console");
-                }
-              }}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Run Diagnostic Test
-            </button>
-          </div>
           {!previewData && !uploadResult && (
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -473,12 +444,10 @@ export default function AdminUploadExplanations() {
                       <TableHead className="w-12">Select</TableHead>
                       <TableHead className="w-12">Status</TableHead>
                       <TableHead>Course</TableHead>
-                      <TableHead>Set</TableHead>
+                      <TableHead>Question Set</TableHead>
                       <TableHead>Q#</TableHead>
-                      <TableHead>LOID</TableHead>
-                      <TableHead className="max-w-[300px]">Question Text</TableHead>
+                      <TableHead className="max-w-[300px]">New Explanation</TableHead>
                       <TableHead>Current Explanation</TableHead>
-                      <TableHead>New Explanation</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -486,7 +455,7 @@ export default function AdminUploadExplanations() {
                       <TableRow 
                         key={index}
                         className={
-                          result.status === 'matched' || result.status === 'matched_without_text' || (result.found && !result.status)
+                          result.status === 'matched' || (result.found && !result.status)
                             ? '' 
                             : 'opacity-50'
                         }
@@ -503,9 +472,7 @@ export default function AdminUploadExplanations() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {result.status === 'matched' || (result.found && !result.status) ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" title="Exact match found" />
-                            ) : result.status === 'matched_without_text' ? (
-                              <CheckCircle className="h-5 w-5 text-blue-600" title="Matched by metadata only" />
+                              <CheckCircle className="h-5 w-5 text-green-600" title="Matched by Course + Set + Number" />
                             ) : result.status === 'ambiguous' ? (
                               <AlertTriangle className="h-5 w-5 text-yellow-600" title={result.reason || "Multiple matches"} />
                             ) : (
@@ -521,14 +488,12 @@ export default function AdminUploadExplanations() {
                         <TableCell className="font-medium">
                           {result.row.courseName}
                         </TableCell>
-                        <TableCell>{result.row.questionSetNumber}</TableCell>
+                        <TableCell>{result.row.questionSetTitle}</TableCell>
                         <TableCell>{result.row.questionNumber}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {result.row.loid}
-                        </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          <div className="truncate" title={result.row.questionText}>
-                            {result.row.questionText}
+                        <TableCell className="max-w-[250px]">
+                          <div className="truncate text-sm" 
+                               title={result.row.finalStaticExplanation}>
+                            {result.row.finalStaticExplanation}
                           </div>
                         </TableCell>
                         <TableCell className="max-w-[250px]">
