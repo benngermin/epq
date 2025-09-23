@@ -75,12 +75,20 @@ export function questionTextsMatch(text1: string | null | undefined, text2: stri
  */
 export function hashQuestionText(text: string | null | undefined): string {
   const normalized = normalizeQuestionText(text);
-  // Simple hash for now - in production you might want to use crypto
-  let hash = 0;
+  if (!normalized) return '';
+  
+  // Use a more robust hash function for better distribution
+  let hash1 = 0;
+  let hash2 = 0;
+  
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash1 = ((hash1 << 5) - hash1) + char;
+    hash1 = hash1 & hash1; // Convert to 32-bit integer
+    hash2 = ((hash2 << 3) + hash2) + char;
+    hash2 = hash2 & hash2;
   }
-  return hash.toString(36);
+  
+  // Combine both hashes for better uniqueness
+  return `${Math.abs(hash1).toString(36)}_${Math.abs(hash2).toString(36)}_${normalized.length}`;
 }
