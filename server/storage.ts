@@ -76,6 +76,11 @@ export interface IStorage {
   batchFindQuestionVersions(criteria: Array<{courseName: string, questionSetNumber: number, questionNumber: number, loid: string}>): Promise<Array<{criteria: any, version: QuestionVersion | undefined}>>;
   checkQuestionExistsByLoid(loid: string): Promise<boolean>;
   
+  // Three-field matching methods for static explanations (Course + Question Set Title + Question Number)
+  findQuestionVersionByCourseSetTitle(courseNumber: string, questionSetTitle: string, questionNumber: number): Promise<QuestionVersion[]>;
+  batchFindQuestionVersionsByCourseSetTitle(criteria: Array<{courseNumber: string, questionSetTitle: string, questionNumber: number}>): Promise<Array<{criteria: any, versions: QuestionVersion[]}>>;
+  
+  
   // Text-based search methods
   findQuestionVersionsByTextHash(textHash: string, courseScope?: string): Promise<QuestionVersion[]>;
   findQuestionVersionsByDirectText(questionText: string, courseScope?: string): Promise<QuestionVersion[]>;
@@ -966,6 +971,75 @@ export class DatabaseStorage implements IStorage {
     );
     
     return results;
+  }
+
+  // New three-field matching implementation (Course + Question Set Title + Question Number)
+  async findQuestionVersionByCourseSetTitle(courseNumber: string, questionSetTitle: string, questionNumber: number): Promise<QuestionVersion[]> {
+    try {
+      // Normalize inputs
+      const normalizedCourse = courseNumber.replace(/\s+/g, '').toUpperCase();
+      const normalizedTitle = questionSetTitle.trim().toLowerCase();
+      
+      console.log(`[THREE-FIELD] Searching for: Course="${normalizedCourse}", Set Title="${questionSetTitle}", Question#=${questionNumber}`);
+      
+      // Query using case-insensitive title comparison
+      const results = await db.select({
+        questionVersion: questionVersions,
+        questionSetTitle: questionSets.title
+      })
+        .from(questionVersions)
+        .innerJoin(questions, eq(questions.id, questionVersions.questionId))
+        .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
+        .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+        .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+        .where(and(
+          eq(courses.courseNumber, normalizedCourse),
+          eq(questions.originalQuestionNumber, questionNumber),
+          eq(questionVersions.isActive, true),
+          sql`LOWER(${questionSets.title}) = ${normalizedTitle}`
+        ));
+      
+      console.log(`[THREE-FIELD] Found ${results.length} raw results before deduplication`);
+      
+      // Deduplicate by question version ID
+      const uniqueVersions = new Map<number, typeof results[0]['questionVersion']>();
+      results.forEach(r => {
+        if (!uniqueVersions.has(r.questionVersion.id)) {
+          uniqueVersions.set(r.questionVersion.id, r.questionVersion);
+        }
+      });
+      
+      console.log(`[THREE-FIELD] After deduplication: ${uniqueVersions.size} unique question versions`);
+      
+      return Array.from(uniqueVersions.values());
+    } catch (error: any) {
+      console.error(`[THREE-FIELD] Error in findQuestionVersionByCourseSetTitle: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async batchFindQuestionVersionsByCourseSetTitle(
+    criteria: Array<{courseNumber: string, questionSetTitle: string, questionNumber: number}>
+  ): Promise<Array<{criteria: any, versions: QuestionVersion[]}>> {
+    try {
+      // For better performance, we could optimize this with a single query
+      // For now, using Promise.all for parallel execution
+      const results = await Promise.all(
+        criteria.map(async (c) => {
+          const versions = await this.findQuestionVersionByCourseSetTitle(
+            c.courseNumber, 
+            c.questionSetTitle, 
+            c.questionNumber
+          );
+          return { criteria: c, versions };
+        })
+      );
+      
+      return results;
+    } catch (error: any) {
+      console.error(`[THREE-FIELD] Error in batchFindQuestionVersionsByCourseSetTitle: ${error.message}`);
+      throw error;
+    }
   }
 
   async getUserTestRuns(userId: number): Promise<UserTestRun[]> {
