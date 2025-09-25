@@ -1206,6 +1206,9 @@ export class DatabaseStorage implements IStorage {
               correctOrder: versionData.correct_order,
               blanks: versionData.blanks as any,
               dropZones: versionData.drop_zones as any,
+              // Include static explanation fields for consistency (initial imports won't have these)
+              staticExplanation: (versionData as any).static_explanation || null,
+              isStaticAnswer: (versionData as any).is_static_answer || false,
             });
           }
         }
