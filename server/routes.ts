@@ -3895,11 +3895,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Use the UPDATE method instead of import to preserve question IDs
         await storage.updateQuestionsForRefresh(questionSetId, questionImports);
         await storage.updateQuestionSetCount(questionSetId);
+        
+        // Log static explanation preservation tracking
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Question set ${questionSetId} refresh completed`);
+          console.log(`   Total questions processed: ${parsedQuestions.length}`);
+          console.log(`   Static explanations are now preserved during refresh`);
+        }
       }
       
       res.json({
         message: `Successfully updated question set with ${parsedQuestions.length} questions from Bubble`,
-        questionCount: parsedQuestions.length
+        questionCount: parsedQuestions.length,
+        staticExplanationNote: "Static explanations preserved during refresh"
       });
       
     } catch (error) {
