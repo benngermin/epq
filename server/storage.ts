@@ -1262,6 +1262,7 @@ export class DatabaseStorage implements IStorage {
               ))
               .limit(1);
 
+            // Prepare the new version payload while preserving static explanations
             const newVersionPayload = {
               topicFocus: versionData.topic_focus,
               questionText: versionData.question_text,
@@ -1285,7 +1286,10 @@ export class DatabaseStorage implements IStorage {
                 questionId: question.id,
                 versionNumber: 1,
                 isActive: true,
-                ...newVersionPayload
+                ...newVersionPayload,
+                // Static explanations would be null for first version (no previous version to preserve from)
+                staticExplanation: null,
+                isStaticAnswer: false
               });
             } else {
               // Compare content with current active version
@@ -1321,16 +1325,22 @@ export class DatabaseStorage implements IStorage {
                   .set({ isActive: false })
                   .where(eq(questionVersions.id, currentVersion.id));
 
-                // Create new active version
+                // Create new active version, PRESERVING STATIC EXPLANATIONS
                 await tx.insert(questionVersions).values({
                   questionId: question.id,
                   versionNumber: newVersionNumber,
                   isActive: true,
-                  ...newVersionPayload
+                  ...newVersionPayload,
+                  // PRESERVE static explanation from the previous version
+                  staticExplanation: currentVersion.staticExplanation,
+                  isStaticAnswer: currentVersion.isStaticAnswer
                 });
 
                 if (process.env.NODE_ENV === 'development') {
                   console.log(`Created new version ${newVersionNumber} for question ${question.originalQuestionNumber} due to content changes`);
+                  if (currentVersion.isStaticAnswer && currentVersion.staticExplanation) {
+                    console.log(`  ✅ Preserved static explanation from version ${currentVersion.versionNumber}`);
+                  }
                 }
               }
               // If content hasn't changed, do nothing - keep current active version
