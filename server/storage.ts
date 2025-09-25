@@ -1336,140 +1336,334 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestionsForRefresh(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
-    // NEW VERSIONING LOGIC: Create new versions when content changes instead of overwriting
-    // This preserves version history and maintains analytics data integrity
+    // CONTENT-BASED MATCHING: Match questions by content similarity rather than position
+    // This preserves static explanations even when questions are reordered or deleted
     await db.transaction(async (tx) => {
       try {
-        // Get all existing questions for this question set
-        const existingQuestions = await tx.select()
-          .from(questions)
-          .where(eq(questions.questionSetId, questionSetId));
-        
-        // Create a map for easy lookup
-        const existingQuestionsMap = new Map(
-          existingQuestions.map(q => [q.originalQuestionNumber, q])
-        );
+        console.log('\n========================================');
+        console.log(`[REFRESH START] Question Set ID: ${questionSetId}`);
+        console.log(`[REFRESH] Processing ${questionsData.length} incoming questions`);
+        console.log('========================================\n');
 
-        for (const questionData of questionsData) {
-          let question = existingQuestionsMap.get(questionData.question_number);
+        // Step 1: Load existing questions with their active versions
+        const existingData = await tx.select({
+          question: questions,
+          activeVersion: questionVersions
+        })
+        .from(questions)
+        .leftJoin(questionVersions, and(
+          eq(questionVersions.questionId, questions.id),
+          eq(questionVersions.isActive, true)
+        ))
+        .where(eq(questions.questionSetId, questionSetId));
+
+        console.log(`[REFRESH] Found ${existingData.length} existing questions in database`);
+
+        // Step 2: Build indices for matching
+        // LOID index - Map<LOID, Array<QuestionData>> (multiple questions can have same LOID)
+        const loidGroups = new Map<string, Array<any>>();
+        existingData.forEach(data => {
+          if (data.question.loid) {
+            if (!loidGroups.has(data.question.loid)) {
+              loidGroups.set(data.question.loid, []);
+            }
+            loidGroups.get(data.question.loid)!.push(data);
+          }
+        });
+
+        console.log(`[REFRESH] LOID groups: ${loidGroups.size} unique LOIDs found`);
+        loidGroups.forEach((questions, loid) => {
+          console.log(`  LOID ${loid}: ${questions.length} questions`);
+        });
+
+        // Track which existing questions have been matched
+        const matchedExistingIds = new Set<number>();
+        const matchResults: Array<{
+          incoming: QuestionImport,
+          existing: any,
+          score: number,
+          matchType: string,
+          contentSimilarity: number
+        }> = [];
+
+        // Step 3: Process each incoming question
+        console.log('\n[MATCHING] Starting content-based matching...\n');
+        
+        for (const incomingQuestion of questionsData) {
+          const incomingVersion = incomingQuestion.versions[0];
+          if (!incomingVersion) {
+            console.log(`[WARNING] Skipping question ${incomingQuestion.question_number} - no version data`);
+            continue;
+          }
+
+          console.log(`\n[MATCHING] Processing incoming question #${incomingQuestion.question_number} (LOID: ${incomingQuestion.loid || 'none'})`);
+          console.log(`  Text preview: "${incomingVersion.question_text?.substring(0, 80)}..."`);
+
+          let bestMatch = null;
+          let bestScore = 0;
+          let bestContentSimilarity = 0;
+          let matchType = 'none';
+
+          // Get candidate questions for matching
+          const candidates: Array<any> = [];
           
-          if (!question) {
-            // This is a new question in the refresh - add it
-            const [newQuestion] = await tx.insert(questions).values({
-              questionSetId,
-              originalQuestionNumber: questionData.question_number,
-              loid: questionData.loid,
-            }).returning();
-            question = newQuestion;
-          } else {
-            // Update existing question's LOID if changed
-            if (question.loid !== questionData.loid) {
-              await tx.update(questions)
-                .set({ loid: questionData.loid })
-                .where(eq(questions.id, question.id));
+          // Priority candidates: questions with matching LOID (but not already matched)
+          if (incomingQuestion.loid && loidGroups.has(incomingQuestion.loid)) {
+            const loidMatches = loidGroups.get(incomingQuestion.loid)!
+              .filter(data => !matchedExistingIds.has(data.question.id));
+            
+            console.log(`  Found ${loidMatches.length} unmatched candidates with same LOID`);
+            candidates.push(...loidMatches.map(data => ({...data, loidBonus: 20})));
+          }
+          
+          // Fallback candidates: all unmatched questions (without LOID bonus)
+          const unmatchedQuestions = existingData
+            .filter(data => !matchedExistingIds.has(data.question.id) && !candidates.some(c => c.question.id === data.question.id))
+            .map(data => ({...data, loidBonus: 0}));
+          
+          if (unmatchedQuestions.length > 0) {
+            console.log(`  Adding ${unmatchedQuestions.length} other unmatched questions as fallback candidates`);
+            candidates.push(...unmatchedQuestions);
+          }
+
+          // Score each candidate
+          console.log(`  Evaluating ${candidates.length} total candidates...`);
+          
+          for (const candidate of candidates) {
+            if (!candidate.activeVersion) {
+              console.log(`    Skipping candidate ${candidate.question.id} - no active version`);
+              continue;
+            }
+            
+            // Calculate content similarity (0-80 points)
+            const contentSim = calculateContentSimilarity(
+              incomingVersion.question_text || '',
+              candidate.activeVersion.questionText || ''
+            ) * 0.8; // Scale to 0-80
+            
+            // Add LOID bonus if applicable (20 points)
+            const loidScore = candidate.loidBonus || 0;
+            
+            // Small penalty for position distance (tiebreaker)
+            const positionPenalty = Math.min(
+              Math.abs(incomingQuestion.question_number - candidate.question.originalQuestionNumber) * 0.5,
+              10 // Cap at 10 points penalty
+            );
+            
+            const totalScore = contentSim + loidScore - positionPenalty;
+            
+            console.log(`    Candidate Q${candidate.question.id} (pos ${candidate.question.originalQuestionNumber}): ` +
+                       `content=${contentSim.toFixed(1)}, loid=${loidScore}, ` +
+                       `pos_penalty=${positionPenalty.toFixed(1)}, total=${totalScore.toFixed(1)}`);
+            
+            if (totalScore > bestScore && totalScore > 50) { // 50% threshold
+              bestScore = totalScore;
+              bestContentSimilarity = contentSim / 0.8; // Convert back to 0-100 scale
+              bestMatch = candidate;
+              
+              // Determine match type
+              if (contentSim > 75 && loidScore > 0) {
+                matchType = 'loid_and_content';
+              } else if (contentSim >= 76) {  // 95% of 80 = 76
+                matchType = 'content_similar';
+              } else if (contentSim === 80) {
+                matchType = 'content_exact';
+              } else if (loidScore > 0) {
+                matchType = 'loid_weak_content';
+              } else {
+                matchType = 'position_fallback';
+              }
             }
           }
 
-          // Process versions with NEW logic - preserve history
-          for (const versionData of questionData.versions) {
-            // Get current active version to compare against
-            const currentActiveVersion = await tx.select()
+          // Record the match result
+          if (bestMatch) {
+            matchedExistingIds.add(bestMatch.question.id);
+            console.log(`  ✓ MATCHED to Q${bestMatch.question.id} (${matchType}, score=${bestScore.toFixed(1)})`);
+            
+            matchResults.push({
+              incoming: incomingQuestion,
+              existing: bestMatch,
+              score: bestScore,
+              matchType: matchType,
+              contentSimilarity: bestContentSimilarity
+            });
+          } else {
+            console.log(`  ✗ NO MATCH FOUND - will create as new question`);
+            matchResults.push({
+              incoming: incomingQuestion,
+              existing: null,
+              score: 0,
+              matchType: 'new',
+              contentSimilarity: 0
+            });
+          }
+        }
+
+        // Log match summary
+        console.log('\n[MATCHING SUMMARY]');
+        const matchTypeCounts = matchResults.reduce((acc, r) => {
+          acc[r.matchType] = (acc[r.matchType] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        Object.entries(matchTypeCounts).forEach(([type, count]) => {
+          console.log(`  ${type}: ${count} questions`);
+        });
+
+        // Step 4: Process matches
+        console.log('\n[PROCESSING] Applying matches and creating versions...\n');
+        
+        for (const result of matchResults) {
+          if (result.existing) {
+            // Update existing question
+            const { question, activeVersion } = result.existing;
+            const incomingVersion = result.incoming.versions[0];
+            
+            console.log(`\n[UPDATE] Question ${question.id} (matched by ${result.matchType})`);
+            
+            // Update question metadata
+            await tx.update(questions)
+              .set({
+                originalQuestionNumber: result.incoming.question_number,
+                loid: result.incoming.loid || question.loid,
+                lastMatchedAt: new Date(),
+                matchConfidence: result.score > 90 ? 'high' : result.score > 70 ? 'medium' : 'low'
+              })
+              .where(eq(questions.id, question.id));
+            
+            // Check if content changed significantly
+            const contentChanged = hasSignificantContentChange(activeVersion, incomingVersion);
+            
+            if (contentChanged) {
+              // Get next version number
+              const maxVersionResult = await tx.select({
+                maxVersion: sql<number>`COALESCE(MAX(${questionVersions.versionNumber}), 0)`
+              })
               .from(questionVersions)
-              .where(and(
-                eq(questionVersions.questionId, question.id),
-                eq(questionVersions.isActive, true)
-              ))
-              .limit(1);
-
-            // Prepare the new version payload while preserving static explanations
-            const newVersionPayload = {
-              topicFocus: versionData.topic_focus,
-              questionText: versionData.question_text,
-              questionType: versionData.question_type || questionData.type || "multiple_choice",
-              answerChoices: versionData.answer_choices as any,
-              correctAnswer: typeof versionData.correct_answer === 'object'
-                ? JSON.stringify(versionData.correct_answer)
-                : versionData.correct_answer,
-              acceptableAnswers: versionData.acceptable_answers,
-              caseSensitive: versionData.case_sensitive,
-              allowMultiple: versionData.allow_multiple,
-              matchingPairs: versionData.matching_pairs,
-              correctOrder: versionData.correct_order,
-              blanks: versionData.blanks as any,
-              dropZones: versionData.drop_zones as any,
-            };
-
-            if (currentActiveVersion.length === 0) {
-              // No active version exists - this is the first version (fresh start scenario)
+              .where(eq(questionVersions.questionId, question.id));
+              
+              const newVersionNumber = (maxVersionResult[0]?.maxVersion || 0) + 1;
+              
+              console.log(`  Creating version ${newVersionNumber} due to content changes`);
+              
+              // Deactivate current version
+              await tx.update(questionVersions)
+                .set({ isActive: false })
+                .where(eq(questionVersions.id, activeVersion.id));
+              
+              // Create new version with preserved static content
               await tx.insert(questionVersions).values({
                 questionId: question.id,
-                versionNumber: 1,
+                versionNumber: newVersionNumber,
                 isActive: true,
-                ...newVersionPayload,
-                // Static explanations would be null for first version (no previous version to preserve from)
-                staticExplanation: null,
-                isStaticAnswer: false
+                topicFocus: incomingVersion.topic_focus,
+                questionText: incomingVersion.question_text,
+                questionType: incomingVersion.question_type || result.incoming.type || "multiple_choice",
+                answerChoices: incomingVersion.answer_choices as any,
+                correctAnswer: typeof incomingVersion.correct_answer === 'object'
+                  ? JSON.stringify(incomingVersion.correct_answer)
+                  : incomingVersion.correct_answer,
+                acceptableAnswers: incomingVersion.acceptable_answers,
+                caseSensitive: incomingVersion.case_sensitive,
+                allowMultiple: incomingVersion.allow_multiple,
+                matchingPairs: incomingVersion.matching_pairs,
+                correctOrder: incomingVersion.correct_order,
+                blanks: incomingVersion.blanks as any,
+                dropZones: incomingVersion.drop_zones as any,
+                // CRITICAL: Preserve static explanation even if content changed
+                isStaticAnswer: activeVersion.isStaticAnswer,
+                staticExplanation: activeVersion.staticExplanation
               });
-            } else {
-              // Compare content with current active version
-              const currentVersion = currentActiveVersion[0];
-              const contentChanged = (
-                currentVersion.topicFocus !== newVersionPayload.topicFocus ||
-                currentVersion.questionText !== newVersionPayload.questionText ||
-                currentVersion.questionType !== newVersionPayload.questionType ||
-                JSON.stringify(currentVersion.answerChoices) !== JSON.stringify(newVersionPayload.answerChoices) ||
-                currentVersion.correctAnswer !== newVersionPayload.correctAnswer ||
-                JSON.stringify(currentVersion.acceptableAnswers) !== JSON.stringify(newVersionPayload.acceptableAnswers) ||
-                currentVersion.caseSensitive !== newVersionPayload.caseSensitive ||
-                currentVersion.allowMultiple !== newVersionPayload.allowMultiple ||
-                JSON.stringify(currentVersion.matchingPairs) !== JSON.stringify(newVersionPayload.matchingPairs) ||
-                JSON.stringify(currentVersion.correctOrder) !== JSON.stringify(newVersionPayload.correctOrder) ||
-                JSON.stringify(currentVersion.blanks) !== JSON.stringify(newVersionPayload.blanks) ||
-                JSON.stringify(currentVersion.dropZones) !== JSON.stringify(newVersionPayload.dropZones)
-              );
-
-              if (contentChanged) {
-                // Content has changed - create new version
-                // First, get the highest version number for this question
-                const maxVersionResult = await tx.select({
-                  maxVersion: sql<number>`COALESCE(MAX(${questionVersions.versionNumber}), 0)`
-                })
-                .from(questionVersions)
-                .where(eq(questionVersions.questionId, question.id));
-
-                const newVersionNumber = (maxVersionResult[0]?.maxVersion || 0) + 1;
-
-                // Deactivate current active version
-                await tx.update(questionVersions)
-                  .set({ isActive: false })
-                  .where(eq(questionVersions.id, currentVersion.id));
-
-                // Create new active version, PRESERVING STATIC EXPLANATIONS
-                await tx.insert(questionVersions).values({
-                  questionId: question.id,
-                  versionNumber: newVersionNumber,
-                  isActive: true,
-                  ...newVersionPayload,
-                  // PRESERVE static explanation from the previous version
-                  staticExplanation: currentVersion.staticExplanation,
-                  isStaticAnswer: currentVersion.isStaticAnswer
-                });
-
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(`Created new version ${newVersionNumber} for question ${question.originalQuestionNumber} due to content changes`);
-                  if (currentVersion.isStaticAnswer && currentVersion.staticExplanation) {
-                    console.log(`  ✅ Preserved static explanation from version ${currentVersion.versionNumber}`);
-                  }
-                }
+              
+              if (activeVersion.staticExplanation) {
+                console.log(`  ✅ PRESERVED static explanation from v${activeVersion.versionNumber}`);
+                console.log(`     Match confidence: ${result.score.toFixed(1)}% (${result.matchType})`);
+                console.log(`     Position shift: ${question.originalQuestionNumber} → ${result.incoming.question_number}`);
               }
-              // If content hasn't changed, do nothing - keep current active version
+            } else {
+              console.log(`  No significant changes detected - keeping version ${activeVersion.versionNumber}`);
             }
+            
+            // Log match in history table
+            await tx.execute(sql`
+              INSERT INTO question_match_history 
+              (question_set_id, question_id, incoming_position, incoming_loid, matched_by, confidence_score, content_similarity, position_shift)
+              VALUES 
+              (${questionSetId}, ${question.id}, ${result.incoming.question_number}, ${result.incoming.loid}, ${result.matchType}, ${result.score}, ${result.contentSimilarity}, ${result.incoming.question_number - question.originalQuestionNumber})
+            `);
+            
+          } else {
+            // Create new question
+            console.log(`\n[NEW] Creating question at position ${result.incoming.question_number}`);
+            
+            const [newQuestion] = await tx.insert(questions).values({
+              questionSetId,
+              originalQuestionNumber: result.incoming.question_number,
+              loid: result.incoming.loid,
+              contentFingerprint: null,
+              lastMatchedAt: new Date(),
+              matchConfidence: 'new'
+            }).returning();
+            
+            // Create first version
+            const incomingVersion = result.incoming.versions[0];
+            await tx.insert(questionVersions).values({
+              questionId: newQuestion.id,
+              versionNumber: 1,
+              isActive: true,
+              topicFocus: incomingVersion.topic_focus,
+              questionText: incomingVersion.question_text,
+              questionType: incomingVersion.question_type || result.incoming.type || "multiple_choice",
+              answerChoices: incomingVersion.answer_choices as any,
+              correctAnswer: typeof incomingVersion.correct_answer === 'object'
+                ? JSON.stringify(incomingVersion.correct_answer)
+                : incomingVersion.correct_answer,
+              acceptableAnswers: incomingVersion.acceptable_answers,
+              caseSensitive: incomingVersion.case_sensitive,
+              allowMultiple: incomingVersion.allow_multiple,
+              matchingPairs: incomingVersion.matching_pairs,
+              correctOrder: incomingVersion.correct_order,
+              blanks: incomingVersion.blanks as any,
+              dropZones: incomingVersion.drop_zones as any,
+              staticExplanation: null,
+              isStaticAnswer: false
+            });
+            
+            console.log(`  Created new question ID ${newQuestion.id}`);
           }
         }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error updating questions for refresh:', error);
+        
+        // Step 5: Handle unmatched existing questions (likely deleted from Bubble)
+        const unmatchedIds = existingData
+          .filter(d => !matchedExistingIds.has(d.question.id))
+          .map(d => d.question.id);
+        
+        if (unmatchedIds.length > 0) {
+          console.log(`\n[CLEANUP] ${unmatchedIds.length} questions not found in refresh - deactivating...`);
+          
+          for (const questionId of unmatchedIds) {
+            console.log(`  Deactivating question ${questionId}`);
+            
+            // Deactivate rather than delete to preserve history
+            await tx.update(questionVersions)
+              .set({ isActive: false })
+              .where(and(
+                eq(questionVersions.questionId, questionId),
+                eq(questionVersions.isActive, true)
+              ));
+          }
         }
+        
+        console.log('\n========================================');
+        console.log('[REFRESH COMPLETE]');
+        console.log(`  Matched: ${matchedExistingIds.size} questions`);
+        console.log(`  New: ${matchResults.filter(r => r.matchType === 'new').length} questions`);
+        console.log(`  Removed: ${unmatchedIds.length} questions`);
+        console.log('========================================\n');
+        
+      } catch (error) {
+        console.error('\n[REFRESH ERROR] Failed to update questions:', error);
         throw error; // This will rollback the transaction
       }
     });
