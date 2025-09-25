@@ -53,6 +53,9 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Improved Matching Logic**: Normalized course numbers, case-insensitive question set matching, and proper handling of ambiguous matches
 - **Frontend Updates**: Admin upload page now displays three matching fields clearly and removes dependency on text matching
 - **Fixed Static Explanation Preservation During Refresh**: Updated `updateQuestionsForRefresh` method to preserve static explanations when creating new question versions during refresh operations. Previously, static explanations were being lost when new versions were created.
+- **Content-Based Question Matching**: Completely rewrote the question refresh matching algorithm to use content similarity (Levenshtein distance) instead of position-based matching. This ensures static explanations are preserved even when questions are deleted from the source data and all subsequent questions shift positions. The new algorithm uses multi-factor scoring: content similarity (80 points) + LOID bonus (20 points) + position as tiebreaker.
+- **Enhanced Database Schema for Matching**: Added tracking columns to questions table (`content_fingerprint`, `last_matched_at`, `match_confidence`) and created `question_match_history` table to log all matching decisions for debugging and analysis.
+- **Comprehensive Logging**: Added extensive debug logging throughout the matching process to track each matching decision, confidence scores, and preservation of static explanations.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon serverless)
