@@ -52,6 +52,7 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **CSV Format Update**: Upload CSV now requires Course, Question Set, Question Number, and Final Static Explanation fields (LOID and Question Text are now optional)
 - **Improved Matching Logic**: Normalized course numbers, case-insensitive question set matching, and proper handling of ambiguous matches
 - **Frontend Updates**: Admin upload page now displays three matching fields clearly and removes dependency on text matching
+- **Fixed Static Explanation Preservation During Refresh**: Updated `updateQuestionsForRefresh` method to preserve static explanations when creating new question versions during refresh operations. Previously, static explanations were being lost when new versions were created.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon serverless)
