@@ -21,6 +21,122 @@ import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
 import { getDateAtMidnightEST, getTodayEST } from "./utils/logger";
 
+// ========================
+// Content Similarity Functions for Question Matching
+// ========================
+
+/**
+ * Calculate Levenshtein distance between two strings
+ * Used for content similarity matching
+ */
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix: number[][] = [];
+  
+  // Initialize first column and row
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  // Calculate distances
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+/**
+ * Normalize text for comparison by removing punctuation, case, and extra whitespace
+ */
+function normalizeForComparison(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .replace(/\s+/g, ' ')     // Normalize whitespace
+    .trim();
+}
+
+/**
+ * Calculate content similarity percentage between two texts
+ * Returns a value between 0 and 100
+ */
+function calculateContentSimilarity(text1: string, text2: string): number {
+  // Quick exact match check
+  if (text1 === text2) {
+    console.log('[MATCH] Exact match found');
+    return 100;
+  }
+  
+  // Normalize for comparison
+  const norm1 = normalizeForComparison(text1);
+  const norm2 = normalizeForComparison(text2);
+  
+  // Check normalized exact match
+  if (norm1 === norm2) {
+    console.log('[MATCH] Normalized exact match found');
+    return 95;
+  }
+  
+  // Calculate character-level similarity
+  const longer = norm1.length > norm2.length ? norm1 : norm2;
+  const shorter = norm1.length > norm2.length ? norm2 : norm1;
+  
+  if (longer.length === 0) return 0;
+  
+  const editDistance = levenshteinDistance(shorter, longer);
+  const similarity = ((longer.length - editDistance) / longer.length) * 100;
+  
+  console.log(`[SIMILARITY] Distance: ${editDistance}, Length: ${longer.length}, Similarity: ${similarity.toFixed(2)}%`);
+  
+  return similarity;
+}
+
+/**
+ * Determine if content has changed significantly enough to warrant a new version
+ */
+function hasSignificantContentChange(
+  existingVersion: QuestionVersion | undefined,
+  incomingVersion: any
+): boolean {
+  if (!existingVersion) return true;
+  
+  const textSimilarity = calculateContentSimilarity(
+    existingVersion.questionText || '',
+    incomingVersion.question_text || ''
+  );
+  
+  // Log the comparison
+  console.log(`[CHANGE CHECK] Text similarity: ${textSimilarity.toFixed(2)}%`);
+  console.log(`[CHANGE CHECK] Type match: ${existingVersion.questionType === (incomingVersion.question_type || 'multiple_choice')}`);
+  
+  // Content has changed if:
+  // - Text similarity < 98% (allows for minor typo fixes)
+  // - Question type changed
+  // - Answer structure changed significantly
+  const hasTextChange = textSimilarity < 98;
+  const hasTypeChange = existingVersion.questionType !== (incomingVersion.question_type || 'multiple_choice');
+  const hasAnswerChange = JSON.stringify(existingVersion.correctAnswer) !== JSON.stringify(incomingVersion.correct_answer);
+  
+  const hasChange = hasTextChange || hasTypeChange || hasAnswerChange;
+  
+  console.log(`[CHANGE CHECK] Result: ${hasChange ? 'CHANGED' : 'UNCHANGED'} (text: ${hasTextChange}, type: ${hasTypeChange}, answer: ${hasAnswerChange})`);
+  
+  return hasChange;
+}
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
