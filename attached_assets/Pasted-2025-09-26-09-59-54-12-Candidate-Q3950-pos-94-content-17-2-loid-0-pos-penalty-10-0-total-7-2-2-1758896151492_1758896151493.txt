@@ -1,0 +1,98 @@
+2025-09-26 09:59:54.12
+Candidate Q3950 (pos 94): content=17.2, loid=0, pos_penalty=10.0, total=7.2
+2025-09-26 09:59:54.12
+[SIMILARITY] Distance: 214, Length: 301, Similarity: 28.90%
+2025-09-26 09:59:54.12
+Candidate Q3890 (pos 63): content=23.1, loid=0, pos_penalty=10.0, total=13.1
+2025-09-26 09:59:54.12
+[SIMILARITY] Distance: 179, Length: 244, Similarity: 26.64%
+2025-09-26 09:59:54.12
+Candidate Q3835 (pos 52): content=21.3, loid=0, pos_penalty=10.0, total=11.3
+2025-09-26 09:59:54.12
+[SIMILARITY] Distance: 161, Length: 200, Similarity: 19.50%
+2025-09-26 09:59:54.12
+Candidate Q3894 (pos 64): content=15.6, loid=0, pos_penalty=10.0, total=5.6
+2025-09-26 09:59:54.12
+[SIMILARITY] Distance: 154, Length: 200, Similarity: 23.00%
+2025-09-26 09:59:54.12
+Candidate Q3942 (pos 86): content=18.4, loid=0, pos_penalty=10.0, total=8.4
+2025-09-26 09:59:54.12
+[SIMILARITY] Distance: 158, Length: 206, Similarity: 23.30%
+2025-09-26 09:59:54.12
+Candidate Q3840 (pos 53): content=18.6, loid=0, pos_penalty=10.0, total=8.6
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 298, Length: 396, Similarity: 24.75%
+2025-09-26 09:59:54.13
+Candidate Q3845 (pos 54): content=19.8, loid=0, pos_penalty=10.0, total=9.8
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 194, Length: 258, Similarity: 24.81%
+2025-09-26 09:59:54.13
+Candidate Q3850 (pos 55): content=19.8, loid=0, pos_penalty=10.0, total=9.8
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 222, Length: 304, Similarity: 26.97%
+2025-09-26 09:59:54.13
+Candidate Q3855 (pos 56): content=21.6, loid=0, pos_penalty=10.0, total=11.6
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 150, Length: 200, Similarity: 25.00%
+2025-09-26 09:59:54.13
+Candidate Q3662 (pos 18): content=20.0, loid=0, pos_penalty=1.5, total=18.5
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 153, Length: 200, Similarity: 23.50%
+2025-09-26 09:59:54.13
+Candidate Q3914 (pos 71): content=18.8, loid=0, pos_penalty=10.0, total=8.8
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 153, Length: 200, Similarity: 23.50%
+2025-09-26 09:59:54.13
+Candidate Q3930 (pos 79): content=18.8, loid=0, pos_penalty=10.0, total=8.8
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 188, Length: 250, Similarity: 24.80%
+2025-09-26 09:59:54.13
+Candidate Q3653 (pos 16): content=19.8, loid=0, pos_penalty=0.5, total=19.3
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 144, Length: 200, Similarity: 28.00%
+2025-09-26 09:59:54.13
+Candidate Q3860 (pos 57): content=22.4, loid=0, pos_penalty=10.0, total=12.4
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 205, Length: 280, Similarity: 26.79%
+2025-09-26 09:59:54.13
+Candidate Q3673 (pos 20): content=21.4, loid=0, pos_penalty=2.5, total=18.9
+2025-09-26 09:59:54.13
+[SIMILARITY] Distance: 214, Length: 283, Similarity: 24.38%
+2025-09-26 09:59:54.13
+Candidate Q3769 (pos 39): content=19.5, loid=0, pos_penalty=10.0, total=9.5
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 151, Length: 200, Similarity: 24.50%
+2025-09-26 09:59:54.14
+Candidate Q3684 (pos 22): content=19.6, loid=0, pos_penalty=3.5, total=16.1
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 154, Length: 200, Similarity: 23.00%
+2025-09-26 09:59:54.14
+Candidate Q3688 (pos 23): content=18.4, loid=0, pos_penalty=4.0, total=14.4
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 184, Length: 259, Similarity: 28.96%
+2025-09-26 09:59:54.14
+Candidate Q3774 (pos 40): content=23.2, loid=0, pos_penalty=10.0, total=13.2
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 172, Length: 231, Similarity: 25.54%
+2025-09-26 09:59:54.14
+Candidate Q3779 (pos 41): content=20.4, loid=0, pos_penalty=10.0, total=10.4
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 180, Length: 242, Similarity: 25.62%
+2025-09-26 09:59:54.14
+Candidate Q3784 (pos 42): content=20.5, loid=0, pos_penalty=10.0, total=10.5
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 151, Length: 200, Similarity: 24.50%
+2025-09-26 09:59:54.14
+Candidate Q3693 (pos 24): content=19.6, loid=0, pos_penalty=4.5, total=15.1
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 334, Length: 445, Similarity: 24.94%
+2025-09-26 09:59:54.14
+Candidate Q3698 (pos 25): content=20.0, loid=0, pos_penalty=5.0, total=15.0
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 146, Length: 200, Similarity: 27.00%
+2025-09-26 09:59:54.14
+Candidate Q3703 (pos 26): content=21.6, loid=0, pos_penalty=5.5, total=16.1
+2025-09-26 09:59:54.14
+[SIMILARITY] Distance: 152, Length: 200, Similarity: 24.00%
+2025-09-26 09:59:54.14
+Candidate Q3789 (pos 43): content=19.2, loid=0, pos_penalty=10.0, total=9.2

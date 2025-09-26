@@ -1,0 +1,244 @@
+Search
+Time
+Deployment
+Source
+Log
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.687Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.687Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.687Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.688Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+}
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.688Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"originalFormat": "none",
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.688Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankCount": 0,
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.68
+79d63240
+User
+[DEBUG 2025-09-26T17:55:12.688Z] Normalized question blanks
+2025-09-26 13:55:12.68
+79d63240
+User
+{
+2025-09-26 13:55:12.68
+79d63240
+User
+"blankPositions": []
+2025-09-26 13:55:12.88
+79d63240
+User
+Candidate Q4536 (pos 48): content=17.1, loid=0, pos_penalty=10.0, total=7.1
+2025-09-26 13:55:12.90
+79d63240
+User
+[SIMILARITY] Distance: 175, Length: 239, Similarity: 26.78%
+2025-09-26 13:55:12.91
+79d63240
+User
+Candidate Q4411 (pos 23): content=16.3, loid=0, pos_penalty=10.0, total=6.3
+2025-09-26 13:55:14.23
+79d63240
+User
+[SIMILARITY] Distance: 344, Length: 407, Similarity: 15.48%
+2025-09-26 13:55:14.23
+79d63240
+User
+Candidate Q4586 (pos 58): content=12.4, loid=0, pos_penalty=10.0, total=2.4
+2025-09-26 13:55:14.23
+79d63240
+User
+[SIMILARITY] Distance: 306, Length: 407, Similarity: 24.82%
+2025-09-26 13:55:14.23
+79d63240
+User
+Candidate Q4591 (pos 59): content=19.9, loid=0, pos_penalty=10.0, total=9.9
+2025-09-26 13:55:14.23
+79d63240
+User
+✓ MATCHED to Q4396 (loid_and_content, score=100.0)
+2025-09-26 13:55:14.23
+79d63240
+User
+2025-09-26 13:55:14.23
+79d63240
+User
+[MATCHING] Processing incoming question #21 (LOID: 08923)
+2025-09-26 13:55:14.23
+79d63240
+User
+Text preview: "Westfork Mutual insures its office building under a Building and Personal Proper..."
+2025-09-26 13:55:14.23
+79d63240
+User
+Found 1 unmatched candidates with same LOID
