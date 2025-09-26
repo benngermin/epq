@@ -1,0 +1,200 @@
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5544 (pos 49): content=18.9, loid=0, pos_penalty=10.0, total=8.9
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 80, Length: 106, Similarity: 24.53%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5550 (pos 50): content=19.6, loid=0, pos_penalty=10.0, total=9.6
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 85, Length: 110, Similarity: 22.73%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5564 (pos 53): content=18.2, loid=0, pos_penalty=10.0, total=8.2
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 200, Length: 264, Similarity: 24.24%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5568 (pos 54): content=19.4, loid=0, pos_penalty=10.0, total=9.4
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 285, Length: 354, Similarity: 19.49%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5573 (pos 55): content=15.6, loid=0, pos_penalty=10.0, total=5.6
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 149, Length: 195, Similarity: 23.59%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5578 (pos 56): content=18.9, loid=0, pos_penalty=10.0, total=8.9
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 213, Length: 272, Similarity: 21.69%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5583 (pos 57): content=17.4, loid=0, pos_penalty=10.0, total=7.4
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 145, Length: 198, Similarity: 26.77%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5589 (pos 58): content=21.4, loid=0, pos_penalty=10.0, total=11.4
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 272, Length: 340, Similarity: 20.00%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5594 (pos 59): content=16.0, loid=0, pos_penalty=10.0, total=6.0
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 131, Length: 181, Similarity: 27.62%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5599 (pos 60): content=22.1, loid=0, pos_penalty=10.0, total=12.1
+2025-09-26 10:02:04.18
+79d63240
+User
+[SIMILARITY] Distance: 160, Length: 216, Similarity: 25.93%
+2025-09-26 10:02:04.18
+79d63240
+User
+Candidate Q5604 (pos 61): content=20.7, loid=0, pos_penalty=10.0, total=10.7
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 260, Length: 327, Similarity: 20.49%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5609 (pos 62): content=16.4, loid=0, pos_penalty=10.0, total=6.4
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 274, Length: 342, Similarity: 19.88%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5614 (pos 63): content=15.9, loid=0, pos_penalty=10.0, total=5.9
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 116, Length: 161, Similarity: 27.95%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5619 (pos 64): content=22.4, loid=0, pos_penalty=10.0, total=12.4
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 73, Length: 106, Similarity: 31.13%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5624 (pos 65): content=24.9, loid=0, pos_penalty=10.0, total=14.9
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 302, Length: 374, Similarity: 19.25%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5629 (pos 66): content=15.4, loid=0, pos_penalty=10.0, total=5.4
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 87, Length: 114, Similarity: 23.68%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5634 (pos 67): content=18.9, loid=0, pos_penalty=10.0, total=8.9
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 147, Length: 203, Similarity: 27.59%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5639 (pos 68): content=22.1, loid=0, pos_penalty=10.0, total=12.1
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 162, Length: 220, Similarity: 26.36%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5642 (pos 69): content=21.1, loid=0, pos_penalty=10.0, total=11.1
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 374, Length: 451, Similarity: 17.07%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5647 (pos 70): content=13.7, loid=0, pos_penalty=10.0, total=3.7
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 462, Length: 542, Similarity: 14.76%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5650 (pos 71): content=11.8, loid=0, pos_penalty=10.0, total=1.8
+2025-09-26 10:02:04.19
+79d63240
+User
+[SIMILARITY] Distance: 109, Length: 143, Similarity: 23.78%
+2025-09-26 10:02:04.19
+79d63240
+User
+Candidate Q5654 (pos 72): content=19.0, loid=0, pos_penalty=10.0, total=9.0
+2025-09-26 10:02:04.20
+79d63240
+User
+[SIMILARITY] Distance: 238, Length: 301, Similarity: 20.93%
+2025-09-26 10:02:04.20
+79d63240
+User
+Candidate Q5657 (pos 73): content=16.7, loid=0, pos_penalty=10.0, total=6.7
+2025-09-26 10:02:04.20
+79d63240
+User
+Candidate Q5660 (pos 74): content=18.8, loid=0, pos_penalty=10.0, total=8.8
+2025-09-26 10:02:04.20
+79d63240
+User
+Candidate Q5663 (pos 75): content=17.0, loid=0, pos_penalty=10.0, total=7.0
+2025-09-26 10:02:04.20
+79d63240
+User
+Candidate Q5672 (pos 78): content=17.3, loid=0, pos_penalty=10.0, total=7.3
+2025-09-26 10:02:04.20
+79d63240
+User
+[SIMILARITY] Distance: 130, Length: 176, Similarity: 26.14%
+2025-09-26 10:02:04.20
+79d63240
+User
+[SIMILARITY] Distance: 67, Length: 106, Similarity: 36.79%
