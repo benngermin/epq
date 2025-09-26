@@ -2617,23 +2617,25 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Build query with conditional WHERE clause
+    // Build query - use junction table for course-questionSet relationship
     let query = db.select({
       courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
-      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
+      count: startDate 
+        ? sql<number>`COUNT(DISTINCT CASE WHEN ${userTestRuns.startedAt} >= ${startDate.toISOString()} THEN ${userTestRuns.id} END)`
+        : sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
     })
     .from(courses)
-    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
-    .leftJoin(userTestRuns, 
-      and(
-        eq(userTestRuns.questionSetId, questionSets.id),
-        startDate ? gte(userTestRuns.startedAt, startDate) : undefined
-      )
-    );
+    .leftJoin(courseQuestionSets, eq(courseQuestionSets.courseId, courses.id))
+    .leftJoin(questionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
+    .leftJoin(userTestRuns, eq(userTestRuns.questionSetId, questionSets.id));
 
     const result = await query
       .groupBy(courses.courseNumber, courses.courseTitle)
-      .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
+      .orderBy(desc(
+        startDate 
+          ? sql`COUNT(DISTINCT CASE WHEN ${userTestRuns.startedAt} >= ${startDate.toISOString()} THEN ${userTestRuns.id} END)`
+          : sql`COUNT(DISTINCT ${userTestRuns.id})`
+      ));
 
     return result.map(row => ({
       courseName: row.courseName,
@@ -2812,24 +2814,26 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Build query with conditional WHERE clause
+    // Build query - use junction table for course-questionSet relationship
     let query = db.select({
       courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
-      count: sql<number>`COUNT(${userAnswers.id})`
+      count: startDate 
+        ? sql<number>`COUNT(CASE WHEN ${userAnswers.answeredAt} >= ${startDate.toISOString()} THEN ${userAnswers.id} END)`
+        : sql<number>`COUNT(${userAnswers.id})`
     })
     .from(courses)
-    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
+    .leftJoin(courseQuestionSets, eq(courseQuestionSets.courseId, courses.id))
+    .leftJoin(questionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
     .leftJoin(userTestRuns, eq(userTestRuns.questionSetId, questionSets.id))
-    .leftJoin(userAnswers, 
-      and(
-        eq(userAnswers.userTestRunId, userTestRuns.id),
-        startDate ? gte(userAnswers.answeredAt, startDate) : undefined
-      )
-    );
+    .leftJoin(userAnswers, eq(userAnswers.userTestRunId, userTestRuns.id));
 
     const result = await query
       .groupBy(courses.courseNumber, courses.courseTitle)
-      .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+      .orderBy(desc(
+        startDate 
+          ? sql`COUNT(CASE WHEN ${userAnswers.answeredAt} >= ${startDate.toISOString()} THEN ${userAnswers.id} END)`
+          : sql`COUNT(${userAnswers.id})`
+      ));
 
     return result.map(row => ({
       courseName: row.courseName,
