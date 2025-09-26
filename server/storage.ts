@@ -2619,7 +2619,7 @@ export class DatabaseStorage implements IStorage {
 
     // Build query - use junction table for course-questionSet relationship
     let query = db.select({
-      courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
+      courseName: courses.courseNumber,
       count: startDate 
         ? sql<number>`COUNT(DISTINCT CASE WHEN ${userTestRuns.startedAt} >= ${startDate.toISOString()} THEN ${userTestRuns.id} END)`
         : sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
@@ -2816,7 +2816,7 @@ export class DatabaseStorage implements IStorage {
 
     // Build query - use junction table for course-questionSet relationship
     let query = db.select({
-      courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
+      courseName: courses.courseNumber,
       count: startDate 
         ? sql<number>`COUNT(CASE WHEN ${userAnswers.answeredAt} >= ${startDate.toISOString()} THEN ${userAnswers.id} END)`
         : sql<number>`COUNT(${userAnswers.id})`
