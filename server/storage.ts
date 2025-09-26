@@ -105,7 +105,8 @@ function calculateContentSimilarity(text1: string, text2: string): number {
 }
 
 /**
- * Determine if content has changed significantly enough to warrant a new version
+ * Determine if content has changed - ANY change triggers a new version
+ * Uses exact comparison for all fields to ensure no changes are missed
  */
 function hasSignificantContentChange(
   existingVersion: QuestionVersion | undefined,
@@ -113,26 +114,45 @@ function hasSignificantContentChange(
 ): boolean {
   if (!existingVersion) return true;
   
-  const textSimilarity = calculateContentSimilarity(
-    existingVersion.questionText || '',
-    incomingVersion.question_text || ''
-  );
+  // EXACT comparison for question text - any character difference triggers new version
+  const hasTextChange = existingVersion.questionText !== incomingVersion.question_text;
   
-  // Log the comparison
-  console.log(`[CHANGE CHECK] Text similarity: ${textSimilarity.toFixed(2)}%`);
-  console.log(`[CHANGE CHECK] Type match: ${existingVersion.questionType === (incomingVersion.question_type || 'multiple_choice')}`);
-  
-  // Content has changed if:
-  // - Text similarity < 98% (allows for minor typo fixes)
-  // - Question type changed
-  // - Answer structure changed significantly
-  const hasTextChange = textSimilarity < 98;
+  // Exact comparison for all other fields
   const hasTypeChange = existingVersion.questionType !== (incomingVersion.question_type || 'multiple_choice');
   const hasAnswerChange = JSON.stringify(existingVersion.correctAnswer) !== JSON.stringify(incomingVersion.correct_answer);
+  const hasTopicChange = existingVersion.topicFocus !== incomingVersion.topic_focus;
+  const hasChoicesChange = JSON.stringify(existingVersion.answerChoices) !== JSON.stringify(incomingVersion.answer_choices);
   
-  const hasChange = hasTextChange || hasTypeChange || hasAnswerChange;
+  // Check additional fields for completeness
+  const hasAcceptableAnswersChange = JSON.stringify(existingVersion.acceptableAnswers) !== JSON.stringify(incomingVersion.acceptable_answers);
+  const hasCaseSensitiveChange = existingVersion.caseSensitive !== incomingVersion.case_sensitive;
+  const hasBlanksChange = JSON.stringify(existingVersion.blanks) !== JSON.stringify(incomingVersion.blanks);
   
-  console.log(`[CHANGE CHECK] Result: ${hasChange ? 'CHANGED' : 'UNCHANGED'} (text: ${hasTextChange}, type: ${hasTypeChange}, answer: ${hasAnswerChange})`);
+  const hasChange = hasTextChange || hasTypeChange || hasAnswerChange || hasTopicChange || 
+                   hasChoicesChange || hasAcceptableAnswersChange || hasCaseSensitiveChange || hasBlanksChange;
+  
+  // Enhanced logging for debugging and audit trail
+  console.log(`[VERSION CHECK] Comparing versions for change detection:`);
+  if (hasChange) {
+    console.log(`  ✅ NEW VERSION REQUIRED - Changes detected:`);
+    if (hasTextChange) {
+      console.log(`    - Text changed`);
+      console.log(`      Existing length: ${existingVersion.questionText?.length || 0} chars`);
+      console.log(`      Incoming length: ${incomingVersion.question_text?.length || 0} chars`);
+    }
+    if (hasTypeChange) console.log(`    - Type changed: "${existingVersion.questionType}" → "${incomingVersion.question_type || 'multiple_choice'}"`);
+    if (hasAnswerChange) console.log(`    - Answer changed`);
+    if (hasTopicChange) console.log(`    - Topic changed: "${existingVersion.topicFocus}" → "${incomingVersion.topic_focus}"`);
+    if (hasChoicesChange) console.log(`    - Answer choices changed`);
+    if (hasAcceptableAnswersChange) console.log(`    - Acceptable answers changed`);
+    if (hasCaseSensitiveChange) console.log(`    - Case sensitivity changed`);
+    if (hasBlanksChange) console.log(`    - Blanks structure changed`);
+  } else {
+    console.log(`  ⚠️ NO CHANGES DETECTED - keeping current version`);
+    console.log(`    Text identical: ${!hasTextChange}`);
+    console.log(`    Existing text length: ${existingVersion.questionText?.length || 0} chars`);
+    console.log(`    Incoming text length: ${incomingVersion.question_text?.length || 0} chars`);
+  }
   
   return hasChange;
 }
@@ -1532,7 +1552,7 @@ export class DatabaseStorage implements IStorage {
               })
               .where(eq(questions.id, question.id));
             
-            // Check if content changed significantly
+            // Check if content changed at all - ANY change triggers new version
             const contentChanged = hasSignificantContentChange(activeVersion, incomingVersion);
             
             if (contentChanged) {
@@ -1582,7 +1602,17 @@ export class DatabaseStorage implements IStorage {
                 console.log(`     Position shift: ${question.originalQuestionNumber} → ${result.incoming.question_number}`);
               }
             } else {
-              console.log(`  No significant changes detected - keeping version ${activeVersion.versionNumber}`);
+              // Enhanced logging when NO version is created
+              console.log(`  ⚠️ NO VERSION CREATED for Question ID ${question.id} - No changes detected`);
+              console.log(`     Current version: ${activeVersion.versionNumber}`);
+              console.log(`     Question position: ${question.originalQuestionNumber} → ${result.incoming.question_number}`);
+              console.log(`     Text comparison:`);
+              console.log(`       - Existing text length: ${activeVersion.questionText?.length || 0} chars`);
+              console.log(`       - Incoming text length: ${incomingVersion.question_text?.length || 0} chars`);
+              console.log(`       - Text identical: ${activeVersion.questionText === incomingVersion.question_text}`);
+              if (activeVersion.staticExplanation) {
+                console.log(`     ℹ️ Static explanation preserved without version change`);
+              }
             }
             
             // Log match in history table
