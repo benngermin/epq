@@ -1,0 +1,423 @@
+
+[PROCESSING] Applying matches and creating versions...
+
+
+[UPDATE] Question 4299 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4303 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4308 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4313 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4319 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4324 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4329 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4334 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4339 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4344 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4349 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4354 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4359 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4363 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4368 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4376 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4381 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4386 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4391 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4396 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4401 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4406 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4411 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4416 (matched by loid_and_content)
+[SIMILARITY] Distance: 2, Length: 340, Similarity: 99.41%
+[CHANGE CHECK] Text similarity: 99.41%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4421 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4426 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4431 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4436 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4441 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4446 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4451 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4456 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4460 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4465 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4470 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4475 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4480 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4485 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4490 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4495 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4500 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4505 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4510 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4515 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4520 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4525 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4530 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4536 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4542 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4547 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4552 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4557 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4562 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4567 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4572 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4577 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4582 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4586 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+[UPDATE] Question 4591 (matched by loid_and_content)
+[MATCH] Exact match found
+[CHANGE CHECK] Text similarity: 100.00%
+[CHANGE CHECK] Type match: true
+[CHANGE CHECK] Result: UNCHANGED (text: false, type: false, answer: false)
+  No significant changes detected - keeping version 5
+
+========================================
+[REFRESH COMPLETE]
+  Matched: 59 questions
+  New: 0 questions
+  Removed: 0 questions
+========================================
