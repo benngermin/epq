@@ -628,8 +628,16 @@ export class DatabaseStorage implements IStorage {
     try {
       // Use transaction to ensure all deletions are atomic
       return await db.transaction(async (tx) => {
-        // First, get all question sets for this course
-        const courseSets = await tx.select().from(questionSets).where(eq(questionSets.courseId, id));
+        // First, get all question sets for this course through the junction table
+        const courseSetMappings = await tx.select({
+          questionSet: questionSets
+        })
+          .from(courseQuestionSets)
+          .innerJoin(questionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+          .where(eq(courseQuestionSets.courseId, id));
+        
+        // Extract the question sets
+        const courseSets = courseSetMappings.map(m => m.questionSet);
         
         // For each question set, we need to delete all related data
         for (const questionSet of courseSets) {
@@ -662,7 +670,10 @@ export class DatabaseStorage implements IStorage {
           await tx.delete(chatbotFeedback).where(eq(chatbotFeedback.questionSetId, questionSet.id));
         }
         
-        // Delete all question sets for this course
+        // Delete course-question set mappings
+        await tx.delete(courseQuestionSets).where(eq(courseQuestionSets.courseId, id));
+        
+        // Delete all question sets that directly reference this course (legacy data)
         await tx.delete(questionSets).where(eq(questionSets.courseId, id));
         
         // Delete course external mappings
@@ -766,6 +777,12 @@ export class DatabaseStorage implements IStorage {
 
         // Delete all questions in the set
         await tx.delete(questions).where(eq(questions.questionSetId, id));
+        
+        // Delete chatbot feedback related to this question set
+        await tx.delete(chatbotFeedback).where(eq(chatbotFeedback.questionSetId, id));
+
+        // Delete course-question set mappings
+        await tx.delete(courseQuestionSets).where(eq(courseQuestionSets.questionSetId, id));
 
         // Finally, delete the question set
         const result = await tx.delete(questionSets).where(eq(questionSets.id, id));
