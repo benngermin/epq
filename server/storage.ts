@@ -673,9 +673,6 @@ export class DatabaseStorage implements IStorage {
         // Delete course-question set mappings
         await tx.delete(courseQuestionSets).where(eq(courseQuestionSets.courseId, id));
         
-        // Delete all question sets that directly reference this course (legacy data)
-        await tx.delete(questionSets).where(eq(questionSets.courseId, id));
-        
         // Delete course external mappings
         await tx.delete(courseExternalMappings).where(eq(courseExternalMappings.courseId, id));
         
