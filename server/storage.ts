@@ -2617,32 +2617,27 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Build query starting from courses to ensure all courses are included
-    const baseQuery = db.select({
+    // Build query with conditional WHERE clause
+    let query = db.select({
       courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
-      count: sql<number>`COUNT(DISTINCT CASE 
-        WHEN ${userTestRuns.id} IS NOT NULL 
-        ${startDate ? sql`AND ${userTestRuns.startedAt} >= ${startDate}` : sql``}
-        THEN ${userTestRuns.id} 
-        ELSE NULL 
-      END)`
+      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
     })
     .from(courses)
     .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
-    .leftJoin(userTestRuns, eq(userTestRuns.questionSetId, questionSets.id));
+    .leftJoin(userTestRuns, 
+      and(
+        eq(userTestRuns.questionSetId, questionSets.id),
+        startDate ? gte(userTestRuns.startedAt, startDate) : undefined
+      )
+    );
 
-    const result = await baseQuery
+    const result = await query
       .groupBy(courses.courseNumber, courses.courseTitle)
-      .orderBy(desc(sql`COUNT(DISTINCT CASE 
-        WHEN ${userTestRuns.id} IS NOT NULL 
-        ${startDate ? sql`AND ${userTestRuns.startedAt} >= ${startDate}` : sql``}
-        THEN ${userTestRuns.id} 
-        ELSE NULL 
-      END)`));
+      .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
 
     return result.map(row => ({
       courseName: row.courseName,
-      count: Number(row.count)
+      count: Number(row.count || 0)
     }));
   }
 
@@ -2800,22 +2795,10 @@ export class DatabaseStorage implements IStorage {
     courseName: string;
     count: number;
   }>> {
-    // Build the base query
-    const baseQuery = db.select({
-      courseId: courses.id,
-      courseName: courses.courseNumber,
-      courseTitle: courses.courseTitle,
-      count: sql<number>`COUNT(${userAnswers.id})`
-    })
-    .from(userAnswers)
-    .innerJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
-    .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
-    .innerJoin(courses, eq(courses.id, questionSets.courseId));
-
-    // Add time filter if not 'all'
-    let finalQuery;
+    // Calculate start date for filtering
+    let startDate: Date | null = null;
     if (timeRange !== 'all') {
-      const startDate = new Date();
+      startDate = new Date();
       switch(timeRange) {
         case 'day':
           startDate.setDate(startDate.getDate() - 1);
@@ -2827,19 +2810,30 @@ export class DatabaseStorage implements IStorage {
           startDate.setDate(startDate.getDate() - 30);
           break;
       }
-      finalQuery = baseQuery.where(gte(userAnswers.answeredAt, startDate));
-    } else {
-      finalQuery = baseQuery;
     }
 
-    const result = await finalQuery
-      .groupBy(courses.id, courses.courseNumber, courses.courseTitle)
-      .orderBy(desc(sql`COUNT(${userAnswers.id})`))
-      .limit(10);
+    // Build query with conditional WHERE clause
+    let query = db.select({
+      courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
+      count: sql<number>`COUNT(${userAnswers.id})`
+    })
+    .from(courses)
+    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
+    .leftJoin(userTestRuns, eq(userTestRuns.questionSetId, questionSets.id))
+    .leftJoin(userAnswers, 
+      and(
+        eq(userAnswers.userTestRunId, userTestRuns.id),
+        startDate ? gte(userAnswers.answeredAt, startDate) : undefined
+      )
+    );
+
+    const result = await query
+      .groupBy(courses.courseNumber, courses.courseTitle)
+      .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
     return result.map(row => ({
       courseName: row.courseName,
-      count: Number(row.count)
+      count: Number(row.count || 0)
     }));
   }
 
