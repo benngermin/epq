@@ -2600,19 +2600,10 @@ export class DatabaseStorage implements IStorage {
     courseName: string;
     count: number;
   }>> {
-    // Build the base query
-    const baseQuery = db.select({
-      courseName: courses.courseNumber,
-      count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`
-    })
-    .from(userTestRuns)
-    .innerJoin(questionSets, eq(questionSets.id, userTestRuns.questionSetId))
-    .innerJoin(courses, eq(courses.id, questionSets.courseId));
-
-    // Add time filter if not 'all'
-    let finalQuery;
+    // Calculate start date for filtering
+    let startDate: Date | null = null;
     if (timeRange !== 'all') {
-      const startDate = new Date();
+      startDate = new Date();
       switch(timeRange) {
         case 'day':
           startDate.setDate(startDate.getDate() - 1);
@@ -2624,14 +2615,30 @@ export class DatabaseStorage implements IStorage {
           startDate.setDate(startDate.getDate() - 30);
           break;
       }
-      finalQuery = baseQuery.where(gte(userTestRuns.startedAt, startDate));
-    } else {
-      finalQuery = baseQuery;
     }
 
-    const result = await finalQuery
-      .groupBy(courses.courseNumber)
-      .orderBy(desc(sql`COUNT(DISTINCT ${userTestRuns.id})`));
+    // Build query starting from courses to ensure all courses are included
+    const baseQuery = db.select({
+      courseName: sql<string>`${courses.courseNumber} || ' - ' || ${courses.courseTitle}`,
+      count: sql<number>`COUNT(DISTINCT CASE 
+        WHEN ${userTestRuns.id} IS NOT NULL 
+        ${startDate ? sql`AND ${userTestRuns.startedAt} >= ${startDate}` : sql``}
+        THEN ${userTestRuns.id} 
+        ELSE NULL 
+      END)`
+    })
+    .from(courses)
+    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
+    .leftJoin(userTestRuns, eq(userTestRuns.questionSetId, questionSets.id));
+
+    const result = await baseQuery
+      .groupBy(courses.courseNumber, courses.courseTitle)
+      .orderBy(desc(sql`COUNT(DISTINCT CASE 
+        WHEN ${userTestRuns.id} IS NOT NULL 
+        ${startDate ? sql`AND ${userTestRuns.startedAt} >= ${startDate}` : sql``}
+        THEN ${userTestRuns.id} 
+        ELSE NULL 
+      END)`));
 
     return result.map(row => ({
       courseName: row.courseName,
