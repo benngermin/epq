@@ -1,0 +1,208 @@
+2025-10-07 12:49:36.81
+2f6681e9
+User
+- Acceptable answers changed
+2025-10-07 12:49:36.81
+2f6681e9
+User
+- Blanks structure changed
+2025-10-07 12:49:36.85
+2f6681e9
+User
+Creating version 14 due to content changes
+2025-10-07 12:49:36.95
+2f6681e9
+User
+[UPDATE] Question 5270 (matched by loid_and_content)
+2025-10-07 12:49:36.98
+2f6681e9
+User
+[VERSION CHECK] Comparing versions for change detection:
+2025-10-07 12:49:36.98
+2f6681e9
+User
+✅ NEW VERSION REQUIRED - Changes detected:
+2025-10-07 12:49:36.98
+2f6681e9
+User
+- Acceptable answers changed
+2025-10-07 12:49:36.98
+2f6681e9
+User
+- Blanks structure changed
+2025-10-07 12:49:37.02
+2f6681e9
+User
+Creating version 14 due to content changes
+2025-10-07 12:49:37.11
+2f6681e9
+User
+[UPDATE] Question 5272 (matched by loid_and_content)
+2025-10-07 12:49:37.15
+2f6681e9
+User
+[VERSION CHECK] Comparing versions for change detection:
+2025-10-07 12:49:37.15
+2f6681e9
+User
+✅ NEW VERSION REQUIRED - Changes detected:
+2025-10-07 12:49:37.15
+2f6681e9
+User
+- Acceptable answers changed
+2025-10-07 12:49:37.15
+2f6681e9
+User
+- Blanks structure changed
+2025-10-07 12:49:37.18
+2f6681e9
+User
+Creating version 14 due to content changes
+2025-10-07 12:49:37.28
+2f6681e9
+User
+[CLEANUP] 1 questions not found in refresh - deactivating...
+2025-10-07 12:49:37.28
+2f6681e9
+User
+Deactivating question 5125
+2025-10-07 12:49:37.31
+2f6681e9
+User
+========================================
+2025-10-07 12:49:37.31
+2f6681e9
+User
+[REFRESH COMPLETE]
+2025-10-07 12:49:37.31
+2f6681e9
+User
+Matched: 54 questions
+2025-10-07 12:49:37.31
+2f6681e9
+User
+New: 0 questions
+2025-10-07 12:49:37.31
+2f6681e9
+User
+Removed: 1 questions
+2025-10-07 12:49:37.31
+2f6681e9
+User
+========================================
+2025-10-07 12:49:37.45
+2f6681e9
+User
+12:49:37 PM [express] POST /api/admin/question-sets/27/update-from-bubble 200 in 11582ms :: {"message…
+2025-10-07 12:49:37.71
+2f6681e9
+User
+12:49:37 PM [express] GET /api/admin/question-sets/88 304 in 198ms :: [{"id":12,"title":"Question Set…
+2025-10-07 12:49:37.78
+2f6681e9
+User
+12:49:37 PM [express] POST /api/chatbot/stream-init 200 in 97ms :: {"streamId":"1766_q25839_175985577…
+2025-10-07 12:49:37.93
+2f6681e9
+User
+12:49:37 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 97ms :…
+2025-10-07 12:49:38.28
+2f6681e9
+User
+12:49:38 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 304 in 96ms :…
+2025-10-07 12:49:38.65
+2f6681e9
+User
+12:49:38 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 304 in 98ms :…
+2025-10-07 12:49:39.07
+2f6681e9
+User
+12:49:39 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 101ms …
+2025-10-07 12:49:39.55
+2f6681e9
+User
+12:49:39 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 96ms :…
+2025-10-07 12:49:39.86
+2f6681e9
+User
+12:49:39 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 95ms :…
+2025-10-07 12:49:40.16
+2f6681e9
+User
+12:49:40 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 95ms :…
+2025-10-07 12:49:40.45
+2f6681e9
+User
+12:49:40 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 99ms :…
+2025-10-07 12:49:40.74
+2f6681e9
+User
+12:49:40 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 94ms :…
+2025-10-07 12:49:41.02
+2f6681e9
+User
+12:49:41 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 96ms :…
+2025-10-07 12:49:41.31
+2f6681e9
+User
+12:49:41 PM [express] GET /api/chatbot/stream-chunk/1766_q25839_1759855777753_zv45g597c 200 in 97ms :…
+2025-10-07 12:49:46.39
+2f6681e9
+User
+[DEBUG 2025-10-07T16:49:46.390Z] Validating answer
+2025-10-07 12:49:46.39
+2f6681e9
+User
+{
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"questionType": "multiple_choice",
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"userAnswerLength": 1,
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"userAnswerPreview": "B",
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"correctAnswerPreview": "B",
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"hasOptions": true,
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"options": {
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"caseSensitive": false,
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"hasAcceptableAnswers": false,
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"hasBlanks": false,
+2025-10-07 12:49:46.39
+2f6681e9
+User
+"hasDropZones": false
+2025-10-07 12:49:46.39
+2f6681e9
+User
+}
+2025-10-07 12:49:46.39
+2f6681e9
+User
+}
+2025-10-07 12:49:46.63
+2f6681e9
+User
+12:49:46 PM [express] POST /api/question-sets/30/answer 200 in 338ms :: {"questionVersionId":24030,"c…
