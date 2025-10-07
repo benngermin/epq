@@ -196,6 +196,7 @@ export interface IStorage {
   
   // Question methods
   getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]>;
+  getAllQuestionsByQuestionSet(questionSetId: number): Promise<Question[]>; // Includes inactive questions
   getQuestion(id: number): Promise<Question | undefined>;
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestionByOriginalNumber(questionSetId: number, originalNumber: number): Promise<Question | undefined>;
@@ -858,6 +859,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
+    // Get only questions that have active versions
+    const results = await db.select({
+      question: questions
+    })
+    .from(questions)
+    .innerJoin(questionVersions, and(
+      eq(questionVersions.questionId, questions.id),
+      eq(questionVersions.isActive, true)
+    ))
+    .where(eq(questions.questionSetId, questionSetId))
+    .orderBy(asc(questions.originalQuestionNumber));
+    
+    // Return unique questions (in case there are multiple active versions, though there shouldn't be)
+    const uniqueQuestions = new Map<number, Question>();
+    results.forEach(r => {
+      if (!uniqueQuestions.has(r.question.id)) {
+        uniqueQuestions.set(r.question.id, r.question);
+      }
+    });
+    
+    return Array.from(uniqueQuestions.values());
+  }
+
+  async getAllQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
+    // Get ALL questions including those with inactive versions
     return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
   }
 
