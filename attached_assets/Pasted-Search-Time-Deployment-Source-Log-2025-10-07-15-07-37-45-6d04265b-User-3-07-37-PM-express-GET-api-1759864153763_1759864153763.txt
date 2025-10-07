@@ -1,0 +1,253 @@
+Search
+Time
+Deployment
+Source
+Log
+2025-10-07 15:07:37.45
+6d04265b
+User
+3:07:37 PM [express] GET /api/admin/all-question-sets 200 in 170ms :: [{"id":4,"title":"Question Set…
+2025-10-07 15:08:00.15
+6d04265b
+User
+}
+2025-10-07 15:08:00.15
+6d04265b
+User
+[DEBUG 2025-10-07T19:08:00.152Z] Normalized question blanks
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "underscore",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankCount": 1,
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": [
+2025-10-07 15:08:00.15
+6d04265b
+User
+1
+2025-10-07 15:08:00.15
+6d04265b
+User
+]
+2025-10-07 15:08:00.15
+6d04265b
+User
+}
+2025-10-07 15:08:00.15
+6d04265b
+User
+[DEBUG 2025-10-07T19:08:00.152Z] Normalized question blanks
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankCount": 0,
+2025-10-07 15:08:00.15
+6d04265b
+User
+[DEBUG 2025-10-07T19:08:00.152Z] Normalized question blanks
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": [
+2025-10-07 15:08:00.15
+6d04265b
+User
+1
+2025-10-07 15:08:00.15
+6d04265b
+User
+]
+2025-10-07 15:08:00.15
+6d04265b
+User
+}
+2025-10-07 15:08:00.15
+6d04265b
+User
+[DEBUG 2025-10-07T19:08:00.152Z] Normalized question blanks
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankCount": 0,
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:00.15
+6d04265b
+User
+}
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:00.15
+6d04265b
+User
+[DEBUG 2025-10-07T19:08:00.152Z] Normalized question blanks
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:00.15
+6d04265b
+User
+}
+2025-10-07 15:08:00.15
+6d04265b
+User
+{
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:00.15
+6d04265b
+User
+"originalFormat": "none",
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankCount": 0,
+2025-10-07 15:08:00.15
+6d04265b
+User
+"blankPositions": []
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5220 (pos 40): content=26.4%, LOID match=false, pos_diff=18, total=8.5, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 178, Length: 255, Similarity: 30.20%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5225 (pos 41): content=30.2%, LOID match=false, pos_diff=19, total=11.1, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 149, Length: 198, Similarity: 24.75%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5229 (pos 42): content=24.7%, LOID match=false, pos_diff=20, total=7.3, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 199, Length: 265, Similarity: 24.91%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5233 (pos 43): content=24.9%, LOID match=false, pos_diff=21, total=7.4, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 408, Length: 536, Similarity: 23.88%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5237 (pos 44): content=23.9%, LOID match=false, pos_diff=22, total=6.7, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 238, Length: 325, Similarity: 26.77%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5241 (pos 45): content=26.8%, LOID match=false, pos_diff=23, total=8.7, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 189, Length: 261, Similarity: 27.59%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5245 (pos 46): content=27.6%, LOID match=false, pos_diff=24, total=9.3, type=position_fallback
+2025-10-07 15:08:01.50
+6d04265b
+User
+[SIMILARITY] Distance: 151, Length: 205, Similarity: 26.34%
+2025-10-07 15:08:01.50
+6d04265b
+User
+Candidate Q5249 (pos 47): content=26.3%, LOID match=false, pos_diff=25, total=8.4, type=position_fallback
+2025-10-07 15:08:01.51
+6d04265b
+User
+[SIMILARITY] Distance: 150, Length: 198, Similarity: 24.24%
+2025-10-07 15:08:01.51
+6d04265b
+User
+Candidate Q5253 (pos 48): content=24.2%, LOID match=false, pos_diff=26, total=7.0, type=position_fallback
+2025-10-07 15:08:01.51
+6d04265b
+User
+[SIMILARITY] Distance: 146, Length: 198, Similarity: 26.26%
+2025-10-07 15:08:01.51
+6d04265b
+User
+Candidate Q5257 (pos 49): content=26.3%, LOID match=false, pos_diff=27, total=8.4, type=position_fallback
