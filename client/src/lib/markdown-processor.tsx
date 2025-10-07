@@ -17,6 +17,7 @@ export async function processMarkdown(markdown: string): Promise<string> {
     tagNames: [
       ...(defaultSchema.tagNames || []),
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'strong', 'em', 'b', 'i', 'u', // Text formatting tags
       'table', 'thead', 'tbody', 'tr', 'th', 'td',
       'input', // For task list checkboxes
       'img',
