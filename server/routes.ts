@@ -294,15 +294,6 @@ async function streamOpenRouterToBuffer(
       // Add the new user message to the existing conversation
       messages.push({ role: "user", content: prompt });
       
-      // Debug: Log if system message is present in conversation history
-      if (process.env.NODE_ENV === 'development') {
-        const hasSystemMessage = messages.some(msg => msg.role === "system");
-        console.log("=== CONVERSATION HISTORY DEBUG ===");
-        console.log("Has system message in history:", hasSystemMessage);
-        console.log("Total messages in history:", messages.length);
-        console.log("Message roles:", messages.map(m => m.role));
-        console.log("==================================");
-      }
     } else {
       // Initial conversation - use system message if provided
       if (systemMessage) {
@@ -311,16 +302,6 @@ async function streamOpenRouterToBuffer(
       messages.push({ role: "user", content: prompt });
     }
 
-    // Log the complete API request for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('OpenRouter API call:', {
-        timestamp: new Date().toISOString(),
-        model: modelName,
-        temperature: temperature,
-        maxTokens: maxTokens,
-        messageCount: messages.length
-      });
-    }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
