@@ -1423,6 +1423,12 @@ export class DatabaseStorage implements IStorage {
         // Step 3: Process each incoming question
         console.log('\n[MATCHING] Starting content-based matching...\n');
         
+        // Log LOID distribution for debugging
+        const incomingLoids = questionsData.filter(q => q.loid).map(q => q.loid);
+        const existingLoids = existingData.filter(d => d.question.loid).map(d => d.question.loid);
+        console.log(`[LOID CHECK] Incoming questions with LOIDs: ${incomingLoids.length}/${questionsData.length}`);
+        console.log(`[LOID CHECK] Existing questions with LOIDs: ${existingLoids.length}/${existingData.length}`);
+        
         for (const incomingQuestion of questionsData) {
           const incomingVersion = incomingQuestion.versions[0];
           if (!incomingVersion) {
@@ -1469,44 +1475,64 @@ export class DatabaseStorage implements IStorage {
               continue;
             }
             
-            // Calculate content similarity (0-80 points)
-            const contentSim = calculateContentSimilarity(
+            // Calculate base content similarity (0-100 scale)
+            const contentSimilarityPercent = calculateContentSimilarity(
               incomingVersion.question_text || '',
               candidate.activeVersion.questionText || ''
-            ) * 0.8; // Scale to 0-80
-            
-            // Add LOID bonus if applicable (20 points)
-            const loidScore = candidate.loidBonus || 0;
-            
-            // Small penalty for position distance (tiebreaker)
-            const positionPenalty = Math.min(
-              Math.abs(incomingQuestion.question_number - candidate.question.originalQuestionNumber) * 0.5,
-              10 // Cap at 10 points penalty
             );
             
-            const totalScore = contentSim + loidScore - positionPenalty;
+            // LOID matching check
+            const hasLoidMatch = incomingQuestion.loid && 
+                                candidate.question.loid && 
+                                incomingQuestion.loid === candidate.question.loid;
+            
+            // Position difference for penalty calculation
+            const positionDiff = Math.abs(incomingQuestion.question_number - candidate.question.originalQuestionNumber);
+            
+            let totalScore;
+            let candidateMatchType;
+            
+            // Priority 1: High content similarity (≥70%) = automatic match
+            if (contentSimilarityPercent >= 70) {
+              totalScore = 90 + contentSimilarityPercent * 0.1; // 97-100 score range
+              candidateMatchType = contentSimilarityPercent >= 95 ? 'content_exact' : 'content_similar';
+              // Minimal position penalty for tiebreaking
+              totalScore -= Math.min(positionDiff * 0.2, 2);
+            }
+            // Priority 2: LOID match with any meaningful content (≥10%)
+            else if (hasLoidMatch && contentSimilarityPercent >= 10) {
+              totalScore = 80 + contentSimilarityPercent * 0.2; // 82-100 score range
+              candidateMatchType = 'loid_and_content';
+              // Small position penalty
+              totalScore -= Math.min(positionDiff * 0.5, 5);
+            }
+            // Priority 3: LOID match with minimal content (<10%)
+            else if (hasLoidMatch) {
+              totalScore = 60 + contentSimilarityPercent * 0.3; // 60-63 score range
+              candidateMatchType = 'loid_weak_content';
+              // Moderate position penalty
+              totalScore -= Math.min(positionDiff * 1, 8);
+            }
+            // Priority 4: Content-only matching (no LOID)
+            else {
+              totalScore = contentSimilarityPercent * 0.7; // 0-70 score range
+              candidateMatchType = 'position_fallback';
+              // Larger position penalty when no LOID
+              totalScore -= Math.min(positionDiff * 1.5, 10);
+            }
             
             console.log(`    Candidate Q${candidate.question.id} (pos ${candidate.question.originalQuestionNumber}): ` +
-                       `content=${contentSim.toFixed(1)}, loid=${loidScore}, ` +
-                       `pos_penalty=${positionPenalty.toFixed(1)}, total=${totalScore.toFixed(1)}`);
+                       `content=${contentSimilarityPercent.toFixed(1)}%, ` +
+                       `LOID match=${hasLoidMatch}, ` +
+                       `pos_diff=${positionDiff}, ` +
+                       `total=${totalScore.toFixed(1)}, ` +
+                       `type=${candidateMatchType}`);
             
-            if (totalScore > bestScore && totalScore > 50) { // 50% threshold
+            if (totalScore > bestScore && totalScore > 30) { // Lower threshold to 30
               bestScore = totalScore;
-              bestContentSimilarity = contentSim / 0.8; // Convert back to 0-100 scale
+              bestContentSimilarity = contentSimilarityPercent;
               bestMatch = candidate;
-              
-              // Determine match type
-              if (contentSim > 75 && loidScore > 0) {
-                matchType = 'loid_and_content';
-              } else if (contentSim >= 76) {  // 95% of 80 = 76
-                matchType = 'content_similar';
-              } else if (contentSim === 80) {
-                matchType = 'content_exact';
-              } else if (loidScore > 0) {
-                matchType = 'loid_weak_content';
-              } else {
-                matchType = 'position_fallback';
-              }
+              matchType = candidateMatchType;
             }
           }
 
@@ -1562,7 +1588,7 @@ export class DatabaseStorage implements IStorage {
                 originalQuestionNumber: result.incoming.question_number,
                 loid: result.incoming.loid || question.loid,
                 lastMatchedAt: new Date(),
-                matchConfidence: result.score > 90 ? 'high' : result.score > 70 ? 'medium' : 'low'
+                matchConfidence: result.score > 85 ? 'high' : result.score > 60 ? 'medium' : 'low'
               })
               .where(eq(questions.id, question.id));
             
