@@ -25,24 +25,29 @@ export async function batchFetchQuestionVersions(questionIds: number[]) {
 
 // Batch fetch questions with their latest versions
 export async function batchFetchQuestionsWithVersions(questionSetId: number) {
-  // Fetch all questions for the set
+  // Fetch only active questions for the set
   const allQuestions = await db
     .select()
     .from(questions)
     .where(eq(questions.questionSetId, questionSetId));
   
-  if (allQuestions.length === 0) return [];
+  // Filter to only include active questions
+  const activeQuestions = allQuestions.filter(q => q.isActive);
   
-  // Get all question IDs
-  const questionIds = allQuestions.map(q => q.id);
+  if (activeQuestions.length === 0) return [];
+  
+  // Get all active question IDs
+  const questionIds = activeQuestions.map(q => q.id);
   
   // Batch fetch all versions
   const versionMap = await batchFetchQuestionVersions(questionIds);
   
-  // Combine questions with their latest versions
-  const questionsWithVersions = allQuestions.map(question => {
+  // Combine questions with their latest active versions
+  const questionsWithVersions = activeQuestions.map(question => {
     const versions = versionMap.get(question.id) || [];
-    const latestVersion = versions
+    // Filter to only active versions and get the latest one
+    const activeVersions = versions.filter((v: any) => v.isActive);
+    const latestVersion = activeVersions
       .sort((a: any, b: any) => b.versionNumber - a.versionNumber)[0];
     
     // Transform latestVersion to use camelCase field names

@@ -2407,31 +2407,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ message: "questionSetId query parameter is required" });
       }
       
-      const questions = await storage.getQuestionsByQuestionSet(parseInt(questionSetId as string));
+      // Use optimized batch query that filters for active questions and versions
+      const questionsWithVersions = await batchFetchQuestionsWithVersions(parseInt(questionSetId as string));
       
-      // Get the latest version for each question to display
-      const questionsWithVersions = await Promise.all(
-        questions.map(async (question) => {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          const latestVersion = versions[versions.length - 1]; // Get latest version
-          
-          return {
-            id: question.id,
-            originalQuestionNumber: question.originalQuestionNumber,
-            loid: question.loid,
-            questionText: latestVersion?.questionText || '',
-            answerChoices: latestVersion?.answerChoices || [],
-            correctAnswer: latestVersion?.correctAnswer || '',
-            topicFocus: latestVersion?.topicFocus || '',
-            questionType: latestVersion?.questionType || 'multiple_choice',
-          };
-        })
-      );
+      // Transform for admin display
+      const adminQuestions = questionsWithVersions.map(q => ({
+        id: q.id,
+        originalQuestionNumber: q.originalQuestionNumber,
+        loid: q.loid,
+        questionText: q.latestVersion?.questionText || '',
+        answerChoices: q.latestVersion?.answerChoices || [],
+        correctAnswer: q.latestVersion?.correctAnswer || '',
+        topicFocus: q.latestVersion?.topicFocus || '',
+        questionType: q.latestVersion?.questionType || 'multiple_choice',
+      }));
       
-      // Sort questions by originalQuestionNumber in ascending order
-      questionsWithVersions.sort((a, b) => a.originalQuestionNumber - b.originalQuestionNumber);
-      
-      res.json(questionsWithVersions);
+      res.json(adminQuestions);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error fetching questions:", error);
@@ -2448,31 +2439,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(400).json({ message: "Invalid question set ID" });
       }
       
-      const questions = await storage.getQuestionsByQuestionSet(questionSetId);
+      // Use optimized batch query that filters for active questions and versions
+      const questionsWithVersions = await batchFetchQuestionsWithVersions(questionSetId);
       
-      // Get the latest version for each question to display
-      const questionsWithVersions = await Promise.all(
-        questions.map(async (question) => {
-          const versions = await storage.getQuestionVersionsByQuestion(question.id);
-          const latestVersion = versions[versions.length - 1]; // Get latest version
-          
-          return {
-            id: question.id,
-            originalQuestionNumber: question.originalQuestionNumber,
-            loid: question.loid,
-            questionText: latestVersion?.questionText || '',
-            answerChoices: latestVersion?.answerChoices || [],
-            correctAnswer: latestVersion?.correctAnswer || '',
-            topicFocus: latestVersion?.topicFocus || '',
-            questionType: latestVersion?.questionType || 'multiple_choice',
-          };
-        })
-      );
+      // Transform for admin display
+      const adminQuestions = questionsWithVersions.map(q => ({
+        id: q.id,
+        originalQuestionNumber: q.originalQuestionNumber,
+        loid: q.loid,
+        questionText: q.latestVersion?.questionText || '',
+        answerChoices: q.latestVersion?.answerChoices || [],
+        correctAnswer: q.latestVersion?.correctAnswer || '',
+        topicFocus: q.latestVersion?.topicFocus || '',
+        questionType: q.latestVersion?.questionType || 'multiple_choice',
+      }));
       
-      // Sort questions by originalQuestionNumber in ascending order
-      questionsWithVersions.sort((a, b) => a.originalQuestionNumber - b.originalQuestionNumber);
-      
-      res.json(questionsWithVersions);
+      res.json(adminQuestions);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error fetching questions:", error);
