@@ -92,12 +92,22 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number) {
     };
   });
   
+  // Filter out questions without active versions
+  // This ensures consistency with admin panel count and prevents blank questions from showing
+  const questionsWithActiveVersions = questionsWithVersions.filter(q => {
+    if (!q.latestVersion) {
+      console.warn(`Question ID ${q.id} in set ${questionSetId} has no active versions - excluding from results`);
+      return false;
+    }
+    return true;
+  });
+  
   // Sort questions by originalQuestionNumber in ascending order
-  questionsWithVersions.sort((a, b) => {
+  questionsWithActiveVersions.sort((a, b) => {
     const aNum = a.originalQuestionNumber || 0;
     const bNum = b.originalQuestionNumber || 0;
     return aNum - bNum;
   });
   
-  return questionsWithVersions;
+  return questionsWithActiveVersions;
 }
