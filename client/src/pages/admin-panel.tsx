@@ -17,11 +17,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
 
@@ -1950,6 +1950,15 @@ function QuestionSetsSection({
                     {refreshingQuestionSet === questionSet.id ? "Loading..." : "Refresh Content"}
                   </Button>
                 )}
+                <Link href={`/admin/questions/${selectedCourse}/${questionSet.id}`}>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Questions
+                  </Button>
+                </Link>
                 <Button 
                   variant="outline" 
                   size="sm" 
