@@ -2316,6 +2316,44 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // OpenRouter configuration admin routes
+  app.get("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const config = await storage.getOpenRouterConfig();
+      if (!config) {
+        // Return default configuration if none exists
+        return res.json({
+          modelName: "anthropic/claude-3.5-sonnet",
+          systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions."
+        });
+      }
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to fetch OpenRouter configuration" });
+    }
+  });
+
+  app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const { modelName, systemMessage } = req.body;
+      
+      if (!modelName || !systemMessage) {
+        return res.status(400).json({ message: "Model name and system message are required" });
+      }
+
+      const config = await storage.updateOpenRouterConfig({
+        modelName,
+        systemMessage
+      });
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to update OpenRouter configuration" });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/all-question-sets", requireAdmin, async (req, res) => {
     try {

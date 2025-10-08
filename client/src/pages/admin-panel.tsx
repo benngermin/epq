@@ -252,6 +252,166 @@ function AISettingsSection() {
   );
 }
 
+// OpenRouter Settings Component
+function OpenRouterSettingsSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Define the OpenRouter config schema
+  const openRouterConfigSchema = z.object({
+    modelName: z.string().min(1, "Model is required"),
+    systemMessage: z.string().min(1, "System message is required"),
+  });
+  
+  // Query for OpenRouter config
+  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string }>({
+    queryKey: ["/api/admin/openrouter-config"],
+  });
+
+  // Form setup
+  const form = useForm<z.infer<typeof openRouterConfigSchema>>({
+    resolver: zodResolver(openRouterConfigSchema),
+    defaultValues: {
+      modelName: "anthropic/claude-3.5-sonnet",
+      systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+    },
+  });
+
+  // Set form values when data loads
+  React.useEffect(() => {
+    if (openRouterConfig) {
+      form.reset({
+        modelName: openRouterConfig.modelName || "anthropic/claude-3.5-sonnet",
+        systemMessage: openRouterConfig.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+      });
+    }
+  }, [openRouterConfig, form]);
+
+  // Update mutation
+  const updateConfigMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof openRouterConfigSchema>) => {
+      const res = await apiRequest("PUT", "/api/admin/openrouter-config", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "OpenRouter settings updated successfully",
+        description: "Static explanation generation will now use the updated configuration.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/openrouter-config"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update OpenRouter settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof openRouterConfigSchema>) => {
+    updateConfigMutation.mutate(data);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading OpenRouter Settings...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const availableModels = [
+    { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (Anthropic)" },
+    { value: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku (Anthropic)" },
+    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Google)" },
+    { value: "openai/gpt-4o", label: "GPT-4o (OpenAI)" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (OpenAI)" },
+    { value: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B Instruct (Meta)" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Static Explanation Generation Settings</CardTitle>
+          <CardDescription>
+            Configure the OpenRouter AI model and system message used for generating static explanations for questions.
+            These settings are separate from the chatbot configuration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="modelName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OpenRouter Model</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an OpenRouter model" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableModels.map((model) => (
+                          <SelectItem key={model.value} value={model.value}>
+                            {model.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-xs text-muted-foreground">
+                      This model will be used when generating static explanations for questions via the admin panel.
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="systemMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>System Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter the system message for static explanation generation..."
+                        className="resize-none font-mono text-sm"
+                        rows={10}
+                        {...field}
+                      />
+                    </FormControl>
+                    <div className="text-xs text-muted-foreground">
+                      This message provides context and instructions to the AI when generating static explanations.
+                      You can use template variables for dynamic content when explanations are generated.
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={updateConfigMutation.isPending}>
+                {updateConfigMutation.isPending ? "Saving..." : "Save OpenRouter Settings"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Bubble Import Section Component
 function BubbleImportSection() {
   const [courseNumber, setCourseNumber] = useState("");
@@ -1382,6 +1542,7 @@ export default function AdminPanel() {
             <TabsContent value="settings">
               <div className="space-y-6">
                 <AISettingsSection />
+                <OpenRouterSettingsSection />
               </div>
             </TabsContent>
 
