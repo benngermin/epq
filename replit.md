@@ -47,7 +47,18 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
-## Recent Changes (September 2025)
+## Recent Changes (October 2025)
+- **Admin Interface Expansion**: Implemented comprehensive admin interface for direct question management, replacing external refresh pipeline
+  - Added database fields: `is_archived`, `display_order`, `last_modified` for questions table
+  - Created `openrouter_config` table for AI settings management
+  - Implemented 11 new storage methods for question CRUD operations
+  - Built full-featured admin UI with inline editing, drag-and-drop reordering, and archive/recover functionality
+  - Integrated OpenRouter API for AI-powered static explanation generation with configurable models
+  - Added explanation mode switching (AI vs Static) with confirmation modals
+  - Implemented remix functionality for creating new question versions
+  - OpenRouter configuration UI in admin panel for model selection and system message customization
+  
+## Previous Changes (September 2025)
 - **Refactored Static Explanations Upload**: Implemented three-field matching algorithm using Course Number + Question Set Title + Question Number for reliable question identification
 - **CSV Format Update**: Upload CSV now requires Course, Question Set, Question Number, and Final Static Explanation fields (LOID and Question Text are now optional)
 - **Improved Matching Logic**: Normalized course numbers, case-insensitive question set matching, and proper handling of ambiguous matches
