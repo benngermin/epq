@@ -63,6 +63,9 @@ export const questions = pgTable("questions", {
   questionSetId: integer("question_set_id").references(() => questionSets.id).notNull(),
   originalQuestionNumber: integer("original_question_number").notNull(),
   loid: text("loid").notNull(),
+  displayOrder: integer("display_order").default(0).notNull(), // For ordering questions within a set
+  isArchived: boolean("is_archived").default(false).notNull(), // For soft delete functionality
+  lastModified: timestamp("last_modified").defaultNow().notNull(), // Track when question was last edited
 });
 
 export const questionVersions = pgTable("question_versions", {
@@ -187,6 +190,16 @@ export const dailyActivitySummary = pgTable("daily_activity_summary", {
   aiInteractions: integer("ai_interactions").default(0).notNull(),
 });
 
+// OpenRouter configuration for static explanation generation
+export const openRouterConfig = pgTable("openrouter_config", {
+  id: serial("id").primaryKey(),
+  modelName: text("model_name").default("anthropic/claude-3.5-sonnet").notNull(),
+  systemMessage: text("system_message").default("You are an expert insurance instructor providing clear explanations for insurance exam questions.").notNull(),
+  maxTokens: integer("max_tokens").default(32000).notNull(),
+  reasoning: text("reasoning").default("medium").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   testRuns: many(userTestRuns),
@@ -300,6 +313,7 @@ export const insertChatbotLogSchema = createInsertSchema(chatbotLogs);
 export const insertChatbotFeedbackSchema = createInsertSchema(chatbotFeedback);
 export const insertUserCourseProgressSchema = createInsertSchema(userCourseProgress);
 export const insertDailyActivitySummarySchema = createInsertSchema(dailyActivitySummary);
+export const insertOpenRouterConfigSchema = createInsertSchema(openRouterConfig);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -333,6 +347,8 @@ export type UserCourseProgress = typeof userCourseProgress.$inferSelect;
 export type InsertUserCourseProgress = z.infer<typeof insertUserCourseProgressSchema>;
 export type DailyActivitySummary = typeof dailyActivitySummary.$inferSelect;
 export type InsertDailyActivitySummary = z.infer<typeof insertDailyActivitySummarySchema>;
+export type OpenRouterConfig = typeof openRouterConfig.$inferSelect;
+export type InsertOpenRouterConfig = z.infer<typeof insertOpenRouterConfigSchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
