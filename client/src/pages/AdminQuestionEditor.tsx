@@ -295,9 +295,20 @@ export default function AdminQuestionEditor() {
 
   // Remix (randomize) question order
   const handleRemixQuestions = () => {
-    const questionIds = filteredQuestions.map(q => q.question.id);
-    const shuffled = [...questionIds].sort(() => Math.random() - 0.5);
-    reorderQuestionsMutation.mutate(shuffled);
+    // Only shuffle active questions, preserve archived questions
+    const allQuestions = questionsData?.questions || [];
+    const activeQuestions = allQuestions.filter(q => !q.question.isArchived);
+    const archivedQuestions = allQuestions.filter(q => q.question.isArchived);
+    
+    // Shuffle only the active questions
+    const shuffledActive = [...activeQuestions].sort(() => Math.random() - 0.5);
+    
+    // Combine shuffled active questions with preserved archived questions
+    const activeQuestionIds = shuffledActive.map(q => q.question.id);
+    const archivedQuestionIds = archivedQuestions.map(q => q.question.id);
+    const allQuestionIds = [...activeQuestionIds, ...archivedQuestionIds];
+    
+    reorderQuestionsMutation.mutate(allQuestionIds);
   };
 
   // Drag and drop handlers
@@ -354,11 +365,19 @@ export default function AdminQuestionEditor() {
       return;
     }
 
+    // Only reorder active questions
+    if (activeTab !== "active") {
+      setDraggedQuestion(null);
+      setDragOverQuestion(null);
+      setDropPosition(null);
+      return;
+    }
+
     const dragIndex = filteredQuestions.findIndex(q => q.question.id === draggedQuestion);
     const dropIndex = filteredQuestions.findIndex(q => q.question.id === dropQuestionId);
     
-    const newOrder = [...filteredQuestions];
-    const [removed] = newOrder.splice(dragIndex, 1);
+    const newActiveOrder = [...filteredQuestions];
+    const [removed] = newActiveOrder.splice(dragIndex, 1);
     
     // Adjust drop index based on position
     let adjustedDropIndex = dropIndex;
@@ -368,10 +387,19 @@ export default function AdminQuestionEditor() {
       adjustedDropIndex = dragIndex < dropIndex ? dropIndex - 1 : dropIndex;
     }
     
-    newOrder.splice(adjustedDropIndex, 0, removed);
+    newActiveOrder.splice(adjustedDropIndex, 0, removed);
     
-    const questionIds = newOrder.map(q => q.question.id);
-    reorderQuestionsMutation.mutate(questionIds);
+    // Get all questions (including archived) to preserve their order
+    const allQuestions = questionsData?.questions || [];
+    const archivedQuestions = allQuestions.filter(q => q.question.isArchived);
+    
+    // Combine active (reordered) and archived (unchanged) questions
+    // First add all active questions in their new order, then all archived questions
+    const activeQuestionIds = newActiveOrder.map(q => q.question.id);
+    const archivedQuestionIds = archivedQuestions.map(q => q.question.id);
+    const allQuestionIds = [...activeQuestionIds, ...archivedQuestionIds];
+    
+    reorderQuestionsMutation.mutate(allQuestionIds);
     
     // Clear all drag states
     setDraggedQuestion(null);
