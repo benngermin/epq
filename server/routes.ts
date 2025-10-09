@@ -2311,18 +2311,48 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // Generate static explanation for a question
   app.post("/api/admin/questions/:id/generate-explanation", requireAdmin, async (req, res) => {
     try {
-      const questionId = parseInt(req.params.id, 10);
+      const questionVersionId = parseInt(req.params.id, 10);
       
       // Fetch the question version
-      const questionVersion = await storage.getQuestionVersionById(questionId);
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
       if (!questionVersion) {
         return res.status(404).json({ message: "Question version not found" });
+      }
+
+      // Fetch the question to get the LOID
+      const question = await db.select()
+        .from(questions)
+        .where(eq(questions.id, questionVersion.questionId))
+        .limit(1);
+      
+      if (!question[0]) {
+        return res.status(404).json({ message: "Question not found" });
       }
 
       // Get OpenRouter configuration
       const openRouterConfig = await storage.getOpenRouterConfig();
       const modelName = openRouterConfig?.modelName || "anthropic/claude-3.5-sonnet";
-      const systemMessage = openRouterConfig?.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.";
+      let systemMessage = openRouterConfig?.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.";
+
+      // Fetch learning content using LOID
+      let learningContent = "";
+      if (question[0].loid) {
+        console.log(`Fetching course material for LOID: ${question[0].loid}`);
+        const courseMaterial = await storage.getCourseMaterialByLoid(question[0].loid);
+        if (courseMaterial) {
+          learningContent = courseMaterial.content;
+          console.log(`Found learning content: ${learningContent.substring(0, 100)}...`);
+        } else {
+          console.log(`No course material found for LOID: ${question[0].loid}`);
+        }
+      }
+
+      // Replace template variables in system message
+      systemMessage = systemMessage
+        .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available");
+
+      console.log(`System message after template replacement: ${systemMessage.substring(0, 200)}...`);
 
       // Construct the prompt for generating explanation
       const prompt = `
@@ -2335,6 +2365,8 @@ ${JSON.stringify(questionVersion.answerChoices, null, 2)}
 
 Correct Answer: ${questionVersion.correctAnswer}
 
+${learningContent ? `Related Learning Content:\n${learningContent}\n` : ''}
+
 Please provide a clear, comprehensive explanation for why "${questionVersion.correctAnswer}" is the correct answer to this insurance exam question. Include:
 1. Why the correct answer is right
 2. Why the other options are incorrect
@@ -2343,16 +2375,20 @@ Please provide a clear, comprehensive explanation for why "${questionVersion.cor
 
 Make the explanation educational and easy to understand for someone studying for an insurance exam.`;
 
+      console.log(`Calling OpenRouter with model: ${modelName}`);
       // Call OpenRouter to generate the explanation
       const explanation = await callOpenRouter(prompt, { modelName }, req.user?.id, systemMessage);
 
       // Update the question version with the generated explanation
-      const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionId, explanation);
+      const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
 
+      console.log(`Static explanation updated for question version ${questionVersionId}`);
+      
       res.json({ 
         success: true, 
         explanation,
-        questionVersion: updatedVersion
+        questionVersion: updatedVersion,
+        learningContentUsed: !!learningContent
       });
     } catch (error) {
       console.error("Error generating explanation:", error);
