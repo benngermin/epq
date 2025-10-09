@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -74,7 +75,7 @@ export default function AdminQuestionEditor() {
   const [newQuestionMode, setNewQuestionMode] = useState<"ai" | "static">("ai");
 
   // Fetch question set info
-  const { data: questionSet } = useQuery({
+  const { data: questionSet } = useQuery<{ title: string }>({
     queryKey: [`/api/admin/question-sets/${setId}`],
     enabled: !!setId
   });
