@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -509,7 +510,7 @@ export default function AdminQuestionEditor() {
                               <Textarea
                                 value={getCurrentValue(question.id, version, "questionText") as string}
                                 onChange={(e) => handleFieldEdit(question.id, "questionText", e.target.value)}
-                                className="min-h-[60px] resize-none"
+                                className="min-h-[80px] resize-y"
                                 placeholder="Enter question text..."
                                 data-testid={`textarea-question-${question.id}`}
                               />
@@ -566,7 +567,8 @@ export default function AdminQuestionEditor() {
                                 onClick={() => setConfirmArchiveId(question.id)}
                                 data-testid={`button-archive-${question.id}`}
                               >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-4 w-4 mr-1" />
+                                Archive
                               </Button>
                             ) : (
                               <Button
@@ -575,7 +577,8 @@ export default function AdminQuestionEditor() {
                                 onClick={() => setConfirmRecoverId(question.id)}
                                 data-testid={`button-recover-${question.id}`}
                               >
-                                <RotateCcw className="h-4 w-4" />
+                                <RotateCcw className="h-4 w-4 mr-1" />
+                                Recover
                               </Button>
                             )}
                           </div>
@@ -599,7 +602,7 @@ export default function AdminQuestionEditor() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="w-full justify-start"
+                            className="w-full justify-start py-3"
                             data-testid={`button-expand-${question.id}`}
                           >
                             {isExpanded ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
@@ -629,22 +632,27 @@ export default function AdminQuestionEditor() {
                               />
                             )}
                             
-                            {/* Explanation mode switching */}
+                            {/* Explanation type switching */}
                             <div className="space-y-4 border-t pt-4">
-                              <div className="flex items-center justify-between">
-                                <Label htmlFor={`mode-${question.id}`}>Explanation Mode</Label>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm">AI</span>
-                                  <Switch
-                                    id={`mode-${question.id}`}
-                                    checked={currentMode === "static"}
-                                    onCheckedChange={(checked) => 
-                                      handleExplanationModeSwitch(question.id, version!.id, checked)
-                                    }
-                                    data-testid={`switch-mode-${question.id}`}
-                                  />
-                                  <span className="text-sm">Static</span>
-                                </div>
+                              <div className="space-y-2">
+                                <Label>Explanation Type</Label>
+                                <RadioGroup
+                                  value={currentMode}
+                                  onValueChange={(value) => 
+                                    handleExplanationModeSwitch(question.id, version!.id, value === "static")
+                                  }
+                                  className="flex items-center gap-6"
+                                  data-testid={`radiogroup-mode-${question.id}`}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="ai" id={`ai-${question.id}`} />
+                                    <Label htmlFor={`ai-${question.id}`} className="cursor-pointer">AI</Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="static" id={`static-${question.id}`} />
+                                    <Label htmlFor={`static-${question.id}`} className="cursor-pointer">Static</Label>
+                                  </div>
+                                </RadioGroup>
                               </div>
                               
                               {/* Static explanation editor */}
