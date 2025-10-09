@@ -22,8 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
+import { AdminLayout } from "@/components/AdminLayout";
 
 // Lazy load the AppLogsSection component to reduce initial bundle size
 const AppLogsSection = lazy(() => import("@/components/app-logs-section").then(module => ({ default: module.AppLogsSection })));
@@ -1129,47 +1128,8 @@ export default function AdminPanel() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img src={institutesLogo} alt="The Institutes" className="h-8" />
-              <div className="border-l h-6"></div>
-              <h1 className="text-xl font-semibold">Exam Practice Questions</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <div className="bg-blue-100 p-2 rounded-full">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium">{user?.name}</span>
-                    {user?.isAdmin && <Shield className="h-4 w-4 text-blue-600" />}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
-                    Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => logoutMutation.mutate()}
-                    className="text-red-600"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
-      <div className="container mx-auto py-8 px-4">
+    <AdminLayout>
+      <div className="py-4">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -1586,13 +1546,12 @@ export default function AdminPanel() {
                 </Suspense>
               </div>
             </TabsContent>
-
-
+          </div>
         </Tabs>
-      </div>
-      {/* Course Materials Import Dialog */}
-      <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        
+        {/* Course Materials Import Dialog */}
+        <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
+          <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Import Course Materials</DialogTitle>
             <DialogDescription>
@@ -1640,7 +1599,8 @@ export default function AdminPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
 

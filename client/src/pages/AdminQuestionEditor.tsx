@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, Save, Archive, RotateCcw, Shuffle, ChevronDown, ChevronRight, 
-  GripVertical, Loader2, Sparkles, AlertCircle, ArrowLeft 
+  GripVertical, Loader2, Sparkles, AlertCircle
 } from "lucide-react";
 
 interface Question {
@@ -565,38 +566,24 @@ export default function AdminQuestionEditor() {
     );
   }
 
+  // Build breadcrumbs
+  const breadcrumbs = [
+    { label: "Content Management", href: "/admin" },
+    { label: course?.courseNumber || `Course ${courseId}` },
+    { label: questionSet?.title || "Question Set" }
+  ];
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/admin")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin
-          </Button>
+    <AdminLayout breadcrumbs={breadcrumbs}>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Question Editor</h1>
             <p className="text-muted-foreground">
-              {course?.courseNumber || `Course ${courseId}`} - {
-                (() => {
-                  // Determine the actual question set number based on position
-                  if (courseQuestionSets && setId) {
-                    const position = courseQuestionSets.findIndex(qs => qs.id === parseInt(setId)) + 1;
-                    if (position > 0) {
-                      return questionSet?.title || `Set ${position}`;
-                    }
-                  }
-                  return questionSet?.title || `Question Set`;
-                })()
-              }
+              Manage questions for {course?.courseNumber || `Course ${courseId}`} - {questionSet?.title || "Question Set"}
             </p>
           </div>
-        </div>
         
         <div className="flex items-center gap-2">
           {hasUnsavedChanges && (
@@ -1184,6 +1171,7 @@ export default function AdminQuestionEditor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
