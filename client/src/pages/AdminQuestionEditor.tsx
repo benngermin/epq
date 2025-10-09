@@ -825,28 +825,17 @@ export default function AdminQuestionEditor() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  <Input
-                                    value={
-                                      (() => {
+                                  <div className="flex-1 px-3 py-2 bg-green-50 border border-green-200 rounded-md">
+                                    <span className="text-sm text-green-900">
+                                      {(() => {
                                         const correctLetter = getCurrentValue(question.id, version, "correctAnswer") as string;
                                         const choices = getCurrentValue(question.id, version, "answerChoices") as string[] || [];
                                         const index = correctLetter ? correctLetter.charCodeAt(0) - 65 : -1;
-                                        return index >= 0 && index < choices.length ? choices[index] : "";
-                                      })()
-                                    }
-                                    onChange={(e) => {
-                                      const correctLetter = getCurrentValue(question.id, version, "correctAnswer") as string;
-                                      const choices = [...(getCurrentValue(question.id, version, "answerChoices") as string[] || [])];
-                                      const index = correctLetter ? correctLetter.charCodeAt(0) - 65 : -1;
-                                      if (index >= 0 && index < choices.length) {
-                                        choices[index] = e.target.value;
-                                        handleFieldEdit(question.id, "answerChoices", choices);
-                                      }
-                                    }}
-                                    className="flex-1"
-                                    placeholder="Enter answer text..."
-                                    data-testid={`input-correct-text-${question.id}`}
-                                  />
+                                        const answerText = index >= 0 && index < choices.length ? choices[index] : "";
+                                        return answerText || "Select correct answer above";
+                                      })()}
+                                    </span>
+                                  </div>
                                 </>
                               ) : version.questionType === "short_answer" ? (
                                 <>
