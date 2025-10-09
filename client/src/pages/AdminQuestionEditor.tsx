@@ -490,63 +490,19 @@ export default function AdminQuestionEditor() {
                       onDrop={(e) => handleDrop(e, question.id)}
                       data-testid={`card-question-${question.id}`}
                     >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2 flex-1">
+                      <CardHeader className="pb-3 space-y-3">
+                        {/* Question header with badges */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             {activeTab === "active" && (
                               <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
                             )}
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">Q{question.originalQuestionNumber}</span>
-                                <Badge variant="outline">{version?.questionType || "unknown"}</Badge>
-                                <Badge variant={currentMode === "ai" ? "default" : "secondary"}>
-                                  {currentMode === "ai" ? "AI Mode" : "Static Mode"}
-                                </Badge>
-                                {hasEdits && <Badge variant="secondary">Modified</Badge>}
-                              </div>
-                              
-                              {/* Inline editable question text */}
-                              <Textarea
-                                value={getCurrentValue(question.id, version, "questionText") as string}
-                                onChange={(e) => handleFieldEdit(question.id, "questionText", e.target.value)}
-                                className="min-h-[80px] resize-y"
-                                placeholder="Enter question text..."
-                                data-testid={`textarea-question-${question.id}`}
-                              />
-                              
-                              {/* Inline editable correct answer for simple types */}
-                              {version && ["multiple_choice", "numerical_entry", "short_answer", "either_or"].includes(version.questionType) && (
-                                <div className="flex items-center gap-2">
-                                  <Label className="text-sm font-medium">Correct Answer:</Label>
-                                  {version.questionType === "multiple_choice" ? (
-                                    <Select
-                                      value={getCurrentValue(question.id, version, "correctAnswer") as string}
-                                      onValueChange={(val) => handleFieldEdit(question.id, "correctAnswer", val)}
-                                    >
-                                      <SelectTrigger className="w-24" data-testid={`select-correct-${question.id}`}>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {(getCurrentValue(question.id, version, "answerChoices") as any[] || []).map((_: any, i: number) => (
-                                          <SelectItem key={i} value={String.fromCharCode(65 + i)}>
-                                            {String.fromCharCode(65 + i)}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <Input
-                                      value={getCurrentValue(question.id, version, "correctAnswer") as string}
-                                      onChange={(e) => handleFieldEdit(question.id, "correctAnswer", e.target.value)}
-                                      className="w-64"
-                                      placeholder="Enter correct answer..."
-                                      data-testid={`input-correct-${question.id}`}
-                                    />
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                            <span className="font-semibold">Q{question.originalQuestionNumber}</span>
+                            <Badge variant="outline">{version?.questionType || "unknown"}</Badge>
+                            <Badge variant={currentMode === "ai" ? "default" : "secondary"}>
+                              {currentMode === "ai" ? "AI Mode" : "Static Mode"}
+                            </Badge>
+                            {hasEdits && <Badge variant="secondary">Modified</Badge>}
                           </div>
                           
                           {/* Action buttons */}
@@ -583,6 +539,47 @@ export default function AdminQuestionEditor() {
                             )}
                           </div>
                         </div>
+                        
+                        {/* Full-width question text */}
+                        <Textarea
+                          value={getCurrentValue(question.id, version, "questionText") as string}
+                          onChange={(e) => handleFieldEdit(question.id, "questionText", e.target.value)}
+                          className="min-h-[80px] resize-y w-full"
+                          placeholder="Enter question text..."
+                          data-testid={`textarea-question-${question.id}`}
+                        />
+                        
+                        {/* Inline editable correct answer for simple types */}
+                        {version && ["multiple_choice", "numerical_entry", "short_answer", "either_or"].includes(version.questionType) && (
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm font-medium">Correct Answer:</Label>
+                            {version.questionType === "multiple_choice" ? (
+                              <Select
+                                value={getCurrentValue(question.id, version, "correctAnswer") as string}
+                                onValueChange={(val) => handleFieldEdit(question.id, "correctAnswer", val)}
+                              >
+                                <SelectTrigger className="w-24" data-testid={`select-correct-${question.id}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(getCurrentValue(question.id, version, "answerChoices") as any[] || []).map((_: any, i: number) => (
+                                    <SelectItem key={i} value={String.fromCharCode(65 + i)}>
+                                      {String.fromCharCode(65 + i)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Input
+                                value={getCurrentValue(question.id, version, "correctAnswer") as string}
+                                onChange={(e) => handleFieldEdit(question.id, "correctAnswer", e.target.value)}
+                                className="w-64"
+                                placeholder="Enter correct answer..."
+                                data-testid={`input-correct-${question.id}`}
+                              />
+                            )}
+                          </div>
+                        )}
                       </CardHeader>
                       
                       {/* Collapsible type-specific fields */}
