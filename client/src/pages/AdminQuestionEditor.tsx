@@ -275,7 +275,21 @@ export default function AdminQuestionEditor() {
   const handleSaveQuestion = (questionId: number, versionId: number) => {
     const edits = editedQuestions.get(questionId);
     if (edits && versionId) {
-      updateVersionMutation.mutate({ versionId, data: edits });
+      // Filter out undefined and null values before sending
+      const cleanedEdits = Object.entries(edits).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
+      
+      // Only send the update if there are actual changes
+      if (Object.keys(cleanedEdits).length > 0) {
+        updateVersionMutation.mutate({ versionId, data: cleanedEdits });
+      } else {
+        // If no actual changes, just close the dialog and show a message
+        toast({ title: "No changes to save" });
+      }
       setConfirmSaveId(null);
     }
   };

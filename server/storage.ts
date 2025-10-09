@@ -1131,8 +1131,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestionVersion(id: number, updates: Partial<QuestionVersion>): Promise<QuestionVersion | undefined> {
+    // Check if updates object is empty or has no valid values
+    const validUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Partial<QuestionVersion>);
+    
+    // If no valid updates, return the current version
+    if (Object.keys(validUpdates).length === 0) {
+      const [current] = await db.select()
+        .from(questionVersions)
+        .where(eq(questionVersions.id, id))
+        .limit(1);
+      return current || undefined;
+    }
+    
     const [updated] = await db.update(questionVersions)
-      .set(updates)
+      .set(validUpdates)
       .where(eq(questionVersions.id, id))
       .returning();
     return updated || undefined;
