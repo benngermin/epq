@@ -636,60 +636,64 @@ export default function AdminQuestionEditor() {
 
   return (
     <AdminLayout breadcrumbs={breadcrumbs}>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Question Editor</h1>
-            <p className="text-muted-foreground">
-              Manage questions for {course?.courseNumber || `Course ${courseId}`} - {questionSet?.title || "Question Set"}
-            </p>
-          </div>
-        
-        <div className="flex items-center gap-2">
-          {hasUnsavedChanges && (
-            <Badge variant="secondary">
-              {editedQuestions.size} unsaved change{editedQuestions.size !== 1 ? "s" : ""}
-            </Badge>
-          )}
-          <Button
-            onClick={() => setIsCreatingQuestion(true)}
-            data-testid="button-create-question"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Question
-          </Button>
-        </div>
-      </div>
-
-      {/* Tabs for Active/Archived */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="active" data-testid="tab-active">
-              Active Questions ({questionsData?.questions.filter(q => !q.question.isArchived).length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="archived" data-testid="tab-archived">
-              Archived ({questionsData?.questions.filter(q => q.question.isArchived).length || 0})
-            </TabsTrigger>
-          </TabsList>
+      <div className="h-full flex flex-col">
+        {/* Fixed Header Section */}
+        <div className="flex-shrink-0 max-w-6xl w-full mx-auto pb-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Question Editor</h1>
+              <p className="text-muted-foreground">
+                Manage questions for {course?.courseNumber || `Course ${courseId}`} - {questionSet?.title || "Question Set"}
+              </p>
+            </div>
           
-          {activeTab === "active" && filteredQuestions.length > 1 && (
-            <Button
-              variant="outline"
-              onClick={handleRemixQuestions}
-              disabled={reorderQuestionsMutation.isPending}
-              data-testid="button-remix"
-            >
-              <Shuffle className="h-4 w-4 mr-2" />
-              Remix Order
-            </Button>
-          )}
+            <div className="flex items-center gap-2">
+              {hasUnsavedChanges && (
+                <Badge variant="secondary">
+                  {editedQuestions.size} unsaved change{editedQuestions.size !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              <Button
+                onClick={() => setIsCreatingQuestion(true)}
+                data-testid="button-create-question"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Question
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <TabsContent value={activeTab} className="space-y-4">
-          <ScrollArea className="h-[calc(100vh-250px)]">
-            <div className="space-y-4 pr-4">
+        {/* Tabs Section - Fixed */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col max-w-6xl w-full mx-auto">
+          <div className="flex-shrink-0 flex items-center justify-between pb-4">
+            <TabsList>
+              <TabsTrigger value="active" data-testid="tab-active">
+                Active Questions ({questionsData?.questions.filter(q => !q.question.isArchived).length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="archived" data-testid="tab-archived">
+                Archived ({questionsData?.questions.filter(q => q.question.isArchived).length || 0})
+              </TabsTrigger>
+            </TabsList>
+            
+            {activeTab === "active" && filteredQuestions.length > 1 && (
+              <Button
+                variant="outline"
+                onClick={handleRemixQuestions}
+                disabled={reorderQuestionsMutation.isPending}
+                data-testid="button-remix"
+              >
+                <Shuffle className="h-4 w-4 mr-2" />
+                Remix Order
+              </Button>
+            )}
+          </div>
+
+          {/* Scrollable Content Area */}
+          <TabsContent value={activeTab} className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 pr-4">
               {filteredQuestions.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -1050,10 +1054,11 @@ export default function AdminQuestionEditor() {
                   );
                 })
               )}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Create Question Dialog */}
       <AlertDialog open={isCreatingQuestion} onOpenChange={setIsCreatingQuestion}>
@@ -1236,7 +1241,6 @@ export default function AdminQuestionEditor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </div>
     </AdminLayout>
   );
 }
