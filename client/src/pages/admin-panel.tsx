@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2 } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2, Copy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -351,10 +351,6 @@ function OpenRouterSettingsSection() {
                         {...field} 
                       />
                     </FormControl>
-                    <div className="text-xs text-muted-foreground">
-                      Enter any OpenRouter model slug (e.g., anthropic/claude-3.5-sonnet, openai/gpt-4o, meta-llama/llama-3.3-70b-instruct).
-                      This model will be used when generating static explanations for questions via the admin panel.
-                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -369,16 +365,44 @@ function OpenRouterSettingsSection() {
                     <FormControl>
                       <Textarea
                         placeholder="Enter the system message for static explanation generation..."
-                        className="resize-none font-mono text-sm"
+                        className="resize-vertical font-mono text-sm min-h-[200px]"
                         rows={10}
                         {...field}
                       />
                     </FormControl>
-                    <div className="text-xs text-muted-foreground">
-                      This message provides context and instructions to the AI when generating static explanations.
-                      You can use template variables for dynamic content when explanations are generated.
-                    </div>
                     <FormMessage />
+                    
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        Allowed Variables:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{CORRECT_ANSWER}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{LEARNING_CONTENT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{LEARNING_CONTENT}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </FormItem>
                 )}
               />
