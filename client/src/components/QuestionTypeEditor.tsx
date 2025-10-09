@@ -223,9 +223,11 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
               </div>
             ))}
             <Button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const currentAnswers = value.acceptableAnswers || [];
-                console.log('Adding acceptable answer. Current:', currentAnswers);
+                console.log('Button clicked! Current answers:', currentAnswers);
                 const newAnswers = [...currentAnswers, ""];
                 console.log('New answers array:', newAnswers);
                 handleFieldChange("acceptableAnswers", newAnswers);

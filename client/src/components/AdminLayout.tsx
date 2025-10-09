@@ -31,10 +31,8 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
             <div className="flex items-center gap-4">
               <img src={institutesLogo} alt="The Institutes" className="h-8" />
               <div className="border-l h-6"></div>
-              <Link href="/admin">
-                <a className="text-xl font-semibold hover:text-primary transition-colors">
-                  Exam Practice Questions
-                </a>
+              <Link href="/admin" className="text-xl font-semibold hover:text-primary transition-colors">
+                Exam Practice Questions
               </Link>
             </div>
             
@@ -60,15 +58,11 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/">
-                      <a>Dashboard</a>
-                    </Link>
+                    <Link href="/">Dashboard</Link>
                   </DropdownMenuItem>
                   {user?.isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <a>Admin Panel</a>
-                      </Link>
+                      <Link href="/admin">Admin Panel</Link>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -89,15 +83,15 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
         {breadcrumbs && breadcrumbs.length > 0 && (
           <div className="container mx-auto px-6 py-2 border-t">
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Link href="/admin">
-                <a className="hover:text-foreground transition-colors">Admin</a>
+              <Link href="/admin" className="hover:text-foreground transition-colors">
+                Admin
               </Link>
               {breadcrumbs.map((crumb, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <ChevronRight className="h-4 w-4" />
                   {crumb.href ? (
-                    <Link href={crumb.href}>
-                      <a className="hover:text-foreground transition-colors">{crumb.label}</a>
+                    <Link href={crumb.href} className="hover:text-foreground transition-colors">
+                      {crumb.label}
                     </Link>
                   ) : (
                     <span className="text-foreground font-medium">{crumb.label}</span>
