@@ -1178,9 +1178,10 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 {/* Sub-tabs for Question Sets and Course Materials */}
                 <Tabs defaultValue="question-sets" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="question-sets">Question Sets</TabsTrigger>
                     <TabsTrigger value="course-materials">Course Materials</TabsTrigger>
+                    <TabsTrigger value="static-explanations">Static Explanations</TabsTrigger>
                   </TabsList>
 
                   {/* Question Sets Sub-tab */}
@@ -1539,6 +1540,13 @@ export default function AdminPanel() {
                       <CourseMaterialsSection />
                     </div>
                   </TabsContent>
+
+                  {/* Static Explanations Sub-tab */}
+                  <TabsContent value="static-explanations">
+                    <div className="mt-6">
+                      <OpenRouterSettingsSection />
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </div>
             </TabsContent>
@@ -1548,7 +1556,6 @@ export default function AdminPanel() {
             <TabsContent value="settings">
               <div className="space-y-6">
                 <AISettingsSection />
-                <OpenRouterSettingsSection />
               </div>
             </TabsContent>
 
