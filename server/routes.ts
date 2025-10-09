@@ -2347,15 +2347,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
       }
 
-      // Replace template variables in system message
-      systemMessage = systemMessage
-        .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available");
-
-      console.log(`System message after template replacement: ${systemMessage.substring(0, 200)}...`);
-
-      // Construct the prompt for generating explanation
-      const prompt = `
+      // Construct the full prompt that will go into the system message
+      const fullPrompt = `
 Question Type: ${questionVersion.questionType}
 Topic Focus: ${questionVersion.topicFocus}
 Question: ${questionVersion.questionText}
@@ -2375,6 +2368,19 @@ Please provide a clear, comprehensive explanation for why "${questionVersion.cor
 
 Make the explanation educational and easy to understand for someone studying for an insurance exam.`;
 
+      // Replace template variables in system message and append the full prompt
+      systemMessage = systemMessage
+        .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available");
+      
+      // Combine the system message template with the full prompt
+      const completeSystemMessage = systemMessage + "\n\n" + fullPrompt;
+
+      console.log(`System message after template replacement and prompt addition: ${completeSystemMessage.substring(0, 500)}...`);
+
+      // Use a minimal user message
+      const userMessage = "Generate the explanation.";
+
       console.log(`Calling OpenRouter with model: ${modelName}`);
       
       // Log the exact API call content
@@ -2385,13 +2391,13 @@ Make the explanation educational and easy to understand for someone studying for
       console.log("Max Tokens: 56000");
       console.log("\nMessages Array:");
       console.log(JSON.stringify([
-        { role: "system", content: systemMessage },
-        { role: "user", content: prompt }
+        { role: "system", content: completeSystemMessage },
+        { role: "user", content: userMessage }
       ], null, 2));
       console.log("\n=== END API CALL DETAILS ===\n");
       
       // Call OpenRouter to generate the explanation
-      const explanation = await callOpenRouter(prompt, { modelName }, req.user?.id, systemMessage);
+      const explanation = await callOpenRouter(userMessage, { modelName }, req.user?.id, completeSystemMessage);
 
       // Update the question version with the generated explanation
       const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
