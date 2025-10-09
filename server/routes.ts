@@ -2356,7 +2356,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const fullUserPrompt = `${processedTemplate}
 
 Question Type: ${questionVersion.questionType}
-Topic Focus: ${questionVersion.topicFocus}
 Question: ${questionVersion.questionText}
 
 Answer Choices:

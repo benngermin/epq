@@ -801,7 +801,7 @@ export default function AdminQuestionEditor() {
                             </div>
                             
                             {/* Additional metadata */}
-                            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                            <div className="border-t pt-4">
                               <div>
                                 <Label htmlFor={`loid-${question.id}`} className="text-sm">LOID</Label>
                                 <Input
@@ -810,17 +810,6 @@ export default function AdminQuestionEditor() {
                                   readOnly
                                   className="text-sm"
                                   data-testid={`input-loid-${question.id}`}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor={`topic-${question.id}`} className="text-sm">Topic Focus</Label>
-                                <Input
-                                  id={`topic-${question.id}`}
-                                  value={getCurrentValue(question.id, version, "topicFocus") as string}
-                                  onChange={(e) => handleFieldEdit(question.id, "topicFocus", e.target.value)}
-                                  className="text-sm"
-                                  placeholder="Enter topic focus..."
-                                  data-testid={`input-topic-${question.id}`}
                                 />
                               </div>
                             </div>
