@@ -1546,7 +1546,6 @@ export default function AdminPanel() {
                 </Suspense>
               </div>
             </TabsContent>
-          </div>
         </Tabs>
         
         {/* Course Materials Import Dialog */}
