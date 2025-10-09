@@ -325,14 +325,6 @@ function OpenRouterSettingsSection() {
     );
   }
 
-  const availableModels = [
-    { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (Anthropic)" },
-    { value: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku (Anthropic)" },
-    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Google)" },
-    { value: "openai/gpt-4o", label: "GPT-4o (OpenAI)" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (OpenAI)" },
-    { value: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B Instruct (Meta)" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -352,25 +344,15 @@ function OpenRouterSettingsSection() {
                 name="modelName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>OpenRouter Model</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an OpenRouter model" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableModels.map((model) => (
-                          <SelectItem key={model.value} value={model.value}>
-                            {model.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>OpenRouter Model Slug</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., anthropic/claude-3.5-sonnet" 
+                        {...field} 
+                      />
+                    </FormControl>
                     <div className="text-xs text-muted-foreground">
+                      Enter any OpenRouter model slug (e.g., anthropic/claude-3.5-sonnet, openai/gpt-4o, meta-llama/llama-3.3-70b-instruct).
                       This model will be used when generating static explanations for questions via the admin panel.
                     </div>
                     <FormMessage />
