@@ -1530,33 +1530,42 @@ export class DatabaseStorage implements IStorage {
       return created;
     }
   }
-  
-  // OpenRouter configuration methods
+
   async getOpenRouterConfig(): Promise<OpenRouterConfig | undefined> {
     const [config] = await db.select().from(openRouterConfig).limit(1);
     return config || undefined;
   }
-  
+
   async updateOpenRouterConfig(config: Partial<InsertOpenRouterConfig>): Promise<OpenRouterConfig> {
     const existing = await this.getOpenRouterConfig();
     if (existing) {
       const [updated] = await db.update(openRouterConfig)
-        .set({
-          ...config,
-          updatedAt: new Date()
-        })
+        .set({ ...config, updatedAt: new Date() })
         .where(eq(openRouterConfig.id, existing.id))
         .returning();
       return updated;
     } else {
       const [created] = await db.insert(openRouterConfig)
-        .values({
-          ...config,
-          updatedAt: new Date()
-        })
+        .values({ ...config, updatedAt: new Date() })
         .returning();
       return created;
     }
+  }
+
+  async getQuestionVersionById(questionVersionId: number): Promise<QuestionVersion | undefined> {
+    const [questionVersion] = await db.select()
+      .from(questionVersions)
+      .where(eq(questionVersions.id, questionVersionId))
+      .limit(1);
+    return questionVersion || undefined;
+  }
+
+  async updateQuestionVersionStaticExplanation(questionVersionId: number, explanation: string): Promise<QuestionVersion> {
+    const [updated] = await db.update(questionVersions)
+      .set({ staticExplanation: explanation })
+      .where(eq(questionVersions.id, questionVersionId))
+      .returning();
+    return updated;
   }
 
   async getAllPromptVersions(): Promise<PromptVersion[]> {

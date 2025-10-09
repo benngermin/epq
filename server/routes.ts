@@ -2277,6 +2277,89 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // OpenRouter configuration routes
+  app.get("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const config = await storage.getOpenRouterConfig();
+      res.json(config || { 
+        modelName: "anthropic/claude-3.5-sonnet",
+        systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions."
+      });
+    } catch (error) {
+      console.error("Error fetching OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to fetch OpenRouter configuration" });
+    }
+  });
+
+  app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const { modelName, systemMessage } = req.body;
+      if (!modelName || !systemMessage) {
+        return res.status(400).json({ message: "Model name and system message are required" });
+      }
+      const config = await storage.updateOpenRouterConfig({
+        modelName,
+        systemMessage
+      });
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to update OpenRouter configuration" });
+    }
+  });
+
+  // Generate static explanation for a question
+  app.post("/api/admin/questions/:id/generate-explanation", requireAdmin, async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.id, 10);
+      
+      // Fetch the question version
+      const questionVersion = await storage.getQuestionVersionById(questionId);
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      // Get OpenRouter configuration
+      const openRouterConfig = await storage.getOpenRouterConfig();
+      const modelName = openRouterConfig?.modelName || "anthropic/claude-3.5-sonnet";
+      const systemMessage = openRouterConfig?.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.";
+
+      // Construct the prompt for generating explanation
+      const prompt = `
+Question Type: ${questionVersion.questionType}
+Topic Focus: ${questionVersion.topicFocus}
+Question: ${questionVersion.questionText}
+
+Answer Choices:
+${JSON.stringify(questionVersion.answerChoices, null, 2)}
+
+Correct Answer: ${questionVersion.correctAnswer}
+
+Please provide a clear, comprehensive explanation for why "${questionVersion.correctAnswer}" is the correct answer to this insurance exam question. Include:
+1. Why the correct answer is right
+2. Why the other options are incorrect
+3. Key concepts and principles involved
+4. Any relevant insurance regulations or practices
+
+Make the explanation educational and easy to understand for someone studying for an insurance exam.`;
+
+      // Call OpenRouter to generate the explanation
+      const explanation = await callOpenRouter(prompt, { modelName }, req.user?.id, systemMessage);
+
+      // Update the question version with the generated explanation
+      const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionId, explanation);
+
+      res.json({ 
+        success: true, 
+        explanation,
+        questionVersion: updatedVersion
+      });
+    } catch (error) {
+      console.error("Error generating explanation:", error);
+      res.status(500).json({ message: "Failed to generate explanation", error: error.message });
+    }
+  });
+
   app.get("/api/admin/active-prompt", requireAdmin, async (req, res) => {
     try {
       const prompt = await storage.getActivePromptVersion();
