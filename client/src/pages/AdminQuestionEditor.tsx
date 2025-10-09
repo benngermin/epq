@@ -90,6 +90,12 @@ export default function AdminQuestionEditor() {
     enabled: !!setId
   });
 
+  // Fetch all question sets for the course to determine position
+  const { data: courseQuestionSets } = useQuery<{ id: number; title: string }[]>({
+    queryKey: [`/api/courses/${courseId}/question-sets`],
+    enabled: !!courseId
+  });
+
   // Fetch questions with versions
   const { data: questionsData, isLoading, error, refetch } = useQuery<{
     questions: QuestionWithVersion[];
@@ -576,7 +582,18 @@ export default function AdminQuestionEditor() {
           <div>
             <h1 className="text-2xl font-bold">Question Editor</h1>
             <p className="text-muted-foreground">
-              {course?.courseNumber || `Course ${courseId}`} - {questionSet?.title || `Set ${setId}`}
+              {course?.courseNumber || `Course ${courseId}`} - {
+                (() => {
+                  // Determine the actual question set number based on position
+                  if (courseQuestionSets && setId) {
+                    const position = courseQuestionSets.findIndex(qs => qs.id === parseInt(setId)) + 1;
+                    if (position > 0) {
+                      return questionSet?.title || `Set ${position}`;
+                    }
+                  }
+                  return questionSet?.title || `Question Set`;
+                })()
+              }
             </p>
           </div>
         </div>
