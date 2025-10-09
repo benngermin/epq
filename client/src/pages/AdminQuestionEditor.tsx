@@ -72,6 +72,7 @@ export default function AdminQuestionEditor() {
   const [confirmRecoverId, setConfirmRecoverId] = useState<number | null>(null);
   const [confirmDeleteExplanation, setConfirmDeleteExplanation] = useState<number | null>(null);
   const [generatingExplanation, setGeneratingExplanation] = useState<number | null>(null);
+  const [savingModeSwitch, setSavingModeSwitch] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("active");
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [newQuestionType, setNewQuestionType] = useState("multiple_choice");
@@ -267,21 +268,92 @@ export default function AdminQuestionEditor() {
   };
 
   // Handle explanation mode switch
-  const handleExplanationModeSwitch = (questionId: number, versionId: number, toStatic: boolean) => {
+  const handleExplanationModeSwitch = async (questionId: number, versionId: number, toStatic: boolean) => {
     if (!toStatic) {
       // Switching from static to AI - confirm deletion of static explanation
       setConfirmDeleteExplanation(questionId);
     } else {
-      // Switching to static mode
-      handleFieldEdit(questionId, "isStaticAnswer", true);
+      // Switching to static mode - save immediately
+      setSavingModeSwitch(questionId);
+      try {
+        await updateVersionMutation.mutateAsync({
+          versionId,
+          data: { isStaticAnswer: true }
+        });
+        
+        // Clear from edited questions since it's saved
+        const newEdited = new Map(editedQuestions);
+        const existingEdits = newEdited.get(questionId);
+        if (existingEdits) {
+          delete existingEdits.isStaticAnswer;
+          if (Object.keys(existingEdits).length === 0) {
+            newEdited.delete(questionId);
+          } else {
+            newEdited.set(questionId, existingEdits);
+          }
+        }
+        setEditedQuestions(newEdited);
+        
+        toast({ title: "Switched to static mode successfully" });
+      } catch (error) {
+        toast({
+          title: "Failed to switch mode",
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
+        });
+      } finally {
+        setSavingModeSwitch(null);
+      }
     }
   };
 
   // Confirm delete static explanation and switch to AI
-  const confirmDeleteStaticExplanation = (questionId: number) => {
-    handleFieldEdit(questionId, "isStaticAnswer", false);
-    handleFieldEdit(questionId, "staticExplanation", "");
-    setConfirmDeleteExplanation(null);
+  const confirmDeleteStaticExplanation = async (questionId: number) => {
+    const question = questionsData?.questions.find(q => q.question.id === questionId);
+    if (!question?.version) {
+      toast({
+        title: "Error",
+        description: "Question version not found",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSavingModeSwitch(questionId);
+    try {
+      await updateVersionMutation.mutateAsync({
+        versionId: question.version.id,
+        data: {
+          isStaticAnswer: false,
+          staticExplanation: ""
+        }
+      });
+      
+      // Clear from edited questions since it's saved
+      const newEdited = new Map(editedQuestions);
+      const existingEdits = newEdited.get(questionId);
+      if (existingEdits) {
+        delete existingEdits.isStaticAnswer;
+        delete existingEdits.staticExplanation;
+        if (Object.keys(existingEdits).length === 0) {
+          newEdited.delete(questionId);
+        } else {
+          newEdited.set(questionId, existingEdits);
+        }
+      }
+      setEditedQuestions(newEdited);
+      
+      setConfirmDeleteExplanation(null);
+      toast({ title: "Switched to AI mode successfully" });
+    } catch (error) {
+      toast({
+        title: "Failed to switch mode",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingModeSwitch(null);
+    }
   };
 
   // Generate static explanation
@@ -744,23 +816,50 @@ export default function AdminQuestionEditor() {
                             <div className="space-y-4 border-t pt-4">
                               <div className="space-y-2">
                                 <Label>Explanation Type</Label>
-                                <RadioGroup
-                                  value={currentMode}
-                                  onValueChange={(value) => 
-                                    handleExplanationModeSwitch(question.id, version!.id, value === "static")
-                                  }
-                                  className="flex items-center gap-6"
-                                  data-testid={`radiogroup-mode-${question.id}`}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="ai" id={`ai-${question.id}`} />
-                                    <Label htmlFor={`ai-${question.id}`} className="cursor-pointer">AI</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="static" id={`static-${question.id}`} />
-                                    <Label htmlFor={`static-${question.id}`} className="cursor-pointer">Static</Label>
-                                  </div>
-                                </RadioGroup>
+                                <div className="flex items-center gap-4">
+                                  <RadioGroup
+                                    value={currentMode}
+                                    onValueChange={(value) => 
+                                      handleExplanationModeSwitch(question.id, version!.id, value === "static")
+                                    }
+                                    className="flex items-center gap-6"
+                                    disabled={savingModeSwitch === question.id}
+                                    data-testid={`radiogroup-mode-${question.id}`}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem 
+                                        value="ai" 
+                                        id={`ai-${question.id}`} 
+                                        disabled={savingModeSwitch === question.id}
+                                      />
+                                      <Label 
+                                        htmlFor={`ai-${question.id}`} 
+                                        className={`cursor-pointer ${savingModeSwitch === question.id ? 'opacity-50' : ''}`}
+                                      >
+                                        AI
+                                      </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem 
+                                        value="static" 
+                                        id={`static-${question.id}`} 
+                                        disabled={savingModeSwitch === question.id}
+                                      />
+                                      <Label 
+                                        htmlFor={`static-${question.id}`} 
+                                        className={`cursor-pointer ${savingModeSwitch === question.id ? 'opacity-50' : ''}`}
+                                      >
+                                        Static
+                                      </Label>
+                                    </div>
+                                  </RadioGroup>
+                                  {savingModeSwitch === question.id && (
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      Saving...
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               
                               {/* Static explanation editor */}
@@ -975,7 +1074,11 @@ export default function AdminQuestionEditor() {
       </AlertDialog>
 
       {/* Delete Static Explanation Confirmation */}
-      <AlertDialog open={confirmDeleteExplanation !== null} onOpenChange={() => setConfirmDeleteExplanation(null)}>
+      <AlertDialog open={confirmDeleteExplanation !== null} onOpenChange={(open) => {
+        if (!open && !savingModeSwitch) {
+          setConfirmDeleteExplanation(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Switch to AI Mode</AlertDialogTitle>
@@ -984,13 +1087,26 @@ export default function AdminQuestionEditor() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={savingModeSwitch === confirmDeleteExplanation}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmDeleteStaticExplanation(confirmDeleteExplanation!)}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent default closing
+                confirmDeleteStaticExplanation(confirmDeleteExplanation!);
+              }}
               className="bg-red-600 hover:bg-red-700"
+              disabled={savingModeSwitch === confirmDeleteExplanation}
               data-testid="button-confirm-delete-explanation"
             >
-              Delete & Switch to AI
+              {savingModeSwitch === confirmDeleteExplanation ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Switching...
+                </span>
+              ) : (
+                "Delete & Switch to AI"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
