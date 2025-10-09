@@ -707,12 +707,13 @@ export default function AdminQuestionEditor() {
                             )}
                             {activeTab === "active" ? (
                               <Button
-                                size="icon"
+                                size="sm"
                                 variant="outline"
                                 onClick={() => setConfirmArchiveId(question.id)}
                                 data-testid={`button-archive-${question.id}`}
                               >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-4 w-4 mr-1" />
+                                Archive
                               </Button>
                             ) : (
                               <Button
