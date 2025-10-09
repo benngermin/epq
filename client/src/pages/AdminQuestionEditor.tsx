@@ -767,7 +767,8 @@ export default function AdminQuestionEditor() {
                                 onClick={() => setConfirmSaveId(question.id)}
                                 data-testid={`button-save-${question.id}`}
                               >
-                                <Save className="h-4 w-4" />
+                                <Save className="h-4 w-4 mr-1" />
+                                Save
                               </Button>
                             )}
                             {activeTab === "active" ? (
