@@ -5661,8 +5661,7 @@ ${learningContent}
             }
           ],
           temperature: 0,
-          max_tokens: 32000,
-          reasoning: "medium"
+          max_tokens: 32000
         }),
       });
 
