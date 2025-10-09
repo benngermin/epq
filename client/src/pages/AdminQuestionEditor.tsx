@@ -397,19 +397,30 @@ export default function AdminQuestionEditor() {
     reorderQuestionsMutation.mutate(allQuestionIds);
   };
 
-  // Drag and drop handlers
+  // Drag and drop handlers with improved UX
   const handleDragStart = (e: React.DragEvent, questionId: number) => {
+    // Only allow dragging from the grip handle area
+    const gripHandle = (e.target as HTMLElement).closest('[data-drag-handle]');
+    if (!gripHandle) {
+      e.preventDefault();
+      return;
+    }
+    
     setDraggedQuestion(questionId);
     e.dataTransfer.effectAllowed = "move";
-    // Add a slight transparency to the dragged element
-    const target = e.currentTarget as HTMLElement;
-    target.style.opacity = "0.5";
+    
+    // Add custom drag image for better visual feedback
+    const dragImage = document.createElement('div');
+    dragImage.className = 'bg-white shadow-xl rounded-lg px-4 py-2 border-2 border-blue-500';
+    dragImage.textContent = `Moving Question ${filteredQuestions.findIndex(q => q.question.id === questionId) + 1}`;
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
-    // Reset the opacity
-    const target = e.currentTarget as HTMLElement;
-    target.style.opacity = "1";
     // Clear all drag states
     setDraggedQuestion(null);
     setDragOverQuestion(null);
@@ -422,11 +433,21 @@ export default function AdminQuestionEditor() {
     
     if (draggedQuestion === null || draggedQuestion === questionId) return;
     
-    // Calculate drop position based on mouse position
+    // More precise drop zone calculation with buffer zones
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
-    const position = y < height / 2 ? "before" : "after";
+    
+    // Create buffer zones (30% top, 40% middle, 30% bottom)
+    let position: "before" | "after" | null;
+    if (y < height * 0.3) {
+      position = "before";
+    } else if (y > height * 0.7) {
+      position = "after";
+    } else {
+      // Middle zone - maintain current position to reduce flickering
+      position = dropPosition || "after";
+    }
     
     // Update hover state for visual feedback
     if (dragOverQuestion !== questionId || dropPosition !== position) {
@@ -436,15 +457,26 @@ export default function AdminQuestionEditor() {
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if we're leaving the card entirely
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverQuestion(null);
-      setDropPosition(null);
+    // Check if we're truly leaving the drop zone
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    const currentTarget = e.currentTarget as HTMLElement;
+    
+    // Only clear if we're leaving to a different card or outside
+    if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+      // Add a small delay to prevent flickering
+      setTimeout(() => {
+        if (dragOverQuestion === parseInt(currentTarget.dataset.questionId || "0")) {
+          setDragOverQuestion(null);
+          setDropPosition(null);
+        }
+      }, 50);
     }
   };
 
   const handleDrop = (e: React.DragEvent, dropQuestionId: number) => {
     e.preventDefault();
+    
+    // Validation checks
     if (draggedQuestion === null || draggedQuestion === dropQuestionId) {
       setDragOverQuestion(null);
       setDropPosition(null);
@@ -462,29 +494,44 @@ export default function AdminQuestionEditor() {
     const dragIndex = filteredQuestions.findIndex(q => q.question.id === draggedQuestion);
     const dropIndex = filteredQuestions.findIndex(q => q.question.id === dropQuestionId);
     
-    const newActiveOrder = [...filteredQuestions];
-    const [removed] = newActiveOrder.splice(dragIndex, 1);
-    
-    // Adjust drop index based on position
-    let adjustedDropIndex = dropIndex;
-    if (dropPosition === "after") {
-      adjustedDropIndex = dragIndex < dropIndex ? dropIndex : dropIndex + 1;
-    } else {
-      adjustedDropIndex = dragIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    if (dragIndex === -1 || dropIndex === -1) {
+      // Question not found, abort
+      setDraggedQuestion(null);
+      setDragOverQuestion(null);
+      setDropPosition(null);
+      return;
     }
     
-    newActiveOrder.splice(adjustedDropIndex, 0, removed);
+    // Create new order array
+    const newActiveOrder = [...filteredQuestions];
+    const [draggedItem] = newActiveOrder.splice(dragIndex, 1);
+    
+    // Calculate the new index - simpler logic
+    let targetIndex = dropIndex;
+    if (dropPosition === "after") {
+      // If dragging from above, the removal shifts indices down
+      targetIndex = dragIndex < dropIndex ? dropIndex : dropIndex + 1;
+    } else {
+      // "before" position
+      targetIndex = dragIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    }
+    
+    // Ensure target index is within bounds
+    targetIndex = Math.max(0, Math.min(targetIndex, newActiveOrder.length));
+    
+    // Insert at new position
+    newActiveOrder.splice(targetIndex, 0, draggedItem);
     
     // Get all questions (including archived) to preserve their order
     const allQuestions = questionsData?.questions || [];
     const archivedQuestions = allQuestions.filter(q => q.question.isArchived);
     
-    // Combine active (reordered) and archived (unchanged) questions
-    // First add all active questions in their new order, then all archived questions
+    // Combine reordered active questions with unchanged archived questions
     const activeQuestionIds = newActiveOrder.map(q => q.question.id);
     const archivedQuestionIds = archivedQuestions.map(q => q.question.id);
     const allQuestionIds = [...activeQuestionIds, ...archivedQuestionIds];
     
+    // Apply the new order
     reorderQuestionsMutation.mutate(allQuestionIds);
     
     // Clear all drag states
@@ -650,35 +697,49 @@ export default function AdminQuestionEditor() {
 
                   return (
                     <div key={question.id} className="relative">
-                      {/* Drop zone indicator - appears above the card */}
+                      {/* Enhanced drop zone indicators with smooth animations */}
                       {dragOverQuestion === question.id && dropPosition === "before" && (
-                        <div className="absolute -top-1 left-0 right-0 h-1 bg-blue-500 rounded-full z-10 animate-pulse" />
+                        <div className="absolute -top-2 left-0 right-0 h-2 z-20">
+                          <div className="h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full animate-pulse" />
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+                        </div>
+                      )}
+                      {dragOverQuestion === question.id && dropPosition === "after" && (
+                        <div className="absolute -bottom-2 left-0 right-0 h-2 z-20">
+                          <div className="h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full animate-pulse" />
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+                        </div>
                       )}
                       
                       <Card 
                         className={`
                           ${hasEdits ? "border-yellow-500" : ""}
-                          ${draggedQuestion === question.id ? "opacity-50 scale-[0.98]" : ""}
-                          ${dragOverQuestion === question.id ? "shadow-lg ring-2 ring-blue-200" : ""}
-                          transition-all duration-200 ease-in-out
-                          ${activeTab === "active" ? "cursor-move hover:shadow-md" : ""}
+                          ${draggedQuestion === question.id ? "opacity-60 scale-[0.985] blur-[0.5px]" : ""}
+                          ${dragOverQuestion === question.id && draggedQuestion !== question.id ? "shadow-xl ring-2 ring-blue-300 bg-blue-50/30" : ""}
+                          transition-all duration-300 ease-out
+                          ${activeTab === "active" ? "hover:shadow-md" : ""}
                         `}
-                        draggable={activeTab === "active"}
-                        onDragStart={(e) => handleDragStart(e, question.id)}
-                        onDragEnd={handleDragEnd}
                         onDragOver={(e) => handleDragOver(e, question.id)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, question.id)}
                         data-testid={`card-question-${question.id}`}
+                        data-question-id={question.id}
                       >
                       <CardHeader className="pb-3 space-y-3">
                         {/* Question header with badges */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {activeTab === "active" && (
-                              <div className="flex items-center gap-1 px-1 py-1 rounded hover:bg-gray-100 transition-colors">
-                                <GripVertical className="h-4 w-4 text-gray-400" />
-                                <GripVertical className="h-4 w-4 text-gray-400 -ml-2" />
+                              <div 
+                                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-grab active:cursor-grabbing"
+                                data-drag-handle
+                                draggable={true}
+                                onDragStart={(e) => handleDragStart(e, question.id)}
+                                onDragEnd={handleDragEnd}
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="h-4 w-4 text-gray-500 pointer-events-none" />
+                                <GripVertical className="h-4 w-4 text-gray-500 -ml-2 pointer-events-none" />
                               </div>
                             )}
                             <TooltipProvider>
