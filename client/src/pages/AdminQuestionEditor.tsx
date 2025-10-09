@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, Save, Archive, RotateCcw, Shuffle, ChevronDown, ChevronRight, 
   GripVertical, Loader2, Sparkles, AlertCircle, ArrowLeft 
@@ -557,11 +558,13 @@ export default function AdminQuestionEditor() {
                   </CardContent>
                 </Card>
               ) : (
-                filteredQuestions.map((item) => {
+                filteredQuestions.map((item, index) => {
                   const { question, version } = item;
                   const isExpanded = expandedQuestions.has(question.id);
                   const hasEdits = editedQuestions.has(question.id);
                   const currentMode = getCurrentValue(question.id, version, "isStaticAnswer") ? "static" : "ai";
+                  // Display the actual position in the current list (1-based)
+                  const displayNumber = index + 1;
 
                   return (
                     <div key={question.id} className="relative">
@@ -596,7 +599,16 @@ export default function AdminQuestionEditor() {
                                 <GripVertical className="h-4 w-4 text-gray-400 -ml-2" />
                               </div>
                             )}
-                            <span className="font-semibold">Q{question.originalQuestionNumber}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="font-semibold cursor-help">Q{displayNumber}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Original: Q{question.originalQuestionNumber}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Badge variant="outline">{version?.questionType || "unknown"}</Badge>
                             <Badge variant={currentMode === "ai" ? "default" : "secondary"}>
                               {currentMode === "ai" ? "AI Mode" : "Static Mode"}
