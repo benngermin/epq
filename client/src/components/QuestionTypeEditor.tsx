@@ -50,55 +50,76 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
   };
 
   // Common component for answer choices array
-  const AnswerChoicesEditor = ({ fieldName = "answerChoices" }: { fieldName?: string }) => (
-    <div className="space-y-2">
-      <Label>Answer Choices</Label>
-      {(value[fieldName] || []).map((choice: string, index: number) => (
-        <div 
-          key={index} 
-          className="flex items-center gap-2"
-          draggable
-          onDragStart={(e) => handleDragStart(e, index)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, index, fieldName)}
+  const AnswerChoicesEditor = ({ fieldName = "answerChoices" }: { fieldName?: string }) => {
+    // Determine if an answer choice is correct
+    const isCorrectAnswer = (index: number) => {
+      const letter = String.fromCharCode(65 + index);
+      return value.correctAnswer === letter;
+    };
+
+    return (
+      <div className="space-y-2">
+        <Label>Answer Choices</Label>
+        {(value[fieldName] || []).map((choice: string, index: number) => {
+          const isCorrect = isCorrectAnswer(index);
+          return (
+            <div 
+              key={index} 
+              className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+              }`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, index, fieldName)}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+              <span className={`font-semibold min-w-[2rem] ${
+                isCorrect ? 'text-green-700 dark:text-green-400' : ''
+              }`}>
+                {String.fromCharCode(65 + index)}.
+              </span>
+              <Input
+                value={choice}
+                onChange={(e) => {
+                  const newChoices = [...(value[fieldName] || [])];
+                  newChoices[index] = e.target.value;
+                  handleArrayChange(fieldName, newChoices);
+                }}
+                placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
+                className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+              />
+              {isCorrect && (
+                <span className="text-sm text-green-700 dark:text-green-400 font-medium">
+                  ✓ Correct
+                </span>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== index);
+                  handleArrayChange(fieldName, newChoices);
+                }}
+                data-testid={`button-remove-choice-${index}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        })}
+        <Button
+          onClick={() => handleArrayChange(fieldName, [...(value[fieldName] || []), ""])}
+          variant="outline"
+          size="sm"
+          data-testid="button-add-choice"
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-          <span className="font-semibold min-w-[2rem]">
-            {String.fromCharCode(65 + index)}.
-          </span>
-          <Input
-            value={choice}
-            onChange={(e) => {
-              const newChoices = [...(value[fieldName] || [])];
-              newChoices[index] = e.target.value;
-              handleArrayChange(fieldName, newChoices);
-            }}
-            placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== index);
-              handleArrayChange(fieldName, newChoices);
-            }}
-            data-testid={`button-remove-choice-${index}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      <Button
-        onClick={() => handleArrayChange(fieldName, [...(value[fieldName] || []), ""])}
-        variant="outline"
-        size="sm"
-        data-testid="button-add-choice"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Add Choice
-      </Button>
-    </div>
-  );
+          <Plus className="h-4 w-4 mr-2" />
+          Add Choice
+        </Button>
+      </div>
+    );
+  };
 
   switch (questionType) {
     case "multiple_choice":
@@ -412,21 +433,40 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Answer Choices (exactly 2)</Label>
-            {[0, 1].map((index) => (
-              <div key={index} className="flex items-center gap-2">
-                <span className="font-semibold min-w-[4rem]">Option {index + 1}:</span>
-                <Input
-                  value={(value.answerChoices || [])[index] || ""}
-                  onChange={(e) => {
-                    const newChoices = [...(value.answerChoices || ["", ""])];
-                    newChoices[index] = e.target.value;
-                    handleArrayChange("answerChoices", newChoices);
-                  }}
-                  placeholder={`Option ${index + 1}`}
-                  data-testid={`input-option-${index}`}
-                />
-              </div>
-            ))}
+            {[0, 1].map((index) => {
+              const optionValue = (value.answerChoices || [])[index] || "";
+              const isCorrect = value.correctAnswer === optionValue && optionValue !== "";
+              return (
+                <div 
+                  key={index} 
+                  className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                    isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                  }`}
+                >
+                  <span className={`font-semibold min-w-[4rem] ${
+                    isCorrect ? 'text-green-700 dark:text-green-400' : ''
+                  }`}>
+                    Option {index + 1}:
+                  </span>
+                  <Input
+                    value={optionValue}
+                    onChange={(e) => {
+                      const newChoices = [...(value.answerChoices || ["", ""])];
+                      newChoices[index] = e.target.value;
+                      handleArrayChange("answerChoices", newChoices);
+                    }}
+                    placeholder={`Option ${index + 1}`}
+                    className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+                    data-testid={`input-option-${index}`}
+                  />
+                  {isCorrect && (
+                    <span className="text-sm text-green-700 font-medium">
+                      ✓ Correct
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div>
             <Label htmlFor="correctAnswer">Correct Answer</Label>
