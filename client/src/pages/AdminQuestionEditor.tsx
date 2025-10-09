@@ -64,6 +64,8 @@ export default function AdminQuestionEditor() {
   const [editedQuestions, setEditedQuestions] = useState<Map<number, Partial<QuestionVersion>>>(new Map());
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   const [draggedQuestion, setDraggedQuestion] = useState<number | null>(null);
+  const [dragOverQuestion, setDragOverQuestion] = useState<number | null>(null);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
   const [confirmSaveId, setConfirmSaveId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
   const [confirmRecoverId, setConfirmRecoverId] = useState<number | null>(null);
@@ -302,27 +304,79 @@ export default function AdminQuestionEditor() {
   const handleDragStart = (e: React.DragEvent, questionId: number) => {
     setDraggedQuestion(questionId);
     e.dataTransfer.effectAllowed = "move";
+    // Add a slight transparency to the dragged element
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = "0.5";
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    // Reset the opacity
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = "1";
+    // Clear all drag states
+    setDraggedQuestion(null);
+    setDragOverQuestion(null);
+    setDropPosition(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, questionId: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    
+    if (draggedQuestion === null || draggedQuestion === questionId) return;
+    
+    // Calculate drop position based on mouse position
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+    const position = y < height / 2 ? "before" : "after";
+    
+    // Update hover state for visual feedback
+    if (dragOverQuestion !== questionId || dropPosition !== position) {
+      setDragOverQuestion(questionId);
+      setDropPosition(position);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the card entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverQuestion(null);
+      setDropPosition(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, dropQuestionId: number) => {
     e.preventDefault();
-    if (draggedQuestion === null || draggedQuestion === dropQuestionId) return;
+    if (draggedQuestion === null || draggedQuestion === dropQuestionId) {
+      setDragOverQuestion(null);
+      setDropPosition(null);
+      return;
+    }
 
     const dragIndex = filteredQuestions.findIndex(q => q.question.id === draggedQuestion);
     const dropIndex = filteredQuestions.findIndex(q => q.question.id === dropQuestionId);
     
     const newOrder = [...filteredQuestions];
     const [removed] = newOrder.splice(dragIndex, 1);
-    newOrder.splice(dropIndex, 0, removed);
+    
+    // Adjust drop index based on position
+    let adjustedDropIndex = dropIndex;
+    if (dropPosition === "after") {
+      adjustedDropIndex = dragIndex < dropIndex ? dropIndex : dropIndex + 1;
+    } else {
+      adjustedDropIndex = dragIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    }
+    
+    newOrder.splice(adjustedDropIndex, 0, removed);
     
     const questionIds = newOrder.map(q => q.question.id);
     reorderQuestionsMutation.mutate(questionIds);
+    
+    // Clear all drag states
     setDraggedQuestion(null);
+    setDragOverQuestion(null);
+    setDropPosition(null);
   };
 
   // Get current value for a field (edited or original)
@@ -482,21 +536,37 @@ export default function AdminQuestionEditor() {
                   const currentMode = getCurrentValue(question.id, version, "isStaticAnswer") ? "static" : "ai";
 
                   return (
-                    <Card 
-                      key={question.id}
-                      className={hasEdits ? "border-yellow-500" : ""}
-                      draggable={activeTab === "active"}
-                      onDragStart={(e) => handleDragStart(e, question.id)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, question.id)}
-                      data-testid={`card-question-${question.id}`}
-                    >
+                    <div key={question.id} className="relative">
+                      {/* Drop zone indicator - appears above the card */}
+                      {dragOverQuestion === question.id && dropPosition === "before" && (
+                        <div className="absolute -top-1 left-0 right-0 h-1 bg-blue-500 rounded-full z-10 animate-pulse" />
+                      )}
+                      
+                      <Card 
+                        className={`
+                          ${hasEdits ? "border-yellow-500" : ""}
+                          ${draggedQuestion === question.id ? "opacity-50 scale-[0.98]" : ""}
+                          ${dragOverQuestion === question.id ? "shadow-lg ring-2 ring-blue-200" : ""}
+                          transition-all duration-200 ease-in-out
+                          ${activeTab === "active" ? "cursor-move hover:shadow-md" : ""}
+                        `}
+                        draggable={activeTab === "active"}
+                        onDragStart={(e) => handleDragStart(e, question.id)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => handleDragOver(e, question.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, question.id)}
+                        data-testid={`card-question-${question.id}`}
+                      >
                       <CardHeader className="pb-3 space-y-3">
                         {/* Question header with badges */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {activeTab === "active" && (
-                              <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                              <div className="flex items-center gap-1 px-1 py-1 rounded hover:bg-gray-100 transition-colors">
+                                <GripVertical className="h-4 w-4 text-gray-400" />
+                                <GripVertical className="h-4 w-4 text-gray-400 -ml-2" />
+                              </div>
                             )}
                             <span className="font-semibold">Q{question.originalQuestionNumber}</span>
                             <Badge variant="outline">{version?.questionType || "unknown"}</Badge>
@@ -718,6 +788,12 @@ export default function AdminQuestionEditor() {
                         </CollapsibleContent>
                       </Collapsible>
                     </Card>
+                      
+                      {/* Drop zone indicator - appears below the card */}
+                      {dragOverQuestion === question.id && dropPosition === "after" && (
+                        <div className="absolute -bottom-1 left-0 right-0 h-1 bg-blue-500 rounded-full z-10 animate-pulse" />
+                      )}
+                    </div>
                   );
                 })
               )}
