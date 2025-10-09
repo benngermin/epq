@@ -698,7 +698,13 @@ export default function AdminPanel() {
   const [refreshProgress, setRefreshProgress] = useState<{
     current: number;
     total: number;
-    errors: Array<{ questionSetId: string; title: string; error: string }>;
+    errors: Array<{ 
+      questionSetId: string; 
+      title: string; 
+      error: string;
+      courseName?: string;
+      details?: string;
+    }>;
   } | null>(null);
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
 
@@ -2111,7 +2117,7 @@ function QuestionSetsSection({
                     {refreshingQuestionSet === questionSet.id ? "Loading..." : "Refresh Content"}
                   </Button>
                 )}
-                <Link href={`/admin/questions/${selectedCourse}/${questionSet.id}`}>
+                <Link href={`/admin/questions/${courseId}/${questionSet.id}`}>
                   <Button 
                     variant="outline" 
                     size="sm"
