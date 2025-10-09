@@ -2376,6 +2376,20 @@ Please provide a clear, comprehensive explanation for why "${questionVersion.cor
 Make the explanation educational and easy to understand for someone studying for an insurance exam.`;
 
       console.log(`Calling OpenRouter with model: ${modelName}`);
+      
+      // Log the exact API call content
+      console.log("\n=== OPENROUTER API CALL DETAILS ===");
+      console.log("URL: https://openrouter.ai/api/v1/chat/completions");
+      console.log("Model:", modelName);
+      console.log("Temperature: 0 (deterministic)");
+      console.log("Max Tokens: 56000");
+      console.log("\nMessages Array:");
+      console.log(JSON.stringify([
+        { role: "system", content: systemMessage },
+        { role: "user", content: prompt }
+      ], null, 2));
+      console.log("\n=== END API CALL DETAILS ===\n");
+      
       // Call OpenRouter to generate the explanation
       const explanation = await callOpenRouter(prompt, { modelName }, req.user?.id, systemMessage);
 
