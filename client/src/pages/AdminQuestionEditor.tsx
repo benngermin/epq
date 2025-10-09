@@ -78,6 +78,12 @@ export default function AdminQuestionEditor() {
   const [newQuestionType, setNewQuestionType] = useState("multiple_choice");
   const [newQuestionMode, setNewQuestionMode] = useState<"ai" | "static">("ai");
 
+  // Fetch course info
+  const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
+    queryKey: [`/api/courses/${courseId}`],
+    enabled: !!courseId
+  });
+
   // Fetch question set info
   const { data: questionSet } = useQuery<{ title: string }>({
     queryKey: [`/api/admin/question-sets/${setId}`],
@@ -570,7 +576,7 @@ export default function AdminQuestionEditor() {
           <div>
             <h1 className="text-2xl font-bold">Question Editor</h1>
             <p className="text-muted-foreground">
-              Course {courseId} - {questionSet?.title || `Set ${setId}`}
+              {course?.courseNumber || `Course ${courseId}`} - {questionSet?.title || `Set ${setId}`}
             </p>
           </div>
         </div>
