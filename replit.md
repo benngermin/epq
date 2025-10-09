@@ -48,6 +48,17 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 2025)
+- **Enhanced Drag-and-Drop Interface**: Implemented professional drag-and-drop reordering with visual feedback
+  - Added blue animated drop zone indicators showing exactly where questions will land
+  - Questions become semi-transparent when dragged with smooth transitions
+  - Enhanced grip handles with hover effects for better visual affordance
+  - Cards show shadow and border during drag operations
+  - Fixed bug where archived questions lost their order when active questions were reordered
+  - Question numbers now update dynamically to reflect new positions after reordering
+  - Added tooltip showing original question number for reference
+  - Created demo page at /dragdrop-demo showcasing all enhancements
+
+## Previous Changes (October 2025)
 - **Admin Interface Expansion**: Implemented comprehensive admin interface for direct question management, replacing external refresh pipeline
   - Added database fields: `is_archived`, `display_order`, `last_modified` for questions table
   - Created `openrouter_config` table for AI settings management
