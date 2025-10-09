@@ -225,10 +225,14 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
             <Button
               onClick={() => {
                 const currentAnswers = value.acceptableAnswers || [];
-                handleFieldChange("acceptableAnswers", [...currentAnswers, ""]);
+                console.log('Adding acceptable answer. Current:', currentAnswers);
+                const newAnswers = [...currentAnswers, ""];
+                console.log('New answers array:', newAnswers);
+                handleFieldChange("acceptableAnswers", newAnswers);
               }}
               variant="outline"
               size="sm"
+              type="button"
               data-testid="button-add-acceptable"
             >
               <Plus className="h-4 w-4 mr-2" />
