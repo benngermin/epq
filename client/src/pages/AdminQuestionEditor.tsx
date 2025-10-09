@@ -550,7 +550,7 @@ export default function AdminQuestionEditor() {
                           </div>
                           
                           {/* Action buttons */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 ml-4">
                             {hasEdits && (
                               <Button
                                 size="sm"
