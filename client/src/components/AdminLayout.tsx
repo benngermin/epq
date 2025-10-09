@@ -23,9 +23,9 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation Header */}
-      <header className="border-b">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Navigation Header - Fixed */}
+      <header className="border-b flex-shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -109,9 +109,11 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
         )}
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-6">
-        {children}
+      {/* Main Content - Scrollable */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-6 py-6">
+          {children}
+        </div>
       </main>
     </div>
   );
