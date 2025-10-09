@@ -48,9 +48,10 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 2025)
-- **Admin Question Editor UI Improvements**: Updated header display to show actual course numbers instead of database IDs
-  - Header now displays "AIC 300 - Question set 1" instead of "Course 16 - Set 43"
-  - Added course data fetching to retrieve course numbers
+- **Admin Question Editor UI Improvements**: Enhanced visual indicators for correct answers
+  - Updated header display to show actual course numbers (e.g., "AIC 300 - Question set 1") instead of database IDs
+  - Added subtle green background shading to visually highlight correct answers without text labels
+  - Correct answers now display with green-50 background, green border, and green text for the option letter
   - Improved readability for administrators managing question sets
   
 - **Enhanced Drag-and-Drop Interface**: Implemented professional drag-and-drop reordering with visual feedback

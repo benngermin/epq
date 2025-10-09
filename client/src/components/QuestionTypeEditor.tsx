@@ -89,11 +89,6 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
                 className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
               />
-              {isCorrect && (
-                <span className="text-sm text-green-700 dark:text-green-400 font-medium">
-                  ✓ Correct
-                </span>
-              )}
               <Button
                 size="icon"
                 variant="ghost"
@@ -459,11 +454,6 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                     className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
                     data-testid={`input-option-${index}`}
                   />
-                  {isCorrect && (
-                    <span className="text-sm text-green-700 font-medium">
-                      ✓ Correct
-                    </span>
-                  )}
                 </div>
               );
             })}
