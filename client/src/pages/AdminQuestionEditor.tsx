@@ -234,7 +234,7 @@ export default function AdminQuestionEditor() {
         const existing = newEdited.get(questionId) || {};
         newEdited.set(questionId, {
           ...existing,
-          staticExplanation: data.generatedExplanation
+          staticExplanation: data.explanation  // Fixed: using data.explanation instead of data.generatedExplanation
         });
         setEditedQuestions(newEdited);
         toast({ title: "Explanation generated successfully" });
