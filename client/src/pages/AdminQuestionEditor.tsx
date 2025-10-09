@@ -689,7 +689,7 @@ export default function AdminQuestionEditor() {
                             </TooltipProvider>
                             <Badge variant="outline">{version?.questionType || "unknown"}</Badge>
                             <Badge variant={currentMode === "ai" ? "default" : "secondary"}>
-                              {currentMode === "ai" ? "AI Mode" : "Static Mode"}
+                              {currentMode === "ai" ? "AI Explanation" : "Static Explanation"}
                             </Badge>
                             {hasEdits && <Badge variant="secondary">Modified</Badge>}
                           </div>
@@ -707,13 +707,12 @@ export default function AdminQuestionEditor() {
                             )}
                             {activeTab === "active" ? (
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="outline"
                                 onClick={() => setConfirmArchiveId(question.id)}
                                 data-testid={`button-archive-${question.id}`}
                               >
-                                <Archive className="h-4 w-4 mr-1" />
-                                Archive
+                                <Archive className="h-4 w-4" />
                               </Button>
                             ) : (
                               <Button
@@ -740,33 +739,83 @@ export default function AdminQuestionEditor() {
                         
                         {/* Inline editable correct answer for simple types */}
                         {version && ["multiple_choice", "numerical_entry", "short_answer", "either_or"].includes(version.questionType) && (
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm font-medium">Correct Answer:</Label>
-                            {version.questionType === "multiple_choice" ? (
-                              <Select
-                                value={getCurrentValue(question.id, version, "correctAnswer") as string}
-                                onValueChange={(val) => handleFieldEdit(question.id, "correctAnswer", val)}
-                              >
-                                <SelectTrigger className="w-24" data-testid={`select-correct-${question.id}`}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {(getCurrentValue(question.id, version, "answerChoices") as any[] || []).map((_: any, i: number) => (
-                                    <SelectItem key={i} value={String.fromCharCode(65 + i)}>
-                                      {String.fromCharCode(65 + i)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <Input
-                                value={getCurrentValue(question.id, version, "correctAnswer") as string}
-                                onChange={(e) => handleFieldEdit(question.id, "correctAnswer", e.target.value)}
-                                className="w-64"
-                                placeholder="Enter correct answer..."
-                                data-testid={`input-correct-${question.id}`}
-                              />
-                            )}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Correct Answer</Label>
+                            <div className="flex items-center gap-2">
+                              {version.questionType === "multiple_choice" ? (
+                                <>
+                                  <Select
+                                    value={getCurrentValue(question.id, version, "correctAnswer") as string}
+                                    onValueChange={(val) => handleFieldEdit(question.id, "correctAnswer", val)}
+                                  >
+                                    <SelectTrigger className="w-24" data-testid={`select-correct-${question.id}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {(getCurrentValue(question.id, version, "answerChoices") as any[] || []).map((_: any, i: number) => (
+                                        <SelectItem key={i} value={String.fromCharCode(65 + i)}>
+                                          {String.fromCharCode(65 + i)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    value={
+                                      (() => {
+                                        const correctLetter = getCurrentValue(question.id, version, "correctAnswer") as string;
+                                        const choices = getCurrentValue(question.id, version, "answerChoices") as string[] || [];
+                                        const index = correctLetter ? correctLetter.charCodeAt(0) - 65 : -1;
+                                        return index >= 0 && index < choices.length ? choices[index] : "";
+                                      })()
+                                    }
+                                    onChange={(e) => {
+                                      const correctLetter = getCurrentValue(question.id, version, "correctAnswer") as string;
+                                      const choices = [...(getCurrentValue(question.id, version, "answerChoices") as string[] || [])];
+                                      const index = correctLetter ? correctLetter.charCodeAt(0) - 65 : -1;
+                                      if (index >= 0 && index < choices.length) {
+                                        choices[index] = e.target.value;
+                                        handleFieldEdit(question.id, "answerChoices", choices);
+                                      }
+                                    }}
+                                    className="flex-1"
+                                    placeholder="Enter answer text..."
+                                    data-testid={`input-correct-text-${question.id}`}
+                                  />
+                                </>
+                              ) : version.questionType === "short_answer" ? (
+                                <>
+                                  <Input
+                                    value={getCurrentValue(question.id, version, "correctAnswer") as string}
+                                    onChange={(e) => handleFieldEdit(question.id, "correctAnswer", e.target.value)}
+                                    className="w-48"
+                                    placeholder="Short answer..."
+                                    data-testid={`input-correct-${question.id}`}
+                                  />
+                                  <Input
+                                    value={
+                                      (getCurrentValue(question.id, version, "acceptableAnswers") as string[])?.[0] || ""
+                                    }
+                                    onChange={(e) => {
+                                      const currentAcceptable = getCurrentValue(question.id, version, "acceptableAnswers") as string[] || [];
+                                      const newAcceptable = [...currentAcceptable];
+                                      newAcceptable[0] = e.target.value;
+                                      handleFieldEdit(question.id, "acceptableAnswers", newAcceptable.filter(Boolean));
+                                    }}
+                                    className="flex-1"
+                                    placeholder="Full/expanded answer (optional)..."
+                                    data-testid={`input-expanded-${question.id}`}
+                                  />
+                                </>
+                              ) : (
+                                <Input
+                                  value={getCurrentValue(question.id, version, "correctAnswer") as string}
+                                  onChange={(e) => handleFieldEdit(question.id, "correctAnswer", e.target.value)}
+                                  className="flex-1"
+                                  placeholder="Enter correct answer..."
+                                  data-testid={`input-correct-${question.id}`}
+                                />
+                              )}
+                            </div>
                           </div>
                         )}
                       </CardHeader>
@@ -792,7 +841,7 @@ export default function AdminQuestionEditor() {
                             data-testid={`button-expand-${question.id}`}
                           >
                             {isExpanded ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
-                            Type-specific fields & Explanation settings
+                            Advanced Settings & Explanations
                           </Button>
                         </CollapsibleTrigger>
                         
