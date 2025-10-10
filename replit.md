@@ -47,6 +47,16 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
+## Recent Changes (October 10, 2025 - Update 2)
+- **Fixed Critical Question Editor Bugs**:
+  - Fixed Multiple Choice answer editing focus loss issue by adding stable keys to prevent React from unmounting/remounting inputs
+  - Fixed Select From List correct answer selection by handling empty string values with proper fallbacks
+  - Removed "Add Choice" button for multiple_choice and multiple_response types (limited to 4 options per schema)
+  - Fixed "Add Acceptable Answer" button functionality with proper event handling and preventDefault
+  - All question type editors now maintain proper focus and allow seamless editing
+  - Verified static explanation generation workflow uses correct prompt template from OpenRouterConfig
+  - Question versioning properly maintained - editing panel always shows and edits the one true version
+
 ## Recent Changes (October 10, 2025)
 - **Added Delete Confirmation Modals for Answer Management**:
   - Implemented AlertDialog confirmation modals when deleting answer choices and acceptable answers
