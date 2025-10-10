@@ -126,7 +126,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
   };
 
   // Common component for answer choices array
-  const AnswerChoicesEditor = ({ fieldName = "answerChoices" }: { fieldName?: string }) => {
+  const AnswerChoicesEditor = ({ fieldName = "answerChoices", showAddButton = true }: { fieldName?: string, showAddButton?: boolean }) => {
     // Determine if an answer choice is correct
     const isCorrectAnswer = (index: number) => {
       const letter = String.fromCharCode(65 + index);
@@ -152,9 +152,11 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
           <Label>Answer Choices</Label>
           {(value[fieldName] || []).map((choice: string, index: number) => {
             const isCorrect = isCorrectAnswer(index);
+            // Use a stable key based on index and fieldName
+            const stableKey = `${fieldName}-choice-${index}`;
             return (
               <div 
-                key={index} 
+                key={stableKey}
                 className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
                   isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
                 }`}
@@ -182,6 +184,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 <Button
                   size="icon"
                   variant="ghost"
+                  type="button"
                   onClick={() => handleDeleteClick(index)}
                   data-testid={`button-remove-choice-${index}`}
                 >
@@ -190,20 +193,22 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
               </div>
             );
           })}
-          <Button
-            onClick={() => {
-              const currentArray = value[fieldName] || [];
-              const newArray = [...currentArray, ""];
-              handleArrayChange(fieldName, newArray);
-            }}
-            variant="outline"
-            size="sm"
-            type="button"
-            data-testid="button-add-choice"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Choice
-          </Button>
+          {showAddButton && (
+            <Button
+              onClick={() => {
+                const currentArray = value[fieldName] || [];
+                const newArray = [...currentArray, ""];
+                handleArrayChange(fieldName, newArray);
+              }}
+              variant="outline"
+              size="sm"
+              type="button"
+              data-testid="button-add-choice"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Choice
+            </Button>
+          )}
         </div>
 
         {/* Delete confirmation modal for non-correct answers */}
@@ -292,7 +297,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     case "multiple_choice":
       return (
         <div className="space-y-4">
-          <AnswerChoicesEditor />
+          <AnswerChoicesEditor showAddButton={false} />
           <div>
             <Label htmlFor="correctAnswer">Correct Answer</Label>
             <Select
@@ -317,7 +322,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     case "multiple_response":
       return (
         <div className="space-y-4">
-          <AnswerChoicesEditor />
+          <AnswerChoicesEditor showAddButton={false} />
           <div>
             <Label>Correct Answers (select multiple)</Label>
             <div className="space-y-2 mt-2">
@@ -384,7 +389,12 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => handleDeleteAcceptableClick(index)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteAcceptableClick(index);
+                    }}
                     data-testid={`button-remove-acceptable-${index}`}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -392,7 +402,9 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 </div>
               ))}
               <Button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   const currentAnswers = value.acceptableAnswers || [];
                   const newAnswers = [...currentAnswers, ""];
                   handleFieldChange("acceptableAnswers", newAnswers);
@@ -521,11 +533,15 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                     <SelectValue placeholder="Select correct answer" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(blank.answer_choices || []).map((choice: string, i: number) => (
-                      <SelectItem key={i} value={choice}>
-                        {choice}
-                      </SelectItem>
-                    ))}
+                    {(blank.answer_choices || []).map((choice: string, i: number) => {
+                      // Skip empty choices or use index as fallback value
+                      const itemValue = choice || `blank-${index}-choice-${i}`;
+                      return (
+                        <SelectItem key={i} value={itemValue}>
+                          {choice || `(Empty Choice ${i + 1})`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -667,11 +683,15 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 <SelectValue placeholder="Select correct option" />
               </SelectTrigger>
               <SelectContent>
-                {(value.answerChoices || []).map((choice: string, index: number) => (
-                  <SelectItem key={index} value={choice}>
-                    {choice || `Option ${index + 1}`}
-                  </SelectItem>
-                ))}
+                {(value.answerChoices || []).map((choice: string, index: number) => {
+                  // Ensure value is never empty for SelectItem
+                  const itemValue = choice || `option-${index}`;
+                  return (
+                    <SelectItem key={index} value={itemValue}>
+                      {choice || `Option ${index + 1}`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
