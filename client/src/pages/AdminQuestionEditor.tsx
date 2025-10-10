@@ -361,21 +361,44 @@ export default function AdminQuestionEditor() {
   const handleSaveQuestion = (questionId: number, versionId: number) => {
     const edits = editedQuestions.get(questionId);
     if (edits && versionId) {
+      // Validation: Check for empty answer choices
+      if (edits.answerChoices && Array.isArray(edits.answerChoices)) {
+        const hasEmptyChoice = edits.answerChoices.some((choice: string) => 
+          typeof choice === 'string' && choice.trim() === ''
+        );
+        if (hasEmptyChoice) {
+          toast({ 
+            title: "Validation Error",
+            description: "You need to enter text into all answer choices.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      // Validation: Check for empty acceptable answers
+      if (edits.acceptableAnswers && Array.isArray(edits.acceptableAnswers)) {
+        const hasEmptyAnswer = edits.acceptableAnswers.some((answer: string) => 
+          typeof answer === 'string' && answer.trim() === ''
+        );
+        if (hasEmptyAnswer) {
+          toast({ 
+            title: "Validation Error",
+            description: "You need to enter text into all acceptable answers.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       // Filter out undefined and null values before sending
       const cleanedEdits = Object.entries(edits).reduce((acc, [key, value]) => {
         if (value !== undefined && value !== null) {
-          // For array fields, filter out empty strings
+          // For array fields, don't filter empty strings here - we validated above
+          // This allows users to work with empty fields during editing
           if (Array.isArray(value)) {
-            const filteredArray = value.filter(item => {
-              if (typeof item === 'string') {
-                return item.trim() !== '';
-              }
-              return true;
-            });
-            // Only include the array if it has items or if we explicitly want an empty array
-            if (filteredArray.length > 0 || key === 'answerChoices' || key === 'acceptableAnswers') {
-              acc[key] = filteredArray;
-            }
+            // Include the array as-is
+            acc[key] = value;
           } else {
             acc[key] = value;
           }
