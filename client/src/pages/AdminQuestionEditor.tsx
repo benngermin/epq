@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -78,6 +78,7 @@ export default function AdminQuestionEditor() {
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [newQuestionType, setNewQuestionType] = useState("multiple_choice");
   const [newQuestionMode, setNewQuestionMode] = useState<"ai" | "static">("ai");
+  const [reorderDebounceTimer, setReorderDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Fetch course info
   const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
@@ -213,7 +214,7 @@ export default function AdminQuestionEditor() {
     }
   });
 
-  // Reorder questions mutation
+  // Reorder questions mutation with optimistic updates
   const reorderQuestionsMutation = useMutation({
     mutationFn: async (questionIds: number[]) => {
       const response = await apiRequest("POST", "/api/admin/questions/reorder", {
@@ -222,16 +223,83 @@ export default function AdminQuestionEditor() {
       });
       return response.json();
     },
-    onSuccess: () => {
-      toast({ title: "Questions reordered successfully" });
-      refetch();
+    onMutate: async (newQuestionIds) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ 
+        queryKey: [`/api/admin/questions-with-versions/${setId}?includeArchived=true`] 
+      });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{
+        questions: QuestionWithVersion[];
+      }>([`/api/admin/questions-with-versions/${setId}?includeArchived=true`]);
+
+      // Optimistically update the cache
+      if (previousData) {
+        queryClient.setQueryData<{
+          questions: QuestionWithVersion[];
+        }>([`/api/admin/questions-with-versions/${setId}?includeArchived=true`], (old) => {
+          if (!old) return old;
+          
+          // Create a map of question ID to question for quick lookup
+          const questionMap = new Map<number, QuestionWithVersion>();
+          old.questions.forEach(q => questionMap.set(q.question.id, q));
+          
+          // Reorder questions based on new order
+          const reorderedQuestions = newQuestionIds.map((questionId, index) => {
+            const question = questionMap.get(questionId);
+            if (question) {
+              return {
+                ...question,
+                question: {
+                  ...question.question,
+                  displayOrder: index
+                }
+              };
+            }
+            return null;
+          }).filter((q): q is QuestionWithVersion => q !== null);
+          
+          // Add any questions that weren't in the newQuestionIds array (shouldn't happen but safety check)
+          const includedIds = new Set(newQuestionIds);
+          old.questions.forEach(q => {
+            if (!includedIds.has(q.question.id)) {
+              reorderedQuestions.push(q);
+            }
+          });
+          
+          return { questions: reorderedQuestions };
+        });
+      }
+
+      // Return context with previous data for rollback
+      return { previousData };
     },
-    onError: (error: Error) => {
+    onError: (err, newQuestionIds, context) => {
+      // If the mutation fails, roll back to the previous value
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          [`/api/admin/questions-with-versions/${setId}?includeArchived=true`], 
+          context.previousData
+        );
+      }
+      
       toast({
         title: "Failed to reorder questions",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      // Using invalidateQueries instead of refetch for better performance
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/admin/questions-with-versions/${setId}?includeArchived=true`] 
+      });
+    },
+    onSuccess: () => {
+      // Show success toast without refetching (cache is already updated)
+      toast({ title: "Questions reordered successfully" });
     }
   });
 
@@ -487,6 +555,31 @@ export default function AdminQuestionEditor() {
     }
   };
 
+  // Debounced reorder function to prevent rapid successive API calls
+  const debouncedReorder = useCallback((questionIds: number[]) => {
+    // Clear any existing debounce timer
+    if (reorderDebounceTimer) {
+      clearTimeout(reorderDebounceTimer);
+    }
+    
+    // Set a new debounce timer
+    const timer = setTimeout(() => {
+      reorderQuestionsMutation.mutate(questionIds);
+      setReorderDebounceTimer(null);
+    }, 300); // 300ms debounce delay
+    
+    setReorderDebounceTimer(timer);
+  }, [reorderDebounceTimer, reorderQuestionsMutation]);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (reorderDebounceTimer) {
+        clearTimeout(reorderDebounceTimer);
+      }
+    };
+  }, [reorderDebounceTimer]);
+
   const handleDrop = (e: React.DragEvent, dropQuestionId: number) => {
     e.preventDefault();
     
@@ -545,7 +638,8 @@ export default function AdminQuestionEditor() {
     const archivedQuestionIds = archivedQuestions.map(q => q.question.id);
     const allQuestionIds = [...activeQuestionIds, ...archivedQuestionIds];
     
-    // Apply the new order
+    // Apply the new order immediately with optimistic updates
+    // The mutation now handles the UI update instantly
     reorderQuestionsMutation.mutate(allQuestionIds);
     
     // Clear all drag states

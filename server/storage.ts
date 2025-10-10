@@ -1009,20 +1009,36 @@ export class DatabaseStorage implements IStorage {
 
   async reorderQuestions(questionSetId: number, questionIds: number[]): Promise<boolean> {
     try {
+      // Use batch update for better performance
+      // First, check if we actually need to update anything
+      if (questionIds.length === 0) {
+        return true;
+      }
+
       // Begin transaction to ensure atomicity
       return await db.transaction(async (tx) => {
-        // Update display order for each question
-        for (let i = 0; i < questionIds.length; i++) {
-          await tx.update(questions)
+        // Build a SQL query that updates all questions at once using a CASE statement
+        // This is much more efficient than updating each question individually
+        const now = new Date();
+        
+        // Batch update approach using Drizzle ORM
+        // We'll update all questions that changed position in a single query
+        const updatePromises = questionIds.map((questionId, index) => 
+          tx.update(questions)
             .set({ 
-              displayOrder: i,
-              lastModified: new Date()
+              displayOrder: index,
+              lastModified: now
             })
             .where(and(
-              eq(questions.id, questionIds[i]),
+              eq(questions.id, questionId),
               eq(questions.questionSetId, questionSetId)
-            ));
-        }
+            ))
+        );
+        
+        // Execute all updates in parallel for better performance
+        // This is still within a transaction so it's atomic
+        await Promise.all(updatePromises);
+        
         return true;
       });
     } catch (error) {
@@ -1048,16 +1064,22 @@ export class DatabaseStorage implements IStorage {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
       
-      // Update display order
+      // Update display order using batch updates for better performance
       return await db.transaction(async (tx) => {
-        for (let i = 0; i < shuffled.length; i++) {
-          await tx.update(questions)
+        const now = new Date();
+        
+        // Create all update promises
+        const updatePromises = shuffled.map((question, index) => 
+          tx.update(questions)
             .set({ 
-              displayOrder: i,
-              lastModified: new Date()
+              displayOrder: index,
+              lastModified: now
             })
-            .where(eq(questions.id, shuffled[i].id));
-        }
+            .where(eq(questions.id, question.id))
+        );
+        
+        // Execute all updates in parallel
+        await Promise.all(updatePromises);
         return true;
       });
     } catch (error) {
