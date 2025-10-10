@@ -5334,11 +5334,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
         version: z.object({
           questionText: z.string(),
           questionType: z.string(),
-          answerChoices: z.array(z.string()).optional(),
+          answerChoices: z.any().optional(), // Can be array of strings or other structures
           correctAnswer: z.any(),
           acceptableAnswers: z.array(z.string()).optional(),
           caseSensitive: z.boolean().optional(),
           blanks: z.any().optional(),
+          dropZones: z.any().optional(), // Added missing dropZones field
+          correctOrder: z.any().optional(), // Added missing correctOrder field
+          matchingPairs: z.any().optional(), // Added missing matchingPairs field
+          allowMultiple: z.boolean().optional(), // Added missing allowMultiple field
           topicFocus: z.string().optional(),
           isStaticAnswer: z.boolean().optional(),
           staticExplanation: z.string().optional()
@@ -5448,11 +5452,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const updateVersionSchema = z.object({
         questionText: z.string().optional(),
         questionType: z.string().optional(),
-        answerChoices: z.array(z.string()).optional(),
+        answerChoices: z.any().optional(), // Can be array of strings or other structures
         correctAnswer: z.any().optional(),
         acceptableAnswers: z.array(z.string()).optional(),
         caseSensitive: z.boolean().optional(),
         blanks: z.any().optional(),
+        dropZones: z.any().optional(), // Added missing dropZones field
+        correctOrder: z.any().optional(), // Added missing correctOrder field
+        matchingPairs: z.any().optional(), // Added missing matchingPairs field
+        allowMultiple: z.boolean().optional(), // Added missing allowMultiple field
         topicFocus: z.string().optional(),
         isStaticAnswer: z.boolean().optional(),
         staticExplanation: z.string().optional()
