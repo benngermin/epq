@@ -844,8 +844,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get a single question set by ID
-  app.get("/api/admin/question-sets/:id", requireAdmin, async (req, res) => {
+  // Get a single question set by ID - moved before courseId route to avoid conflict
+  app.get("/api/admin/question-set/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       

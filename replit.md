@@ -48,6 +48,12 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 2025)
+- **Fixed Question Set Title Display Issue**: 
+  - Added missing API endpoint `/api/admin/question-set/:id` to fetch single question set details
+  - Changed route from plural to singular to avoid conflict with `/api/admin/question-sets/:courseId`
+  - Updated frontend to use new endpoint and force cache refresh
+  - Question set titles now properly display as "Question Set 1", "Question Set 2", or "Question Set 3"
+  
 - **Admin Question Editor UI Improvements**: Enhanced visual indicators for correct answers
   - Updated header display to show actual course numbers (e.g., "AIC 300 - Question set 1") instead of database IDs
   - Added subtle green background shading to visually highlight correct answers without text labels

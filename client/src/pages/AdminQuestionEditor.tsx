@@ -86,11 +86,29 @@ export default function AdminQuestionEditor() {
     enabled: !!courseId
   });
 
-  // Fetch question set info
-  const { data: questionSet } = useQuery<{ title: string }>({
-    queryKey: [`/api/admin/question-sets/${setId}`],
-    enabled: !!setId
+  // Fetch question set info (using singular route to avoid conflict with courseId route)
+  const { data: questionSet, error: questionSetError, isLoading: questionSetLoading } = useQuery<{ 
+    id: number;
+    title: string;
+    description?: string;
+    questionCount?: number;
+  }>({
+    queryKey: [`/api/admin/question-set/${setId}`, setId], // Add setId to force refresh
+    enabled: !!setId,
+    staleTime: 0, // Force fresh fetch
+    gcTime: 0, // Don't cache
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (questionSet) {
+      console.log('Question Set Loaded:', questionSet);
+      console.log('Title:', questionSet.title);
+    }
+    if (questionSetError) {
+      console.error('Failed to load question set:', questionSetError);
+    }
+  }, [questionSet, questionSetError]);
 
   // Fetch all question sets for the course to determine position
   const { data: courseQuestionSets } = useQuery<{ id: number; title: string }[]>({
