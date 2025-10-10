@@ -520,9 +520,13 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 <Button
                   size="icon"
                   variant="ghost"
-                  onClick={() => {
-                    const newAnswers = value.acceptableAnswers.filter((_: any, i: number) => i !== index);
-                    handleFieldChange("acceptableAnswers", newAnswers);
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const newAnswers = (value.acceptableAnswers || []).filter((_: any, i: number) => i !== index);
+                    // Send empty array instead of undefined if all items are removed
+                    handleFieldChange("acceptableAnswers", newAnswers.length === 0 ? [] : newAnswers);
                   }}
                   data-testid={`button-remove-short-acceptable-${index}`}
                 >
@@ -531,9 +535,16 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
               </div>
             ))}
             <Button
-              onClick={() => handleFieldChange("acceptableAnswers", [...(value.acceptableAnswers || []), ""])}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const currentAnswers = value.acceptableAnswers || [];
+                const newAnswers = [...currentAnswers, ""];
+                handleFieldChange("acceptableAnswers", newAnswers);
+              }}
               variant="outline"
               size="sm"
+              type="button"
               data-testid="button-add-short-acceptable"
             >
               <Plus className="h-4 w-4 mr-2" />
