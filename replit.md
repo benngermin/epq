@@ -48,6 +48,15 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 10, 2025)
+- **Fixed Answer Choices and Acceptable Answers Management**:
+  - Fixed issue where adding answer choices/acceptable answers didn't show new input fields immediately
+  - Modified save logic to preserve empty strings in arrays during editing (allows working with empty fields)
+  - Added validation to prevent saving completely empty answer choices or acceptable answers
+  - Shows descriptive toast messages when validation fails: "You need to enter text into all answer choices/acceptable answers"
+  - Delete functionality now properly removes items and persists changes after saving
+  - Changes ensure smooth editing workflow: add empty fields → fill them in → save when complete
+
+## Previous Changes (October 10, 2025)
 - **Fixed Question Editor Save Functionality**:
   - Fixed critical bug where answer choices, drop zones, and other question-specific elements weren't being saved
   - Updated API validation schemas to include missing fields: `dropZones`, `correctOrder`, `matchingPairs`, `allowMultiple`
