@@ -2336,6 +2336,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.post("/api/admin/questions/:id/generate-explanation", requireAdmin, async (req, res) => {
     try {
       const questionVersionId = parseInt(req.params.id, 10);
+      const { selectedAnswer } = req.body; // Optional: if user wants to explain a specific incorrect answer
       
       // Fetch the question version
       const questionVersion = await storage.getQuestionVersionById(questionVersionId);
@@ -2353,10 +2354,25 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(404).json({ message: "Question not found" });
       }
 
-      // Get OpenRouter configuration
+      // Get OpenRouter configuration - NO FALLBACKS
       const openRouterConfig = await storage.getOpenRouterConfig();
-      const modelName = openRouterConfig?.modelName || "anthropic/claude-3.5-sonnet";
-      let systemMessage = openRouterConfig?.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.";
+      
+      // CRITICAL: Return error if no configuration exists - NO FALLBACK PROMPTS
+      if (!openRouterConfig || !openRouterConfig.systemMessage) {
+        return res.status(400).json({ 
+          message: "Static explanation generation is not configured. Please configure the system prompt in OpenRouter settings first." 
+        });
+      }
+      
+      // Use the configured model name - NO FALLBACK
+      if (!openRouterConfig.modelName) {
+        return res.status(400).json({ 
+          message: "Model name is not configured. Please configure the model in OpenRouter settings." 
+        });
+      }
+      
+      const modelName = openRouterConfig.modelName;
+      const systemMessage = openRouterConfig.systemMessage;
 
       // Fetch learning content using LOID
       let learningContent = "";
@@ -2371,10 +2387,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
       }
 
-      // Replace template variables in the system message template
+      // Replace ALL template variables in the system message template
       const processedTemplate = systemMessage
+        .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
+        .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(questionVersion.answerChoices, null, 2))
         .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available");
+        .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer || questionVersion.correctAnswer) // Default to correct answer if not specified
+        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
+        .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
 
       // Construct the full prompt for the user message
       const fullUserPrompt = `${processedTemplate}

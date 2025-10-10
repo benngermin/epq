@@ -373,9 +373,33 @@ function OpenRouterSettingsSection() {
                     
                     <div className="mt-3 space-y-2">
                       <div className="text-xs font-semibold text-muted-foreground">
-                        Allowed Variables:
+                        Allowed Template Variables:
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{QUESTION_TEXT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{QUESTION_TEXT}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{ANSWER_CHOICES}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{ANSWER_CHOICES}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
                         <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
                           <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
                           <Button
@@ -384,6 +408,18 @@ function OpenRouterSettingsSection() {
                             size="sm"
                             className="h-4 w-4 p-0 hover:bg-transparent"
                             onClick={() => navigator.clipboard.writeText('{{CORRECT_ANSWER}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{SELECTED_ANSWER}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{SELECTED_ANSWER}}')}
                           >
                             <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                           </Button>
@@ -400,6 +436,21 @@ function OpenRouterSettingsSection() {
                             <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                           </Button>
                         </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{COURSE_MATERIAL}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => navigator.clipboard.writeText('{{COURSE_MATERIAL}}')}
+                          >
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        These variables will be replaced with actual question data when generating explanations.
                       </div>
                     </div>
                   </FormItem>
