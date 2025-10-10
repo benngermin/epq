@@ -48,6 +48,13 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 10, 2025)
+- **Fixed Question Editor Save Functionality**:
+  - Fixed critical bug where answer choices, drop zones, and other question-specific elements weren't being saved
+  - Updated API validation schemas to include missing fields: `dropZones`, `correctOrder`, `matchingPairs`, `allowMultiple`
+  - Changed `answerChoices` validation from strict string array to flexible type to support various question formats
+  - Applied fixes to both update (`PUT /api/admin/question-versions/:id`) and create (`POST /api/admin/questions/create-with-version`) endpoints
+  - Changes now persist correctly when editing questions in the admin panel
+
 - **Fixed Critical Question Ordering and Archiving Inconsistency**:
   - Resolved issue where admin panel changes (reordering, archiving, editing) weren't reflecting on the front-end
   - Updated `batchFetchQuestionsWithVersions` to sort by `displayOrder` instead of `originalQuestionNumber`
