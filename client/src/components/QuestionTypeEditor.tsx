@@ -446,6 +446,37 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
       );
 
     case "select_from_list":
+      // Check if this is a simple select_from_list (no blanks) or complex (with blanks)
+      const hasBlanks = value.blanks && value.blanks.length > 0;
+      
+      if (!hasBlanks) {
+        // Simple select_from_list - use answerChoices like multiple_choice
+        return (
+          <div className="space-y-4">
+            <AnswerChoicesEditor showAddButton={false} />
+            <div>
+              <Label htmlFor="correctAnswer">Correct Answer</Label>
+              <Select
+                value={value.correctAnswer || ""}
+                onValueChange={(val) => handleFieldChange("correctAnswer", val)}
+              >
+                <SelectTrigger id="correctAnswer" data-testid="select-correct-answer-list">
+                  <SelectValue placeholder="Select correct answer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(value.answerChoices || []).map((choice: string, index: number) => (
+                    <SelectItem key={index} value={choice}>
+                      {choice}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+      }
+      
+      // Complex select_from_list with blanks
       return (
         <div className="space-y-4">
           <Label>Blanks Configuration</Label>

@@ -928,16 +928,15 @@ export default function AdminQuestionEditor() {
                           
                           {/* Action buttons */}
                           <div className="flex items-center gap-2">
-                            {hasEdits && (
-                              <Button
-                                size="sm"
-                                onClick={() => setConfirmSaveId(question.id)}
-                                data-testid={`button-save-${question.id}`}
-                              >
-                                <Save className="h-4 w-4 mr-1" />
-                                Save
-                              </Button>
-                            )}
+                            <Button
+                              size="sm"
+                              onClick={() => setConfirmSaveId(question.id)}
+                              data-testid={`button-save-${question.id}`}
+                              style={{ visibility: hasEdits ? 'visible' : 'hidden' }}
+                            >
+                              <Save className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
                             {activeTab === "active" ? (
                               <Button
                                 size="sm"
