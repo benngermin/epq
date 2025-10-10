@@ -844,6 +844,30 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get a single question set by ID
+  app.get("/api/admin/question-sets/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questionSet = await storage.getQuestionSet(id);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(questionSet);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question set:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch question set" });
+    }
+  });
+
   app.put("/api/admin/question-sets/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
