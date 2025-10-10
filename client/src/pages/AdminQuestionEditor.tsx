@@ -667,7 +667,7 @@ export default function AdminQuestionEditor() {
 
         {/* Tabs Section - Fixed */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col max-w-6xl w-full mx-auto">
-          <div className="flex-shrink-0 flex items-center justify-between pb-4">
+          <div className="flex-shrink-0 flex items-center justify-between pb-4 pr-4">
             <TabsList>
               <TabsTrigger value="active" data-testid="tab-active">
                 Active Questions ({questionsData?.questions.filter(q => !q.question.isArchived).length || 0})
