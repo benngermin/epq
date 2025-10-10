@@ -364,7 +364,21 @@ export default function AdminQuestionEditor() {
       // Filter out undefined and null values before sending
       const cleanedEdits = Object.entries(edits).reduce((acc, [key, value]) => {
         if (value !== undefined && value !== null) {
-          acc[key] = value;
+          // For array fields, filter out empty strings
+          if (Array.isArray(value)) {
+            const filteredArray = value.filter(item => {
+              if (typeof item === 'string') {
+                return item.trim() !== '';
+              }
+              return true;
+            });
+            // Only include the array if it has items or if we explicitly want an empty array
+            if (filteredArray.length > 0 || key === 'answerChoices' || key === 'acceptableAnswers') {
+              acc[key] = filteredArray;
+            }
+          } else {
+            acc[key] = value;
+          }
         }
         return acc;
       }, {} as any);

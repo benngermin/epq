@@ -18,6 +18,8 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleArrayChange = (field: string, newArray: any[]) => {
+    // Always pass the array as-is to allow for editing empty fields
+    // Empty validation should happen on save, not during editing
     onChange({ ...value, [field]: newArray });
   };
 
@@ -104,9 +106,14 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
           );
         })}
         <Button
-          onClick={() => handleArrayChange(fieldName, [...(value[fieldName] || []), ""])}
+          onClick={() => {
+            const currentArray = value[fieldName] || [];
+            const newArray = [...currentArray, ""];
+            handleArrayChange(fieldName, newArray);
+          }}
           variant="outline"
           size="sm"
+          type="button"
           data-testid="button-add-choice"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -223,13 +230,9 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
               </div>
             ))}
             <Button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 const currentAnswers = value.acceptableAnswers || [];
-                console.log('Button clicked! Current answers:', currentAnswers);
                 const newAnswers = [...currentAnswers, ""];
-                console.log('New answers array:', newAnswers);
                 handleFieldChange("acceptableAnswers", newAnswers);
               }}
               variant="outline"
