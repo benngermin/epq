@@ -55,6 +55,46 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     }
   };
 
+  // Perform deletion of answer choice
+  const performDeleteChoice = (fieldName: string = "answerChoices") => {
+    console.log("performDeleteChoice called with:", {
+      deleteChoiceIndex,
+      deleteIsCorrectAnswer,
+      newCorrectAnswerForDelete,
+      fieldName,
+      currentChoices: value[fieldName]
+    });
+    
+    if (deleteChoiceIndex !== null) {
+      const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== deleteChoiceIndex);
+      
+      console.log("New choices after deletion:", newChoices);
+      
+      // Update the choices array
+      handleArrayChange(fieldName, newChoices);
+      
+      // Handle correct answer updates
+      if (deleteIsCorrectAnswer && newCorrectAnswerForDelete) {
+        // If we're deleting the correct answer, use the new one selected
+        console.log("Updating correct answer to:", newCorrectAnswerForDelete);
+        handleFieldChange("correctAnswer", newCorrectAnswerForDelete);
+      } else if (!deleteIsCorrectAnswer && value.correctAnswer) {
+        // If the correct answer index is after the deleted one, adjust it
+        const currentCorrectIndex = value.correctAnswer.charCodeAt(0) - 65;
+        if (currentCorrectIndex > deleteChoiceIndex) {
+          const newCorrectLetter = String.fromCharCode(65 + currentCorrectIndex - 1);
+          console.log("Adjusting correct answer from", value.correctAnswer, "to", newCorrectLetter);
+          handleFieldChange("correctAnswer", newCorrectLetter);
+        }
+      }
+      
+      // Reset state
+      setDeleteChoiceIndex(null);
+      setDeleteIsCorrectAnswer(false);
+      setNewCorrectAnswerForDelete("");
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
@@ -89,40 +129,13 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
     // Handle delete button click - show confirmation modal
     const handleDeleteClick = (index: number) => {
+      console.log("Delete button clicked for index:", index);
       const isCorrect = isCorrectAnswer(index);
+      console.log("Is correct answer?", isCorrect);
       setDeleteChoiceIndex(index);
       setDeleteIsCorrectAnswer(isCorrect);
       if (!isCorrect) {
         // If not the correct answer, we can proceed with normal delete confirmation
-        setNewCorrectAnswerForDelete("");
-      }
-    };
-
-    // Perform the actual deletion
-    const performDelete = () => {
-      if (deleteChoiceIndex !== null) {
-        const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== deleteChoiceIndex);
-        
-        // If we're deleting the correct answer and a new one was selected
-        if (deleteIsCorrectAnswer && newCorrectAnswerForDelete) {
-          handleFieldChange("correctAnswer", newCorrectAnswerForDelete);
-        }
-        
-        // Update the choices array
-        handleArrayChange(fieldName, newChoices);
-        
-        // If the correct answer index is after the deleted one, adjust it
-        if (!deleteIsCorrectAnswer && value.correctAnswer) {
-          const currentCorrectIndex = value.correctAnswer.charCodeAt(0) - 65;
-          if (currentCorrectIndex > deleteChoiceIndex) {
-            const newCorrectLetter = String.fromCharCode(64 + currentCorrectIndex);
-            handleFieldChange("correctAnswer", newCorrectLetter);
-          }
-        }
-        
-        // Reset state
-        setDeleteChoiceIndex(null);
-        setDeleteIsCorrectAnswer(false);
         setNewCorrectAnswerForDelete("");
       }
     };
@@ -207,7 +220,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={performDelete}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={() => performDeleteChoice(fieldName)}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -257,7 +270,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction 
-                onClick={performDelete}
+                onClick={() => performDeleteChoice(fieldName)}
                 disabled={!newCorrectAnswerForDelete}
               >
                 Update & Delete
