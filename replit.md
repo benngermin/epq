@@ -48,6 +48,14 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
 ## Recent Changes (October 10, 2025)
+- **Added Delete Confirmation Modals for Answer Management**:
+  - Implemented AlertDialog confirmation modals when deleting answer choices and acceptable answers
+  - Added special validation to prevent deleting the correct answer without first selecting a new correct answer
+  - For correct answer deletion: Users must select a new correct answer before confirming deletion
+  - For regular answer choices and acceptable answers: Simple confirmation modal to prevent accidental deletions
+  - Modals are integrated for question types: `multiple_choice`, `short_answer`, and `numerical_entry`
+  - Clear user-friendly messages in modals explain the action and its consequences
+
 - **Fixed Answer Choices and Acceptable Answers Management**:
   - Fixed issue where adding answer choices/acceptable answers didn't show new input fields immediately
   - Modified save logic to preserve empty strings in arrays during editing (allows working with empty fields)
