@@ -70,23 +70,29 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
       
       console.log("New choices after deletion:", newChoices);
       
-      // Update the choices array
-      handleArrayChange(fieldName, newChoices);
+      // Create the complete updated value object with ALL changes
+      let updatedValue = {
+        ...value,
+        [fieldName]: newChoices
+      };
       
       // Handle correct answer updates
       if (deleteIsCorrectAnswer && newCorrectAnswerForDelete) {
         // If we're deleting the correct answer, use the new one selected
         console.log("Updating correct answer to:", newCorrectAnswerForDelete);
-        handleFieldChange("correctAnswer", newCorrectAnswerForDelete);
+        updatedValue.correctAnswer = newCorrectAnswerForDelete;
       } else if (!deleteIsCorrectAnswer && value.correctAnswer) {
         // If the correct answer index is after the deleted one, adjust it
         const currentCorrectIndex = value.correctAnswer.charCodeAt(0) - 65;
         if (currentCorrectIndex > deleteChoiceIndex) {
           const newCorrectLetter = String.fromCharCode(65 + currentCorrectIndex - 1);
           console.log("Adjusting correct answer from", value.correctAnswer, "to", newCorrectLetter);
-          handleFieldChange("correctAnswer", newCorrectLetter);
+          updatedValue.correctAnswer = newCorrectLetter;
         }
       }
+      
+      // Make a SINGLE onChange call with ALL updates
+      onChange(updatedValue);
       
       // Reset state
       setDeleteChoiceIndex(null);
