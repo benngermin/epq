@@ -47,7 +47,15 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
-## Recent Changes (October 2025)
+## Recent Changes (October 10, 2025)
+- **Fixed Critical Question Ordering and Archiving Inconsistency**:
+  - Resolved issue where admin panel changes (reordering, archiving, editing) weren't reflecting on the front-end
+  - Updated `batchFetchQuestionsWithVersions` to sort by `displayOrder` instead of `originalQuestionNumber`
+  - Added `includeArchived` parameter to properly filter archived questions for front-end while preserving admin functionality
+  - Front-end now correctly excludes archived questions and displays them in the same order as the admin panel
+  - Ensured single source of truth: admin panel question set configuration is what users see on the front-end
+
+## Previous Changes (October 2025)
 - **Fixed Question Set Title Display Issue**: 
   - Added missing API endpoint `/api/admin/question-set/:id` to fetch single question set details
   - Changed route from plural to singular to avoid conflict with `/api/admin/question-sets/:courseId`
