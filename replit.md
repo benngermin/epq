@@ -47,15 +47,16 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
-## Recent Changes (October 10, 2025 - Update 2)
-- **Fixed Critical Question Editor Bugs**:
-  - Fixed Multiple Choice answer editing focus loss issue by adding stable keys to prevent React from unmounting/remounting inputs
-  - Fixed Select From List correct answer selection by handling empty string values with proper fallbacks
-  - Removed "Add Choice" button for multiple_choice and multiple_response types (limited to 4 options per schema)
-  - Fixed "Add Acceptable Answer" button functionality with proper event handling and preventDefault
-  - All question type editors now maintain proper focus and allow seamless editing
-  - Verified static explanation generation workflow uses correct prompt template from OpenRouterConfig
-  - Question versioning properly maintained - editing panel always shows and edits the one true version
+## Recent Changes (October 10, 2025 - Update 3)
+- **Fixed All Critical Question Editor Bugs**:
+  - **Multiple Choice Answer Editing**: Fixed focus loss by changing Save button from conditional rendering to always rendered with visibility toggle - users can now edit answer text freely
+  - **Select From List Correct Answer**: Added support for simple select_from_list questions to properly handle correct answer dropdown selection
+  - **Answer Option Management**: Removed "Add Choice" button for multiple_choice, select_from_list, and multiple_response (enforces exactly 4 options)
+  - **Acceptable Answers**: Verified "Add Acceptable Answer" button works correctly for numerical_entry and short_answer types
+  - **Static Explanation Generation**: Removed ALL hardcoded/fallback prompts - now uses EXACTLY what admin saves in prompt textbox
+    - Added support for all 6 template variables: {{QUESTION_TEXT}}, {{ANSWER_CHOICES}}, {{CORRECT_ANSWER}}, {{SELECTED_ANSWER}}, {{LEARNING_CONTENT}}, {{COURSE_MATERIAL}}
+    - Returns proper error (400) if no prompt configured instead of using fallbacks
+  - **Question Versioning**: Verified working correctly with ONE TRUE VALUE per question - not causing editing bugs
 
 ## Recent Changes (October 10, 2025)
 - **Added Delete Confirmation Modals for Answer Management**:
