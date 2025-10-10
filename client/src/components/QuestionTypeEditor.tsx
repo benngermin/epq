@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState } from "react";
 
@@ -16,6 +26,9 @@ interface QuestionTypeEditorProps {
 
 export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTypeEditorProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [deleteChoiceIndex, setDeleteChoiceIndex] = useState<number | null>(null);
+  const [deleteIsCorrectAnswer, setDeleteIsCorrectAnswer] = useState<boolean>(false);
+  const [newCorrectAnswerForDelete, setNewCorrectAnswerForDelete] = useState<string>("");
 
   const handleArrayChange = (field: string, newArray: any[]) => {
     // Always pass the array as-is to allow for editing empty fields
@@ -59,67 +72,185 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
       return value.correctAnswer === letter;
     };
 
+    // Handle delete button click - show confirmation modal
+    const handleDeleteClick = (index: number) => {
+      const isCorrect = isCorrectAnswer(index);
+      setDeleteChoiceIndex(index);
+      setDeleteIsCorrectAnswer(isCorrect);
+      if (!isCorrect) {
+        // If not the correct answer, we can proceed with normal delete confirmation
+        setNewCorrectAnswerForDelete("");
+      }
+    };
+
+    // Perform the actual deletion
+    const performDelete = () => {
+      if (deleteChoiceIndex !== null) {
+        const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== deleteChoiceIndex);
+        
+        // If we're deleting the correct answer and a new one was selected
+        if (deleteIsCorrectAnswer && newCorrectAnswerForDelete) {
+          handleFieldChange("correctAnswer", newCorrectAnswerForDelete);
+        }
+        
+        // Update the choices array
+        handleArrayChange(fieldName, newChoices);
+        
+        // If the correct answer index is after the deleted one, adjust it
+        if (!deleteIsCorrectAnswer && value.correctAnswer) {
+          const currentCorrectIndex = value.correctAnswer.charCodeAt(0) - 65;
+          if (currentCorrectIndex > deleteChoiceIndex) {
+            const newCorrectLetter = String.fromCharCode(64 + currentCorrectIndex);
+            handleFieldChange("correctAnswer", newCorrectLetter);
+          }
+        }
+        
+        // Reset state
+        setDeleteChoiceIndex(null);
+        setDeleteIsCorrectAnswer(false);
+        setNewCorrectAnswerForDelete("");
+      }
+    };
+
     return (
-      <div className="space-y-2">
-        <Label>Answer Choices</Label>
-        {(value[fieldName] || []).map((choice: string, index: number) => {
-          const isCorrect = isCorrectAnswer(index);
-          return (
-            <div 
-              key={index} 
-              className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
-                isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
-              }`}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index, fieldName)}
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-              <span className={`font-semibold min-w-[2rem] ${
-                isCorrect ? 'text-green-700 dark:text-green-400' : ''
-              }`}>
-                {String.fromCharCode(65 + index)}.
-              </span>
-              <Input
-                value={choice}
-                onChange={(e) => {
-                  const newChoices = [...(value[fieldName] || [])];
-                  newChoices[index] = e.target.value;
-                  handleArrayChange(fieldName, newChoices);
-                }}
-                placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
-                className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => {
-                  const newChoices = (value[fieldName] || []).filter((_: any, i: number) => i !== index);
-                  handleArrayChange(fieldName, newChoices);
-                }}
-                data-testid={`button-remove-choice-${index}`}
+      <>
+        <div className="space-y-2">
+          <Label>Answer Choices</Label>
+          {(value[fieldName] || []).map((choice: string, index: number) => {
+            const isCorrect = isCorrectAnswer(index);
+            return (
+              <div 
+                key={index} 
+                className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                  isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                }`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, index, fieldName)}
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        })}
-        <Button
-          onClick={() => {
-            const currentArray = value[fieldName] || [];
-            const newArray = [...currentArray, ""];
-            handleArrayChange(fieldName, newArray);
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                <span className={`font-semibold min-w-[2rem] ${
+                  isCorrect ? 'text-green-700 dark:text-green-400' : ''
+                }`}>
+                  {String.fromCharCode(65 + index)}.
+                </span>
+                <Input
+                  value={choice}
+                  onChange={(e) => {
+                    const newChoices = [...(value[fieldName] || [])];
+                    newChoices[index] = e.target.value;
+                    handleArrayChange(fieldName, newChoices);
+                  }}
+                  placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
+                  className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleDeleteClick(index)}
+                  data-testid={`button-remove-choice-${index}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
+          <Button
+            onClick={() => {
+              const currentArray = value[fieldName] || [];
+              const newArray = [...currentArray, ""];
+              handleArrayChange(fieldName, newArray);
+            }}
+            variant="outline"
+            size="sm"
+            type="button"
+            data-testid="button-add-choice"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Choice
+          </Button>
+        </div>
+
+        {/* Delete confirmation modal for non-correct answers */}
+        <AlertDialog 
+          open={deleteChoiceIndex !== null && !deleteIsCorrectAnswer} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeleteChoiceIndex(null);
+              setDeleteIsCorrectAnswer(false);
+            }
           }}
-          variant="outline"
-          size="sm"
-          type="button"
-          data-testid="button-add-choice"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Choice
-        </Button>
-      </div>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Answer Choice</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete answer choice {deleteChoiceIndex !== null ? String.fromCharCode(65 + deleteChoiceIndex) : ''}?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={performDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete confirmation modal for correct answer - requires selecting new correct answer */}
+        <AlertDialog 
+          open={deleteChoiceIndex !== null && deleteIsCorrectAnswer} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeleteChoiceIndex(null);
+              setDeleteIsCorrectAnswer(false);
+              setNewCorrectAnswerForDelete("");
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cannot Delete Correct Answer</AlertDialogTitle>
+              <AlertDialogDescription>
+                You're trying to delete the correct answer (Choice {deleteChoiceIndex !== null ? String.fromCharCode(65 + deleteChoiceIndex) : ''}).
+                Please select a new correct answer before deleting this choice.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="new-correct-answer">Select New Correct Answer</Label>
+              <Select
+                value={newCorrectAnswerForDelete}
+                onValueChange={setNewCorrectAnswerForDelete}
+              >
+                <SelectTrigger id="new-correct-answer">
+                  <SelectValue placeholder="Choose a new correct answer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(value[fieldName] || []).map((_: string, i: number) => {
+                    // Don't show the choice we're trying to delete
+                    if (i === deleteChoiceIndex) return null;
+                    const letter = String.fromCharCode(65 + i);
+                    return (
+                      <SelectItem key={i} value={letter}>
+                        {letter} - {value[fieldName][i]}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={performDelete}
+                disabled={!newCorrectAnswerForDelete}
+              >
+                Update & Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   };
 
