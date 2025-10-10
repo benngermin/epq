@@ -29,6 +29,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
   const [deleteChoiceIndex, setDeleteChoiceIndex] = useState<number | null>(null);
   const [deleteIsCorrectAnswer, setDeleteIsCorrectAnswer] = useState<boolean>(false);
   const [newCorrectAnswerForDelete, setNewCorrectAnswerForDelete] = useState<string>("");
+  const [deleteAcceptableIndex, setDeleteAcceptableIndex] = useState<number | null>(null);
 
   const handleArrayChange = (field: string, newArray: any[]) => {
     // Always pass the array as-is to allow for editing empty fields
@@ -38,6 +39,20 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
   const handleFieldChange = (field: string, newValue: any) => {
     onChange({ ...value, [field]: newValue });
+  };
+
+  // Handle delete acceptable answer click
+  const handleDeleteAcceptableClick = (index: number) => {
+    setDeleteAcceptableIndex(index);
+  };
+
+  // Perform deletion of acceptable answer
+  const performDeleteAcceptable = () => {
+    if (deleteAcceptableIndex !== null) {
+      const newAnswers = (value.acceptableAnswers || []).filter((_: any, i: number) => i !== deleteAcceptableIndex);
+      handleFieldChange("acceptableAnswers", newAnswers.length === 0 ? [] : newAnswers);
+      setDeleteAcceptableIndex(null);
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -321,61 +336,82 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
     case "numerical_entry":
       return (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="correctAnswer">Correct Answer</Label>
-            <Input
-              id="correctAnswer"
-              value={value.correctAnswer || ""}
-              onChange={(e) => handleFieldChange("correctAnswer", e.target.value)}
-              placeholder="Enter the correct numerical answer"
-              data-testid="input-correct-answer"
-            />
+        <>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="correctAnswer">Correct Answer</Label>
+              <Input
+                id="correctAnswer"
+                value={value.correctAnswer || ""}
+                onChange={(e) => handleFieldChange("correctAnswer", e.target.value)}
+                placeholder="Enter the correct numerical answer"
+                data-testid="input-correct-answer"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Acceptable Answers (alternative correct answers)</Label>
+              {(value.acceptableAnswers || []).map((answer: string, index: number) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    value={answer}
+                    onChange={(e) => {
+                      const newAnswers = [...(value.acceptableAnswers || [])];
+                      newAnswers[index] = e.target.value;
+                      handleFieldChange("acceptableAnswers", newAnswers);
+                    }}
+                    placeholder="Alternative answer"
+                    data-testid={`input-acceptable-${index}`}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleDeleteAcceptableClick(index)}
+                    data-testid={`button-remove-acceptable-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const currentAnswers = value.acceptableAnswers || [];
+                  const newAnswers = [...currentAnswers, ""];
+                  handleFieldChange("acceptableAnswers", newAnswers);
+                }}
+                variant="outline"
+                size="sm"
+                type="button"
+                data-testid="button-add-acceptable"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Acceptable Answer
+              </Button>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Acceptable Answers (alternative correct answers)</Label>
-            {(value.acceptableAnswers || []).map((answer: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={answer}
-                  onChange={(e) => {
-                    const newAnswers = [...(value.acceptableAnswers || [])];
-                    newAnswers[index] = e.target.value;
-                    handleFieldChange("acceptableAnswers", newAnswers);
-                  }}
-                  placeholder="Alternative answer"
-                  data-testid={`input-acceptable-${index}`}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    const newAnswers = (value.acceptableAnswers || []).filter((_: any, i: number) => i !== index);
-                    // Send empty array instead of undefined if all items are removed
-                    handleFieldChange("acceptableAnswers", newAnswers.length === 0 ? [] : newAnswers);
-                  }}
-                  data-testid={`button-remove-acceptable-${index}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={() => {
-                const currentAnswers = value.acceptableAnswers || [];
-                const newAnswers = [...currentAnswers, ""];
-                handleFieldChange("acceptableAnswers", newAnswers);
-              }}
-              variant="outline"
-              size="sm"
-              type="button"
-              data-testid="button-add-acceptable"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Acceptable Answer
-            </Button>
-          </div>
-        </div>
+          
+          {/* Confirmation modal for deleting acceptable answers */}
+          <AlertDialog 
+            open={deleteAcceptableIndex !== null} 
+            onOpenChange={(open) => {
+              if (!open) {
+                setDeleteAcceptableIndex(null);
+              }
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Acceptable Answer</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this acceptable answer? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={performDeleteAcceptable}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       );
 
     case "select_from_list":
@@ -625,77 +661,100 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
     case "short_answer":
       return (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="correctAnswer">Correct Answer</Label>
-            <Input
-              id="correctAnswer"
-              value={value.correctAnswer || ""}
-              onChange={(e) => handleFieldChange("correctAnswer", e.target.value)}
-              placeholder="Enter the correct answer"
-              data-testid="input-short-correct"
-            />
+        <>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="correctAnswer">Correct Answer</Label>
+              <Input
+                id="correctAnswer"
+                value={value.correctAnswer || ""}
+                onChange={(e) => handleFieldChange("correctAnswer", e.target.value)}
+                placeholder="Enter the correct answer"
+                data-testid="input-short-correct"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Acceptable Answers (alternative correct answers)</Label>
+              {(value.acceptableAnswers || []).map((answer: string, index: number) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    value={answer}
+                    onChange={(e) => {
+                      const newAnswers = [...(value.acceptableAnswers || [])];
+                      newAnswers[index] = e.target.value;
+                      handleFieldChange("acceptableAnswers", newAnswers);
+                    }}
+                    placeholder="Alternative answer"
+                    data-testid={`input-short-acceptable-${index}`}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteAcceptableClick(index);
+                    }}
+                    data-testid={`button-remove-short-acceptable-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const currentAnswers = value.acceptableAnswers || [];
+                  const newAnswers = [...currentAnswers, ""];
+                  handleFieldChange("acceptableAnswers", newAnswers);
+                }}
+                variant="outline"
+                size="sm"
+                type="button"
+                data-testid="button-add-short-acceptable"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Acceptable Answer
+              </Button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="caseSensitive"
+                checked={value.caseSensitive || false}
+                onCheckedChange={(checked) => handleFieldChange("caseSensitive", checked)}
+                data-testid="checkbox-case-sensitive"
+              />
+              <Label htmlFor="caseSensitive">Case Sensitive</Label>
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label>Acceptable Answers (alternative correct answers)</Label>
-            {(value.acceptableAnswers || []).map((answer: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={answer}
-                  onChange={(e) => {
-                    const newAnswers = [...(value.acceptableAnswers || [])];
-                    newAnswers[index] = e.target.value;
-                    handleFieldChange("acceptableAnswers", newAnswers);
-                  }}
-                  placeholder="Alternative answer"
-                  data-testid={`input-short-acceptable-${index}`}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const newAnswers = (value.acceptableAnswers || []).filter((_: any, i: number) => i !== index);
-                    // Send empty array instead of undefined if all items are removed
-                    handleFieldChange("acceptableAnswers", newAnswers.length === 0 ? [] : newAnswers);
-                  }}
-                  data-testid={`button-remove-short-acceptable-${index}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const currentAnswers = value.acceptableAnswers || [];
-                const newAnswers = [...currentAnswers, ""];
-                handleFieldChange("acceptableAnswers", newAnswers);
-              }}
-              variant="outline"
-              size="sm"
-              type="button"
-              data-testid="button-add-short-acceptable"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Acceptable Answer
-            </Button>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="caseSensitive"
-              checked={value.caseSensitive || false}
-              onCheckedChange={(checked) => handleFieldChange("caseSensitive", checked)}
-              data-testid="checkbox-case-sensitive"
-            />
-            <Label htmlFor="caseSensitive">Case Sensitive</Label>
-          </div>
-        </div>
+
+          {/* Confirmation modal for deleting acceptable answers */}
+          <AlertDialog 
+            open={deleteAcceptableIndex !== null} 
+            onOpenChange={(open) => {
+              if (!open) {
+                setDeleteAcceptableIndex(null);
+              }
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Acceptable Answer</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this acceptable answer? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={performDeleteAcceptable}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       );
 
     default:
