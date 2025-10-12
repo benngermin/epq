@@ -20,6 +20,8 @@ import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware
 import { requireAdmin } from "./middleware/admin";
 import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/csvParser";
 import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
+import { validateCognitoToken, extractUserInfo } from "./cognito-jwt-validator";
+import validator from "validator";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -532,6 +534,136 @@ export function registerRoutes(app: Express): Server {
     }
     next();
   };
+
+  // Mobile SSO Authentication endpoint
+  app.get("/auth/mobile-sso", authRateLimiter.middleware(), async (req: Request, res: Response) => {
+    try {
+      // Extract query parameters
+      const { token, courseId } = req.query;
+
+      // Log the attempt for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mobile SSO attempt:', { 
+          hasToken: !!token, 
+          courseId: courseId || 'not provided' 
+        });
+      }
+
+      // Validate token parameter
+      if (!token || typeof token !== 'string') {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Missing or invalid token');
+        }
+        return res.redirect('/auth/cognito?error=missing_token');
+      }
+
+      // Validate courseId parameter
+      if (!courseId || typeof courseId !== 'string') {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Missing courseId');
+        }
+        return res.redirect('/auth/cognito?error=missing_course_id');
+      }
+
+      // Validate courseId is a 4-digit integer (1000-9999)
+      if (!validator.isInt(courseId, { min: 1000, max: 9999 })) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Invalid courseId format:', courseId);
+        }
+        return res.redirect('/auth/cognito?error=invalid_course_id');
+      }
+
+      // Validate the JWT token
+      let tokenPayload;
+      try {
+        tokenPayload = await validateCognitoToken(token);
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Token validation failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=invalid_token');
+      }
+
+      // Extract user information from the validated token
+      const userInfo = extractUserInfo(tokenPayload);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mobile SSO: Token validated, user:', userInfo.email);
+      }
+
+      // Find or create the user
+      let user;
+      try {
+        // First try to find by Cognito sub
+        user = await storage.getUserByCognitoSub(userInfo.cognitoUserId);
+        
+        if (!user) {
+          // If not found, create or update by email
+          user = await storage.upsertUserByEmail({
+            email: userInfo.email,
+            name: userInfo.name,
+            cognitoSub: userInfo.cognitoUserId
+          });
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: User creation/lookup failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=user_creation_failed');
+      }
+
+      // Check if the course exists using the courseId as externalId
+      let course;
+      try {
+        course = await storage.getCourseByExternalId(courseId);
+        
+        if (!course) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Mobile SSO: Course not found with externalId:', courseId);
+          }
+          return res.redirect('/auth/cognito?error=course_not_found');
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Course lookup failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=course_lookup_failed');
+      }
+
+      // Create session for the user
+      req.login(user, (err) => {
+        if (err) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Mobile SSO: Session creation failed:', err);
+          }
+          return res.redirect('/auth/cognito?error=session_creation_failed');
+        }
+
+        // Save the session before redirecting
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Mobile SSO: Session save failed:', saveErr);
+            }
+            return res.redirect('/auth/cognito?error=session_save_failed');
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Mobile SSO: Authentication successful, redirecting to course:', course.id);
+          }
+
+          // Redirect to the course page
+          res.redirect(`/course/${course.id}`);
+        });
+      });
+    } catch (error) {
+      // Catch any unexpected errors
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Mobile SSO: Unexpected error:', error);
+      }
+      res.redirect('/auth/cognito?error=unexpected_error');
+    }
+  });
 
   // Course routes
   app.get("/api/courses", requireAuth, async (req, res) => {
