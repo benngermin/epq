@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState } from "react";
+import { DragDropZones } from "@/components/question-types/drag-drop-zones";
 
 interface QuestionTypeEditorProps {
   questionType: string;
@@ -139,15 +140,18 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
       const ca = value.correctAnswer;
       
       if (questionType === "multiple_choice") {
+        // For multiple choice, compare the letter
         return ca === letter;
       }
       if (questionType === "multiple_response") {
+        // For multiple response, handle both arrays and comma-separated strings
         const arr = Array.isArray(ca)
           ? ca
           : (typeof ca === "string" ? ca.split(",").map(s => s.trim()).filter(Boolean) : []);
         return arr.includes(letter);
       }
       if (questionType === "select_from_list") {
+        // For select_from_list, compare the actual choice string value (not letter)
         return ca === choiceVal;
       }
       return false;
@@ -198,6 +202,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 </span>
                 <Input
                   onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   value={choice}
                   onChange={(e) => {
                     const newChoices = [...(value[fieldName] || [])];
@@ -673,23 +678,22 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
           <div>
             <Label>Correct Answer Mapping</Label>
-            <Textarea
-              value={typeof value.correctAnswer === "object" ? JSON.stringify(value.correctAnswer, null, 2) : value.correctAnswer || ""}
-              onChange={(e) => {
+            <DragDropZones
+              answerChoices={value.answerChoices || []}
+              dropZones={value.dropZones || []}
+              value={value.correctAnswer}
+              onChange={(newValue) => {
                 try {
-                  const parsed = JSON.parse(e.target.value);
+                  const parsed = typeof newValue === 'string' ? JSON.parse(newValue) : newValue;
                   handleFieldChange("correctAnswer", parsed);
-                } catch {
-                  handleFieldChange("correctAnswer", e.target.value);
+                } catch (e) {
+                  handleFieldChange("correctAnswer", newValue);
                 }
               }}
-              placeholder='{"zone_1": ["item1"], "zone_2": ["item2", "item3"]}'
-              rows={4}
-              className="font-mono text-sm"
-              data-testid="textarea-correct-mapping"
+              disabled={false}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              JSON format mapping zones to items
+              Drag items to the correct zones to set the answer
             </p>
           </div>
         </div>
@@ -821,7 +825,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
               <Checkbox
                 id="caseSensitive"
                 checked={value.caseSensitive || false}
-                onCheckedChange={(checked) => handleFieldChange("caseSensitive", checked)}
+                onCheckedChange={(checked) => handleFieldChange("caseSensitive", !!checked)}
                 data-testid="checkbox-case-sensitive"
               />
               <Label htmlFor="caseSensitive">Case Sensitive</Label>
