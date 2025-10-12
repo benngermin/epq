@@ -2582,7 +2582,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       // Enhanced logging to verify correct inputs
       console.log("\n=== STATIC EXPLANATION GENERATION - INPUT VERIFICATION ===");
-      console.log("Question ID:", questionId);
+      console.log("Question ID:", questionVersion.questionId);
       console.log("Question Version ID:", questionVersionId);
       console.log("Question Type:", questionVersion.questionType);
       console.log("Question Text:", questionVersion.questionText);
