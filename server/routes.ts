@@ -2396,28 +2396,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
         .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
 
-      // Construct the full prompt for the user message
-      const fullUserPrompt = `${processedTemplate}
-
-Question Type: ${questionVersion.questionType}
-Question: ${questionVersion.questionText}
-
-Answer Choices:
-${JSON.stringify(questionVersion.answerChoices, null, 2)}
-
-Correct Answer: ${questionVersion.correctAnswer}
-
-${learningContent ? `Related Learning Content:\n${learningContent}\n` : ''}
-
-Please provide a clear, comprehensive explanation for why "${questionVersion.correctAnswer}" is the correct answer to this insurance exam question. Include:
-1. Why the correct answer is right
-2. Why the other options are incorrect
-3. Key concepts and principles involved
-4. Any relevant insurance regulations or practices
-
-Make the explanation educational and easy to understand for someone studying for an insurance exam.`;
-
-      console.log(`Full prompt with template variables replaced: ${fullUserPrompt.substring(0, 500)}...`);
+      // CRITICAL: Use ONLY the saved template (after templating) with NO extra scaffolding
+      console.log(`Processed template with variables replaced: ${processedTemplate.substring(0, 500)}...`);
 
       console.log(`Calling OpenRouter with model: ${modelName}`);
       
@@ -2429,13 +2409,14 @@ Make the explanation educational and easy to understand for someone studying for
       console.log("Max Tokens: 56000");
       console.log("\nMessages Array:");
       console.log(JSON.stringify([
-        { role: "system", content: "" },  // Empty system message
-        { role: "user", content: fullUserPrompt }
+        // We intentionally put the entire (processed) saved prompt as the only message.
+        // This guarantees we use exactly what was saved with no hidden additives.
+        { role: "user", content: processedTemplate }
       ], null, 2));
       console.log("\n=== END API CALL DETAILS ===\n");
       
-      // Call OpenRouter to generate the explanation with empty system message
-      const explanation = await callOpenRouter(fullUserPrompt, { modelName }, req.user?.id, "");
+      // Call OpenRouter to generate the explanation - use EXACT saved prompt, no scaffolding
+      const explanation = await callOpenRouter(processedTemplate, { modelName }, req.user?.id, "");
 
       // Update the question version with the generated explanation
       const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
