@@ -323,18 +323,19 @@ export default function AdminQuestionEditor() {
 
   // Generate static explanation mutation
   const generateExplanationMutation = useMutation({
-    mutationFn: async (questionId: number) => {
-      const response = await apiRequest("POST", `/api/admin/questions/${questionId}/generate-explanation`);
+    mutationFn: async (versionId: number) => {
+      const response = await apiRequest("POST", `/api/admin/questions/${versionId}/generate-explanation`);
       return response.json();
     },
     onSuccess: (data, variables) => {
-      // variables is the questionId that was passed to mutationFn
-      const questionId = variables;
-      const question = questionsData?.questions.find(q => q.question.id === questionId);
-      if (question?.version) {
+      // variables is the versionId that was passed to mutationFn
+      const versionId = variables;
+      // Find the question that has this version
+      const question = questionsData?.questions.find(q => q.version?.id === versionId);
+      if (question) {
         const newEdited = new Map(editedQuestions);
-        const existing = newEdited.get(questionId) || {};
-        newEdited.set(questionId, {
+        const existing = newEdited.get(question.question.id) || {};
+        newEdited.set(question.question.id, {
           ...existing,
           staticExplanation: data.explanation,  // Fixed: using data.explanation instead of data.generatedExplanation
           isStaticAnswer: true  // Also set to static mode when generating explanation
@@ -522,10 +523,10 @@ export default function AdminQuestionEditor() {
   };
 
   // Generate static explanation
-  const handleGenerateExplanation = async (questionId: number) => {
-    setGeneratingExplanation(questionId);
+  const handleGenerateExplanation = async (versionId: number) => {
+    setGeneratingExplanation(versionId);
     try {
-      await generateExplanationMutation.mutateAsync(questionId);
+      await generateExplanationMutation.mutateAsync(versionId);
     } finally {
       setGeneratingExplanation(null);
     }
@@ -1158,11 +1159,11 @@ export default function AdminQuestionEditor() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleGenerateExplanation(question.id)}
-                                      disabled={generatingExplanation === question.id}
+                                      onClick={() => handleGenerateExplanation(version!.id)}
+                                      disabled={generatingExplanation === version?.id}
                                       data-testid={`button-generate-${question.id}`}
                                     >
-                                      {generatingExplanation === question.id ? (
+                                      {generatingExplanation === version?.id ? (
                                         <>
                                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                           Generating...
