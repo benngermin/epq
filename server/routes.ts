@@ -2580,22 +2580,46 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const processedSystemMessage = replaceTemplateVariables(systemMessage);
       const processedUserMessage = replaceTemplateVariables(userMessage);
 
-      console.log(`Processed system message: ${processedSystemMessage.substring(0, 300)}...`);
-      console.log(`Processed user message: ${processedUserMessage.substring(0, 300)}...`);
-
-      console.log(`Calling OpenRouter with model: ${modelName}`);
+      // Enhanced logging to verify correct inputs
+      console.log("\n=== STATIC EXPLANATION GENERATION - INPUT VERIFICATION ===");
+      console.log("Question ID:", questionId);
+      console.log("Question Version ID:", questionVersionId);
+      console.log("Question Type:", questionVersion.questionType);
+      console.log("Question Text:", questionVersion.questionText);
       
-      // Log the exact API call content
+      if (questionVersion.questionType === 'multiple_choice') {
+        console.log("\nAnswer Choices (raw):", questionVersion.answerChoices);
+        console.log("Answer Choices (formatted):", formattedAnswerChoices);
+        console.log("\nCorrect Answer (raw):", questionVersion.correctAnswer);
+        console.log("Correct Answer (formatted):", fullCorrectAnswer);
+      } else {
+        console.log("\nAnswer Choices:", questionVersion.answerChoices);
+        console.log("Correct Answer:", questionVersion.correctAnswer);
+      }
+      
+      console.log("\nLearning Content Available:", !!learningContent);
+      if (learningContent) {
+        console.log("Learning Content Length:", learningContent.length);
+        console.log("Learning Content Preview:", learningContent.substring(0, 200) + "...");
+      }
+      
+      console.log("\n--- Processed Messages ---");
+      console.log("System Message Length:", processedSystemMessage.length);
+      console.log("System Message Preview:", processedSystemMessage.substring(0, 500));
+      console.log("\nUser Message Length:", processedUserMessage.length);
+      console.log("User Message Preview:", processedUserMessage.substring(0, 500));
+      
       console.log("\n=== OPENROUTER API CALL DETAILS ===");
       console.log("URL: https://openrouter.ai/api/v1/chat/completions");
       console.log("Model:", modelName);
       console.log("Temperature: 0 (deterministic)");
       console.log("Max Tokens: 56000");
-      console.log("\nMessages Array:");
-      console.log(JSON.stringify([
+      console.log("\nFull Messages Being Sent:");
+      const messagesToSend = [
         { role: "system", content: processedSystemMessage },
         { role: "user", content: processedUserMessage }
-      ], null, 2));
+      ];
+      console.log(JSON.stringify(messagesToSend, null, 2));
       console.log("\n=== END API CALL DETAILS ===\n");
       
       // Call OpenRouter with both system and user messages
