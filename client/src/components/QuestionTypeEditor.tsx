@@ -131,204 +131,70 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     setDraggedIndex(null);
   };
 
-  // Common component for answer choices array
-  const AnswerChoicesEditor = ({ fieldName = "answerChoices", showAddButton = true }: { fieldName?: string, showAddButton?: boolean }) => {
-    // Determine if an answer choice is correct
-    const isCorrectAnswer = (index: number) => {
-      const letter = String.fromCharCode(65 + index);
-      const choiceVal = (value[fieldName] || [])[index];
-      const ca = value.correctAnswer;
-      
-      if (questionType === "multiple_choice") {
-        // For multiple choice, compare the letter
-        return ca === letter;
-      }
-      if (questionType === "multiple_response") {
-        // For multiple response, handle both arrays and comma-separated strings
-        const arr = Array.isArray(ca)
-          ? ca
-          : (typeof ca === "string" ? ca.split(",").map(s => s.trim()).filter(Boolean) : []);
-        return arr.includes(letter);
-      }
-      if (questionType === "select_from_list") {
-        // For select_from_list, compare the actual choice string value (not letter)
-        return ca === choiceVal;
-      }
-      return false;
-    };
-
-    // Handle delete button click - show confirmation modal
-    const handleDeleteClick = (index: number) => {
-      console.log("Delete button clicked for index:", index);
-      const isCorrect = isCorrectAnswer(index);
-      console.log("Is correct answer?", isCorrect);
-      setDeleteChoiceIndex(index);
-      setDeleteIsCorrectAnswer(isCorrect);
-      if (!isCorrect) {
-        // If not the correct answer, we can proceed with normal delete confirmation
-        setNewCorrectAnswerForDelete("");
-      }
-    };
-
-    return (
-      <>
-        <div className="space-y-2">
-          <Label>Answer Choices</Label>
-          {(value[fieldName] || []).map((choice: string, index: number) => {
-            const isCorrect = isCorrectAnswer(index);
-            // Use a stable key based on index and fieldName
-            const stableKey = `${fieldName}-choice-${index}`;
-            return (
-              <div 
-                key={stableKey}
-                className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
-                  isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
-                }`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, index, fieldName)}
-              >
-                <div
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className="cursor-grab mr-1"
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className={`font-semibold min-w-[2rem] ${
-                  isCorrect ? 'text-green-700 dark:text-green-400' : ''
-                }`}>
-                  {String.fromCharCode(65 + index)}.
-                </span>
-                <Input
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  value={choice}
-                  onChange={(e) => {
-                    const newChoices = [...(value[fieldName] || [])];
-                    newChoices[index] = e.target.value;
-                    handleArrayChange(fieldName, newChoices);
-                  }}
-                  placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
-                  className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  type="button"
-                  onClick={() => handleDeleteClick(index)}
-                  data-testid={`button-remove-choice-${index}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
-          {showAddButton && (
-            <Button
-              onClick={() => {
-                const currentArray = value[fieldName] || [];
-                const newArray = [...currentArray, ""];
-                handleArrayChange(fieldName, newArray);
-              }}
-              variant="outline"
-              size="sm"
-              type="button"
-              data-testid="button-add-choice"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Choice
-            </Button>
-          )}
-        </div>
-
-        {/* Delete confirmation modal for non-correct answers */}
-        <AlertDialog 
-          open={deleteChoiceIndex !== null && !deleteIsCorrectAnswer} 
-          onOpenChange={(open) => {
-            if (!open) {
-              setDeleteChoiceIndex(null);
-              setDeleteIsCorrectAnswer(false);
-            }
-          }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Answer Choice</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete answer choice {deleteChoiceIndex !== null ? String.fromCharCode(65 + deleteChoiceIndex) : ''}?
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => performDeleteChoice(fieldName)}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Delete confirmation modal for correct answer - requires selecting new correct answer */}
-        <AlertDialog 
-          open={deleteChoiceIndex !== null && deleteIsCorrectAnswer} 
-          onOpenChange={(open) => {
-            if (!open) {
-              setDeleteChoiceIndex(null);
-              setDeleteIsCorrectAnswer(false);
-              setNewCorrectAnswerForDelete("");
-            }
-          }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cannot Delete Correct Answer</AlertDialogTitle>
-              <AlertDialogDescription>
-                You're trying to delete the correct answer (Choice {deleteChoiceIndex !== null ? String.fromCharCode(65 + deleteChoiceIndex) : ''}).
-                Please select a new correct answer before deleting this choice.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-              <Label htmlFor="new-correct-answer">Select New Correct Answer</Label>
-              <Select
-                value={newCorrectAnswerForDelete}
-                onValueChange={setNewCorrectAnswerForDelete}
-              >
-                <SelectTrigger id="new-correct-answer">
-                  <SelectValue placeholder="Choose a new correct answer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(value[fieldName] || []).map((_: string, i: number) => {
-                    // Don't show the choice we're trying to delete
-                    if (i === deleteChoiceIndex) return null;
-                    const letter = String.fromCharCode(65 + i);
-                    return (
-                      <SelectItem key={i} value={letter}>
-                        {letter} - {value[fieldName][i]}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => performDeleteChoice(fieldName)}
-                disabled={!newCorrectAnswerForDelete}
-              >
-                Update & Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
-    );
-  };
 
   switch (questionType) {
     case "multiple_choice":
       return (
         <div className="space-y-4">
-          <AnswerChoicesEditor showAddButton={false} />
+          <div className="space-y-2">
+            <Label>Answer Choices</Label>
+            {(value.answerChoices || []).map((choice: string, index: number) => {
+              const letter = String.fromCharCode(65 + index);
+              const isCorrect = value.correctAnswer === letter;
+              return (
+                <div 
+                  key={index}
+                  className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                    isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index, "answerChoices")}
+                >
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab mr-1"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <span className={`font-semibold min-w-[2rem] ${
+                    isCorrect ? 'text-green-700 dark:text-green-400' : ''
+                  }`}>
+                    {letter}.
+                  </span>
+                  <Input
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    value={choice}
+                    onChange={(e) => {
+                      const newChoices = [...value.answerChoices];
+                      newChoices[index] = e.target.value;
+                      handleArrayChange("answerChoices", newChoices);
+                    }}
+                    placeholder={`Answer choice ${letter}`}
+                    className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                    onClick={() => {
+                      const isCorrectAnswer = value.correctAnswer === letter;
+                      setDeleteChoiceIndex(index);
+                      setDeleteIsCorrectAnswer(isCorrectAnswer);
+                      if (!isCorrectAnswer) {
+                        setNewCorrectAnswerForDelete("");
+                      }
+                    }}
+                    data-testid={`button-remove-choice-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
           <div>
             <Label htmlFor="correctAnswer">Correct Answer</Label>
             <Select
@@ -353,7 +219,67 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     case "multiple_response":
       return (
         <div className="space-y-4">
-          <AnswerChoicesEditor showAddButton={false} />
+          <div className="space-y-2">
+            <Label>Answer Choices</Label>
+            {(value.answerChoices || []).map((choice: string, index: number) => {
+              const letter = String.fromCharCode(65 + index);
+              const correctAnswers = Array.isArray(value.correctAnswer) 
+                ? value.correctAnswer 
+                : (value.correctAnswer || "").split(",").filter(Boolean);
+              const isCorrect = correctAnswers.includes(letter);
+              return (
+                <div 
+                  key={index}
+                  className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                    isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index, "answerChoices")}
+                >
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab mr-1"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <span className={`font-semibold min-w-[2rem] ${
+                    isCorrect ? 'text-green-700 dark:text-green-400' : ''
+                  }`}>
+                    {letter}.
+                  </span>
+                  <Input
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    value={choice}
+                    onChange={(e) => {
+                      const newChoices = [...value.answerChoices];
+                      newChoices[index] = e.target.value;
+                      handleArrayChange("answerChoices", newChoices);
+                    }}
+                    placeholder={`Answer choice ${letter}`}
+                    className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                    onClick={() => {
+                      setDeleteChoiceIndex(index);
+                      setDeleteIsCorrectAnswer(isCorrect);
+                      if (!isCorrect) {
+                        setNewCorrectAnswerForDelete("");
+                      }
+                    }}
+                    data-testid={`button-remove-choice-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
           <div>
             <Label>Correct Answers (select multiple)</Label>
             <div className="space-y-2 mt-2">
@@ -484,7 +410,63 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
         // Simple select_from_list - use answerChoices like multiple_choice
         return (
           <div className="space-y-4">
-            <AnswerChoicesEditor showAddButton={false} />
+            <div className="space-y-2">
+              <Label>Answer Choices</Label>
+              {(value.answerChoices || []).map((choice: string, index: number) => {
+                const isCorrect = value.correctAnswer === choice;
+                return (
+                  <div 
+                    key={index}
+                    className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                      isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index, "answerChoices")}
+                  >
+                    <div
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className="cursor-grab mr-1"
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <span className={`font-semibold min-w-[2rem] ${
+                      isCorrect ? 'text-green-700 dark:text-green-400' : ''
+                    }`}>
+                      {String.fromCharCode(65 + index)}.
+                    </span>
+                    <Input
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      value={choice}
+                      onChange={(e) => {
+                        const newChoices = [...value.answerChoices];
+                        newChoices[index] = e.target.value;
+                        handleArrayChange("answerChoices", newChoices);
+                      }}
+                      placeholder={`Answer choice ${String.fromCharCode(65 + index)}`}
+                      className={isCorrect ? 'border-green-300 dark:border-green-700' : ''}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => {
+                        setDeleteChoiceIndex(index);
+                        setDeleteIsCorrectAnswer(isCorrect);
+                        if (!isCorrect) {
+                          setNewCorrectAnswerForDelete("");
+                        }
+                      }}
+                      data-testid={`button-remove-choice-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
             <div>
               <Label htmlFor="correctAnswer">Correct Answer</Label>
               <Select
@@ -630,7 +612,49 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     case "drag_and_drop":
       return (
         <div className="space-y-4">
-          <AnswerChoicesEditor />
+          <div className="space-y-2">
+            <Label>Answer Choices (Items to drag)</Label>
+            {(value.answerChoices || []).map((choice: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={choice}
+                  onChange={(e) => {
+                    const newChoices = [...(value.answerChoices || [])];
+                    newChoices[index] = e.target.value;
+                    handleArrayChange("answerChoices", newChoices);
+                  }}
+                  placeholder={`Item ${index + 1}`}
+                  data-testid={`input-choice-${index}`}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  type="button"
+                  onClick={() => {
+                    const newChoices = (value.answerChoices || []).filter((_: any, i: number) => i !== index);
+                    handleArrayChange("answerChoices", newChoices);
+                  }}
+                  data-testid={`button-remove-choice-${index}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                const newChoices = [...(value.answerChoices || []), ""];
+                handleArrayChange("answerChoices", newChoices);
+              }}
+              variant="outline"
+              size="sm"
+              type="button"
+              data-testid="button-add-choice"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Choice
+            </Button>
+          </div>
           
           <div className="space-y-2">
             <Label>Drop Zones</Label>
