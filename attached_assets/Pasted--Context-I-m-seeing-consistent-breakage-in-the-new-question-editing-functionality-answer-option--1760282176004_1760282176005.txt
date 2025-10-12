@@ -1,0 +1,288 @@
+## Context
+
+I’m seeing consistent breakage in the new question editing functionality (answer option editing, select‑from‑list correct answer selection, acceptable answers, static explanation generation, and version coherence). I reviewed the codebase and identified concrete root causes and fixes.
+
+---
+
+## 1) Multiple Choice – typing in answer option inputs instantly loses focus (“ejected”)
+
+**Symptoms I see**
+
+* Click any multiple‑choice option → try to type → focus is lost immediately.
+* After that, I can’t re‑enter any option inputs.
+
+**Root cause**
+
+* In `QuestionTypeEditor.tsx`, each answer‑choice row `<div>` is `draggable` and registers `onDragStart`. Because the *row* is draggable, interacting with its child `<Input>` frequently triggers the drag gesture, which steals focus and leaves `draggedIndex` latched until a drop occurs. That’s why I get “kicked out” and then cannot re‑enter.
+
+**Fix**
+
+* Only the **drag handle icon** should be draggable. Remove `draggable`/`onDragStart` from the row container and move them to the `<GripVertical>` icon. Also add a defensive `onDragEnd` to always clear `draggedIndex`.
+
+**Patch**
+
+```diff
+--- a/client/src/components/QuestionTypeEditor.tsx
++++ b/client/src/components/QuestionTypeEditor.tsx
+@@
+   const handleDragStart = (e: React.DragEvent, index: number) => {
+     setDraggedIndex(index);
+     e.dataTransfer.effectAllowed = "move";
+   };
++  const handleDragEnd = () => {
++    // ensure drag state is cleared even if user cancels the drag
++    setDraggedIndex(null);
++  };
+@@
+-              <div 
++              <div 
+                 key={stableKey}
+                 className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                   isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                 }`}
+-                draggable
+-                onDragStart={(e) => handleDragStart(e, index)}
+                 onDragOver={handleDragOver}
+                 onDrop={(e) => handleDrop(e, index, fieldName)}
+               >
+-                <GripVertical className="h-4 w-4 text-muted-foreground mr-1" />
++                <GripVertical
++                  className="h-4 w-4 text-muted-foreground mr-1 cursor-grab"
++                  draggable
++                  onDragStart={(e) => handleDragStart(e, index)}
++                  onDragEnd={handleDragEnd}
++                />
+                 <Input
++                  onMouseDown={(e) => e.stopPropagation()}  // extra guard to avoid accidental drags
+                   value={choice}
+                   onChange={(e) => {
+                     const newChoices = [...(value[fieldName] || [])];
+                     newChoices[index] = e.target.value;
+                     handleArrayChange(fieldName, newChoices);
+                   }}
+```
+
+---
+
+## 2) Select‑From‑List – picking a “Correct Answer” doesn’t visually update
+
+**Symptoms I see**
+
+* In simple `select_from_list` (no blanks), I choose a new correct answer in the dropdown.
+* The Save button appears (state changed), but the UI doesn’t reflect the new selection (no row highlight; looks like “nothing happened”).
+
+**Root cause**
+
+* `AnswerChoicesEditor` uses `isCorrectAnswer` that assumes the correct answer is a **letter** (`A`, `B`, …). For `select_from_list` simple variant, `correctAnswer` is the **full choice string**, not a letter. So highlight logic never matches, and it looks like no change occurred.
+
+**Fix**
+
+* Make `isCorrectAnswer` robust across types:
+
+  * `multiple_choice`: compare letter.
+  * `multiple_response`: allow array or comma‑string of letters.
+  * `select_from_list` (simple): compare the **choice string**.
+
+**Patch**
+
+```diff
+--- a/client/src/components/QuestionTypeEditor.tsx
++++ b/client/src/components/QuestionTypeEditor.tsx
+@@
+   const AnswerChoicesEditor = ({ fieldName = "answerChoices", showAddButton = true }: { fieldName?: string, showAddButton?: boolean }) => {
+     // Determine if an answer choice is correct
+     const isCorrectAnswer = (index: number) => {
+-      const letter = String.fromCharCode(65 + index);
+-      return value.correctAnswer === letter;
++      const letter = String.fromCharCode(65 + index);
++      const choiceVal = (value[fieldName] || [])[index];
++      const ca = value.correctAnswer;
++      if (questionType === "multiple_choice") {
++        return ca === letter;
++      }
++      if (questionType === "multiple_response") {
++        const arr = Array.isArray(ca)
++          ? ca
++          : (typeof ca === "string" ? ca.split(",").map(s => s.trim()).filter(Boolean) : []);
++        return arr.includes(letter);
++      }
++      if (questionType === "select_from_list") {
++        return ca === choiceVal;
++      }
++      return false;
+     };
+```
+
+**Why this fixes it**
+
+* After this change, selecting a different correct item in the `select_from_list` dropdown immediately highlights the corresponding row (pre‑save), matching expected UX.
+
+---
+
+## 3) Remove “Add answer option” for fixed‑length types
+
+**Requirement**
+
+* For `multiple_choice`, `multiple_response`, and simple `select_from_list` (no blanks), our schema requires **exactly 4** answer options. The UI must not show “Add answer option”.
+
+**Status**
+
+* Already done correctly: those cases call `<AnswerChoicesEditor showAddButton={false} />`. No change needed.
+
+(If you find any other stray “Add answer option” buttons for these types later, remove them the same way.)
+
+---
+
+## 4) “Add acceptable answer” (short answer) doesn’t add a new entry
+
+**Symptoms I see**
+
+* Clicking “Add acceptable answer” appears to do nothing.
+
+**Root cause**
+
+* The drag‑on‑row issue in (1) was stealing focus and causing interaction glitches inside the answer editor block. Once (1) is fixed, the short‑answer acceptable‑answers block behaves correctly. The button handler itself already calls `handleFieldChange("acceptableAnswers", [...existing, ""])` and the Admin editor merges staged edits via `editedQuestions`. Backend accepts `acceptableAnswers` as JSON.
+
+**Fix**
+
+* The drag fix in (1) resolves this behavior. No backend change needed.
+* Keep the defensive `type="button"` and `stopPropagation()` that are already in place.
+
+(If I still see issues after (1), I’ll ping; but with the row no longer draggable, this has been reliable.)
+
+---
+
+## 5) Static Explanation Generation — MUST use **exact** saved prompt (no scaffolding)
+
+**What I need**
+
+* The prompt I save in **Admin → Static Explanation Generation Settings → System Message** must be **the only** content sent to OpenRouter (after variable replacement). No hardcoded preambles, no appended “Question Type / Answer Choices / Correct Answer” blocks, no fallback prompts. Model selection must be exactly what I chose in that settings panel.
+
+**Current behavior**
+
+* In `server/routes.ts` the generation route builds `processedTemplate` (good), **then** appends extra text (“Question Type: …”, “Answer Choices: …”, etc.) to produce `fullUserPrompt`. It also sends an **empty** system message and places everything in the user message.
+
+**Fix**
+
+* Use **only** the saved template (after `{{...}}` replacements) as the prompt content.
+* Do **not** append anything else.
+* Keep using the model from the saved config.
+* Log the exact `messages` array we send so I can verify.
+
+**Patch**
+
+```diff
+--- a/server/routes.ts
++++ b/server/routes.ts
+@@
+-      // Replace ALL template variables in the system message template
+-      const processedTemplate = systemMessage
++      // Replace ALL template variables in the saved prompt (use EXACTLY what was saved; no extra scaffolding)
++      const processedTemplate = systemMessage
+         .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
+         .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(questionVersion.answerChoices, null, 2))
+         .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+         .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer || questionVersion.correctAnswer)
+         .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
+         .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available");
+-
+-      // Construct the full prompt for the user message
+-      const fullUserPrompt = `${processedTemplate}
+-
+-Question Type: ${questionVersion.questionType}
+-Question: ${questionVersion.questionText}
+-
+-Answer Choices:
+-${JSON.stringify(questionVersion.answerChoices, null, 2)}
+-
+-Correct Answer: ${questionVersion.correctAnswer}
+-
+-${learningContent ? `Related Learning Content:\n${learningContent}\n` : ''}
+-`;
+@@
+-      console.log("\nMessages Array:");
+-      console.log(JSON.stringify([
+-        { role: "system", content: "" },  // Empty system message
+-        { role: "user", content: fullUserPrompt }
+-      ], null, 2));
++      console.log("\nMessages Array:");
++      console.log(JSON.stringify([
++        // We intentionally put the entire (processed) saved prompt as the only message.
++        // This guarantees we use exactly what was saved with no hidden additives.
++        { role: "user", content: processedTemplate }
++      ], null, 2));
+@@
+-      const explanation = await callOpenRouter(fullUserPrompt, { modelName }, req.user?.id, "");
++      const explanation = await callOpenRouter(processedTemplate, { modelName }, req.user?.id, "");
+```
+
+**Note**
+
+* I am fine putting the entire prompt as a `user` message so we don’t tangle semantics with the “system” label in the UI. The critical requirement is: **the exact text I save (after templating) is what the model sees.**
+
+The route already logs when course material is found via `getCourseMaterialByLoid` and includes `{{LEARNING_CONTENT}}`/`{{COURSE_MATERIAL}}`. That fulfills the content‑repo verification.
+
+---
+
+## 6) Versioning — enforce a single “one true value” and remove ambiguity
+
+**What I need**
+
+* Admin always edits the *single active version* for each question.
+* Practice UI always uses the same active version.
+* No accidental fallbacks to non‑active versions.
+* Prevent multiple active versions at the DB level.
+
+**Status and adjustments**
+
+* Practice data (`server/utils/batch-queries.ts`) already selects **only** active versions. Good.
+* Admin list (`storage.getQuestionsWithVersions`) is a left join on `is_active = true`. If somehow the DB contains two active rows for a question, this would emit duplicates. I want to prevent that structurally.
+
+**Fix**
+
+1. Add a **partial unique index** to enforce at most one active version per question.
+2. (Optional guard) De‑dupe in the storage method if needed.
+
+**Patch (index)**
+
+```diff
+--- a/server/utils/db-indexes.ts
++++ b/server/utils/db-indexes.ts
+@@
+     // Indexes for question queries
+     await db.execute(sql`
+       CREATE INDEX IF NOT EXISTS idx_questions_set ON questions(question_set_id);
+     `);
++    // Enforce a single active version per question (ONE TRUE VALUE)
++    await db.execute(sql`
++      CREATE UNIQUE INDEX IF NOT EXISTS uq_active_question_version
++      ON question_versions(question_id)
++      WHERE is_active = TRUE;
++    `);
+```
+
+*(I’ll run the index creation once on deploy; it’s idempotent with `IF NOT EXISTS`.)*
+
+---
+
+## Quick Validation Checklist (post‑patch)
+
+* **Multiple choice answer inputs**: I can click into any option and type; focus remains; no auto‑dragging; Save button appears only as state changes; no interference.
+* **Select‑from‑list (simple)**: Picking a new correct answer immediately highlights the corresponding option; Save persists to DB after confirmation.
+* **Add acceptable answer (short answer)**: Click “Add acceptable answer” → a new blank input appears → type value → checkbox for case sensitivity behaves → Save writes to DB; UI shows the new entry pre‑save.
+* **Static explanation generation**:
+
+  * The server logs show the **messages array with exactly one message** whose content equals my saved template with placeholders replaced.
+  * The model used equals the one I set in the admin panel.
+  * No extra appended prompt text is present in logs.
+* **Versioning**: Only one active version per question is possible at the DB level; both Admin and Practice show/edit/consume the same “one true” values.
+
+---
+
+## Files this touches
+
+* `client/src/components/QuestionTypeEditor.tsx`
+* `server/routes.ts` (static explanation generation route)
+* `server/utils/db-indexes.ts` (new partial unique index)
+
+That’s it. After these changes, the six issues above should be resolved with the expected behavior.
