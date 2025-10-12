@@ -2530,11 +2530,48 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       // Helper function to replace template variables
       const replaceTemplateVariables = (template: string) => {
+        // For multiple choice questions, construct the full correct answer with letter and text
+        let fullCorrectAnswer = questionVersion.correctAnswer;
+        if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+          const correctLetter = questionVersion.correctAnswer;
+          const correctIndex = correctLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
+          if (correctIndex >= 0 && correctIndex < questionVersion.answerChoices.length) {
+            const answerText = questionVersion.answerChoices[correctIndex];
+            // Remove any existing letter prefix from the choice text if present
+            const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
+            fullCorrectAnswer = `${correctLetter}. ${cleanedText}`;
+          }
+        }
+        
+        // Similarly handle the selected answer for multiple choice
+        let fullSelectedAnswer = selectedAnswer || fullCorrectAnswer;
+        if (selectedAnswer && questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+          const selectedLetter = selectedAnswer;
+          const selectedIndex = selectedLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
+          if (selectedIndex >= 0 && selectedIndex < questionVersion.answerChoices.length) {
+            const answerText = questionVersion.answerChoices[selectedIndex];
+            // Remove any existing letter prefix from the choice text if present
+            const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
+            fullSelectedAnswer = `${selectedLetter}. ${cleanedText}`;
+          }
+        }
+        
+        // Format answer choices with letters for better readability
+        let formattedAnswerChoices = questionVersion.answerChoices;
+        if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+          formattedAnswerChoices = questionVersion.answerChoices.map((choice: string, index: number) => {
+            const letter = String.fromCharCode(65 + index); // A, B, C, D
+            // Remove any existing letter prefix from the choice text if present
+            const cleanedText = choice.replace(/^[A-D]\.\s*/, '');
+            return `${letter}. ${cleanedText}`;
+          });
+        }
+        
         return template
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
-          .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(questionVersion.answerChoices, null, 2))
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer || questionVersion.correctAnswer) // Default to correct answer if not specified
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(formattedAnswerChoices, null, 2))
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, fullCorrectAnswer)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, fullSelectedAnswer)
           .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
           .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
       };
