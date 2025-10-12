@@ -496,7 +496,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
           {(value.blanks || []).map((blank: any, index: number) => (
             <Card key={index} className="p-4 space-y-3">
               <div className="flex justify-between items-center">
-                <Label>Blank {index + 1} (blank_{blank.blank_id || index + 1})</Label>
+                <Label>Blank {index + 1}</Label>
                 <Button
                   size="icon"
                   variant="ghost"
