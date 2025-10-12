@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2, Copy, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -255,6 +255,7 @@ function AISettingsSection() {
 function OpenRouterSettingsSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [copiedVariables, setCopiedVariables] = useState<Set<string>>(new Set());
   
   // Define the OpenRouter config schema
   const openRouterConfigSchema = z.object({
@@ -310,6 +311,24 @@ function OpenRouterSettingsSection() {
 
   const onSubmit = (data: z.infer<typeof openRouterConfigSchema>) => {
     updateConfigMutation.mutate(data);
+  };
+
+  const handleCopy = (variable: string) => {
+    navigator.clipboard.writeText(variable);
+    setCopiedVariables(prev => {
+      const newSet = new Set(prev);
+      newSet.add(variable);
+      return newSet;
+    });
+    
+    // Reset the copied state after 1.5 seconds
+    setTimeout(() => {
+      setCopiedVariables(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(variable);
+        return newSet;
+      });
+    }, 1500);
   };
 
   if (isLoading) {
@@ -383,9 +402,13 @@ function OpenRouterSettingsSection() {
                             variant="ghost"
                             size="sm"
                             className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{QUESTION_TEXT}}')}
+                            onClick={() => handleCopy('{{QUESTION_TEXT}}')}
                           >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            {copiedVariables.has('{{QUESTION_TEXT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
                           </Button>
                         </div>
                         <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
@@ -395,9 +418,13 @@ function OpenRouterSettingsSection() {
                             variant="ghost"
                             size="sm"
                             className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{CORRECT_ANSWER}}')}
+                            onClick={() => handleCopy('{{CORRECT_ANSWER}}')}
                           >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            {copiedVariables.has('{{CORRECT_ANSWER}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
                           </Button>
                         </div>
                         <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
@@ -407,9 +434,13 @@ function OpenRouterSettingsSection() {
                             variant="ghost"
                             size="sm"
                             className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{LEARNING_CONTENT}}')}
+                            onClick={() => handleCopy('{{LEARNING_CONTENT}}')}
                           >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            {copiedVariables.has('{{LEARNING_CONTENT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
                           </Button>
                         </div>
                       </div>
