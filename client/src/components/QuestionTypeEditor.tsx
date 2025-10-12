@@ -105,6 +105,11 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
   };
+  
+  const handleDragEnd = () => {
+    // ensure drag state is cleared even if user cancels the drag
+    setDraggedIndex(null);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -130,7 +135,22 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
     // Determine if an answer choice is correct
     const isCorrectAnswer = (index: number) => {
       const letter = String.fromCharCode(65 + index);
-      return value.correctAnswer === letter;
+      const choiceVal = (value[fieldName] || [])[index];
+      const ca = value.correctAnswer;
+      
+      if (questionType === "multiple_choice") {
+        return ca === letter;
+      }
+      if (questionType === "multiple_response") {
+        const arr = Array.isArray(ca)
+          ? ca
+          : (typeof ca === "string" ? ca.split(",").map(s => s.trim()).filter(Boolean) : []);
+        return arr.includes(letter);
+      }
+      if (questionType === "select_from_list") {
+        return ca === choiceVal;
+      }
+      return false;
     };
 
     // Handle delete button click - show confirmation modal
@@ -160,18 +180,24 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
                   isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
                 }`}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index, fieldName)}
               >
-                <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className="cursor-grab mr-1"
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </div>
                 <span className={`font-semibold min-w-[2rem] ${
                   isCorrect ? 'text-green-700 dark:text-green-400' : ''
                 }`}>
                   {String.fromCharCode(65 + index)}.
                 </span>
                 <Input
+                  onMouseDown={(e) => e.stopPropagation()}
                   value={choice}
                   onChange={(e) => {
                     const newChoices = [...(value[fieldName] || [])];
