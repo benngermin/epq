@@ -261,10 +261,11 @@ function OpenRouterSettingsSection() {
   const openRouterConfigSchema = z.object({
     modelName: z.string().min(1, "Model is required"),
     systemMessage: z.string().min(1, "System message is required"),
+    userMessage: z.string().min(1, "User message is required"),
   });
   
   // Query for OpenRouter config
-  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string }>({
+  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string; userMessage: string }>({
     queryKey: ["/api/admin/openrouter-config"],
   });
 
@@ -274,6 +275,7 @@ function OpenRouterSettingsSection() {
     defaultValues: {
       modelName: "anthropic/claude-3.5-sonnet",
       systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+      userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
     },
   });
 
@@ -283,6 +285,7 @@ function OpenRouterSettingsSection() {
       form.reset({
         modelName: openRouterConfig.modelName || "anthropic/claude-3.5-sonnet",
         systemMessage: openRouterConfig.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+        userMessage: openRouterConfig.userMessage || "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
       });
     }
   }, [openRouterConfig, form]);
@@ -383,6 +386,84 @@ function OpenRouterSettingsSection() {
                     <FormControl>
                       <Textarea
                         placeholder="Enter the system message for static explanation generation..."
+                        className="resize-vertical font-mono text-sm min-h-[200px]"
+                        rows={10}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        Allowed Template Variables:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{QUESTION_TEXT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{QUESTION_TEXT}}')}
+                          >
+                            {copiedVariables.has('{{QUESTION_TEXT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{CORRECT_ANSWER}}')}
+                          >
+                            {copiedVariables.has('{{CORRECT_ANSWER}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{LEARNING_CONTENT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{LEARNING_CONTENT}}')}
+                          >
+                            {copiedVariables.has('{{LEARNING_CONTENT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        These variables will be replaced with actual question data when generating explanations.
+                      </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="userMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter the user message for static explanation generation..."
                         className="resize-vertical font-mono text-sm min-h-[200px]"
                         rows={10}
                         {...field}
