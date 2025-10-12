@@ -2528,24 +2528,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
       }
 
-      // Helper function to replace template variables
-      const replaceTemplateVariables = (template: string) => {
-        // For multiple choice questions, construct the full correct answer with letter and text
-        let fullCorrectAnswer = questionVersion.correctAnswer;
-        if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
-          const correctLetter = questionVersion.correctAnswer;
-          const correctIndex = correctLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
-          if (correctIndex >= 0 && correctIndex < questionVersion.answerChoices.length) {
-            const answerText = questionVersion.answerChoices[correctIndex];
-            // Remove any existing letter prefix from the choice text if present
-            const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
-            fullCorrectAnswer = `${correctLetter}. ${cleanedText}`;
-          }
+      // Prepare formatted values for both template replacement and logging
+      let fullCorrectAnswer = questionVersion.correctAnswer;
+      let fullSelectedAnswer = selectedAnswer || questionVersion.correctAnswer;
+      let formattedAnswerChoices = questionVersion.answerChoices;
+      
+      // For multiple choice questions, construct the full correct answer with letter and text
+      if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+        const correctLetter = questionVersion.correctAnswer;
+        const correctIndex = correctLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
+        if (correctIndex >= 0 && correctIndex < questionVersion.answerChoices.length) {
+          const answerText = questionVersion.answerChoices[correctIndex];
+          // Remove any existing letter prefix from the choice text if present
+          const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
+          fullCorrectAnswer = `${correctLetter}. ${cleanedText}`;
         }
         
         // Similarly handle the selected answer for multiple choice
-        let fullSelectedAnswer = selectedAnswer || fullCorrectAnswer;
-        if (selectedAnswer && questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+        if (selectedAnswer) {
           const selectedLetter = selectedAnswer;
           const selectedIndex = selectedLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
           if (selectedIndex >= 0 && selectedIndex < questionVersion.answerChoices.length) {
@@ -2557,16 +2557,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
         
         // Format answer choices with letters for better readability
-        let formattedAnswerChoices = questionVersion.answerChoices;
-        if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
-          formattedAnswerChoices = questionVersion.answerChoices.map((choice: string, index: number) => {
-            const letter = String.fromCharCode(65 + index); // A, B, C, D
-            // Remove any existing letter prefix from the choice text if present
-            const cleanedText = choice.replace(/^[A-D]\.\s*/, '');
-            return `${letter}. ${cleanedText}`;
-          });
-        }
-        
+        formattedAnswerChoices = questionVersion.answerChoices.map((choice: string, index: number) => {
+          const letter = String.fromCharCode(65 + index); // A, B, C, D
+          // Remove any existing letter prefix from the choice text if present
+          const cleanedText = choice.replace(/^[A-D]\.\s*/, '');
+          return `${letter}. ${cleanedText}`;
+        });
+      }
+
+      // Helper function to replace template variables
+      const replaceTemplateVariables = (template: string) => {
         return template
           .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
           .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(formattedAnswerChoices, null, 2))
