@@ -51,7 +51,8 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           setContentType('markdown');
           console.log('Processing markdown:', sanitizedExplanation.substring(0, 100));
           const html = await processMarkdown(sanitizedExplanation);
-          console.log('Generated HTML:', html.substring(0, 200));
+          console.log('Generated HTML:', html.substring(0, 500));
+          console.log('Full HTML:', html);
           setProcessedContent(html);
           setHasError(false);
           setIsProcessing(false);

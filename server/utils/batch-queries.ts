@@ -55,6 +55,9 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
         answerChoices: latestVersion.answerChoices || latestVersion.answer_choices,
         dropZones: latestVersion.dropZones || latestVersion.drop_zones,
         blanks: latestVersion.blanks, // Include blanks field for select_from_list questions
+        // Ensure camelCase for static fields
+        isStaticAnswer: latestVersion.isStaticAnswer || latestVersion.is_static_answer,
+        staticExplanation: latestVersion.staticExplanation || latestVersion.static_explanation,
       };
       
       // Validate static explanation fields for consistency

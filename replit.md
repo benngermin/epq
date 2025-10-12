@@ -1,64 +1,64 @@
-# Exam Practice Questions
+# Insurance Exam Practice Application
 
 ## Overview
-This project is an AI-powered platform for insurance professional certification exam preparation. It provides adaptive learning experiences for certifications like CPCU and AIC, aiming to be a comprehensive and effective tool for exam success.
+A comprehensive web application for insurance exam preparation with AI-powered chat support and practice questions. The application provides practice exams with static explanations and AI chat assistance for incorrect answers.
 
-## User Preferences
-### Communication Style
-- Technical documentation should be comprehensive
-- Code should follow TypeScript best practices
-- Use clear, descriptive variable names
-- Implement proper error handling throughout
+## Recent Changes (October 12, 2024)
 
-### Development Practices
-- Always use the storage interface for database operations
-- Validate all input data with Zod schemas
-- Use React Query for all data fetching
-- Implement loading states for async operations
-- Handle errors gracefully with user-friendly messages
+### Markdown Rendering Fix
+- **Issue**: Static explanations were displaying raw markdown syntax (e.g., `**text**`) instead of rendering formatted text
+- **Root Cause**: The Tailwind Typography plugin's `prose` class wasn't properly styling `<strong>` and `<em>` tags
+- **Solution**: Added explicit CSS rules in `client/src/index.css` for proper markdown rendering
+- **Components Updated**:
+  - `client/src/index.css` - Added prose styling for markdown elements
+  - `server/utils/batch-queries.ts` - Fixed camelCase conversion for static fields
+- **Result**: Markdown syntax like `**Correct Answer:**` now renders as bold text properly
 
-### Testing & Quality
-- Test with both SSO and local authentication
-- Verify course loading with URL parameters
-- Check question navigation and answer submission
-- Validate AI chatbot responses
-- Monitor database connection stability
+## Key Features
+- Practice exam questions with immediate feedback
+- Static explanations for incorrect answers
+- AI chat support for additional help
+- Question set management
+- Progress tracking
+- Admin panel for content management
 
-### Global Preferences
-- **Change Control**: Never modify any prompts, LLMs, model settings, or edit/delete/write data without explicit user approval.
-- **Communication**: Briefly state plan, why, and potential impacts; outline numbered steps for non-trivial work and await go-ahead. Clarify anything unclear immediately. Summarize actions and suggest next steps upon completion.
-- **Coding Standards**: Write readable, modular code with descriptive names, minimal comments, and consistent formatting (4-space indent, lines ~≤80 chars). Implement robust error handling.
-- **Data Handling & Safety**: Use anonymized/mock data for sensitive scenarios. Back up affected code/data before risky changes and explain rollback procedures.
-- **Testing & Version Control**: Add unit tests for new features, targeting ≥80% coverage on critical paths. Run tests and report failures before finalizing.
-- **Dependencies, Research & Response Style**: Use latest stable libraries. Cite external research. Keep responses focused and concise, using code examples when helpful.
+## Technology Stack
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Node.js, Express, TypeScript
+- **Database**: PostgreSQL (Neon-backed)
+- **ORM**: Drizzle
+- **Authentication**: Cognito SSO and local authentication
 
-## System Architecture
-The platform features a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Wouter) and an Express.js backend (TypeScript). Data persistence uses PostgreSQL (Neon serverless) with Drizzle ORM. Authentication is managed via Passport.js with AWS Cognito SSO and local authentication, using express-session for session management. Vite handles building, and deployment is on Replit.
+## Project Architecture
+```
+├── client/               # Frontend React application
+│   ├── src/
+│   │   ├── components/  # Reusable UI components
+│   │   ├── pages/       # Page components
+│   │   ├── hooks/       # Custom React hooks
+│   │   └── lib/         # Utility functions and helpers
+├── server/              # Backend Express server
+│   ├── routes.ts        # API routes
+│   ├── storage.ts       # Storage interface
+│   └── utils/           # Server utilities
+└── shared/              # Shared types and schemas
+    └── schema.ts        # Drizzle database schema
+```
 
-**Core Features:**
-- **Multi-Modal Authentication**: Supports AWS Cognito SSO for enterprises and local authentication for administrators, with 7-day session persistence.
-- **Course Management System**: Handles CPCU and AIC programs, dynamic content loading, external ID mapping, and content import via Bubble.io.
-- **Question Set System**: Manages question versioning, tracks progress, provides analytics, and supports randomized question ordering.
-- **AI-Powered Tutoring**: Offers a context-aware chatbot using OpenRouter API with configurable AI models, prompt versioning, response logging, user feedback, and static explanations for specific questions.
-- **Admin Dashboard**: Provides tools for user, course, and question set management, AI settings, analytics, bulk import/export, and activity logs.
-- **Performance Optimizations**: Includes database connection pooling with circuit breaker, retry mechanisms, lazy loading, database indexing, and health monitoring.
-- **UI/UX Decisions**: Optimized for mobile readability with widened message cards, fixed accessibility for submit buttons, proper safe area insets for iOS, and improved sticky footer behavior.
-- **Static Answer Support**: Allows questions to provide pre-written explanations using `isStaticAnswer` and `staticExplanation`. The upload system uses a three-field matching (Course + Question Set Title + Question Number) for reliable question identification and preservation of static explanations during content refreshes.
-- **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, eliminating the need for additional prompt injection.
+## Markdown Processing Pipeline
+1. **Detection**: `isMarkdownContent()` checks for markdown patterns
+2. **Processing**: `processMarkdown()` converts markdown to HTML using unified/remark/rehype
+3. **Rendering**: `HtmlLinkRenderer` safely renders the HTML with proper styling
+4. **Styling**: Prose class applies typography styles for bold, italic, lists, etc.
 
-## External Dependencies
-- **Database**: PostgreSQL (Neon serverless)
-- **Authentication**: AWS Cognito (for SSO)
-- **AI Integration**: OpenRouter API
-- **Content Import**: Bubble.io
+## Database Schema
+- Questions and question versions with support for multiple question types
+- Static explanations with markdown support
+- User progress tracking
+- Course and question set organization
 
-## Recent Changes (October 12, 2025)
-- **Fixed Static Explanations Generation**:
-  - Fixed JavaScript error in admin panel where `questionId` was not defined in mutation callback - now correctly uses `variables` parameter
-  - Fixed issue where only the letter (e.g., "C") was sent to AI instead of complete answer
-  - Now sends full correct answer with both letter and text (e.g., "C. Average value method")
-  - Answer choices are now formatted with letters for better readability in prompts
-  - Selected answer is also formatted with complete text for comparison context
-  - Added comprehensive logging to verify all inputs sent to OpenRouter API
-  - Automatically switches to static mode when generating explanation
-  - This ensures AI models receive complete context for generating accurate explanations
+## Development Notes
+- Always use `npm run db:push` for database migrations
+- Frontend runs on port 5000 (integrated with backend)
+- Markdown explanations require at least 10 characters of content
+- Static explanations fall back to AI chat if validation fails
