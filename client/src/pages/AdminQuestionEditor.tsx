@@ -349,13 +349,25 @@ export default function AdminQuestionEditor() {
     }
   });
 
-  // Handle field edit
-  const handleFieldEdit = (questionId: number, field: string, value: any) => {
-    const newEdited = new Map(editedQuestions);
-    const existing = newEdited.get(questionId) || {};
-    newEdited.set(questionId, { ...existing, [field]: value });
-    setEditedQuestions(newEdited);
-  };
+  // Handle field edit (functional update to avoid stale Map)
+  const handleFieldEdit = useCallback((questionId: number, field: string, value: any) => {
+    setEditedQuestions(prev => {
+      const next = new Map(prev);
+      const existing = next.get(questionId) || {};
+      next.set(questionId, { ...existing, [field]: value });
+      return next;
+    });
+  }, []);
+
+  // Handle multiple-field patch in a single state update
+  const handleFieldsEdit = useCallback((questionId: number, patch: Partial<QuestionVersion>) => {
+    setEditedQuestions(prev => {
+      const next = new Map(prev);
+      const existing = next.get(questionId) || {};
+      next.set(questionId, { ...existing, ...patch });
+      return next;
+    });
+  }, []);
 
   // Handle save question
   const handleSaveQuestion = (questionId: number, versionId: number) => {
@@ -1081,11 +1093,7 @@ export default function AdminQuestionEditor() {
                                   blanks: getCurrentValue(question.id, version, "blanks"),
                                   dropZones: getCurrentValue(question.id, version, "dropZones"),
                                 }}
-                                onChange={(newValue) => {
-                                  Object.entries(newValue).forEach(([key, val]) => {
-                                    handleFieldEdit(question.id, key, val);
-                                  });
-                                }}
+                                onChange={(patch) => handleFieldsEdit(question.id, patch)}
                               />
                             )}
                             

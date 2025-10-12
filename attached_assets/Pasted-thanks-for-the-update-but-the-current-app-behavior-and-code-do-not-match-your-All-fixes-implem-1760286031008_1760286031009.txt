@@ -1,0 +1,329 @@
+thanks for the update, but the current app behavior and code do **not** match your “All fixes implemented” summary. I pulled the repo and verified the following continued issues and their concrete root causes. I’m including exact patches.
+
+---
+
+## TL;DR of what’s still broken (observed) and why (root cause)
+
+1. **I still cannot edit any answer option text anywhere.**
+   **Cause:** In `QuestionTypeEditor.tsx`, each answer choice row is still `draggable` on the row container. This steals focus from the `<Input>` and blocks typing. You did **not** move `draggable` to the grip icon as stated.
+
+2. **“Add acceptable answer” does nothing; case‑sensitive checkbox does nothing; MCQ correct answer dropdown does nothing; Drag‑and‑drop add choice/zone does nothing.**
+   **Cause (shared):** In `AdminQuestionEditor.tsx`, the `onChange` from `QuestionTypeEditor` is split into multiple sequential `setEditedQuestions` updates (one per field). Because React batches state and you’re cloning from a stale `Map` each time, only the **last** field “sticks” and the rest are lost. That’s why most edits appear to do nothing.
+
+3. **Select‑from‑list “correct answer” highlighting logic is still wrong.**
+   **Cause:** `isCorrectAnswer` in `QuestionTypeEditor.tsx` still treats everything as letter‑based. For select‑from‑list (simple), the correct answer is the **choice string**, not a letter.
+
+4. **Drag‑and‑drop mapping is still a raw JSON textarea.**
+   We explicitly need a user‑friendly UI. You already have `client/src/components/question-types/drag-drop-zones.tsx` which solves this; it just isn’t wired in.
+
+5. **Static explanation prompt usage is not fixed as claimed.**
+   The route still builds `fullUserPrompt` by **appending extra text** and sends an empty system message; logs confirm this. That violates the “use exactly what I saved” requirement.
+
+6. **DB uniqueness for one active version isn’t applied.**
+   There is **no** partial unique index for a single active version per question anywhere in `server/utils/db-indexes.ts`.
+
+---
+
+## Required fixes (with diffs)
+
+### A) Fix the **state merging bug** so edits actually persist (core blocker)
+
+**File:** `client/src/pages/AdminQuestionEditor.tsx`
+
+1. Make the per‑field editor use **functional state** to avoid stale closures.
+2. Add a multi‑field merge helper.
+3. Wire `QuestionTypeEditor.onChange` to merge **the whole patch once**, not loop per key.
+
+```diff
+--- a/client/src/pages/AdminQuestionEditor.tsx
++++ b/client/src/pages/AdminQuestionEditor.tsx
+@@
+-  // Handle field edit
+-  const handleFieldEdit = (questionId: number, field: string, value: any) => {
+-    const newEdited = new Map(editedQuestions);
+-    const existing = newEdited.get(questionId) || {};
+-    newEdited.set(questionId, { ...existing, [field]: value });
+-    setEditedQuestions(newEdited);
+-  };
++  // Handle field edit (functional update to avoid stale Map)
++  const handleFieldEdit = useCallback((questionId: number, field: string, value: any) => {
++    setEditedQuestions(prev => {
++      const next = new Map(prev);
++      const existing = next.get(questionId) || {};
++      next.set(questionId, { ...existing, [field]: value });
++      return next;
++    });
++  }, []);
++
++  // Handle multiple-field patch in a single state update
++  const handleFieldsEdit = useCallback((questionId: number, patch: Partial<QuestionVersion>) => {
++    setEditedQuestions(prev => {
++      const next = new Map(prev);
++      const existing = next.get(questionId) || {};
++      next.set(questionId, { ...existing, ...patch });
++      return next;
++    });
++  }, []);
+@@
+-                              <QuestionTypeEditor
++                              <QuestionTypeEditor
+                                 questionType={version.questionType}
+                                 value={{
+                                   answerChoices: getCurrentValue(question.id, version, "answerChoices"),
+                                   correctAnswer: getCurrentValue(question.id, version, "correctAnswer"),
+                                   acceptableAnswers: getCurrentValue(question.id, version, "acceptableAnswers"),
+                                   caseSensitive: getCurrentValue(question.id, version, "caseSensitive"),
+                                   blanks: getCurrentValue(question.id, version, "blanks"),
+                                   dropZones: getCurrentValue(question.id, version, "dropZones"),
+                                 }}
+-                                onChange={(newValue) => {
+-                                  Object.entries(newValue).forEach(([key, val]) => {
+-                                    handleFieldEdit(question.id, key, val);
+-                                  });
+-                                }}
++                                onChange={(patch) => handleFieldsEdit(question.id, patch)}
+                               />
+```
+
+> This single change will fix: **Add acceptable answer**, **MCQ correct answer dropdown**, **case‑sensitive toggle**, **drag‑and‑drop add choice/zone**, and any other “edit does nothing” reports.
+
+---
+
+### B) Stop the input focus loss (“ejected from textbox”) and allow editing
+
+**File:** `client/src/components/QuestionTypeEditor.tsx`
+
+Move `draggable` from the **row container** to the **grip icon**, add `onDragEnd`, and block drag start from inputs.
+
+```diff
+--- a/client/src/components/QuestionTypeEditor.tsx
++++ b/client/src/components/QuestionTypeEditor.tsx
+@@
+   const handleDragStart = (e: React.DragEvent, index: number) => {
+     setDraggedIndex(index);
+     e.dataTransfer.effectAllowed = "move";
+   };
++  const handleDragEnd = () => setDraggedIndex(null);
+@@
+-              <div 
++              <div 
+                 key={stableKey}
+                 className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                   isCorrect ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : ''
+                 }`}
+-                draggable
+-                onDragStart={(e) => handleDragStart(e, index)}
+                 onDragOver={handleDragOver}
+                 onDrop={(e) => handleDrop(e, index, fieldName)}
+               >
+-                <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
++                <GripVertical
++                  className="h-4 w-4 text-muted-foreground mr-1 cursor-grab"
++                  draggable
++                  onDragStart={(e) => handleDragStart(e, index)}
++                  onDragEnd={handleDragEnd}
++                />
+@@
+-                <Input
++                <Input
++                  onMouseDown={(e) => e.stopPropagation()}
++                  onTouchStart={(e) => e.stopPropagation()}
+                   value={choice}
+                   onChange={(e) => {
+                     const newChoices = [...(value[fieldName] || [])];
+                     newChoices[index] = e.target.value;
+                     handleArrayChange(fieldName, newChoices);
+                   }}
+```
+
+---
+
+### C) Make correctness highlighting work for all types
+
+**File:** `client/src/components/QuestionTypeEditor.tsx`
+
+Update `isCorrectAnswer` to handle `multiple_choice`, `multiple_response`, and simple `select_from_list`.
+
+```diff
+--- a/client/src/components/QuestionTypeEditor.tsx
++++ b/client/src/components/QuestionTypeEditor.tsx
+@@
+-    const isCorrectAnswer = (index: number) => {
+-      const letter = String.fromCharCode(65 + index);
+-      return value.correctAnswer === letter;
+-    };
++    const isCorrectAnswer = (index: number) => {
++      const letter = String.fromCharCode(65 + index);
++      const choiceVal = (value[fieldName] || [])[index];
++      const ca = value.correctAnswer;
++      if (questionType === "multiple_choice") {
++        return ca === letter;
++      }
++      if (questionType === "multiple_response") {
++        const arr = Array.isArray(ca) ? ca : (typeof ca === "string" ? ca.split(",").map(s => s.trim()).filter(Boolean) : []);
++        return arr.includes(letter);
++      }
++      if (questionType === "select_from_list") {
++        // simple variant: correct answer is the string value
++        return ca === choiceVal;
++      }
++      return false;
++    };
+```
+
+---
+
+### D) Make the case‑sensitive checkbox actually toggle
+
+**File:** `client/src/components/QuestionTypeEditor.tsx`
+
+Coerce Radix/ shadcn `CheckedState` to boolean.
+
+```diff
+-              <Checkbox
++              <Checkbox
+                 id="caseSensitive"
+                 checked={value.caseSensitive || false}
+-                onCheckedChange={(checked) => handleFieldChange("caseSensitive", checked)}
++                onCheckedChange={(checked) => handleFieldChange("caseSensitive", !!checked)}
+                 data-testid="checkbox-case-sensitive"
+               />
+```
+
+---
+
+### E) Replace the JSON textarea with the **actual drag/drop mapping UI**
+
+You already have `DragDropZones`. Use it so editors don’t have to type JSON.
+
+**File:** `client/src/components/QuestionTypeEditor.tsx`
+
+1. Import the component.
+2. Render it in the `drag_and_drop` case and bind it to `correctAnswer`.
+
+```diff
+--- a/client/src/components/QuestionTypeEditor.tsx
++++ b/client/src/components/QuestionTypeEditor.tsx
+@@
+-import { Plus, Trash2, GripVertical } from "lucide-react";
++import { Plus, Trash2, GripVertical } from "lucide-react";
++import { DragDropZones } from "@/components/question-types/drag-drop-zones";
+@@ case "drag_and_drop":
+-          <div>
+-            <Label>Correct Answer Mapping</Label>
+-            <Textarea
+-              value={typeof value.correctAnswer === "object" ? JSON.stringify(value.correctAnswer, null, 2) : value.correctAnswer || ""}
+-              onChange={(e) => {
+-                try {
+-                  const parsed = JSON.parse(e.target.value);
+-                  handleFieldChange("correctAnswer", parsed);
+-                } catch {
+-                  handleFieldChange("correctAnswer", e.target.value);
+-                }
+-              }}
+-              placeholder='{"zone_1": ["item1"], "zone_2": ["item2", "item3"]}'
+-              rows={4}
+-              className="font-mono text-sm"
+-              data-testid="textarea-correct-mapping"
+-            />
+-            <p className="text-xs text-muted-foreground mt-1">
+-              You can paste JSON here, but the drag-and-drop UI above is the recommended way.
+-            </p>
+-          </div>
++          <div className="space-y-2">
++            <Label>Assign Choices to Drop Zones</Label>
++            <DragDropZones
++              answerChoices={value.answerChoices || []}
++              dropZones={value.dropZones || []}
++              value={value.correctAnswer || {}}
++              onChange={(mapping) => handleFieldChange("correctAnswer", mapping)}
++            />
++          </div>
++          {/* (Optional) Keep JSON as an advanced editor if you want: wrap the Textarea in a collapsible */}
+```
+
+*(Optional)* If you want to keep a JSON Textarea as an advanced escape hatch, put it in a collapsible section; but the main path must be the drag/drop UI above.
+
+---
+
+### F) Use exactly the saved static‑explanation prompt; remove appended scaffolding
+
+**File:** `server/routes.ts` (static explanation generation path)
+
+Replace the appended `fullUserPrompt` + empty system message with the **exact processed template**, and log/send exactly that.
+
+```diff
+--- a/server/routes.ts
++++ b/server/routes.ts
+@@
+-      // Construct the full prompt for the user message
+-      const fullUserPrompt = `${processedTemplate}
+-...
+-${learningContent ? `Related Learning Content:\n${learningContent}\n` : ''}
+-`;
+-
+-      console.log("\nMessages Array:");
+-      console.log(JSON.stringify([
+-        { role: "system", content: "" },  // Empty system message
+-        { role: "user", content: fullUserPrompt }
+-      ], null, 2));
++      console.log("\nMessages Array:");
++      console.log(JSON.stringify([
++        { role: "user", content: processedTemplate }
++      ], null, 2));
+@@
+-      // Call OpenRouter to generate the explanation with empty system message
+-      const explanation = await callOpenRouter(fullUserPrompt, { modelName }, req.user?.id, "");
++      // Call OpenRouter using exactly the saved prompt (after replacements)
++      const explanation = await callOpenRouter(processedTemplate, { modelName }, req.user?.id, "");
+```
+
+---
+
+### G) Enforce **one active version** per question in the DB
+
+**File:** `server/utils/db-indexes.ts`
+
+Add a partial unique index to prevent multiple active versions.
+
+```diff
+--- a/server/utils/db-indexes.ts
++++ b/server/utils/db-indexes.ts
+@@
+     await db.execute(sql`
+       CREATE INDEX IF NOT EXISTS idx_question_versions_question_id ON question_versions(question_id);
+     `);
++    // Enforce a single active version per question
++    await db.execute(sql`
++      CREATE UNIQUE INDEX IF NOT EXISTS uq_active_question_version
++      ON question_versions(question_id)
++      WHERE is_active = TRUE;
++    `);
+```
+
+---
+
+## What this fixes, mapped to my original/continued issues
+
+* **Multiple Choice Answer Editing**: Fixed by (A) and (B). Inputs stop losing focus; edits persist immediately (pre‑save).
+* **MCQ Correct Answer dropdown**: Fixed by (A). Selection updates `correctAnswer` in the staged edits and highlights via (C).
+* **Select‑From‑List correct answer**: Fixed by (C) (string‑based correctness).
+* **Add Acceptable Answer**: Fixed by (A); the added entry appears instantly; (B) was not the main blocker here.
+* **Case‑sensitive checkbox**: Fixed by (A) + (D).
+* **Drag‑and‑Drop add choice/zone**: Fixed by (A); and the new UI in (E) removes the JSON burden entirely.
+* **Static Explanation prompt**: Truly fixed by (F) (no hidden prefix/suffix).
+* **Versioning single source of truth**: Guaranteed by (G).
+
+---
+
+## Quick smoke‑test script (what I’ll verify)
+
+1. MCQ: Type into option inputs → no focus loss; pick a different correct letter → highlight changes immediately; click **Save** → confirm → DB updated.
+2. Select‑from‑list (simple): pick a different correct value → highlight changes immediately; Save flow works.
+3. Short Answer: Click **Add acceptable answer** → new blank row appears → type text → toggle case‑sensitive → Save flow works; list persists on reload.
+4. Drag‑and‑Drop: **Add Choice**, **Add Drop Zone**, and assign items via the drag UI → mapping reflects instantly; Save works; learner validation uses that mapping.
+5. Static Explanation: Server logs show **exactly one** message in the OpenRouter payload containing my saved prompt (after replacements) and **no appended blocks**.
+
+---
+
+Please apply the diffs above and push. If anything in your local branch differs from these file paths, let me know the exact paths so I can re‑diff against your tree.
