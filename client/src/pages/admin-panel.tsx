@@ -377,30 +377,6 @@ function OpenRouterSettingsSection() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
-                          <code className="text-xs font-mono">{'{{QUESTION_TEXT}}'}</code>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{QUESTION_TEXT}}')}
-                          >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
-                          <code className="text-xs font-mono">{'{{ANSWER_CHOICES}}'}</code>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{ANSWER_CHOICES}}')}
-                          >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
                           <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
                           <Button
                             type="button"
@@ -413,18 +389,6 @@ function OpenRouterSettingsSection() {
                           </Button>
                         </div>
                         <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
-                          <code className="text-xs font-mono">{'{{SELECTED_ANSWER}}'}</code>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{SELECTED_ANSWER}}')}
-                          >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
                           <code className="text-xs font-mono">{'{{LEARNING_CONTENT}}'}</code>
                           <Button
                             type="button"
@@ -432,18 +396,6 @@ function OpenRouterSettingsSection() {
                             size="sm"
                             className="h-4 w-4 p-0 hover:bg-transparent"
                             onClick={() => navigator.clipboard.writeText('{{LEARNING_CONTENT}}')}
-                          >
-                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
-                          <code className="text-xs font-mono">{'{{COURSE_MATERIAL}}'}</code>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 hover:bg-transparent"
-                            onClick={() => navigator.clipboard.writeText('{{COURSE_MATERIAL}}')}
                           >
                             <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                           </Button>
