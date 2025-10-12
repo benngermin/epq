@@ -4,6 +4,7 @@ import jwksClient from 'jwks-rsa';
 // AWS Cognito configuration
 const COGNITO_REGION = process.env.COGNITO_REGION || 'us-east-1';
 const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || 'us-east-1_vAMMFcpew';
+const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Required for audience validation
 const COGNITO_JWKS_URI = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json`;
 const COGNITO_ISSUER = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
 
@@ -91,6 +92,17 @@ export function validateCognitoToken(token: string): Promise<CognitoIdTokenPaylo
         // Verify this is an ID token, not an access token
         if (payload.token_use !== 'id') {
           return reject(new Error('Token is not an ID token'));
+        }
+
+        // Critical: Verify the audience (aud) claim matches our client ID
+        // This prevents tokens issued for other applications from being used here
+        if (!COGNITO_CLIENT_ID) {
+          return reject(new Error('COGNITO_CLIENT_ID not configured'));
+        }
+        
+        if (payload.aud !== COGNITO_CLIENT_ID) {
+          console.error(`Token audience mismatch: expected ${COGNITO_CLIENT_ID}, got ${payload.aud}`);
+          return reject(new Error('Token audience does not match expected client'));
         }
 
         // Check token hasn't expired (jwt.verify already does this, but being explicit)
