@@ -2496,9 +2496,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const openRouterConfig = await storage.getOpenRouterConfig();
       
       // CRITICAL: Return error if no configuration exists - NO FALLBACK PROMPTS
-      if (!openRouterConfig || !openRouterConfig.systemMessage) {
+      if (!openRouterConfig || !openRouterConfig.systemMessage || !openRouterConfig.userMessage) {
         return res.status(400).json({ 
-          message: "Static explanation generation is not configured. Please configure the system prompt in OpenRouter settings first." 
+          message: "Static explanation generation is not configured. Please configure both system and user messages in OpenRouter settings first." 
         });
       }
       
@@ -2511,6 +2511,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       const modelName = openRouterConfig.modelName;
       const systemMessage = openRouterConfig.systemMessage;
+      const userMessage = openRouterConfig.userMessage;
 
       // Fetch learning content using LOID
       let learningContent = "";
@@ -2525,17 +2526,23 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
       }
 
-      // Replace ALL template variables in the system message template
-      const processedTemplate = systemMessage
-        .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
-        .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(questionVersion.answerChoices, null, 2))
-        .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-        .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer || questionVersion.correctAnswer) // Default to correct answer if not specified
-        .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
-        .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
+      // Helper function to replace template variables
+      const replaceTemplateVariables = (template: string) => {
+        return template
+          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(questionVersion.answerChoices, null, 2))
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer || questionVersion.correctAnswer) // Default to correct answer if not specified
+          .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
+          .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
+      };
 
-      // CRITICAL: Use ONLY the saved template (after templating) with NO extra scaffolding
-      console.log(`Processed template with variables replaced: ${processedTemplate.substring(0, 500)}...`);
+      // Process both system message and user message templates
+      const processedSystemMessage = replaceTemplateVariables(systemMessage);
+      const processedUserMessage = replaceTemplateVariables(userMessage);
+
+      console.log(`Processed system message: ${processedSystemMessage.substring(0, 300)}...`);
+      console.log(`Processed user message: ${processedUserMessage.substring(0, 300)}...`);
 
       console.log(`Calling OpenRouter with model: ${modelName}`);
       
@@ -2547,14 +2554,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
       console.log("Max Tokens: 56000");
       console.log("\nMessages Array:");
       console.log(JSON.stringify([
-        // We intentionally put the entire (processed) saved prompt as the only message.
-        // This guarantees we use exactly what was saved with no hidden additives.
-        { role: "user", content: processedTemplate }
+        { role: "system", content: processedSystemMessage },
+        { role: "user", content: processedUserMessage }
       ], null, 2));
       console.log("\n=== END API CALL DETAILS ===\n");
       
-      // Call OpenRouter to generate the explanation - use EXACT saved prompt, no scaffolding
-      const explanation = await callOpenRouter(processedTemplate, { modelName }, req.user?.id, "");
+      // Call OpenRouter with both system and user messages
+      const explanation = await callOpenRouter(processedUserMessage, { modelName }, req.user?.id, processedSystemMessage);
 
       // Update the question version with the generated explanation
       const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
