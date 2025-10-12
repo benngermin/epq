@@ -36,6 +36,10 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           .trim();
         
         // Detect content type and process accordingly
+        console.log('Content detection - Is HTML?', isHtmlContent(sanitizedExplanation));
+        console.log('Content detection - Is Markdown?', isMarkdownContent(sanitizedExplanation));
+        console.log('First 100 chars:', sanitizedExplanation.substring(0, 100));
+        
         if (isHtmlContent(sanitizedExplanation)) {
           // HTML content - render directly with HtmlLinkRenderer
           setContentType('html');
@@ -45,7 +49,9 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           // Markdown content - process to HTML then render
           setIsProcessing(true);
           setContentType('markdown');
+          console.log('Processing markdown:', sanitizedExplanation.substring(0, 100));
           const html = await processMarkdown(sanitizedExplanation);
+          console.log('Generated HTML:', html.substring(0, 200));
           setProcessedContent(html);
           setHasError(false);
           setIsProcessing(false);
