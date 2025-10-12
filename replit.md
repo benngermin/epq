@@ -47,6 +47,18 @@ The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn
 - **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
 - **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
 
+## Recent Changes (October 12, 2025)
+- **Implemented Mobile SSO Authentication Endpoint**:
+  - Added `/auth/mobile-sso` endpoint for direct JWT authentication from mobile app
+  - Validates AWS Cognito ID tokens against JWKS endpoint using RS256 algorithm
+  - Implements critical audience (aud) claim validation to prevent cross-application token usage
+  - Validates courseId as 4-digit integer (1000-9999 range)
+  - Creates/updates users based on Cognito sub and email
+  - Maps courses using external IDs (e.g., CPCU 500 = 8433)
+  - Includes rate limiting and comprehensive error handling
+  - All errors redirect to `/auth/cognito` for fallback authentication
+  - Success redirects to `/course/{courseId}` with authenticated session
+
 ## Recent Changes (October 10, 2025 - Update 3)
 - **Fixed All Critical Question Editor Bugs**:
   - **Multiple Choice Answer Editing**: Fixed focus loss by changing Save button from conditional rendering to always rendered with visibility toggle - users can now edit answer text freely
