@@ -195,6 +195,7 @@ export const openRouterConfig = pgTable("openrouter_config", {
   id: serial("id").primaryKey(),
   modelName: text("model_name").default("anthropic/claude-3.5-sonnet").notNull(),
   systemMessage: text("system_message").default("You are an expert insurance instructor providing clear explanations for insurance exam questions.").notNull(),
+  userMessage: text("user_message").default("Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.").notNull(),
   maxTokens: integer("max_tokens").default(32000).notNull(),
   reasoning: text("reasoning").default("medium").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
