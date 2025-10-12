@@ -2445,7 +2445,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const config = await storage.getOpenRouterConfig();
       res.json(config || { 
         modelName: "anthropic/claude-3.5-sonnet",
-        systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions."
+        systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+        userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question."
       });
     } catch (error) {
       console.error("Error fetching OpenRouter config:", error);
@@ -2455,13 +2456,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
     try {
-      const { modelName, systemMessage } = req.body;
-      if (!modelName || !systemMessage) {
-        return res.status(400).json({ message: "Model name and system message are required" });
+      const { modelName, systemMessage, userMessage } = req.body;
+      if (!modelName || !systemMessage || !userMessage) {
+        return res.status(400).json({ message: "Model name, system message, and user message are required" });
       }
       const config = await storage.updateOpenRouterConfig({
         modelName,
-        systemMessage
+        systemMessage,
+        userMessage
       });
       res.json(config);
     } catch (error) {
@@ -2626,7 +2628,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         // Return default configuration if none exists
         return res.json({
           modelName: "anthropic/claude-3.5-sonnet",
-          systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions."
+          systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+          userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question."
         });
       }
       res.json(config);
@@ -2638,15 +2641,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
     try {
-      const { modelName, systemMessage } = req.body;
+      const { modelName, systemMessage, userMessage } = req.body;
       
-      if (!modelName || !systemMessage) {
-        return res.status(400).json({ message: "Model name and system message are required" });
+      if (!modelName || !systemMessage || !userMessage) {
+        return res.status(400).json({ message: "Model name, system message, and user message are required" });
       }
 
       const config = await storage.updateOpenRouterConfig({
         modelName,
-        systemMessage
+        systemMessage,
+        userMessage
       });
       
       res.json(config);
@@ -6031,6 +6035,7 @@ ${learningContent}
           config: {
             modelName: "anthropic/claude-3.5-sonnet",
             systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+            userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
             maxTokens: 32000,
             reasoning: "medium"
           },
@@ -6058,6 +6063,7 @@ ${learningContent}
       const configSchema = z.object({
         modelName: z.string(),
         systemMessage: z.string(),
+        userMessage: z.string(),
         maxTokens: z.number().optional(),
         reasoning: z.string().optional()
       });
@@ -6068,6 +6074,7 @@ ${learningContent}
       const updatedConfig = await storage.updateOpenRouterConfig({
         modelName: validatedData.modelName,
         systemMessage: validatedData.systemMessage,
+        userMessage: validatedData.userMessage,
         maxTokens: validatedData.maxTokens || 32000,
         reasoning: validatedData.reasoning || "medium"
       });
