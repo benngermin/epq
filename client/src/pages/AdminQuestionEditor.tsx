@@ -327,14 +327,17 @@ export default function AdminQuestionEditor() {
       const response = await apiRequest("POST", `/api/admin/questions/${questionId}/generate-explanation`);
       return response.json();
     },
-    onSuccess: (data, questionId) => {
+    onSuccess: (data, variables) => {
+      // variables is the questionId that was passed to mutationFn
+      const questionId = variables;
       const question = questionsData?.questions.find(q => q.question.id === questionId);
       if (question?.version) {
         const newEdited = new Map(editedQuestions);
         const existing = newEdited.get(questionId) || {};
         newEdited.set(questionId, {
           ...existing,
-          staticExplanation: data.explanation  // Fixed: using data.explanation instead of data.generatedExplanation
+          staticExplanation: data.explanation,  // Fixed: using data.explanation instead of data.generatedExplanation
+          isStaticAnswer: true  // Also set to static mode when generating explanation
         });
         setEditedQuestions(newEdited);
         toast({ title: "Explanation generated successfully" });

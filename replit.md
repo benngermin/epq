@@ -51,3 +51,14 @@ The platform features a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, 
 - **Authentication**: AWS Cognito (for SSO)
 - **AI Integration**: OpenRouter API
 - **Content Import**: Bubble.io
+
+## Recent Changes (October 12, 2025)
+- **Fixed Static Explanations Generation**:
+  - Fixed JavaScript error in admin panel where `questionId` was not defined in mutation callback - now correctly uses `variables` parameter
+  - Fixed issue where only the letter (e.g., "C") was sent to AI instead of complete answer
+  - Now sends full correct answer with both letter and text (e.g., "C. Average value method")
+  - Answer choices are now formatted with letters for better readability in prompts
+  - Selected answer is also formatted with complete text for comparison context
+  - Added comprehensive logging to verify all inputs sent to OpenRouter API
+  - Automatically switches to static mode when generating explanation
+  - This ensures AI models receive complete context for generating accurate explanations
