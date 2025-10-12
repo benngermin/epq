@@ -77,8 +77,12 @@ export function isMarkdownContent(text: string): boolean {
     /`[^`]+`/,               // Inline code
     /^\|.*\|$/m,             // Tables
     /^\s*>\s+/m,             // Blockquotes
-    /\*\*[^*]+\*\*/,         // Bold
+    /\*\*[^*]+\*\*/,         // Bold with complete markers
+    /\*\*\w+.*?\*\*/,        // Bold text spanning content
+    /\*\*\w+:/m,             // Bold label pattern (e.g., **Correct Answer:)
     /\*[^*]+\*/,             // Italic
+    /__[^_]+__/,             // Alternative bold
+    /_[^_]+_/,               // Alternative italic
     /~~[^~]+~~/,             // Strikethrough
     /^\s*---\s*$/m,          // Horizontal rules
     /^\s*\* \* \*\s*$/m,     // Alternative HR
