@@ -73,6 +73,9 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         messages,
         temperature,
         max_tokens: maxTokens,
+        reasoning: {
+          effort: "medium"
+        },
       }),
     });
 
@@ -316,6 +319,9 @@ async function streamOpenRouterToBuffer(
         temperature,
         max_tokens: maxTokens,
         stream: true,
+        reasoning: {
+          effort: "medium"
+        },
       }),
     });
 
