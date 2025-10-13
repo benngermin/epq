@@ -39,9 +39,20 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
         const isHtml = isHtmlContent(sanitizedExplanation);
         const isMarkdown = isMarkdownContent(sanitizedExplanation);
         
+        // Check if content has markdown syntax even if wrapped in HTML
+        // Look for strong markdown patterns that indicate we should process as markdown
+        const hasMarkdownSyntax = (
+          sanitizedExplanation.includes('**') || 
+          /\*\*[^*]+\*\*/.test(sanitizedExplanation) || // Bold text
+          /\*[^*\n]+\*/.test(sanitizedExplanation) ||    // Italic text  
+          sanitizedExplanation.includes('__') ||
+          /_[^_\n]+_/.test(sanitizedExplanation)         // Alternative italic
+        );
+        
         console.log('[StaticExplanation] Content detection:', {
           isHTML: isHtml,
           isMarkdown: isMarkdown,
+          hasMarkdownSyntax: hasMarkdownSyntax,
           first200Chars: sanitizedExplanation.substring(0, 200),
           hasBoldMarkers: sanitizedExplanation.includes('**'),
           hasCorrectAnswer: sanitizedExplanation.includes('**Correct Answer:**'),
@@ -49,13 +60,31 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           totalLength: sanitizedExplanation.length
         });
         
-        if (isHtml) {
-          // HTML content - render directly with HtmlLinkRenderer
+        // If content has both HTML and markdown, extract text from HTML and process as markdown
+        if (isHtml && hasMarkdownSyntax) {
+          console.log('[StaticExplanation] Detected HTML-wrapped markdown, extracting text...');
+          // Strip HTML tags to get pure text with markdown
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = sanitizedExplanation;
+          const extractedText = tempDiv.textContent || tempDiv.innerText || '';
+          
+          console.log('[StaticExplanation] Extracted text:', extractedText.substring(0, 200));
+          
+          // Process the extracted text as markdown
+          setIsProcessing(true);
+          setContentType('markdown');
+          const html = await processMarkdown(extractedText);
+          console.log('[StaticExplanation] Processed markdown to HTML:', html.substring(0, 200));
+          setProcessedContent(html);
+          setHasError(false);
+          setIsProcessing(false);
+        } else if (isHtml && !hasMarkdownSyntax) {
+          // Pure HTML content - render directly with HtmlLinkRenderer
           setContentType('html');
           setProcessedContent(sanitizedExplanation);
           setHasError(false);
         } else if (isMarkdown) {
-          // Markdown content - process to HTML then render
+          // Pure Markdown content - process to HTML then render
           setIsProcessing(true);
           setContentType('markdown');
           console.log('Processing markdown:', sanitizedExplanation.substring(0, 100));

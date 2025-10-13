@@ -5,17 +5,18 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
-### October 13, 2024 - Markdown Detection Pattern Fix
-- **Issue**: Bold markdown labels with spaces (e.g., `**Correct Answer:**`, `**Explanation:**`) were not being detected as markdown
-- **Root Cause**: Markdown detection patterns only matched word characters without spaces (e.g., `/\*\*\w+:/m`)
-- **Solution**: Enhanced markdown detection patterns to include:
-  - `/\*\*[\w\s]+:\*\*/` - Detects bold labels with spaces
-  - `/\*\*[\w\s().,!?]+:\*\*/` - Handles punctuation in bold labels
-  - Additional check for multiple markdown indicators
+### October 13, 2024 - HTML-Wrapped Markdown Fix
+- **Issue**: Bold markdown syntax (e.g., `**Correct Answer:**`) was displaying literally instead of rendering as bold
+- **Root Cause**: Static explanations from the server come wrapped in HTML tags (e.g., `<p>**Correct Answer:**...</p>`). The client's `isHtmlContent()` function detected the HTML wrapper first and skipped markdown processing entirely
+- **Solution**: Added hybrid content detection:
+  1. Check if content has both HTML tags AND markdown syntax
+  2. If both present, extract text content from HTML (stripping tags)
+  3. Process the extracted text as markdown
+  4. Enhanced markdown pattern detection for better accuracy
 - **Components Updated**:
   - `client/src/lib/markdown-processor.tsx` - Enhanced `isMarkdownContent()` detection patterns
-  - `client/src/components/static-explanation.tsx` - Improved console logging for debugging
-- **Result**: Static explanations with bold markdown labels now correctly render as formatted HTML
+  - `client/src/components/static-explanation.tsx` - Added HTML-wrapped markdown extraction logic
+- **Result**: Static explanations now correctly render markdown even when wrapped in HTML tags
 
 ### October 12, 2024 - Markdown Rendering Styles
 - **Issue**: Static explanations were displaying raw markdown syntax (e.g., `**text**`) instead of rendering formatted text
