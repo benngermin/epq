@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ function NavigationErrorBoundary({ children }: { children: React.ReactNode }) {
 
 export default function QuestionSetPractice() {
   const { user, isLoading: authLoading, logoutMutation } = useAuth();
+  const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
   const [demoMatch, demoParams] = useRoute("/demo/question-set/:id");
@@ -593,10 +595,11 @@ export default function QuestionSetPractice() {
       )}
     >
       <div className="min-h-[100dvh] md:h-[100dvh] bg-background flex flex-col md:overflow-hidden">
-      {/* Navigation Header */}
-      <nav className="bg-card shadow-sm border-b flex-shrink-0">
-        <div className="w-full px-4 md:px-6">
-          <div className="relative flex items-center py-4 md:py-3 lg:py-4">
+      {/* Navigation Header - Hide on Mobile */}
+      {!isMobile && (
+        <nav className="bg-card shadow-sm border-b flex-shrink-0">
+          <div className="w-full px-4 md:px-6">
+            <div className="relative flex items-center py-4 md:py-3 lg:py-4">
             {/* Left - Course Name - Fixed width with truncation */}
             <div className="w-[35%] md:w-[40%] pr-4 overflow-hidden">
               <h1 
@@ -747,22 +750,79 @@ export default function QuestionSetPractice() {
           </div>
         </div>
       </nav>
-
+      )}
+      
       {/* Main content area - flex-1 with min-height:0 to enable proper scrolling */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {/* Mobile Progress Indicator - In Grey Background Area */}
-        <div className="lg:hidden bg-muted/40 px-4 py-2 flex-shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center gap-2 bg-background h-auto py-2.5 px-3"
-          >
-            <PanelLeft className="h-4 w-4 flex-shrink-0" />
-            <span className="leading-none inline-block">
-              Progress ({Object.keys(userAnswers).length}/{questions.length})
-            </span>
-          </Button>
-        </div>
+        {/* Mobile Progress Indicator with Question Set Dropdown - In Grey Background Area */}
+        {isMobile && (
+          <div className="bg-muted/40 px-4 py-2 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              {/* Progress Button */}
+              <Button
+                variant="outline"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="flex items-center gap-2 bg-background h-auto py-2.5 px-3"
+              >
+                <PanelLeft className="h-4 w-4 flex-shrink-0" />
+                <span className="leading-none inline-block">
+                  Progress ({Object.keys(userAnswers).length}/{questions.length})
+                </span>
+              </Button>
+              
+              {/* Question Set Dropdown */}
+              {(() => {
+                // Check if Test Course is selected with no question sets
+                const selectedCourse = user?.isAdmin && courses 
+                  ? courses.find(c => c.id === course?.id)
+                  : null;
+                const isTestCourseEmpty = selectedCourse?.courseNumber === 'Test Course' && 
+                  (!selectedCourse.questionSets || selectedCourse.questionSets.length === 0);
+                
+                if (isTestCourseEmpty) {
+                  // Show disabled dropdown with message for Test Course
+                  return (
+                    <Select value="" disabled>
+                      <SelectTrigger className="w-[140px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 transition-colors opacity-50">
+                        <SelectValue placeholder="No question sets" />
+                      </SelectTrigger>
+                      <SelectContent></SelectContent>
+                    </Select>
+                  );
+                }
+                
+                // Normal question set dropdown
+                return (
+                  <Select
+                    value={questionSetId.toString()}
+                    onValueChange={(value) => {
+                      // Preserve demo mode when switching question sets
+                      const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
+                      setLocation(newPath);
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                      <SelectValue placeholder="Select set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        // For admins, show question sets from the selected course in the course dropdown
+                        // For non-admins, show question sets from the current course
+                        const questionSetsToShow = selectedCourse?.questionSets || courseQuestionSets;
+                          
+                        return questionSetsToShow?.map((qs: any) => (
+                          <SelectItem key={qs.id} value={qs.id.toString()}>
+                            {qs.title}
+                          </SelectItem>
+                        ));
+                      })()}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Scrollable content area - allow normal scroll on mobile */}
         <div className="flex-1 min-h-0 flex overflow-visible md:overflow-hidden bg-muted/40">
