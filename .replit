@@ -7,7 +7,7 @@ channel = "stable-25_05"
 packages = ["imagemagick", "jq", "libuuid", "cairo", "pango", "libpng", "libjpeg", "giflib", "librsvg", "pixman", "freetype", "fontconfig", "nspr", "nss", "atk", "cups", "libdrm", "libxkbcommon", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXrandr", "mesa", "alsa-lib", "at-spi2-core", "at-spi2-atk", "xorg.libX11", "xorg.libXcursor", "xorg.libXi", "xorg.libXext", "xorg.libXtst", "xorg.libXScrnSaver", "gtk3"]
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
@@ -26,10 +26,6 @@ externalPort = 8008
 [[ports]]
 localPort = 34019
 externalPort = 3000
-
-[[ports]]
-localPort = 37071
-externalPort = 3003
 
 [[ports]]
 localPort = 37227
