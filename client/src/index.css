@@ -169,10 +169,14 @@
 /* Ensure prose content has proper typography */
 .prose {
   @apply text-base leading-relaxed;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .prose p {
   @apply mb-4;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .prose ul {
@@ -181,10 +185,21 @@
 
 .prose li {
   @apply mb-1;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .prose a {
   @apply text-primary underline hover:no-underline;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Force text wrapping on all elements within prose */
+.prose * {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100% !important;
 }
 
 /* Dark mode prose adjustments */
@@ -300,5 +315,39 @@
       width: 10px;
       height: 10px;
     }
+  }
+}
+
+/* Mobile-specific text wrapping fixes */
+@media (max-width: 768px) {
+  /* Force all text content to wrap on mobile */
+  body * {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+  
+  /* Specific fix for static explanations */
+  .prose,
+  .prose *,
+  p, span, div, section, article {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    hyphens: auto !important;
+    max-width: 100% !important;
+  }
+  
+  /* Prevent horizontal scrolling */
+  body, html {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Fix for any container that might cause overflow */
+  .overflow-y-auto,
+  .overflow-x-hidden {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
   }
 }

@@ -178,7 +178,7 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
             // Render HTML or processed Markdown with HtmlLinkRenderer
             <HtmlLinkRenderer 
               content={typeof processedContent === 'string' ? processedContent : ''} 
-              className="prose dark:prose-invert max-w-none"
+              className="prose dark:prose-invert max-w-full"
             />
           ) : (
             // Plain text rendering with parseTextWithLinks
