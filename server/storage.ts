@@ -3261,7 +3261,8 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    const courseStatsQuery = await db.select({
+    // Build the query conditionally to avoid passing undefined to where clause
+    let query = db.select({
       courseId: courses.id,
       courseNumber: courses.courseNumber,
       courseTitle: courses.courseTitle,
@@ -3277,8 +3278,14 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(questions, eq(questions.questionSetId, questionSets.id))
     .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
-    .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
-    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+    .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId));
+    
+    // Only add where clause if there are date conditions
+    if (dateConditions.length > 0) {
+      query = query.where(and(...dateConditions));
+    }
+    
+    const courseStatsQuery = await query
     .groupBy(courses.id, courses.courseNumber, courses.courseTitle, courses.isAi)
     .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
