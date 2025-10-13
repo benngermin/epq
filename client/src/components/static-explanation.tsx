@@ -36,16 +36,25 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           .trim();
         
         // Detect content type and process accordingly
-        console.log('Content detection - Is HTML?', isHtmlContent(sanitizedExplanation));
-        console.log('Content detection - Is Markdown?', isMarkdownContent(sanitizedExplanation));
-        console.log('First 100 chars:', sanitizedExplanation.substring(0, 100));
+        const isHtml = isHtmlContent(sanitizedExplanation);
+        const isMarkdown = isMarkdownContent(sanitizedExplanation);
         
-        if (isHtmlContent(sanitizedExplanation)) {
+        console.log('[StaticExplanation] Content detection:', {
+          isHTML: isHtml,
+          isMarkdown: isMarkdown,
+          first200Chars: sanitizedExplanation.substring(0, 200),
+          hasBoldMarkers: sanitizedExplanation.includes('**'),
+          hasCorrectAnswer: sanitizedExplanation.includes('**Correct Answer:**'),
+          hasExplanation: sanitizedExplanation.includes('**Explanation:**'),
+          totalLength: sanitizedExplanation.length
+        });
+        
+        if (isHtml) {
           // HTML content - render directly with HtmlLinkRenderer
           setContentType('html');
           setProcessedContent(sanitizedExplanation);
           setHasError(false);
-        } else if (isMarkdownContent(sanitizedExplanation)) {
+        } else if (isMarkdown) {
           // Markdown content - process to HTML then render
           setIsProcessing(true);
           setContentType('markdown');
