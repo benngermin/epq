@@ -20,6 +20,8 @@ import { generalRateLimiter, authRateLimiter, aiRateLimiter } from "./middleware
 import { requireAdmin } from "./middleware/admin";
 import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/csvParser";
 import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
+import { validateCognitoToken, extractUserInfo } from "./cognito-jwt-validator";
+import validator from "validator";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -73,6 +75,9 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         messages,
         temperature,
         max_tokens: maxTokens,
+        reasoning: {
+          effort: "medium"
+        },
       }),
     });
 
@@ -316,6 +321,9 @@ async function streamOpenRouterToBuffer(
         temperature,
         max_tokens: maxTokens,
         stream: true,
+        reasoning: {
+          effort: "medium"
+        },
       }),
     });
 
@@ -526,6 +534,136 @@ export function registerRoutes(app: Express): Server {
     }
     next();
   };
+
+  // Mobile SSO Authentication endpoint
+  app.get("/auth/mobile-sso", authRateLimiter.middleware(), async (req: Request, res: Response) => {
+    try {
+      // Extract query parameters
+      const { token, courseId } = req.query;
+
+      // Log the attempt for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mobile SSO attempt:', { 
+          hasToken: !!token, 
+          courseId: courseId || 'not provided' 
+        });
+      }
+
+      // Validate token parameter
+      if (!token || typeof token !== 'string') {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Missing or invalid token');
+        }
+        return res.redirect('/auth/cognito?error=missing_token');
+      }
+
+      // Validate courseId parameter
+      if (!courseId || typeof courseId !== 'string') {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Missing courseId');
+        }
+        return res.redirect('/auth/cognito?error=missing_course_id');
+      }
+
+      // Validate courseId is a 4-digit integer (1000-9999)
+      if (!validator.isInt(courseId, { min: 1000, max: 9999 })) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Invalid courseId format:', courseId);
+        }
+        return res.redirect('/auth/cognito?error=invalid_course_id');
+      }
+
+      // Validate the JWT token
+      let tokenPayload;
+      try {
+        tokenPayload = await validateCognitoToken(token);
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Token validation failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=invalid_token');
+      }
+
+      // Extract user information from the validated token
+      const userInfo = extractUserInfo(tokenPayload);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mobile SSO: Token validated, user:', userInfo.email);
+      }
+
+      // Find or create the user
+      let user;
+      try {
+        // First try to find by Cognito sub
+        user = await storage.getUserByCognitoSub(userInfo.cognitoUserId);
+        
+        if (!user) {
+          // If not found, create or update by email
+          user = await storage.upsertUserByEmail({
+            email: userInfo.email,
+            name: userInfo.name,
+            cognitoSub: userInfo.cognitoUserId
+          });
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: User creation/lookup failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=user_creation_failed');
+      }
+
+      // Check if the course exists using the courseId as externalId
+      let course;
+      try {
+        course = await storage.getCourseByExternalId(courseId);
+        
+        if (!course) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Mobile SSO: Course not found with externalId:', courseId);
+          }
+          return res.redirect('/auth/cognito?error=course_not_found');
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Mobile SSO: Course lookup failed:', error);
+        }
+        return res.redirect('/auth/cognito?error=course_lookup_failed');
+      }
+
+      // Create session for the user
+      req.login(user, (err) => {
+        if (err) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Mobile SSO: Session creation failed:', err);
+          }
+          return res.redirect('/auth/cognito?error=session_creation_failed');
+        }
+
+        // Save the session before redirecting
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Mobile SSO: Session save failed:', saveErr);
+            }
+            return res.redirect('/auth/cognito?error=session_save_failed');
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Mobile SSO: Authentication successful, redirecting to course:', course.id);
+          }
+
+          // Redirect to the course page
+          res.redirect(`/course/${course.id}`);
+        });
+      });
+    } catch (error) {
+      // Catch any unexpected errors
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Mobile SSO: Unexpected error:', error);
+      }
+      res.redirect('/auth/cognito?error=unexpected_error');
+    }
+  });
 
   // Course routes
   app.get("/api/courses", requireAuth, async (req, res) => {
@@ -841,6 +979,30 @@ export function registerRoutes(app: Express): Server {
         console.error("Error creating question set:", error);
       }
       res.status(400).json({ message: "Invalid question set data" });
+    }
+  });
+
+  // Get a single question set by ID - moved before courseId route to avoid conflict
+  app.get("/api/admin/question-set/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questionSet = await storage.getQuestionSet(id);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      res.json(questionSet);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question set:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch question set" });
     }
   });
 
@@ -2277,6 +2439,209 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // OpenRouter configuration routes
+  app.get("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const config = await storage.getOpenRouterConfig();
+      res.json(config || { 
+        modelName: "anthropic/claude-3.5-sonnet",
+        systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+        userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question."
+      });
+    } catch (error) {
+      console.error("Error fetching OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to fetch OpenRouter configuration" });
+    }
+  });
+
+  app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const { modelName, systemMessage, userMessage } = req.body;
+      if (!modelName || !systemMessage || !userMessage) {
+        return res.status(400).json({ message: "Model name, system message, and user message are required" });
+      }
+      const config = await storage.updateOpenRouterConfig({
+        modelName,
+        systemMessage,
+        userMessage
+      });
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to update OpenRouter configuration" });
+    }
+  });
+
+  // Generate static explanation for a question
+  app.post("/api/admin/questions/:id/generate-explanation", requireAdmin, async (req, res) => {
+    try {
+      const questionVersionId = parseInt(req.params.id, 10);
+      const { selectedAnswer } = req.body; // Optional: if user wants to explain a specific incorrect answer
+      
+      // Fetch the question version
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      // Fetch the question to get the LOID
+      const question = await db.select()
+        .from(questions)
+        .where(eq(questions.id, questionVersion.questionId))
+        .limit(1);
+      
+      if (!question[0]) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+
+      // Get OpenRouter configuration - NO FALLBACKS
+      const openRouterConfig = await storage.getOpenRouterConfig();
+      
+      // CRITICAL: Return error if no configuration exists - NO FALLBACK PROMPTS
+      if (!openRouterConfig || !openRouterConfig.systemMessage || !openRouterConfig.userMessage) {
+        return res.status(400).json({ 
+          message: "Static explanation generation is not configured. Please configure both system and user messages in OpenRouter settings first." 
+        });
+      }
+      
+      // Use the configured model name - NO FALLBACK
+      if (!openRouterConfig.modelName) {
+        return res.status(400).json({ 
+          message: "Model name is not configured. Please configure the model in OpenRouter settings." 
+        });
+      }
+      
+      const modelName = openRouterConfig.modelName;
+      const systemMessage = openRouterConfig.systemMessage;
+      const userMessage = openRouterConfig.userMessage;
+
+      // Fetch learning content using LOID
+      let learningContent = "";
+      if (question[0].loid) {
+        console.log(`Fetching course material for LOID: ${question[0].loid}`);
+        const courseMaterial = await storage.getCourseMaterialByLoid(question[0].loid);
+        if (courseMaterial) {
+          learningContent = courseMaterial.content;
+          console.log(`Found learning content: ${learningContent.substring(0, 100)}...`);
+        } else {
+          console.log(`No course material found for LOID: ${question[0].loid}`);
+        }
+      }
+
+      // Prepare formatted values for both template replacement and logging
+      let fullCorrectAnswer = questionVersion.correctAnswer;
+      let fullSelectedAnswer = selectedAnswer || questionVersion.correctAnswer;
+      let formattedAnswerChoices = questionVersion.answerChoices;
+      
+      // For multiple choice questions, construct the full correct answer with letter and text
+      if (questionVersion.questionType === 'multiple_choice' && Array.isArray(questionVersion.answerChoices)) {
+        const correctLetter = questionVersion.correctAnswer;
+        const correctIndex = correctLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
+        if (correctIndex >= 0 && correctIndex < questionVersion.answerChoices.length) {
+          const answerText = questionVersion.answerChoices[correctIndex];
+          // Remove any existing letter prefix from the choice text if present
+          const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
+          fullCorrectAnswer = `${correctLetter}. ${cleanedText}`;
+        }
+        
+        // Similarly handle the selected answer for multiple choice
+        if (selectedAnswer) {
+          const selectedLetter = selectedAnswer;
+          const selectedIndex = selectedLetter.charCodeAt(0) - 65; // Convert A->0, B->1, C->2, D->3
+          if (selectedIndex >= 0 && selectedIndex < questionVersion.answerChoices.length) {
+            const answerText = questionVersion.answerChoices[selectedIndex];
+            // Remove any existing letter prefix from the choice text if present
+            const cleanedText = answerText.replace(/^[A-D]\.\s*/, '');
+            fullSelectedAnswer = `${selectedLetter}. ${cleanedText}`;
+          }
+        }
+        
+        // Format answer choices with letters for better readability
+        formattedAnswerChoices = questionVersion.answerChoices.map((choice: string, index: number) => {
+          const letter = String.fromCharCode(65 + index); // A, B, C, D
+          // Remove any existing letter prefix from the choice text if present
+          const cleanedText = choice.replace(/^[A-D]\.\s*/, '');
+          return `${letter}. ${cleanedText}`;
+        });
+      }
+
+      // Helper function to replace template variables
+      const replaceTemplateVariables = (template: string) => {
+        return template
+          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText || "")
+          .replace(/\{\{ANSWER_CHOICES\}\}/g, JSON.stringify(formattedAnswerChoices, null, 2))
+          .replace(/\{\{CORRECT_ANSWER\}\}/g, fullCorrectAnswer)
+          .replace(/\{\{SELECTED_ANSWER\}\}/g, fullSelectedAnswer)
+          .replace(/\{\{LEARNING_CONTENT\}\}/g, learningContent || "No learning content available")
+          .replace(/\{\{COURSE_MATERIAL\}\}/g, learningContent || "No course material available"); // COURSE_MATERIAL is same as LEARNING_CONTENT
+      };
+
+      // Process both system message and user message templates
+      const processedSystemMessage = replaceTemplateVariables(systemMessage);
+      const processedUserMessage = replaceTemplateVariables(userMessage);
+
+      // Enhanced logging to verify correct inputs
+      console.log("\n=== STATIC EXPLANATION GENERATION - INPUT VERIFICATION ===");
+      console.log("Question ID:", questionVersion.questionId);
+      console.log("Question Version ID:", questionVersionId);
+      console.log("Question Type:", questionVersion.questionType);
+      console.log("Question Text:", questionVersion.questionText);
+      
+      if (questionVersion.questionType === 'multiple_choice') {
+        console.log("\nAnswer Choices (raw):", questionVersion.answerChoices);
+        console.log("Answer Choices (formatted):", formattedAnswerChoices);
+        console.log("\nCorrect Answer (raw):", questionVersion.correctAnswer);
+        console.log("Correct Answer (formatted):", fullCorrectAnswer);
+      } else {
+        console.log("\nAnswer Choices:", questionVersion.answerChoices);
+        console.log("Correct Answer:", questionVersion.correctAnswer);
+      }
+      
+      console.log("\nLearning Content Available:", !!learningContent);
+      if (learningContent) {
+        console.log("Learning Content Length:", learningContent.length);
+        console.log("Learning Content Preview:", learningContent.substring(0, 200) + "...");
+      }
+      
+      console.log("\n--- Processed Messages ---");
+      console.log("System Message Length:", processedSystemMessage.length);
+      console.log("System Message Preview:", processedSystemMessage.substring(0, 500));
+      console.log("\nUser Message Length:", processedUserMessage.length);
+      console.log("User Message Preview:", processedUserMessage.substring(0, 500));
+      
+      console.log("\n=== OPENROUTER API CALL DETAILS ===");
+      console.log("URL: https://openrouter.ai/api/v1/chat/completions");
+      console.log("Model:", modelName);
+      console.log("Temperature: 0 (deterministic)");
+      console.log("Max Tokens: 56000");
+      console.log("\nFull Messages Being Sent:");
+      const messagesToSend = [
+        { role: "system", content: processedSystemMessage },
+        { role: "user", content: processedUserMessage }
+      ];
+      console.log(JSON.stringify(messagesToSend, null, 2));
+      console.log("\n=== END API CALL DETAILS ===\n");
+      
+      // Call OpenRouter with both system and user messages
+      const explanation = await callOpenRouter(processedUserMessage, { modelName }, req.user?.id, processedSystemMessage);
+
+      // Update the question version with the generated explanation
+      const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
+
+      console.log(`Static explanation updated for question version ${questionVersionId}`);
+      
+      res.json({ 
+        success: true, 
+        explanation,
+        questionVersion: updatedVersion,
+        learningContentUsed: !!learningContent
+      });
+    } catch (error) {
+      console.error("Error generating explanation:", error);
+      res.status(500).json({ message: "Failed to generate explanation", error: error.message });
+    }
+  });
+
   app.get("/api/admin/active-prompt", requireAdmin, async (req, res) => {
     try {
       const prompt = await storage.getActivePromptVersion();
@@ -2313,6 +2678,46 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("Error updating active prompt:", error);
       res.status(500).json({ message: "Failed to update active prompt" });
+    }
+  });
+
+  // OpenRouter configuration admin routes
+  app.get("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const config = await storage.getOpenRouterConfig();
+      if (!config) {
+        // Return default configuration if none exists
+        return res.json({
+          modelName: "anthropic/claude-3.5-sonnet",
+          systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+          userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question."
+        });
+      }
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to fetch OpenRouter configuration" });
+    }
+  });
+
+  app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const { modelName, systemMessage, userMessage } = req.body;
+      
+      if (!modelName || !systemMessage || !userMessage) {
+        return res.status(400).json({ message: "Model name, system message, and user message are required" });
+      }
+
+      const config = await storage.updateOpenRouterConfig({
+        modelName,
+        systemMessage,
+        userMessage
+      });
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating OpenRouter config:", error);
+      res.status(500).json({ message: "Failed to update OpenRouter configuration" });
     }
   });
 
@@ -5078,6 +5483,687 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
     }
   });
+
+  // ============================================================
+  // Comprehensive Admin Question Management Routes - New Section
+  // ============================================================
+
+  // 1. GET /api/admin/questions-with-versions/:questionSetId - Get all questions with their active versions
+  app.get("/api/admin/questions-with-versions/:questionSetId", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      const includeArchived = req.query.includeArchived === 'true';
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ 
+          error: "Invalid question set ID",
+          message: "Question set ID must be a valid number"
+        });
+      }
+
+      // Verify question set exists
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({
+          error: "Question set not found",
+          message: `No question set found with ID ${questionSetId}`
+        });
+      }
+
+      // Get questions with their active versions
+      const questionsWithVersions = await storage.getQuestionsWithVersions(questionSetId, includeArchived);
+      
+      res.json({
+        success: true,
+        questionSetId,
+        questionSetTitle: questionSet.title,
+        includeArchived,
+        totalQuestions: questionsWithVersions.length,
+        questions: questionsWithVersions
+      });
+    } catch (error: any) {
+      console.error("Error fetching questions with versions:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to fetch questions with versions"
+      });
+    }
+  });
+
+  // 2. POST /api/admin/questions/create-with-version - Create new question with initial version
+  app.post("/api/admin/questions/create-with-version", requireAdmin, async (req, res) => {
+    try {
+      const createQuestionSchema = z.object({
+        questionSetId: z.number(),
+        question: z.object({
+          originalNumber: z.number(),
+          loid: z.string(),
+          displayOrder: z.number().optional(),
+          isActive: z.boolean().optional()
+        }),
+        version: z.object({
+          questionText: z.string(),
+          questionType: z.string(),
+          answerChoices: z.any().optional(), // Can be array of strings or other structures
+          correctAnswer: z.any(),
+          acceptableAnswers: z.array(z.string()).optional(),
+          caseSensitive: z.boolean().optional(),
+          blanks: z.any().optional(),
+          dropZones: z.any().optional(), // Added missing dropZones field
+          correctOrder: z.any().optional(), // Added missing correctOrder field
+          matchingPairs: z.any().optional(), // Added missing matchingPairs field
+          allowMultiple: z.boolean().optional(), // Added missing allowMultiple field
+          topicFocus: z.string().optional(),
+          isStaticAnswer: z.boolean().optional(),
+          staticExplanation: z.string().optional()
+        })
+      });
+
+      const validatedData = createQuestionSchema.parse(req.body);
+      const { questionSetId, question, version } = validatedData;
+
+      // Verify question set exists
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({
+          error: "Question set not found",
+          message: `No question set found with ID ${questionSetId}`
+        });
+      }
+
+      // Create question with initial version
+      const result = await storage.createQuestionWithVersion(questionSetId, question, version);
+
+      res.json({
+        success: true,
+        message: "Question created successfully with initial version",
+        question: result.question,
+        version: result.version
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid request data",
+          details: error.errors
+        });
+      }
+      console.error("Error creating question with version:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to create question with version"
+      });
+    }
+  });
+
+  // 3. PUT /api/admin/questions/:id - Update question metadata
+  app.put("/api/admin/questions/:id", requireAdmin, async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      
+      if (isNaN(questionId)) {
+        return res.status(400).json({ 
+          error: "Invalid question ID",
+          message: "Question ID must be a valid number"
+        });
+      }
+
+      const updateQuestionSchema = z.object({
+        loid: z.string().optional(),
+        displayOrder: z.number().optional(),
+        isActive: z.boolean().optional()
+      });
+
+      const validatedData = updateQuestionSchema.parse(req.body);
+
+      // Update question
+      const updatedQuestion = await storage.updateQuestion(questionId, validatedData);
+      
+      if (!updatedQuestion) {
+        return res.status(404).json({
+          error: "Question not found",
+          message: `No question found with ID ${questionId}`
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Question updated successfully",
+        question: updatedQuestion
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid request data",
+          details: error.errors
+        });
+      }
+      console.error("Error updating question:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to update question"
+      });
+    }
+  });
+
+  // 4. PUT /api/admin/question-versions/:id - Update question version content
+  app.put("/api/admin/question-versions/:id", requireAdmin, async (req, res) => {
+    try {
+      const versionId = parseInt(req.params.id);
+      
+      if (isNaN(versionId)) {
+        return res.status(400).json({ 
+          error: "Invalid version ID",
+          message: "Version ID must be a valid number"
+        });
+      }
+
+      const updateVersionSchema = z.object({
+        questionText: z.string().optional(),
+        questionType: z.string().optional(),
+        answerChoices: z.any().optional(), // Can be array of strings or other structures
+        correctAnswer: z.any().optional(),
+        acceptableAnswers: z.array(z.string()).optional(),
+        caseSensitive: z.boolean().optional(),
+        blanks: z.any().optional(),
+        dropZones: z.any().optional(), // Added missing dropZones field
+        correctOrder: z.any().optional(), // Added missing correctOrder field
+        matchingPairs: z.any().optional(), // Added missing matchingPairs field
+        allowMultiple: z.boolean().optional(), // Added missing allowMultiple field
+        topicFocus: z.string().optional(),
+        isStaticAnswer: z.boolean().optional(),
+        staticExplanation: z.string().optional()
+      });
+
+      const validatedData = updateVersionSchema.parse(req.body);
+
+      // Update question version
+      const updatedVersion = await storage.updateQuestionVersion(versionId, validatedData);
+      
+      if (!updatedVersion) {
+        return res.status(404).json({
+          error: "Question version not found",
+          message: `No question version found with ID ${versionId}`
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Question version updated successfully",
+        version: updatedVersion
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid request data",
+          details: error.errors
+        });
+      }
+      console.error("Error updating question version:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to update question version"
+      });
+    }
+  });
+
+  // 5. POST /api/admin/questions/:id/archive - Archive a question
+  app.post("/api/admin/questions/:id/archive", requireAdmin, async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      
+      if (isNaN(questionId)) {
+        return res.status(400).json({ 
+          error: "Invalid question ID",
+          message: "Question ID must be a valid number"
+        });
+      }
+
+      const success = await storage.archiveQuestion(questionId);
+      
+      if (!success) {
+        return res.status(404).json({
+          error: "Question not found",
+          message: `No question found with ID ${questionId}`
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Question archived successfully",
+        questionId
+      });
+    } catch (error: any) {
+      console.error("Error archiving question:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to archive question"
+      });
+    }
+  });
+
+  // 6. POST /api/admin/questions/:id/recover - Recover archived question
+  app.post("/api/admin/questions/:id/recover", requireAdmin, async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      
+      if (isNaN(questionId)) {
+        return res.status(400).json({ 
+          error: "Invalid question ID",
+          message: "Question ID must be a valid number"
+        });
+      }
+
+      const success = await storage.recoverQuestion(questionId);
+      
+      if (!success) {
+        return res.status(404).json({
+          error: "Question not found",
+          message: `No question found with ID ${questionId}`
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Question recovered successfully",
+        questionId
+      });
+    } catch (error: any) {
+      console.error("Error recovering question:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to recover question"
+      });
+    }
+  });
+
+  // 7. POST /api/admin/questions/reorder - Reorder questions
+  app.post("/api/admin/questions/reorder", requireAdmin, async (req, res) => {
+    try {
+      const reorderSchema = z.object({
+        questionSetId: z.number(),
+        questionIds: z.array(z.number())
+      });
+
+      const validatedData = reorderSchema.parse(req.body);
+      const { questionSetId, questionIds } = validatedData;
+
+      // Verify question set exists
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({
+          error: "Question set not found",
+          message: `No question set found with ID ${questionSetId}`
+        });
+      }
+
+      const success = await storage.reorderQuestions(questionSetId, questionIds);
+      
+      if (!success) {
+        return res.status(400).json({
+          error: "Reorder failed",
+          message: "Failed to reorder questions. Please verify all question IDs belong to this set."
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Questions reordered successfully",
+        questionSetId,
+        newOrder: questionIds
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid request data",
+          details: error.errors
+        });
+      }
+      console.error("Error reordering questions:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to reorder questions"
+      });
+    }
+  });
+
+  // 8. POST /api/admin/questions/remix/:questionSetId - Randomize question order
+  app.post("/api/admin/questions/remix/:questionSetId", requireAdmin, async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ 
+          error: "Invalid question set ID",
+          message: "Question set ID must be a valid number"
+        });
+      }
+
+      // Verify question set exists
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({
+          error: "Question set not found",
+          message: `No question set found with ID ${questionSetId}`
+        });
+      }
+
+      const success = await storage.remixQuestions(questionSetId);
+      
+      if (!success) {
+        return res.status(400).json({
+          error: "Remix failed",
+          message: "Failed to randomize question order"
+        });
+      }
+
+      // Get the new order
+      const questionsWithVersions = await storage.getQuestionsWithVersions(questionSetId, false);
+      const newOrder = questionsWithVersions.map(q => ({
+        id: q.question.id,
+        displayOrder: q.question.displayOrder
+      }));
+
+      res.json({
+        success: true,
+        message: "Questions order randomized successfully",
+        questionSetId,
+        newOrder
+      });
+    } catch (error: any) {
+      console.error("Error remixing questions:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to remix questions"
+      });
+    }
+  });
+
+  // 9. POST /api/admin/questions/:id/generate-explanation - Generate static explanation via OpenRouter
+  app.post("/api/admin/questions/:id/generate-explanation", requireAdmin, async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      
+      if (isNaN(questionId)) {
+        return res.status(400).json({ 
+          error: "Invalid question ID",
+          message: "Question ID must be a valid number"
+        });
+      }
+
+      // Fetch the question and its active version
+      const question = await storage.getQuestion(questionId);
+      if (!question) {
+        return res.status(404).json({
+          error: "Question not found",
+          message: `No question found with ID ${questionId}`
+        });
+      }
+
+      const activeVersion = await storage.getActiveQuestionVersion(questionId);
+      if (!activeVersion) {
+        return res.status(404).json({
+          error: "No active version",
+          message: "This question has no active version"
+        });
+      }
+
+      // Get learning content from courseMaterials using the question's LOID
+      let learningContent = "";
+      if (question.loid) {
+        const courseMaterial = await storage.getCourseMaterialByLoid(question.loid);
+        if (courseMaterial) {
+          learningContent = courseMaterial.content;
+        } else {
+          console.warn(`No learning content found for LOID: ${question.loid}`);
+        }
+      }
+
+      if (!learningContent) {
+        return res.status(400).json({
+          error: "No learning content",
+          message: "Cannot generate explanation without learning content. Please ensure the question has a valid LOID with associated course material."
+        });
+      }
+
+      // Get OpenRouter configuration
+      const openRouterConfig = await storage.getOpenRouterConfig();
+      if (!openRouterConfig) {
+        return res.status(500).json({
+          error: "Configuration error",
+          message: "OpenRouter configuration not found. Please configure OpenRouter settings first."
+        });
+      }
+
+      // Format correct answer for the prompt
+      let correctAnswerText = "";
+      if (activeVersion.questionType === 'select_from_list' && activeVersion.blanks) {
+        // For select_from_list with blanks, extract correct answers from blanks
+        const blanksData = typeof activeVersion.blanks === 'string' 
+          ? JSON.parse(activeVersion.blanks) 
+          : activeVersion.blanks;
+        
+        if (Array.isArray(blanksData) && blanksData.length > 0) {
+          correctAnswerText = blanksData.map(blank => blank.correct_answer || blank.correctAnswer).join(', ');
+        }
+      } else if (Array.isArray(activeVersion.correctAnswer)) {
+        correctAnswerText = activeVersion.correctAnswer.join(', ');
+      } else if (typeof activeVersion.correctAnswer === 'object' && activeVersion.correctAnswer !== null) {
+        correctAnswerText = JSON.stringify(activeVersion.correctAnswer);
+      } else {
+        correctAnswerText = String(activeVersion.correctAnswer || "");
+      }
+
+      // Compose the prompt using the exact template from requirements
+      const prompt = `Output the below structure within the <output> exactly. **DO NOT include the <output> tags themselves**:
+
+<output>
+
+Correct Answer: [Insert only the correct answer text exactly as is. 
+- For blanks, return only the answer itself (e.g., "agreed value"), not the label "First Blank" or "Second Blank".
+- For multiple-choice, return only the letter (e.g., "A").
+- For multiple-response, return letters in alphabetical order (e.g., "A,C,D").]
+
+Explanation: Provide a concise explanation of why the above answer is correct, based only on <learning_content>.
+
+- Use <question_text> internally to identify the relevant policy type or concept, but do NOT repeat or display the question text in the output.
+- Use only the subsection that directly matches the concept (e.g., PAP/PIP vs. HO, liability vs. property). 
+- Ignore examples, scenarios, and "Check Your Understanding" sections. 
+- Do not display subsection names explicitly in the output. Simply use them to guide the explanation.
+- Focus only on why the correct answer is correct. Maintain a concise, neutral, instructional tone.
+
+If the question involves math:
+- Always format the solution in four clear steps:
+ - **Step 1 (Formula):** Show the general formula symbolically, with no numbers.
+ - **Step 2 (Substitute Values):** Rewrite the formula, plugging in the actual values.
+ - **Step 3 (Solve):** Perform the calculation, showing intermediate results if needed.
+ - **Step 4 (Final Answer):** State the final result clearly, with units or context in plain language.
+- Do not combine steps; keep each step on its own line.
+- Follow rounding instructions in the question; if none, round percentages to two decimals and dollar values to the nearest whole number.
+
+If the question is conceptual:
+- Summarize the principle in 3–6 lines.
+- Keep neutral and instructional; do not use first person.
+
+Source:
+- At the end, display the most relevant URL from <learning_content> as HTML: <a href="[URL]">[Title]</a>.
+- If no URL exists in the chosen subsection, use the first URL in <learning_content>.
+
+<output>
+
+----
+<question_text>
+${activeVersion.questionText}
+</question_text>
+---
+<correct_answer>
+${correctAnswerText}
+</correct_answer>
+---
+<learning_content>
+${learningContent}
+</learning_content>`;
+
+      // Call OpenRouter API with configured settings
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          error: "Configuration error",
+          message: "OpenRouter API key not configured. Please set the OPENROUTER_API_KEY environment variable."
+        });
+      }
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
+        },
+        body: JSON.stringify({
+          model: openRouterConfig.modelName,
+          messages: [
+            {
+              role: "system",
+              content: openRouterConfig.systemMessage
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0,
+          max_tokens: 32000
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenRouter API error:", errorText);
+        return res.status(500).json({
+          error: "OpenRouter API error",
+          message: "Failed to generate explanation",
+          details: errorText
+        });
+      }
+
+      const data = await response.json();
+      
+      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        return res.status(500).json({
+          error: "Unexpected response",
+          message: "Failed to generate explanation - no response from AI service"
+        });
+      }
+
+      const generatedExplanation = data.choices[0]?.message?.content || "";
+
+      // Return the generated explanation without saving
+      res.json({
+        success: true,
+        message: "Static explanation generated successfully",
+        questionId,
+        versionId: activeVersion.id,
+        generatedExplanation,
+        metadata: {
+          model: openRouterConfig.modelName,
+          questionType: activeVersion.questionType,
+          loid: question.loid,
+          hasLearningContent: !!learningContent
+        }
+      });
+    } catch (error: any) {
+      console.error("Error generating static explanation:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to generate static explanation"
+      });
+    }
+  });
+
+  // 10. GET /api/admin/openrouter-config - Get OpenRouter configuration
+  app.get("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const config = await storage.getOpenRouterConfig();
+      
+      if (!config) {
+        // Return default configuration if none exists
+        return res.json({
+          success: true,
+          config: {
+            modelName: "anthropic/claude-3.5-sonnet",
+            systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+            userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
+            maxTokens: 32000,
+            reasoning: "medium"
+          },
+          isDefault: true
+        });
+      }
+
+      res.json({
+        success: true,
+        config,
+        isDefault: false
+      });
+    } catch (error: any) {
+      console.error("Error fetching OpenRouter config:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to fetch OpenRouter configuration"
+      });
+    }
+  });
+
+  // 11. PUT /api/admin/openrouter-config - Update OpenRouter configuration
+  app.put("/api/admin/openrouter-config", requireAdmin, async (req, res) => {
+    try {
+      const configSchema = z.object({
+        modelName: z.string(),
+        systemMessage: z.string(),
+        userMessage: z.string(),
+        maxTokens: z.number().optional(),
+        reasoning: z.string().optional()
+      });
+
+      const validatedData = configSchema.parse(req.body);
+
+      // Update or create configuration
+      const updatedConfig = await storage.updateOpenRouterConfig({
+        modelName: validatedData.modelName,
+        systemMessage: validatedData.systemMessage,
+        userMessage: validatedData.userMessage,
+        maxTokens: validatedData.maxTokens || 32000,
+        reasoning: validatedData.reasoning || "medium"
+      });
+
+      res.json({
+        success: true,
+        message: "OpenRouter configuration updated successfully",
+        config: updatedConfig
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid configuration data",
+          details: error.errors
+        });
+      }
+      console.error("Error updating OpenRouter config:", error);
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to update OpenRouter configuration"
+      });
+    }
+  });
+
+  // ============================================================
+  // End of Comprehensive Admin Question Management Routes
+  // ============================================================
 
   app.post("/api/admin/upload-explanations", requireAdmin, async (req, res) => {
     try {

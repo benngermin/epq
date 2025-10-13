@@ -1,64 +1,77 @@
-# Exam Practice Questions
+# Insurance Exam Practice Application
 
 ## Overview
-This project is an advanced AI-powered platform designed for insurance professional certification exam preparation. It offers intelligent, adaptive learning experiences tailored to individual student needs, supporting multiple certification paths such as CPCU and AIC programs. The platform aims to provide a comprehensive and effective tool for certification exam success.
+A comprehensive web application for insurance exam preparation with AI-powered chat support and practice questions. The application provides practice exams with static explanations and AI chat assistance for incorrect answers.
 
-## User Preferences
-### Communication Style
-- Technical documentation should be comprehensive
-- Code should follow TypeScript best practices
-- Use clear, descriptive variable names
-- Implement proper error handling throughout
+## Recent Changes
 
-### Development Practices
-- Always use the storage interface for database operations
-- Validate all input data with Zod schemas
-- Use React Query for all data fetching
-- Implement loading states for async operations
-- Handle errors gracefully with user-friendly messages
+### October 13, 2024 - HTML-Wrapped Markdown Fix
+- **Issue**: Bold markdown syntax (e.g., `**Correct Answer:**`) was displaying literally instead of rendering as bold
+- **Root Cause**: Static explanations from the server come wrapped in HTML tags (e.g., `<p>**Correct Answer:**...</p>`). The client's `isHtmlContent()` function detected the HTML wrapper first and skipped markdown processing entirely
+- **Solution**: Added hybrid content detection:
+  1. Check if content has both HTML tags AND markdown syntax
+  2. If both present, extract text content from HTML (stripping tags)
+  3. Process the extracted text as markdown
+  4. Enhanced markdown pattern detection for better accuracy
+- **Components Updated**:
+  - `client/src/lib/markdown-processor.tsx` - Enhanced `isMarkdownContent()` detection patterns
+  - `client/src/components/static-explanation.tsx` - Added HTML-wrapped markdown extraction logic
+- **Result**: Static explanations now correctly render markdown even when wrapped in HTML tags
 
-### Testing & Quality
-- Test with both SSO and local authentication
-- Verify course loading with URL parameters
-- Check question navigation and answer submission
-- Validate AI chatbot responses
-- Monitor database connection stability
+### October 12, 2024 - Markdown Rendering Styles
+- **Issue**: Static explanations were displaying raw markdown syntax (e.g., `**text**`) instead of rendering formatted text
+- **Root Cause**: The Tailwind Typography plugin's `prose` class wasn't properly styling `<strong>` and `<em>` tags
+- **Solution**: Added explicit CSS rules in `client/src/index.css` for proper markdown rendering
+- **Components Updated**:
+  - `client/src/index.css` - Added prose styling for markdown elements
+  - `server/utils/batch-queries.ts` - Fixed camelCase conversion for static fields
+- **Result**: Markdown syntax like `**Correct Answer:**` now renders as bold text properly
 
-### Global Preferences
-- **Change Control**: Never modify any prompts, LLMs, model settings, or edit/delete/write data without explicit user approval.
-- **Communication**: Briefly state plan, why, and potential impacts; outline numbered steps for non-trivial work and await go-ahead. Clarify anything unclear immediately. Summarize actions and suggest next steps upon completion.
-- **Coding Standards**: Write readable, modular code with descriptive names, minimal comments, and consistent formatting (4-space indent, lines ~≤80 chars). Implement robust error handling.
-- **Data Handling & Safety**: Use anonymized/mock data for sensitive scenarios. Back up affected code/data before risky changes and explain rollback procedures.
-- **Testing & Version Control**: Add unit tests for new features, targeting ≥80% coverage on critical paths. Run tests and report failures before finalizing.
-- **Dependencies, Research & Response Style**: Use latest stable libraries. Cite external research. Keep responses focused and concise, using code examples when helpful.
+## Key Features
+- Practice exam questions with immediate feedback
+- Static explanations for incorrect answers
+- AI chat support for additional help
+- Question set management
+- Progress tracking
+- Admin panel for content management
 
-## System Architecture
-The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Wouter) and an Express.js backend (TypeScript). It uses PostgreSQL (Neon serverless) with Drizzle ORM for data persistence. Authentication is managed via Passport.js with AWS Cognito SSO and local authentication, with session management using express-session. Vite is used for building, and deployment is on Replit.
+## Technology Stack
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Node.js, Express, TypeScript
+- **Database**: PostgreSQL (Neon-backed)
+- **ORM**: Drizzle
+- **Authentication**: Cognito SSO and local authentication
 
-**Core Features:**
-- **Multi-Modal Authentication**: AWS Cognito SSO for enterprise, local authentication for admins, with 7-day session persistence.
-- **Course Management System**: Supports CPCU and AIC, dynamic loading, external ID mapping, and Bubble.io integration for content import.
-- **Question Set System**: Includes question versioning, progress tracking, analytics, and randomized ordering.
-- **AI-Powered Tutoring**: Context-aware chatbot using OpenRouter API, configurable AI models, prompt versioning, response logging, user feedback, and static explanations for specific questions bypassing AI.
-- **Admin Dashboard**: User, course, and question set management, AI settings, analytics, bulk import/export, and activity logs.
-- **Performance Optimizations**: Database connection pooling with circuit breaker, retry mechanisms, lazy loading, database indexes, and health monitoring.
-- **UI/UX Decisions**: Widened and centered assistant message cards for mobile readability, fixed accessibility for submit buttons, proper safe area insets for iOS, and improved sticky footer behavior.
-- **Static Answer Support**: Questions can be marked with `isStaticAnswer` and `staticExplanation` to provide pre-written explanations instead of AI responses. The upload system uses three-field matching (Course + Question Set Title + Question Number) for reliable question identification.
-- **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
-- **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
+## Project Architecture
+```
+├── client/               # Frontend React application
+│   ├── src/
+│   │   ├── components/  # Reusable UI components
+│   │   ├── pages/       # Page components
+│   │   ├── hooks/       # Custom React hooks
+│   │   └── lib/         # Utility functions and helpers
+├── server/              # Backend Express server
+│   ├── routes.ts        # API routes
+│   ├── storage.ts       # Storage interface
+│   └── utils/           # Server utilities
+└── shared/              # Shared types and schemas
+    └── schema.ts        # Drizzle database schema
+```
 
-## Recent Changes (September 2025)
-- **Refactored Static Explanations Upload**: Implemented three-field matching algorithm using Course Number + Question Set Title + Question Number for reliable question identification
-- **CSV Format Update**: Upload CSV now requires Course, Question Set, Question Number, and Final Static Explanation fields (LOID and Question Text are now optional)
-- **Improved Matching Logic**: Normalized course numbers, case-insensitive question set matching, and proper handling of ambiguous matches
-- **Frontend Updates**: Admin upload page now displays three matching fields clearly and removes dependency on text matching
-- **Fixed Static Explanation Preservation During Refresh**: Updated `updateQuestionsForRefresh` method to preserve static explanations when creating new question versions during refresh operations. Previously, static explanations were being lost when new versions were created.
-- **Content-Based Question Matching**: Completely rewrote the question refresh matching algorithm to use content similarity (Levenshtein distance) instead of position-based matching. This ensures static explanations are preserved even when questions are deleted from the source data and all subsequent questions shift positions. The new algorithm uses multi-factor scoring: content similarity (80 points) + LOID bonus (20 points) + position as tiebreaker.
-- **Enhanced Database Schema for Matching**: Added tracking columns to questions table (`content_fingerprint`, `last_matched_at`, `match_confidence`) and created `question_match_history` table to log all matching decisions for debugging and analysis.
-- **Comprehensive Logging**: Added extensive debug logging throughout the matching process to track each matching decision, confidence scores, and preservation of static explanations.
+## Markdown Processing Pipeline
+1. **Detection**: `isMarkdownContent()` checks for markdown patterns
+2. **Processing**: `processMarkdown()` converts markdown to HTML using unified/remark/rehype
+3. **Rendering**: `HtmlLinkRenderer` safely renders the HTML with proper styling
+4. **Styling**: Prose class applies typography styles for bold, italic, lists, etc.
 
-## External Dependencies
-- **Database**: PostgreSQL (Neon serverless)
-- **Authentication**: AWS Cognito (for SSO)
-- **AI Integration**: OpenRouter API
-- **Content Import**: Bubble.io (for content import)
+## Database Schema
+- Questions and question versions with support for multiple question types
+- Static explanations with markdown support
+- User progress tracking
+- Course and question set organization
+
+## Development Notes
+- Always use `npm run db:push` for database migrations
+- Frontend runs on port 5000 (integrated with backend)
+- Markdown explanations require at least 10 characters of content
+- Static explanations fall back to AI chat if validation fails

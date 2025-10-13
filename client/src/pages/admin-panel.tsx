@@ -17,13 +17,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Eye, LogOut, User, Shield, Download, CheckCircle, AlertCircle, RefreshCw, Loader2, XCircle, Edit2, Copy, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import institutesLogo from "@assets/the-institutes-logo_1750194170496.png";
+import { useLocation, Link } from "wouter";
+import { AdminLayout } from "@/components/AdminLayout";
 
 // Lazy load the AppLogsSection component to reduce initial bundle size
 const AppLogsSection = lazy(() => import("@/components/app-logs-section").then(module => ({ default: module.AppLogsSection })));
@@ -243,6 +242,299 @@ function AISettingsSection() {
 
               <Button type="submit" disabled={updatePromptMutation.isPending}>
                 {updatePromptMutation.isPending ? "Updating..." : "Update Prompt"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// OpenRouter Settings Component
+function OpenRouterSettingsSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [copiedVariables, setCopiedVariables] = useState<Set<string>>(new Set());
+  
+  // Define the OpenRouter config schema
+  const openRouterConfigSchema = z.object({
+    modelName: z.string().min(1, "Model is required"),
+    systemMessage: z.string().min(1, "System message is required"),
+    userMessage: z.string().min(1, "User message is required"),
+  });
+  
+  // Query for OpenRouter config
+  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string; userMessage: string }>({
+    queryKey: ["/api/admin/openrouter-config"],
+  });
+
+  // Form setup
+  const form = useForm<z.infer<typeof openRouterConfigSchema>>({
+    resolver: zodResolver(openRouterConfigSchema),
+    defaultValues: {
+      modelName: "anthropic/claude-3.5-sonnet",
+      systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+      userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
+    },
+  });
+
+  // Set form values when data loads
+  React.useEffect(() => {
+    if (openRouterConfig) {
+      form.reset({
+        modelName: openRouterConfig.modelName || "anthropic/claude-3.5-sonnet",
+        systemMessage: openRouterConfig.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
+        userMessage: openRouterConfig.userMessage || "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
+      });
+    }
+  }, [openRouterConfig, form]);
+
+  // Update mutation
+  const updateConfigMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof openRouterConfigSchema>) => {
+      const res = await apiRequest("PUT", "/api/admin/openrouter-config", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "OpenRouter settings updated successfully",
+        description: "Static explanation generation will now use the updated configuration.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/openrouter-config"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update OpenRouter settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof openRouterConfigSchema>) => {
+    updateConfigMutation.mutate(data);
+  };
+
+  const handleCopy = (variable: string) => {
+    navigator.clipboard.writeText(variable);
+    setCopiedVariables(prev => {
+      const newSet = new Set(prev);
+      newSet.add(variable);
+      return newSet;
+    });
+    
+    // Reset the copied state after 1.5 seconds
+    setTimeout(() => {
+      setCopiedVariables(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(variable);
+        return newSet;
+      });
+    }, 1500);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading OpenRouter Settings...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Static Explanation Generation Settings</CardTitle>
+          <CardDescription>
+            Configure the OpenRouter AI model and system message used for generating static explanations for questions.
+            These settings are separate from the chatbot configuration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="modelName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OpenRouter Model Slug</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., anthropic/claude-3.5-sonnet" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="systemMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>System Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter the system message for static explanation generation..."
+                        className="resize-vertical font-mono text-sm min-h-[200px]"
+                        rows={10}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        Allowed Template Variables:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{QUESTION_TEXT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{QUESTION_TEXT}}')}
+                          >
+                            {copiedVariables.has('{{QUESTION_TEXT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{CORRECT_ANSWER}}')}
+                          >
+                            {copiedVariables.has('{{CORRECT_ANSWER}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{LEARNING_CONTENT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{LEARNING_CONTENT}}')}
+                          >
+                            {copiedVariables.has('{{LEARNING_CONTENT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        These variables will be replaced with actual question data when generating explanations.
+                      </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="userMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter the user message for static explanation generation..."
+                        className="resize-vertical font-mono text-sm min-h-[200px]"
+                        rows={10}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        Allowed Template Variables:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{QUESTION_TEXT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{QUESTION_TEXT}}')}
+                          >
+                            {copiedVariables.has('{{QUESTION_TEXT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{CORRECT_ANSWER}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{CORRECT_ANSWER}}')}
+                          >
+                            {copiedVariables.has('{{CORRECT_ANSWER}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                          <code className="text-xs font-mono">{'{{LEARNING_CONTENT}}'}</code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-transparent"
+                            onClick={() => handleCopy('{{LEARNING_CONTENT}}')}
+                          >
+                            {copiedVariables.has('{{LEARNING_CONTENT}}') ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        These variables will be replaced with actual question data when generating explanations.
+                      </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={updateConfigMutation.isPending}>
+                {updateConfigMutation.isPending ? "Saving..." : "Save OpenRouter Settings"}
               </Button>
             </form>
           </Form>
@@ -538,7 +830,13 @@ export default function AdminPanel() {
   const [refreshProgress, setRefreshProgress] = useState<{
     current: number;
     total: number;
-    errors: Array<{ questionSetId: string; title: string; error: string }>;
+    errors: Array<{ 
+      questionSetId: string; 
+      title: string; 
+      error: string;
+      courseName?: string;
+      details?: string;
+    }>;
   } | null>(null);
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
 
@@ -957,47 +1255,8 @@ export default function AdminPanel() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img src={institutesLogo} alt="The Institutes" className="h-8" />
-              <div className="border-l h-6"></div>
-              <h1 className="text-xl font-semibold">Exam Practice Questions</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <div className="bg-blue-100 p-2 rounded-full">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium">{user?.name}</span>
-                    {user?.isAdmin && <Shield className="h-4 w-4 text-blue-600" />}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
-                    Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => logoutMutation.mutate()}
-                    className="text-red-600"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
-      <div className="container mx-auto py-8 px-4">
+    <AdminLayout>
+      <div className="py-4">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -1012,9 +1271,10 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 {/* Sub-tabs for Question Sets and Course Materials */}
                 <Tabs defaultValue="question-sets" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="question-sets">Question Sets</TabsTrigger>
                     <TabsTrigger value="course-materials">Course Materials</TabsTrigger>
+                    <TabsTrigger value="static-explanations">Static Explanations</TabsTrigger>
                   </TabsList>
 
                   {/* Question Sets Sub-tab */}
@@ -1373,6 +1633,13 @@ export default function AdminPanel() {
                       <CourseMaterialsSection />
                     </div>
                   </TabsContent>
+
+                  {/* Static Explanations Sub-tab */}
+                  <TabsContent value="static-explanations">
+                    <div className="mt-6">
+                      <OpenRouterSettingsSection />
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </div>
             </TabsContent>
@@ -1406,13 +1673,11 @@ export default function AdminPanel() {
                 </Suspense>
               </div>
             </TabsContent>
-
-
         </Tabs>
-      </div>
-      {/* Course Materials Import Dialog */}
-      <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        
+        {/* Course Materials Import Dialog */}
+        <Dialog open={courseMaterialsDialogOpen} onOpenChange={setCourseMaterialsDialogOpen}>
+          <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Import Course Materials</DialogTitle>
             <DialogDescription>
@@ -1460,7 +1725,8 @@ export default function AdminPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
 
@@ -1950,6 +2216,15 @@ function QuestionSetsSection({
                     {refreshingQuestionSet === questionSet.id ? "Loading..." : "Refresh Content"}
                   </Button>
                 )}
+                <Link href={`/admin/questions/${courseId}/${questionSet.id}`}>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Questions
+                  </Button>
+                </Link>
                 <Button 
                   variant="outline" 
                   size="sm" 

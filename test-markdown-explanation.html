@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Markdown Explanation</title>
+  <script type="module">
+    import { isMarkdownContent, processMarkdown } from './client/src/lib/markdown-processor.tsx';
+    
+    // Test explanation from database (modified to add markdown)
+    const testExplanation = `**Correct Answer:** 50 
+
+**Explanation:** ISO's fire suppression rating schedule allots a maximum of 105.5 points, divided among four components. Of these, the fire-department segment carries the greatest single weight: up to 50 points can be earned for staffing, equipment, training, and related factors. The remaining points are allocated to water supply (40), communications (10), and community risk-reduction efforts (5.5). Because the schedule explicitly caps the fire-department portion at 50 points, that figure is the correct answer.
+
+**Source:** 
+- Residential Property Underwriting Considerations`;
+
+    console.log('Testing markdown detection...');
+    console.log('Is markdown?', isMarkdownContent(testExplanation));
+    
+    if (isMarkdownContent(testExplanation)) {
+      processMarkdown(testExplanation).then(html => {
+        console.log('Processed HTML:', html);
+        document.getElementById('result').innerHTML = html;
+      });
+    } else {
+      document.getElementById('result').innerText = 'Not detected as markdown!';
+    }
+  </script>
+</head>
+<body>
+  <h1>Test Markdown Processing</h1>
+  <div id="result">Processing...</div>
+</body>
+</html>

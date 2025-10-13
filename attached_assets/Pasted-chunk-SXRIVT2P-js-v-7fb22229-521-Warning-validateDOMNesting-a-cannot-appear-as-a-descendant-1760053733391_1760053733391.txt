@@ -1,0 +1,27 @@
+chunk-SXRIVT2P.js?v=7fb22229:521 Warning: validateDOMNesting(...): <a> cannot appear as a descendant of <a>.
+    at a
+    at a
+    at https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7fb22229:294:18
+    at div
+    at div
+    at div
+    at header
+    at div
+    at AdminLayout (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/components/AdminLayout.tsx:24:31)
+    at AdminQuestionEditor (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/pages/AdminQuestionEditor.tsx:55:31)
+    at DashboardErrorBoundary (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/components/dashboard-error-boundary.tsx:10:5)
+    at component
+    at Route (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7fb22229:280:16)
+    at AdminProtectedRoute (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/lib/admin-protected-route.tsx:22:3)
+    at Switch (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7fb22229:336:17)
+    at Suspense
+    at Router
+    at Provider (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7fb22229:38:15)
+    at TooltipProvider (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7fb22229:64:5)
+    at QuestionProvider (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/contexts/question-context.tsx:20:36)
+    at AuthProvider (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://472fd721-84db-434c-8499-fb246a1cc551-00-3hxdlvbmdpbxw.janeway.repli…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=7fb22229:2933:3)
+    at App
+
+﻿
+
