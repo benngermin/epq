@@ -77,16 +77,8 @@ export function isMarkdownContent(text: string): boolean {
     /`[^`]+`/,               // Inline code
     /^\|.*\|$/m,             // Tables
     /^\s*>\s+/m,             // Blockquotes
-    /\*\*[^*]+\*\*/,         // Bold with complete markers
-    /\*\*[\w\s]+:\*\*/,      // Bold label with spaces (e.g., **Correct Answer:**)
-    /\*\*[\w\s().,!?]+:\*\*/, // Bold label with punctuation (e.g., **Answer (A):**)
-    /\*\*[\w\s]+:\*\*\s+\w+/, // Bold label followed by text
-    /^\*\*[\w\s]+:\*\*/m,    // Bold label at start of line
-    /\*\*\w+.*?\*\*/,        // Bold text spanning content
-    /\*\*\w+:/m,             // Bold label pattern (e.g., **Note:)
-    /\*[^*\n]+\*/,           // Italic (exclude newlines)
-    /__[^_]+__/,             // Alternative bold
-    /_[^_\n]+_/,             // Alternative italic (exclude newlines)
+    /\*\*[^*]+\*\*/,         // Bold
+    /\*[^*]+\*/,             // Italic
     /~~[^~]+~~/,             // Strikethrough
     /^\s*---\s*$/m,          // Horizontal rules
     /^\s*\* \* \*\s*$/m,     // Alternative HR
@@ -94,15 +86,7 @@ export function isMarkdownContent(text: string): boolean {
     /^\- \[[ x]\]/m          // Task lists
   ];
 
-  // Additional check for multiple markdown indicators
-  const hasMultipleIndicators = (
-    (text.match(/\*\*/g) || []).length >= 2 ||  // At least one bold marker pair
-    (text.match(/\*/g) || []).length >= 2 ||     // At least one italic marker pair
-    text.includes('```') ||                       // Code blocks
-    /^#{1,6}\s+/m.test(text)                     // Headers
-  );
-
-  return markdownPatterns.some(pattern => pattern.test(text)) || hasMultipleIndicators;
+  return markdownPatterns.some(pattern => pattern.test(text));
 }
 
 /**

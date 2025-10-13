@@ -36,87 +36,16 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           .trim();
         
         // Detect content type and process accordingly
-        const isHtml = isHtmlContent(sanitizedExplanation);
-        const isMarkdown = isMarkdownContent(sanitizedExplanation);
-        
-        // Check if content has markdown syntax even if wrapped in HTML
-        // Look for strong markdown patterns that indicate we should process as markdown
-        const hasMarkdownSyntax = (
-          sanitizedExplanation.includes('**') || 
-          /\*\*[^*]+\*\*/.test(sanitizedExplanation) || // Bold text
-          /\*[^*\n]+\*/.test(sanitizedExplanation) ||    // Italic text  
-          sanitizedExplanation.includes('__') ||
-          /_[^_\n]+_/.test(sanitizedExplanation)         // Alternative italic
-        );
-        
-        console.log('[StaticExplanation] Content detection:', {
-          isHTML: isHtml,
-          isMarkdown: isMarkdown,
-          hasMarkdownSyntax: hasMarkdownSyntax,
-          first200Chars: sanitizedExplanation.substring(0, 200),
-          hasBoldMarkers: sanitizedExplanation.includes('**'),
-          hasCorrectAnswer: sanitizedExplanation.includes('**Correct Answer:**'),
-          hasExplanation: sanitizedExplanation.includes('**Explanation:**'),
-          totalLength: sanitizedExplanation.length
-        });
-        
-        // If content has both HTML and markdown, extract and convert preserving links
-        if (isHtml && hasMarkdownSyntax) {
-          console.log('[StaticExplanation] Detected HTML-wrapped markdown, extracting with link preservation...');
-          
-          // Create a temporary div to parse the HTML
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = sanitizedExplanation;
-          
-          // Convert links to markdown format before extracting text
-          const links = tempDiv.querySelectorAll('a');
-          links.forEach(link => {
-            const href = link.getAttribute('href');
-            const text = link.textContent || '';
-            if (href) {
-              // Replace the link with markdown formatted link
-              const markdownLink = `[${text}](${href})`;
-              const textNode = document.createTextNode(markdownLink);
-              link.parentNode?.replaceChild(textNode, link);
-            }
-          });
-          
-          // Now extract the text with markdown-formatted links
-          let extractedText = tempDiv.textContent || tempDiv.innerText || '';
-          
-          // Clean up formatting issues that cause excessive spacing
-          // Remove list markers (-, *, +) at the start of lines that immediately follow **Source:**
-          extractedText = extractedText.replace(/(\*\*Source:\*\*)\s*\n+\s*[-*+]\s+/g, '$1 ');
-          
-          // Also handle general case where Source is followed by unnecessary newlines
-          extractedText = extractedText.replace(/(\*\*Source:\*\*)\s*\n+/g, '$1 ');
-          
-          // Clean up other excessive newlines around bold text
-          extractedText = extractedText.replace(/(\*\*[^*]+:\*\*)\s*\n{2,}/g, '$1\n');
-          
-          console.log('[StaticExplanation] Extracted text with markdown links:', extractedText.substring(0, 200));
-          
-          // Process the extracted text as markdown
-          setIsProcessing(true);
-          setContentType('markdown');
-          const html = await processMarkdown(extractedText);
-          console.log('[StaticExplanation] Processed markdown to HTML:', html.substring(0, 200));
-          setProcessedContent(html);
-          setHasError(false);
-          setIsProcessing(false);
-        } else if (isHtml && !hasMarkdownSyntax) {
-          // Pure HTML content - render directly with HtmlLinkRenderer
+        if (isHtmlContent(sanitizedExplanation)) {
+          // HTML content - render directly with HtmlLinkRenderer
           setContentType('html');
           setProcessedContent(sanitizedExplanation);
           setHasError(false);
-        } else if (isMarkdown) {
-          // Pure Markdown content - process to HTML then render
+        } else if (isMarkdownContent(sanitizedExplanation)) {
+          // Markdown content - process to HTML then render
           setIsProcessing(true);
           setContentType('markdown');
-          console.log('Processing markdown:', sanitizedExplanation.substring(0, 100));
           const html = await processMarkdown(sanitizedExplanation);
-          console.log('Generated HTML:', html.substring(0, 500));
-          console.log('Full HTML:', html);
           setProcessedContent(html);
           setHasError(false);
           setIsProcessing(false);

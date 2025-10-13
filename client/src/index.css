@@ -153,50 +153,6 @@
   background-color: hsl(var(--border));
 }
 
-/* Prose styling for markdown content */
-.prose strong,
-.prose b {
-  @apply font-bold;
-  font-weight: 700 !important;
-}
-
-.prose em,
-.prose i {
-  @apply italic;
-  font-style: italic !important;
-}
-
-/* Ensure prose content has proper typography */
-.prose {
-  @apply text-base leading-relaxed;
-}
-
-.prose p {
-  @apply mb-4;
-}
-
-.prose ul {
-  @apply list-disc list-inside mb-4;
-}
-
-.prose li {
-  @apply mb-1;
-}
-
-.prose a {
-  @apply text-primary underline hover:no-underline;
-}
-
-/* Dark mode prose adjustments */
-.dark .prose strong,
-.dark .prose b {
-  @apply font-bold text-foreground;
-}
-
-.dark .prose {
-  @apply text-foreground;
-}
-
 /* Success and error utility classes */
 .text-success {
   color: hsl(var(--success));

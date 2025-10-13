@@ -1,130 +1,64 @@
-# Insurance Exam Practice Application
+# Exam Practice Questions
 
 ## Overview
-A comprehensive web application for insurance exam preparation with AI-powered chat support and practice questions. The application provides practice exams with static explanations and AI chat assistance for incorrect answers.
+This project is an AI-powered platform for insurance professional certification exam preparation. It provides adaptive learning experiences for certifications like CPCU and AIC, aiming to be a comprehensive and effective tool for exam success.
 
-## Recent Changes
+## User Preferences
+### Communication Style
+- Technical documentation should be comprehensive
+- Code should follow TypeScript best practices
+- Use clear, descriptive variable names
+- Implement proper error handling throughout
 
-### October 13, 2024 - Deployment Provisioning Optimization
-- **Removed Heavy Dependencies**:
-  - Removed `canvas` package from dependencies (not used in runtime code)
-  - Moved `playwright` from dependencies to devDependencies (only needed for testing)
-  - Uninstalled 30 GTK/Xorg system packages (cairo, pango, gtk3, etc.) that were only needed for canvas
-- **Results**: 
-  - Removed 31 unnecessary packages from production dependencies
-  - Dramatically reduced provisioning time by eliminating compilation of graphics libraries
-  - Prevented ~1GB browser binary downloads from blocking deployment
-  - Application now provisions quickly without hanging on VM setup
+### Development Practices
+- Always use the storage interface for database operations
+- Validate all input data with Zod schemas
+- Use React Query for all data fetching
+- Implement loading states for async operations
+- Handle errors gracefully with user-friendly messages
 
-### October 13, 2024 - Critical Deployment Syntax Errors Fixed
-- **Fixed Parse-Time Syntax Errors**:
-  - Fixed variable reference before declaration: moved healthcheck route after `const app = express()`
-  - Fixed malformed `server.listen()` call with invalid syntax mixing function arguments and object properties
-  - Fixed undefined `IS_DEPLOYMENT` reference by using consistent `IS_DEPLOY` constant throughout
-- **Result**: Application now starts successfully and passes Replit provision phase
+### Testing & Quality
+- Test with both SSO and local authentication
+- Verify course loading with URL parameters
+- Check question navigation and answer submission
+- Validate AI chatbot responses
+- Monitor database connection stability
 
-### October 13, 2024 - Production Deployment Fixes
-- **Fixed Production Build Issues**:
-  - Added `pg` dependency required by `connect-pg-simple`
-  - Updated build scripts to separate client and server builds
-  - Changed server output to `.mjs` format for proper ESM support
-- **Lazy Loading & Dynamic Imports**:
-  - Updated `server/vite.ts` to use dynamic imports (dev-only)
-  - Updated `vite.config.ts` to conditionally load dev plugins
-  - Prevents dev dependencies from loading in production
-- **Database Initialization**:
-  - Implemented lazy DB initialization in `server/db.ts`
-  - Updated all database consumers to get DB at runtime
-  - Fixed module-time throws that could crash production
-- **Environment & Deployment**:
-  - Updated `server/index.ts` with proper dev/prod split
-  - Added IS_DEPLOYMENT check for Replit deployments
-  - Proper static file serving in production mode
-- **Session Store**:
-  - Session store already properly guarded with DATABASE_URL check
+### Global Preferences
+- **Change Control**: Never modify any prompts, LLMs, model settings, or edit/delete/write data without explicit user approval.
+- **Communication**: Briefly state plan, why, and potential impacts; outline numbered steps for non-trivial work and await go-ahead. Clarify anything unclear immediately. Summarize actions and suggest next steps upon completion.
+- **Coding Standards**: Write readable, modular code with descriptive names, minimal comments, and consistent formatting (4-space indent, lines ~≤80 chars). Implement robust error handling.
+- **Data Handling & Safety**: Use anonymized/mock data for sensitive scenarios. Back up affected code/data before risky changes and explain rollback procedures.
+- **Testing & Version Control**: Add unit tests for new features, targeting ≥80% coverage on critical paths. Run tests and report failures before finalizing.
+- **Dependencies, Research & Response Style**: Use latest stable libraries. Cite external research. Keep responses focused and concise, using code examples when helpful.
 
-### October 13, 2024 - Bug Fixes Implementation
-- **Fixed TypeScript Errors**: 
-  - Added missing `and` import from drizzle-orm
-  - Fixed type casting for error handling 
-  - Replaced undefined `QuestionVersion` type with proper type inference
-  - Corrected property name from `questionSetNumber` to `questionSetTitle`
-- **Fixed Empty Catch Block**:
-  - Added proper error logging in development environment for course info fetching during bulk refresh
-- **Fixed Console Logging Security**:
-  - Wrapped sensitive conversation history logging in development environment checks
-- **SessionStorage Access**:
-  - Verified existing checks for sessionStorage availability are properly in place
-- **Cognito Auth Error Handling**:
-  - Confirmed proper error page redirects are already implemented
+## System Architecture
+The platform features a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Wouter) and an Express.js backend (TypeScript). Data persistence uses PostgreSQL (Neon serverless) with Drizzle ORM. Authentication is managed via Passport.js with AWS Cognito SSO and local authentication, using express-session for session management. Vite handles building, and deployment is on Replit.
 
-### October 13, 2024 - HTML-Wrapped Markdown Fix
-- **Issue**: Bold markdown syntax (e.g., `**Correct Answer:**`) was displaying literally instead of rendering as bold
-- **Root Cause**: Static explanations from the server come wrapped in HTML tags (e.g., `<p>**Correct Answer:**...</p>`). The client's `isHtmlContent()` function detected the HTML wrapper first and skipped markdown processing entirely
-- **Solution**: Added hybrid content detection:
-  1. Check if content has both HTML tags AND markdown syntax
-  2. If both present, extract text content from HTML (stripping tags)
-  3. Process the extracted text as markdown
-  4. Enhanced markdown pattern detection for better accuracy
-- **Components Updated**:
-  - `client/src/lib/markdown-processor.tsx` - Enhanced `isMarkdownContent()` detection patterns
-  - `client/src/components/static-explanation.tsx` - Added HTML-wrapped markdown extraction logic
-- **Result**: Static explanations now correctly render markdown even when wrapped in HTML tags
+**Core Features:**
+- **Multi-Modal Authentication**: Supports AWS Cognito SSO for enterprises and local authentication for administrators, with 7-day session persistence.
+- **Course Management System**: Handles CPCU and AIC programs, dynamic content loading, external ID mapping, and content import via Bubble.io.
+- **Question Set System**: Manages question versioning, tracks progress, provides analytics, and supports randomized question ordering.
+- **AI-Powered Tutoring**: Offers a context-aware chatbot using OpenRouter API with configurable AI models, prompt versioning, response logging, user feedback, and static explanations for specific questions.
+- **Admin Dashboard**: Provides tools for user, course, and question set management, AI settings, analytics, bulk import/export, and activity logs.
+- **Performance Optimizations**: Includes database connection pooling with circuit breaker, retry mechanisms, lazy loading, database indexing, and health monitoring.
+- **UI/UX Decisions**: Optimized for mobile readability with widened message cards, fixed accessibility for submit buttons, proper safe area insets for iOS, and improved sticky footer behavior.
+- **Static Answer Support**: Allows questions to provide pre-written explanations using `isStaticAnswer` and `staticExplanation`. The upload system uses a three-field matching (Course + Question Set Title + Question Number) for reliable question identification and preservation of static explanations during content refreshes.
+- **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, eliminating the need for additional prompt injection.
 
-### October 12, 2024 - Markdown Rendering Styles
-- **Issue**: Static explanations were displaying raw markdown syntax (e.g., `**text**`) instead of rendering formatted text
-- **Root Cause**: The Tailwind Typography plugin's `prose` class wasn't properly styling `<strong>` and `<em>` tags
-- **Solution**: Added explicit CSS rules in `client/src/index.css` for proper markdown rendering
-- **Components Updated**:
-  - `client/src/index.css` - Added prose styling for markdown elements
-  - `server/utils/batch-queries.ts` - Fixed camelCase conversion for static fields
-- **Result**: Markdown syntax like `**Correct Answer:**` now renders as bold text properly
+## External Dependencies
+- **Database**: PostgreSQL (Neon serverless)
+- **Authentication**: AWS Cognito (for SSO)
+- **AI Integration**: OpenRouter API
+- **Content Import**: Bubble.io
 
-## Key Features
-- Practice exam questions with immediate feedback
-- Static explanations for incorrect answers
-- AI chat support for additional help
-- Question set management
-- Progress tracking
-- Admin panel for content management
-
-## Technology Stack
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js, Express, TypeScript
-- **Database**: PostgreSQL (Neon-backed)
-- **ORM**: Drizzle
-- **Authentication**: Cognito SSO and local authentication
-
-## Project Architecture
-```
-├── client/               # Frontend React application
-│   ├── src/
-│   │   ├── components/  # Reusable UI components
-│   │   ├── pages/       # Page components
-│   │   ├── hooks/       # Custom React hooks
-│   │   └── lib/         # Utility functions and helpers
-├── server/              # Backend Express server
-│   ├── routes.ts        # API routes
-│   ├── storage.ts       # Storage interface
-│   └── utils/           # Server utilities
-└── shared/              # Shared types and schemas
-    └── schema.ts        # Drizzle database schema
-```
-
-## Markdown Processing Pipeline
-1. **Detection**: `isMarkdownContent()` checks for markdown patterns
-2. **Processing**: `processMarkdown()` converts markdown to HTML using unified/remark/rehype
-3. **Rendering**: `HtmlLinkRenderer` safely renders the HTML with proper styling
-4. **Styling**: Prose class applies typography styles for bold, italic, lists, etc.
-
-## Database Schema
-- Questions and question versions with support for multiple question types
-- Static explanations with markdown support
-- User progress tracking
-- Course and question set organization
-
-## Development Notes
-- Always use `npm run db:push` for database migrations
-- Frontend runs on port 5000 (integrated with backend)
-- Markdown explanations require at least 10 characters of content
-- Static explanations fall back to AI chat if validation fails
+## Recent Changes (October 12, 2025)
+- **Fixed Static Explanations Generation**:
+  - Fixed JavaScript error in admin panel where `questionId` was not defined in mutation callback - now correctly uses `variables` parameter
+  - Fixed issue where only the letter (e.g., "C") was sent to AI instead of complete answer
+  - Now sends full correct answer with both letter and text (e.g., "C. Average value method")
+  - Answer choices are now formatted with letters for better readability in prompts
+  - Selected answer is also formatted with complete text for comparison context
+  - Added comprehensive logging to verify all inputs sent to OpenRouter API
+  - Automatically switches to static mode when generating explanation
+  - This ensures AI models receive complete context for generating accurate explanations

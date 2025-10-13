@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
+import { db } from '../db';
 
 // Create indexes for better query performance
-// Accept DB as parameter instead of importing it
-export async function createDatabaseIndexes(db: any) {
+export async function createDatabaseIndexes() {
   try {
     if (process.env.NODE_ENV === 'development') {
       console.log('Creating database indexes for performance optimization...');

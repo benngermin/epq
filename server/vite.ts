@@ -1,8 +1,16 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import {
+  createServer as createViteServer,
+  createLogger,
+  type ServerOptions,
+} from "vite";
 import { type Server } from "http";
+import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+
+const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -15,13 +23,8 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
-  // Dynamic imports to ensure vite is never loaded in production
-  const { createServer: createViteServer, createLogger } = await import("vite");
-  
-  const viteLogger = createLogger();
-  
   // Bind on all interfaces and explicitly allow Replit preview hosts
-  const serverOptions = {
+  const serverOptions: ServerOptions = {
     middlewareMode: true,
     hmr: { server },
     host: "0.0.0.0",
@@ -29,11 +32,11 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const vite = await createViteServer({
-    root: path.resolve(import.meta.dirname, "..", "client"),
-    configFile: path.resolve(import.meta.dirname, "..", "vite.config.ts"),
+    ...viteConfig,
+    configFile: false,
     customLogger: {
       ...viteLogger,
-      error: (msg: string, options?: any) => {
+      error: (msg, options) => {
         viteLogger.error(msg, options);
         process.exit(1);
       },

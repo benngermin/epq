@@ -1,21 +1,15 @@
-import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { getDb, closeDatabase } from "./db";
+import { closeDatabase } from "./db";
 import { createDatabaseIndexes } from "./utils/db-indexes";
 import { logWithEST } from "./utils/logger";
+import dotenv from "dotenv";
 
-
-const IS_DEPLOY = process.env.REPLIT_DEPLOYMENT === 'true' || process.env.NODE_ENV === 'production';
-const DEV_PORT = 5050;
-const PORT = Number(process.env.PORT) || (IS_DEPLOY ? 5000 : DEV_PORT);
-const HOST = '0.0.0.0';
+// Load environment variables from .env file
+dotenv.config();
 
 const app = express();
-
-app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 
 // Security headers
 app.use((req, res, next) => {
@@ -23,12 +17,12 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-
+  
   // HTTPS enforcement in production
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
-
+  
   // Content Security Policy - Improved security by removing unsafe-eval
   // Note: unsafe-inline is still needed for React and Tailwind CSS
   res.setHeader('Content-Security-Policy', 
@@ -39,11 +33,11 @@ app.use((req, res, next) => {
     "connect-src 'self' https://openrouter.ai; " +
     "font-src 'self' data: https://fonts.gstatic.com;"
   );
-
+  
   // Additional Security Headers
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
+  
   next();
 });
 
@@ -54,7 +48,7 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use((req, res, next) => {
   // Allow credentials for authentication
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-
+  
   // In development, be more permissive with origins
   if (process.env.NODE_ENV === 'development') {
     const origin = req.headers.origin;
@@ -62,15 +56,15 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
   }
-
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+  
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
-
+  
   next();
 });
 
@@ -106,7 +100,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Register routes first (includes authentication setup)
+  // Initialize database indexes for performance
+  await createDatabaseIndexes();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -116,7 +112,7 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV === "development") {
       console.error("Server error:", err);
     }
-
+    
     // Don't throw the error after sending response - this causes memory leaks
     if (!res.headersSent) {
       res.status(status).json({ message });
@@ -131,32 +127,25 @@ app.use((req, res, next) => {
     });
   });
 
-  // Setup development or production serving
-  // Check both NODE_ENV and IS_DEPLOY to ensure proper mode
-  if (app.get("env") === "development" && !IS_DEPLOY) {
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // Production mode - serve static files
-    app.use(express.static("dist/public"));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.resolve("dist/public", "index.html"));
-    });
+    serveStatic(app);
   }
 
-  // Initialize database and indexes after routes are set up
-  try {
-    const db = getDb();
-    await createDatabaseIndexes(db);
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    // Continue running without database if not available
-  }
-
-  // ALWAYS serve the app on port 5000 or from PORT env var
+  // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  server.listen(PORT, HOST, () => {
-    log(`server listening on http://${HOST}:${PORT} (deploy=${IS_DEPLOY})`);
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
   });
 
   // Graceful shutdown handlers
@@ -171,7 +160,7 @@ app.use((req, res, next) => {
 
   process.on('SIGTERM', gracefulShutdown);
   process.on('SIGINT', gracefulShutdown);
-
+  
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);

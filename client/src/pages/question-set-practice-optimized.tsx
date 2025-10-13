@@ -257,19 +257,6 @@ export default function QuestionSetPractice() {
 
         debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
         
-        // Debug log to check static explanation data in demo mode
-        if (isDemo) {
-          const staticQuestions = questions.filter((q: any) => q.latestVersion?.isStaticAnswer);
-          console.log('[Demo] Questions with static explanations:', staticQuestions.map((q: any) => ({
-            id: q.id,
-            versionId: q.latestVersion?.id,
-            isStaticAnswer: q.latestVersion?.isStaticAnswer,
-            staticExplanationPreview: q.latestVersion?.staticExplanation?.substring(0, 100),
-            fullExplanation: q.latestVersion?.staticExplanation
-          })));
-          console.log(`[Demo] Total static questions: ${staticQuestions.length}/${questions.length}`);
-        }
-        
         // Check for any issues with questions around #36
         const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
         if (questionAround36) {

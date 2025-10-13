@@ -1,4 +1,4 @@
-import { getDb } from '../db';
+import { db } from '../db';
 import { questions, questionVersions } from '@shared/schema';
 import { inArray, eq } from 'drizzle-orm';
 
@@ -6,7 +6,6 @@ import { inArray, eq } from 'drizzle-orm';
 export async function batchFetchQuestionVersions(questionIds: number[]) {
   if (questionIds.length === 0) return new Map();
   
-  const db = getDb();
   const versions = await db
     .select()
     .from(questionVersions)
@@ -27,7 +26,6 @@ export async function batchFetchQuestionVersions(questionIds: number[]) {
 // Batch fetch questions with their latest versions
 export async function batchFetchQuestionsWithVersions(questionSetId: number, includeArchived: boolean = false) {
   // Fetch all questions for the set
-  const db = getDb();
   const allQuestions = await db
     .select()
     .from(questions)
@@ -57,9 +55,6 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
         answerChoices: latestVersion.answerChoices || latestVersion.answer_choices,
         dropZones: latestVersion.dropZones || latestVersion.drop_zones,
         blanks: latestVersion.blanks, // Include blanks field for select_from_list questions
-        // Ensure camelCase for static fields
-        isStaticAnswer: latestVersion.isStaticAnswer || latestVersion.is_static_answer,
-        staticExplanation: latestVersion.staticExplanation || latestVersion.static_explanation,
       };
       
       // Validate static explanation fields for consistency

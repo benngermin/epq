@@ -8,10 +8,10 @@ import {
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
   promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
 } from "@shared/schema";
-import { getDb } from "./db";
+import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
-import { eq, sql, desc, asc, inArray, and } from "drizzle-orm";
+import { eq, sql, desc, asc, inArray } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
@@ -295,11 +295,6 @@ async function streamOpenRouterToBuffer(
     
     // If we have conversation history, use it instead of creating a new conversation
     if (conversationHistory && conversationHistory.length > 0) {
-      // Only log in development environment
-      if (process.env.NODE_ENV === 'development') {
-        console.log("=== CONVERSATION HISTORY DEBUG ===");
-        console.log("Previous messages count:", conversationHistory.length);
-      }
       messages = [...conversationHistory];
       // Add the new user message to the existing conversation
       messages.push({ role: "user", content: prompt });
@@ -511,7 +506,6 @@ async function streamOpenRouterToBuffer(
 }
 
 export function registerRoutes(app: Express): Server {
-  const db = getDb(); // Get DB at runtime, not at import time
   setupAuth(app);
 
   // Middleware to check admin access
@@ -2644,7 +2638,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
     } catch (error) {
       console.error("Error generating explanation:", error);
-      res.status(500).json({ message: "Failed to generate explanation", error: error instanceof Error ? error.message : 'Unknown error' });
+      res.status(500).json({ message: "Failed to generate explanation", error: error.message });
     }
   });
 
@@ -3917,12 +3911,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
                   courseId = course.id;
                 }
               }
-            } catch (error) {
-              // Log error in development environment
-              if (process.env.NODE_ENV === 'development') {
-                console.error('Failed to fetch course info during bulk refresh:', error);
-              }
-            }
+            } catch {}
             
             refreshResults.failed++;
             refreshResults.errors.push({
@@ -5409,7 +5398,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             console.log(`[THREE-FIELD] Searching: Course="${row.courseName}", Set="${row.questionSetTitle}", Q#=${row.questionNumber}`);
             
-            let matchedVersions: typeof questionVersions.$inferSelect[] = [];
+            let matchedVersions: QuestionVersion[] = [];
             let matchStatus: 'matched' | 'ambiguous' | 'not_found' = 'not_found';
             let matchReason = '';
             
@@ -6235,14 +6224,14 @@ ${learningContent}
                 success: false,
                 error: `Skipped: ${(item as any).reason || 'Not found in preview'}`,
                 courseName: item.row.courseName,
-                questionSetTitle: item.row.questionSetTitle,
+                questionSetNumber: item.row.questionSetNumber,
                 questionNumber: item.row.questionNumber,
                 loid: item.row.loid,
                 updatedVersions: 0
               };
             }
             
-            let matchedVersions: typeof questionVersions.$inferSelect[] = [];
+            let matchedVersions: QuestionVersion[] = [];
             
             // THREE-FIELD MATCHING: Use same logic as preview
             console.log(`[UPLOAD-THREE-FIELD] Course="${item.row.courseName}", Set="${item.row.questionSetTitle}", Q#=${item.row.questionNumber}`);
