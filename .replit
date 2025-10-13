@@ -1,6 +1,13 @@
 modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+hidden = [
+  ".config",
+  ".local",
+  ".git",
+  "generated-icon.png",
+  "node_modules",
+  "dist",
+]
 
 [nix]
 channel = "stable-25_05"
