@@ -33,8 +33,8 @@ export function usePerformanceMonitor(componentName: string) {
         };
         
         try {
-          // Check if sessionStorage is available before using it
-          if (typeof sessionStorage !== 'undefined' && sessionStorage !== null) {
+          // Check if sessionStorage is available and accessible before using it
+          if (typeof window !== 'undefined' && window.sessionStorage) {
             const existingMetrics = JSON.parse(
               sessionStorage.getItem('performance-metrics') || '[]'
             );
