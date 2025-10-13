@@ -1,0 +1,24 @@
+ Why provisioning hangs
+
+  - Replit’s provision step sets up the VM before it even gets to your npm run build. It reads .replit, boots a Nix environment, installs everything listed under [nix].packages, and pre-installs Node dependencies so later steps can reuse the
+  cache. If any package in that list is huge or has to compile from source, the VM can sit in “Provisioning…” for a long time with no log output.
+  - In your .replit you request GTK/X11, cairo, pango, etc. (.replit:5-39). That entire stack exists purely to satisfy the native build requirements of the Node canvas module. Those libraries are massive; on Replit’s current stable-25_05
+  channel they’re mostly uncached, so the VM spends ages compiling them. With the VM stuck compiling, you never see the build step.
+
+  Why canvas pushes you into that heavyweight stack
+
+  - The package isn’t being imported anywhere in your runtime code (rg "from 'canvas'" returns nothing). Keeping it in dependencies forces npm install to grab the module, which in turn forces Replit to prep all the graphics libraries you
+  declared. Removing the canvas dependency allows you to drop those GTK packages, shrinking provision work dramatically. There isn’t a file to delete—just remove the entry from package.json and reinstall so it falls out of package-lock.json.
+  - If, later, you do need server-side chart rendering, consider a pure-JS alternative or load canvas only in development (e.g., move it to devDependencies and guard the import).
+
+  Why playwright also hurts provisioning
+
+  - playwright lives in dependencies (package.json:86), but your only uses are local scripts/tests (e.g. test-admin-upload.mjs). Replit installs runtime deps during provisioning, so Playwright’s postinstall runs and tries to download ~1 GB of
+  browser binaries. On Replit deployments that download often stalls or times out—again blocking the provision phase. Moving it to devDependencies (and setting PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 for local installs) keeps it out of production
+  provisioning altogether.
+
+  What I recommend
+
+  1. Remove "canvas" from "dependencies" and trim the GTK/Xorg list in .replit. If you don’t need any of them once canvas is gone, you can leave the [nix].packages array empty or keep only ImageMagick if you rely on it.
+  2. Move "playwright" to "devDependencies" so it’s excluded from production installs.
+  3. Kick off another deployment. Provisioning should finish quickly once the VM isn’t compiling a desktop stack or downloading browsers.
