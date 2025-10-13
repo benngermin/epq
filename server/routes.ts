@@ -8,7 +8,7 @@ import {
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
   promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
 } from "@shared/schema";
-import { db } from "./db";
+import { getDb } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
 import { eq, sql, desc, asc, inArray, and } from "drizzle-orm";
@@ -511,6 +511,7 @@ async function streamOpenRouterToBuffer(
 }
 
 export function registerRoutes(app: Express): Server {
+  const db = getDb(); // Get DB at runtime, not at import time
   setupAuth(app);
 
   // Middleware to check admin access

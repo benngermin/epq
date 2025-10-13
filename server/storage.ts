@@ -15,7 +15,7 @@ import {
   type OpenRouterConfig, type InsertOpenRouterConfig,
   type QuestionImport
 } from "@shared/schema";
-import { db } from "./db";
+import { getDb } from "./db";
 import { eq, and, desc, asc, sql, not, inArray, isNull, isNotNull, gte, lte, lt, or } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -428,6 +428,11 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
   
+  // Get database instance lazily
+  private get db() {
+    return getDb();
+  }
+  
   constructor() {
     // Use PostgreSQL store for production-ready session persistence
     if (process.env.DATABASE_URL) {
@@ -468,7 +473,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
+      const [user] = await this.db.select().from(users).where(eq(users.id, id));
       return user || undefined;
     } catch (error) {
       console.error('Error fetching user by id:', error);
@@ -478,7 +483,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.email, email));
+      const [user] = await this.db.select().from(users).where(eq(users.email, email));
       return user || undefined;
     } catch (error) {
       console.error('Error fetching user by email:', error);
@@ -488,7 +493,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmailCI(email: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users)
+      const [user] = await this.db.select().from(users)
         .where(sql`lower(${users.email}) = lower(${email})`);
       return user || undefined;
     } catch (error) {
@@ -498,13 +503,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.cognitoSub, cognitoSub));
+    const [user] = await this.db.select().from(users).where(eq(users.cognitoSub, cognitoSub));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const [user] = await db.insert(users).values(insertUser).returning();
+      const [user] = await this.db.insert(users).values(insertUser).returning();
       return user;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -514,7 +519,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
     try {
-      const [updated] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+      const [updated] = await this.db.update(users).set(user).where(eq(users.id, id)).returning();
       return updated || undefined;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -542,7 +547,7 @@ export class DatabaseStorage implements IStorage {
         RETURNING *
       `;
       
-      const result = await db.execute(query);
+      const result = await this.db.execute(query);
       const upsertedUser = result.rows[0] as User;
       
       if (!upsertedUser) {
@@ -566,7 +571,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCourses(): Promise<Course[]> {
-    return await db.select().from(courses).orderBy(asc(courses.courseNumber));
+    return await this.db.select().from(courses).orderBy(asc(courses.courseNumber));
   }
 
   async getCoursesWithQuestionSets(): Promise<Course[]> {
@@ -589,7 +594,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCourse(id: number): Promise<Course | undefined> {
-    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    const [course] = await this.db.select().from(courses).where(eq(courses.id, id));
     return course || undefined;
   }
 
@@ -600,7 +605,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // First check the courses table for direct external ID match
-    const [course] = await db.select().from(courses).where(eq(courses.externalId, externalId));
+    const [course] = await this.db.select().from(courses).where(eq(courses.externalId, externalId));
     
     if (course) {
       if (process.env.NODE_ENV === 'development' && course.courseNumber === 'AIC 300') {
@@ -610,12 +615,12 @@ export class DatabaseStorage implements IStorage {
     }
     
     // If not found, check the mapping table
-    const [mapping] = await db.select()
+    const [mapping] = await this.db.select()
       .from(courseExternalMappings)
       .where(eq(courseExternalMappings.externalId, externalId));
     
     if (mapping) {
-      const [mappedCourse] = await db.select()
+      const [mappedCourse] = await this.db.select()
         .from(courses)
         .where(eq(courses.id, mapping.courseId));
       
@@ -634,24 +639,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCourseByBubbleId(bubbleUniqueId: string): Promise<Course | undefined> {
-    const [course] = await db.select().from(courses).where(eq(courses.bubbleUniqueId, bubbleUniqueId));
+    const [course] = await this.db.select().from(courses).where(eq(courses.bubbleUniqueId, bubbleUniqueId));
     return course || undefined;
   }
 
   async createCourse(course: InsertCourse): Promise<Course> {
-    const [newCourse] = await db.insert(courses).values(course).returning();
+    const [newCourse] = await this.db.insert(courses).values(course).returning();
     return newCourse;
   }
 
   async updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course | undefined> {
-    const [updated] = await db.update(courses).set(course).where(eq(courses.id, id)).returning();
+    const [updated] = await this.db.update(courses).set(course).where(eq(courses.id, id)).returning();
     return updated || undefined;
   }
 
   async deleteCourse(id: number): Promise<boolean> {
     try {
       // Use transaction to ensure all deletions are atomic
-      return await db.transaction(async (tx) => {
+      return await this.db.transaction(async (tx) => {
         // First, get all question sets for this course through the junction table
         const courseSetMappings = await tx.select({
           questionSet: questionSets
@@ -718,7 +723,7 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionSetsByCourse(courseId: number): Promise<QuestionSet[]> {
     // Now using junction table to get question sets for a course
-    const results = await db.select({
+    const results = await this.db.select({
       questionSet: questionSets,
     })
       .from(courseQuestionSets)
@@ -746,29 +751,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionSet(id: number): Promise<QuestionSet | undefined> {
-    const [questionSet] = await db.select().from(questionSets).where(eq(questionSets.id, id));
+    const [questionSet] = await this.db.select().from(questionSets).where(eq(questionSets.id, id));
     return questionSet || undefined;
   }
 
   async getQuestionSetByExternalId(externalId: string): Promise<QuestionSet | undefined> {
-    const [questionSet] = await db.select().from(questionSets).where(eq(questionSets.externalId, externalId));
+    const [questionSet] = await this.db.select().from(questionSets).where(eq(questionSets.externalId, externalId));
     return questionSet || undefined;
   }
 
   async createQuestionSet(questionSet: InsertQuestionSet): Promise<QuestionSet> {
-    const [newQuestionSet] = await db.insert(questionSets).values(questionSet).returning();
+    const [newQuestionSet] = await this.db.insert(questionSets).values(questionSet).returning();
     return newQuestionSet;
   }
 
   async updateQuestionSet(id: number, questionSet: Partial<InsertQuestionSet>): Promise<QuestionSet | undefined> {
-    const [updated] = await db.update(questionSets).set(questionSet).where(eq(questionSets.id, id)).returning();
+    const [updated] = await this.db.update(questionSets).set(questionSet).where(eq(questionSets.id, id)).returning();
     return updated || undefined;
   }
 
   async deleteQuestionSet(id: number): Promise<boolean> {
     try {
       // Use transaction to ensure all deletions are atomic
-      return await db.transaction(async (tx) => {
+      return await this.db.transaction(async (tx) => {
         // First, check if there are any test runs that reference this question set
         const referencingTestRuns = await tx.select().from(userTestRuns).where(eq(userTestRuns.questionSetId, id));
         
@@ -818,7 +823,7 @@ export class DatabaseStorage implements IStorage {
   // Junction table methods for many-to-many relationship
   async createCourseQuestionSetMapping(courseId: number, questionSetId: number, displayOrder: number = 0): Promise<CourseQuestionSet> {
     // Check if mapping already exists
-    const existing = await db.select()
+    const existing = await this.db.select()
       .from(courseQuestionSets)
       .where(and(
         eq(courseQuestionSets.courseId, courseId),
@@ -831,7 +836,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Create new mapping only if it doesn't exist
-    const [mapping] = await db.insert(courseQuestionSets).values({
+    const [mapping] = await this.db.insert(courseQuestionSets).values({
       courseId,
       questionSetId,
       displayOrder,
@@ -840,7 +845,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeCourseQuestionSetMapping(courseId: number, questionSetId: number): Promise<boolean> {
-    const result = await db.delete(courseQuestionSets)
+    const result = await this.db.delete(courseQuestionSets)
       .where(and(
         eq(courseQuestionSets.courseId, courseId),
         eq(courseQuestionSets.questionSetId, questionSetId)
@@ -849,7 +854,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCoursesForQuestionSet(questionSetId: number): Promise<Course[]> {
-    const results = await db.select({
+    const results = await this.db.select({
       course: courses,
     })
       .from(courseQuestionSets)
@@ -861,14 +866,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCoursesByBaseCourseNumber(baseCourseNumber: string): Promise<Course[]> {
-    return await db.select()
+    return await this.db.select()
       .from(courses)
       .where(eq(courses.baseCourseNumber, baseCourseNumber))
       .orderBy(asc(courses.isAi));
   }
 
   async getQuestionSetDisplayOrder(courseId: number, questionSetId: number): Promise<number | undefined> {
-    const [result] = await db.select({
+    const [result] = await this.db.select({
       displayOrder: courseQuestionSets.displayOrder
     })
       .from(courseQuestionSets)
@@ -883,7 +888,7 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
     // Get only questions that have active versions
-    const results = await db.select({
+    const results = await this.db.select({
       question: questions
     })
     .from(questions)
@@ -907,31 +912,31 @@ export class DatabaseStorage implements IStorage {
 
   async getAllQuestionsByQuestionSet(questionSetId: number): Promise<Question[]> {
     // Get ALL questions including those with inactive versions
-    return await db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
+    return await this.db.select().from(questions).where(eq(questions.questionSetId, questionSetId));
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {
-    const [question] = await db.select().from(questions).where(eq(questions.id, id));
+    const [question] = await this.db.select().from(questions).where(eq(questions.id, id));
     return question || undefined;
   }
 
   async createQuestion(question: InsertQuestion): Promise<Question> {
-    const [newQuestion] = await db.insert(questions).values(question).returning();
+    const [newQuestion] = await this.db.insert(questions).values(question).returning();
     return newQuestion;
   }
 
   async getQuestionByOriginalNumber(questionSetId: number, originalNumber: number): Promise<Question | undefined> {
-    const [question] = await db.select().from(questions)
+    const [question] = await this.db.select().from(questions)
       .where(and(eq(questions.questionSetId, questionSetId), eq(questions.originalQuestionNumber, originalNumber)));
     return question || undefined;
   }
 
   async getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]> {
-    return await db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
+    return await this.db.select().from(questionVersions).where(eq(questionVersions.questionId, questionId));
   }
 
   async getQuestionVersion(id: number): Promise<QuestionVersion | undefined> {
-    const [version] = await db.select().from(questionVersions).where(eq(questionVersions.id, id));
+    const [version] = await this.db.select().from(questionVersions).where(eq(questionVersions.id, id));
     return version || undefined;
   }
 
@@ -940,7 +945,7 @@ export class DatabaseStorage implements IStorage {
       ...version,
       answerChoices: version.answerChoices as string[]
     };
-    const [newVersion] = await db.insert(questionVersions).values(versionData).returning();
+    const [newVersion] = await this.db.insert(questionVersions).values(versionData).returning();
     return newVersion;
   }
 
@@ -949,7 +954,7 @@ export class DatabaseStorage implements IStorage {
     question: Question;
     version: QuestionVersion | null;
   }>> {
-    const baseQuery = db.select({
+    const baseQuery = this.db.select({
       question: questions,
       version: questionVersions
     })
@@ -977,7 +982,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestion(id: number, updates: Partial<Question>): Promise<Question | undefined> {
-    const [updated] = await db.update(questions)
+    const [updated] = await this.db.update(questions)
       .set({
         ...updates,
         lastModified: new Date()
@@ -988,7 +993,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async archiveQuestion(id: number): Promise<boolean> {
-    const result = await db.update(questions)
+    const result = await this.db.update(questions)
       .set({ 
         isArchived: true,
         lastModified: new Date()
@@ -998,7 +1003,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recoverQuestion(id: number): Promise<boolean> {
-    const result = await db.update(questions)
+    const result = await this.db.update(questions)
       .set({ 
         isArchived: false,
         lastModified: new Date()
@@ -1016,7 +1021,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Begin transaction to ensure atomicity
-      return await db.transaction(async (tx) => {
+      return await this.db.transaction(async (tx) => {
         // Build a SQL query that updates all questions at once using a CASE statement
         // This is much more efficient than updating each question individually
         const now = new Date();
@@ -1050,7 +1055,7 @@ export class DatabaseStorage implements IStorage {
   async remixQuestions(questionSetId: number): Promise<boolean> {
     try {
       // Get all non-archived questions for this set
-      const allQuestions = await db.select()
+      const allQuestions = await this.db.select()
         .from(questions)
         .where(and(
           eq(questions.questionSetId, questionSetId),
@@ -1065,7 +1070,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Update display order using batch updates for better performance
-      return await db.transaction(async (tx) => {
+      return await this.db.transaction(async (tx) => {
         const now = new Date();
         
         // Create all update promises
@@ -1090,7 +1095,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQuestion(id: number): Promise<boolean> {
     try {
-      return await db.transaction(async (tx) => {
+      return await this.db.transaction(async (tx) => {
         // Delete all question versions first
         await tx.delete(questionVersions).where(eq(questionVersions.questionId, id));
         
@@ -1109,7 +1114,7 @@ export class DatabaseStorage implements IStorage {
     question: Partial<Question>, 
     version: Partial<QuestionVersion>
   ): Promise<{ question: Question; version: QuestionVersion }> {
-    return await db.transaction(async (tx) => {
+    return await this.db.transaction(async (tx) => {
       // Get the max display order for the question set
       const [maxOrder] = await tx.select({
         max: sql<number>`COALESCE(MAX(${questions.displayOrder}), -1)`
@@ -1163,14 +1168,14 @@ export class DatabaseStorage implements IStorage {
     
     // If no valid updates, return the current version
     if (Object.keys(validUpdates).length === 0) {
-      const [current] = await db.select()
+      const [current] = await this.db.select()
         .from(questionVersions)
         .where(eq(questionVersions.id, id))
         .limit(1);
       return current || undefined;
     }
     
-    const [updated] = await db.update(questionVersions)
+    const [updated] = await this.db.update(questionVersions)
       .set(validUpdates)
       .where(eq(questionVersions.id, id))
       .returning();
@@ -1178,7 +1183,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveQuestionVersion(questionId: number): Promise<QuestionVersion | undefined> {
-    const [version] = await db.select()
+    const [version] = await this.db.select()
       .from(questionVersions)
       .where(and(
         eq(questionVersions.questionId, questionId),
@@ -1189,7 +1194,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined> {
-    const results = await db.select({
+    const results = await this.db.select({
       questionVersion: questionVersions,
       questionVersionId: questionVersions.id
     })
@@ -1219,7 +1224,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestionVersionStaticExplanation(questionVersionId: number, staticExplanation: string): Promise<QuestionVersion | undefined> {
-    const [updated] = await db.update(questionVersions)
+    const [updated] = await this.db.update(questionVersions)
       .set({
         staticExplanation,
         isStaticAnswer: true
@@ -1232,7 +1237,7 @@ export class DatabaseStorage implements IStorage {
   
   // Helper method to check if a question exists with a given LOID
   async checkQuestionExistsByLoid(loid: string): Promise<boolean> {
-    const result = await db.select({ id: questions.id })
+    const result = await this.db.select({ id: questions.id })
       .from(questions)
       .where(eq(questions.loid, loid))
       .limit(1);
@@ -1243,7 +1248,7 @@ export class DatabaseStorage implements IStorage {
   // Text-based search: find question versions by normalized text hash
   async findQuestionVersionsByTextHash(textHash: string, courseScope?: string): Promise<QuestionVersion[]> {
     try {
-      let query = db.select({
+      let query = this.db.select({
         questionVersion: questionVersions
       })
       .from(questionVersions)
@@ -1286,7 +1291,7 @@ export class DatabaseStorage implements IStorage {
   // Direct text matching - find question versions by exact text
   async findQuestionVersionsByDirectText(questionText: string, courseScope?: string): Promise<QuestionVersion[]> {
     try {
-      let query = db.select({
+      let query = this.db.select({
         questionVersion: questionVersions,
         courseName: courses.courseNumber
       })
@@ -1330,7 +1335,7 @@ export class DatabaseStorage implements IStorage {
   
   // Update the normalized text hash for a question version
   async updateQuestionVersionTextHash(questionVersionId: number, textHash: string): Promise<void> {
-    await db.update(questionVersions)
+    await this.db.update(questionVersions)
       .set({ normalizedTextHash: textHash })
       .where(eq(questionVersions.id, questionVersionId));
   }
@@ -1340,7 +1345,7 @@ export class DatabaseStorage implements IStorage {
     const { normalizeQuestionText, hashQuestionText } = await import('./utils/text-normalizer');
     
     // Find question versions without text hash
-    const versionsToUpdate = await db.select()
+    const versionsToUpdate = await this.db.select()
       .from(questionVersions)
       .where(and(
         isNull(questionVersions.normalizedTextHash),
@@ -1377,7 +1382,7 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(eq(courseQuestionSets.displayOrder, questionSetNumber));
       }
       
-      const results = await db.select({
+      const results = await this.db.select({
         questionVersion: questionVersions
       })
         .from(questionVersions)
@@ -1428,7 +1433,7 @@ export class DatabaseStorage implements IStorage {
       // Query using case-insensitive title comparison and normalized course comparison
       // The database course numbers have spaces and suffixes (e.g., "CPCU 540 AI")
       // We need to normalize both sides for comparison
-      const results = await db.select({
+      const results = await this.db.select({
         questionVersion: questionVersions,
         questionSetTitle: questionSets.title
       })
@@ -1490,11 +1495,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserTestRuns(userId: number): Promise<UserTestRun[]> {
-    return await db.select().from(userTestRuns).where(eq(userTestRuns.userId, userId));
+    return await this.db.select().from(userTestRuns).where(eq(userTestRuns.userId, userId));
   }
 
   async getUserTestRun(id: number): Promise<UserTestRun | undefined> {
-    const [testRun] = await db.select().from(userTestRuns).where(eq(userTestRuns.id, id));
+    const [testRun] = await this.db.select().from(userTestRuns).where(eq(userTestRuns.id, id));
     return testRun || undefined;
   }
 
@@ -1503,7 +1508,7 @@ export class DatabaseStorage implements IStorage {
       ...testRun,
       questionOrder: Array.isArray(testRun.questionOrder) ? testRun.questionOrder : JSON.parse(JSON.stringify(testRun.questionOrder))
     };
-    const [newTestRun] = await db.insert(userTestRuns).values(testRunData).returning();
+    const [newTestRun] = await this.db.insert(userTestRuns).values(testRunData).returning();
     return newTestRun;
   }
 
@@ -1512,17 +1517,17 @@ export class DatabaseStorage implements IStorage {
     if (testRun.questionOrder) {
       updateData.questionOrder = testRun.questionOrder as number[];
     }
-    const [updated] = await db.update(userTestRuns).set(updateData).where(eq(userTestRuns.id, id)).returning();
+    const [updated] = await this.db.update(userTestRuns).set(updateData).where(eq(userTestRuns.id, id)).returning();
     return updated || undefined;
   }
 
   async getUserAnswersByTestRun(testRunId: number): Promise<UserAnswer[]> {
-    return await db.select().from(userAnswers).where(eq(userAnswers.userTestRunId, testRunId));
+    return await this.db.select().from(userAnswers).where(eq(userAnswers.userTestRunId, testRunId));
   }
 
   async createUserAnswer(answer: InsertUserAnswer & { isCorrect: boolean }): Promise<UserAnswer> {
     try {
-      const [newAnswer] = await db.insert(userAnswers).values(answer).returning();
+      const [newAnswer] = await this.db.insert(userAnswers).values(answer).returning();
       return newAnswer;
     } catch (error) {
       console.error('Error creating user answer:', error);
@@ -1531,7 +1536,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserAnswer(testRunId: number, questionVersionId: number): Promise<UserAnswer | undefined> {
-    const [answer] = await db.select().from(userAnswers)
+    const [answer] = await this.db.select().from(userAnswers)
       .where(and(
         eq(userAnswers.userTestRunId, testRunId),
         eq(userAnswers.questionVersionId, questionVersionId)
@@ -1541,7 +1546,7 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveUserTestRunForQuestionSet(userId: number, questionSetId: number): Promise<UserTestRun | undefined> {
     // Find the most recent uncompleted test run for this user and question set
-    const [testRun] = await db.select()
+    const [testRun] = await this.db.select()
       .from(userTestRuns)
       .where(and(
         eq(userTestRuns.userId, userId),
@@ -1555,36 +1560,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAiSettings(): Promise<AiSettings | undefined> {
-    const [settings] = await db.select().from(aiSettings).limit(1);
+    const [settings] = await this.db.select().from(aiSettings).limit(1);
     return settings || undefined;
   }
 
   async updateAiSettings(settings: Partial<InsertAiSettings>): Promise<AiSettings> {
     const existing = await this.getAiSettings();
     if (existing) {
-      const [updated] = await db.update(aiSettings).set(settings).where(eq(aiSettings.id, existing.id)).returning();
+      const [updated] = await this.db.update(aiSettings).set(settings).where(eq(aiSettings.id, existing.id)).returning();
       return updated;
     } else {
-      const [created] = await db.insert(aiSettings).values(settings).returning();
+      const [created] = await this.db.insert(aiSettings).values(settings).returning();
       return created;
     }
   }
 
   async getOpenRouterConfig(): Promise<OpenRouterConfig | undefined> {
-    const [config] = await db.select().from(openRouterConfig).limit(1);
+    const [config] = await this.db.select().from(openRouterConfig).limit(1);
     return config || undefined;
   }
 
   async updateOpenRouterConfig(config: Partial<InsertOpenRouterConfig>): Promise<OpenRouterConfig> {
     const existing = await this.getOpenRouterConfig();
     if (existing) {
-      const [updated] = await db.update(openRouterConfig)
+      const [updated] = await this.db.update(openRouterConfig)
         .set({ ...config, updatedAt: new Date() })
         .where(eq(openRouterConfig.id, existing.id))
         .returning();
       return updated;
     } else {
-      const [created] = await db.insert(openRouterConfig)
+      const [created] = await this.db.insert(openRouterConfig)
         .values({ ...config, updatedAt: new Date() })
         .returning();
       return created;
@@ -1592,7 +1597,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionVersionById(questionVersionId: number): Promise<QuestionVersion | undefined> {
-    const [questionVersion] = await db.select()
+    const [questionVersion] = await this.db.select()
       .from(questionVersions)
       .where(eq(questionVersions.id, questionVersionId))
       .limit(1);
@@ -1600,7 +1605,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateQuestionVersionStaticExplanation(questionVersionId: number, explanation: string): Promise<QuestionVersion> {
-    const [updated] = await db.update(questionVersions)
+    const [updated] = await this.db.update(questionVersions)
       .set({ staticExplanation: explanation })
       .where(eq(questionVersions.id, questionVersionId))
       .returning();
@@ -1608,33 +1613,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllPromptVersions(): Promise<PromptVersion[]> {
-    const versions = await db.select().from(promptVersions).orderBy(desc(promptVersions.createdAt));
+    const versions = await this.db.select().from(promptVersions).orderBy(desc(promptVersions.createdAt));
     return versions;
   }
 
   async getActivePromptVersion(): Promise<PromptVersion | undefined> {
-    const [version] = await db.select().from(promptVersions).where(eq(promptVersions.isActive, true)).limit(1);
+    const [version] = await this.db.select().from(promptVersions).where(eq(promptVersions.isActive, true)).limit(1);
     return version || undefined;
   }
 
   async getPromptVersion(id: number): Promise<PromptVersion | undefined> {
-    const [version] = await db.select().from(promptVersions).where(eq(promptVersions.id, id));
+    const [version] = await this.db.select().from(promptVersions).where(eq(promptVersions.id, id));
     return version || undefined;
   }
 
   async createPromptVersion(version: InsertPromptVersion): Promise<PromptVersion> {
-    const [newVersion] = await db.insert(promptVersions).values(version).returning();
+    const [newVersion] = await this.db.insert(promptVersions).values(version).returning();
     return newVersion;
   }
 
   async updatePromptVersion(id: number, version: Partial<InsertPromptVersion>): Promise<PromptVersion | undefined> {
-    const [updated] = await db.update(promptVersions).set(version).where(eq(promptVersions.id, id)).returning();
+    const [updated] = await this.db.update(promptVersions).set(version).where(eq(promptVersions.id, id)).returning();
     return updated || undefined;
   }
 
   async setActivePromptVersion(id: number): Promise<void> {
     // Use transaction to ensure atomic update
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       // First deactivate all versions
       await tx.update(promptVersions).set({ isActive: false });
       // Then activate the specified version
@@ -1644,7 +1649,7 @@ export class DatabaseStorage implements IStorage {
 
   async importQuestions(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
     // Use transaction to ensure atomic operation
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       try {
         for (const questionData of questionsData) {
           // Check if question already exists within transaction
@@ -1702,7 +1707,7 @@ export class DatabaseStorage implements IStorage {
   async updateQuestionsForRefresh(questionSetId: number, questionsData: QuestionImport[]): Promise<void> {
     // CONTENT-BASED MATCHING: Match questions by content similarity rather than position
     // This preserves static explanations even when questions are reordered or deleted
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       try {
         console.log('\n========================================');
         console.log(`[REFRESH START] Question Set ID: ${questionSetId}`);
@@ -2071,7 +2076,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserCourseProgress(userId: number, courseId: number): Promise<{ correctAnswers: number; totalAnswers: number }> {
     try {
-      const result = await db.select({
+      const result = await this.db.select({
         totalAnswers: sql<number>`COUNT(*)::int`,
         correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)::int`
       })
@@ -2098,7 +2103,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserTestProgress(userId: number, questionSetId: number): Promise<{ status: string; score?: string; testRun?: UserTestRun }> {
-    const testRuns = await db.select().from(userTestRuns)
+    const testRuns = await this.db.select().from(userTestRuns)
       .where(and(eq(userTestRuns.userId, userId), eq(userTestRuns.questionSetId, questionSetId)))
       .orderBy(desc(userTestRuns.startedAt));
 
@@ -2132,7 +2137,7 @@ export class DatabaseStorage implements IStorage {
   async getQuestionSetAnalytics(): Promise<any[]> {
     try {
       // Get all question sets with their course info
-      const questionSetsData = await db.select({
+      const questionSetsData = await this.db.select({
         questionSetId: questionSets.id,
         questionSetTitle: questionSets.title,
         courseId: questionSets.courseId,
@@ -2145,7 +2150,7 @@ export class DatabaseStorage implements IStorage {
       // Get test run statistics for each question set
       const analytics = await Promise.all(questionSetsData.map(async (qs) => {
         // Count total test runs (started sessions)
-        const testRunStats = await db.select({
+        const testRunStats = await this.db.select({
           totalRuns: sql<number>`COUNT(*)::int`,
           completedRuns: sql<number>`SUM(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END)::int`,
           uniqueUsers: sql<number>`COUNT(DISTINCT user_id)::int`,
@@ -2154,7 +2159,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(userTestRuns.questionSetId, qs.questionSetId));
 
         // Get answer statistics
-        const answerStats = await db.select({
+        const answerStats = await this.db.select({
           totalAnswers: sql<number>`COUNT(*)::int`,
           correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)::int`,
         })
@@ -2200,7 +2205,7 @@ export class DatabaseStorage implements IStorage {
     let skipped = 0;
     
     // Use transaction to ensure atomic operation
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       try {
         // Process materials one by one for upsert logic
         for (const material of materials) {
@@ -2245,7 +2250,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {
     // First try exact match
-    let result = await db.select()
+    let result = await this.db.select()
       .from(courseMaterials)
       .where(eq(courseMaterials.loid, loid))
       .limit(1);
@@ -2253,7 +2258,7 @@ export class DatabaseStorage implements IStorage {
     // If no exact match, try without leading zeros from input
     if (!result[0] && loid) {
       const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
-      result = await db.select()
+      result = await this.db.select()
         .from(courseMaterials)
         .where(eq(courseMaterials.loid, loidWithoutLeadingZeros))
         .limit(1);
@@ -2261,7 +2266,7 @@ export class DatabaseStorage implements IStorage {
     
     // If still no match, try matching with version suffix pattern (case-insensitive)
     if (!result[0] && loid) {
-      result = await db.select()
+      result = await this.db.select()
         .from(courseMaterials)
         .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`)
         .limit(1);
@@ -2270,7 +2275,7 @@ export class DatabaseStorage implements IStorage {
     // If still no match, try version suffix pattern without leading zeros
     if (!result[0] && loid) {
       const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
-      result = await db.select()
+      result = await this.db.select()
         .from(courseMaterials)
         .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`)
         .limit(1);
@@ -2285,7 +2290,7 @@ export class DatabaseStorage implements IStorage {
       // Query using SQL to normalize database LOIDs
       // Remove leading zeros: REGEXP_REPLACE(loid, '^0+', '', 'g')
       // Remove version suffix: REGEXP_REPLACE(..., '\.[^.]+$', '', 'g')
-      result = await db.select()
+      result = await this.db.select()
         .from(courseMaterials)
         .where(sql`
           REGEXP_REPLACE(
@@ -2308,7 +2313,7 @@ export class DatabaseStorage implements IStorage {
       const paddedLoid = loid.match(/^0/) ? loid : '0' + loid;
       const normalizedPaddedLoid = paddedLoid.replace(/^0+/, '') || '0';
       
-      result = await db.select()
+      result = await this.db.select()
         .from(courseMaterials)
         .where(sql`
           REGEXP_REPLACE(
@@ -2323,11 +2328,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChatbotLogs(): Promise<ChatbotLog[]> {
-    return await db.select().from(chatbotLogs).orderBy(desc(chatbotLogs.createdAt));
+    return await this.db.select().from(chatbotLogs).orderBy(desc(chatbotLogs.createdAt));
   }
 
   async createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog> {
-    const [newLog] = await db.insert(chatbotLogs).values(log).returning();
+    const [newLog] = await this.db.insert(chatbotLogs).values(log).returning();
     return newLog;
   }
 
@@ -2342,7 +2347,7 @@ export class DatabaseStorage implements IStorage {
     questionSetNumber?: number;
     baseUrl?: string;
   }): Promise<ChatbotFeedback> {
-    const [newFeedback] = await db.insert(chatbotFeedback).values(feedback).returning();
+    const [newFeedback] = await this.db.insert(chatbotFeedback).values(feedback).returning();
     
     // Extract assistant message from conversation if available (used by both Notion and Slack)
     let assistantMessage = null;
@@ -2412,7 +2417,7 @@ export class DatabaseStorage implements IStorage {
     loid: string | null;
     createdAt: Date;
   }>> {
-    const result = await db.select({
+    const result = await this.db.select({
       id: chatbotFeedback.id,
       userId: chatbotFeedback.userId,
       userName: users.name,
@@ -2475,7 +2480,7 @@ export class DatabaseStorage implements IStorage {
     conversation: Array<{id: string, content: string, role: "user" | "assistant"}> | null;
     createdAt: Date;
   } | null> {
-    const result = await db.select({
+    const result = await this.db.select({
       id: chatbotFeedback.id,
       userId: chatbotFeedback.userId,
       userName: users.name,
@@ -2519,12 +2524,12 @@ export class DatabaseStorage implements IStorage {
     answersThisWeek: number;
     answersThisMonth: number;
   }> {
-    const [userCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
-    const [courseCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(courses);
-    const [questionSetCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(questionSets);
-    const [questionCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(questions);
-    const [testRunCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userTestRuns);
-    const [answerCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(userAnswers);
+    const [userCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(users);
+    const [courseCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(courses);
+    const [questionSetCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(questionSets);
+    const [questionCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(questions);
+    const [testRunCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(userTestRuns);
+    const [answerCount] = await this.db.select({ count: sql<number>`COUNT(*)` }).from(userAnswers);
 
     // Active users calculations - Fixed to use proper timezone handling
     const now = new Date();
@@ -2533,41 +2538,41 @@ export class DatabaseStorage implements IStorage {
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // Active users today (users who have any activity today)
-    const [activeToday] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+    const [activeToday] = await this.db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
       .where(sql`DATE(started_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
-    const [activeWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+    const [activeWeek] = await this.db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
       .where(sql`started_at >= ${weekAgo.toISOString()}`);
 
-    const [activeMonth] = await db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
+    const [activeMonth] = await this.db.select({ count: sql<number>`COUNT(DISTINCT user_id)` })
       .from(userTestRuns)
       .where(sql`started_at >= ${monthAgo.toISOString()}`);
 
     // Question sets started statistics
-    const [testRunsToday] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
+    const [testRunsToday] = await this.db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
       .where(sql`DATE(${userTestRuns.startedAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
-    const [testRunsWeek] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
+    const [testRunsWeek] = await this.db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
       .where(sql`${userTestRuns.startedAt} >= ${weekAgo.toISOString()}`);
 
-    const [testRunsMonth] = await db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
+    const [testRunsMonth] = await this.db.select({ count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})` })
       .from(userTestRuns)
       .where(sql`${userTestRuns.startedAt} >= ${monthAgo.toISOString()}`);
 
     // Questions answered statistics
-    const [answersToday] = await db.select({ count: sql<number>`COUNT(*)` })
+    const [answersToday] = await this.db.select({ count: sql<number>`COUNT(*)` })
       .from(userAnswers)
       .where(sql`DATE(${userAnswers.answeredAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date`);
 
-    const [answersWeek] = await db.select({ count: sql<number>`COUNT(*)` })
+    const [answersWeek] = await this.db.select({ count: sql<number>`COUNT(*)` })
       .from(userAnswers)
       .where(sql`${userAnswers.answeredAt} >= ${weekAgo.toISOString()}`);
 
-    const [answersMonth] = await db.select({ count: sql<number>`COUNT(*)` })
+    const [answersMonth] = await this.db.select({ count: sql<number>`COUNT(*)` })
       .from(userAnswers)
       .where(sql`${userAnswers.answeredAt} >= ${monthAgo.toISOString()}`);
 
@@ -2600,7 +2605,7 @@ export class DatabaseStorage implements IStorage {
     lastActive: Date | null;
     registeredAt: Date;
   }>> {
-    const userStatsQuery = await db.select({
+    const userStatsQuery = await this.db.select({
       userId: users.id,
       userName: users.name,
       userEmail: users.email,
@@ -2659,7 +2664,7 @@ export class DatabaseStorage implements IStorage {
       );
     }
     // Get question set info
-    const questionSetInfo = await db.select({
+    const questionSetInfo = await this.db.select({
       id: questionSets.id,
       title: questionSets.title,
       courseTitle: courses.courseTitle,
@@ -2675,7 +2680,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Get total attempts for the question set
-    const totalAttemptsQuery = await db.select({
+    const totalAttemptsQuery = await this.db.select({
       totalAttempts: sql<number>`COUNT(DISTINCT ${userAnswers.id})`,
       correctAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`,
     })
@@ -2694,7 +2699,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // Get detailed stats for each question
-    const questionStats = await db.select({
+    const questionStats = await this.db.select({
       questionId: questions.id,
       questionNumber: questions.originalQuestionNumber,
       questionText: questionVersions.questionText,
@@ -2714,7 +2719,7 @@ export class DatabaseStorage implements IStorage {
     .orderBy(questions.originalQuestionNumber);
 
     // Count total questions
-    const totalQuestions = await db.select({
+    const totalQuestions = await this.db.select({
       count: sql<number>`COUNT(*)`,
     })
     .from(questions)
@@ -2727,7 +2732,7 @@ export class DatabaseStorage implements IStorage {
       if (endDate) questionSetAttemptsConditions.push(lte(userTestRuns.startedAt, endDate));
     }
     
-    const questionSetAttempts = await db.select({
+    const questionSetAttempts = await this.db.select({
       count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`,
     })
     .from(userTestRuns)
@@ -2786,7 +2791,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Stats by question set
-    const byQuestionSetQuery = await db.select({
+    const byQuestionSetQuery = await this.db.select({
       questionSetId: questionSets.id,
       questionSetTitle: questionSets.title,
       courseTitle: courses.courseTitle,
@@ -2817,7 +2822,7 @@ export class DatabaseStorage implements IStorage {
     }));
 
     // Most failed questions
-    const mostFailedQuery = await db.select({
+    const mostFailedQuery = await this.db.select({
       questionId: questions.id,
       questionText: questionVersions.questionText,
       questionSetTitle: questionSets.title,
@@ -2851,7 +2856,7 @@ export class DatabaseStorage implements IStorage {
     count: number;
   }>> {
     // First get the actual date range of data
-    const [dateRange] = await db.select({
+    const [dateRange] = await this.db.select({
       minDate: sql<Date>`MIN(${userTestRuns.startedAt})`,
       maxDate: sql<Date>`MAX(${userTestRuns.startedAt})`
     }).from(userTestRuns).where(sql`${userTestRuns.startedAt} IS NOT NULL`);
@@ -2906,7 +2911,7 @@ export class DatabaseStorage implements IStorage {
     let query;
     if (groupBy === 'week') {
       // Generate series of weeks and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -2933,7 +2938,7 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     } else if (groupBy === 'month') {
       // Generate series of months and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -2960,7 +2965,7 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     } else {
       // Generate series of days and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -3018,7 +3023,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Build query - use junction table for course-questionSet relationship
-    let query = db.select({
+    let query = this.db.select({
       courseName: courses.courseNumber,
       count: startDate 
         ? sql<number>`COUNT(DISTINCT CASE WHEN ${userTestRuns.startedAt} >= ${startDate.toISOString()} THEN ${userTestRuns.id} END)`
@@ -3048,7 +3053,7 @@ export class DatabaseStorage implements IStorage {
     count: number;
   }>> {
     // First get the actual date range of data
-    const [dateRange] = await db.select({
+    const [dateRange] = await this.db.select({
       minDate: sql<Date>`MIN(${userAnswers.answeredAt})`,
       maxDate: sql<Date>`MAX(${userAnswers.answeredAt})`
     }).from(userAnswers).where(sql`${userAnswers.answeredAt} IS NOT NULL`);
@@ -3103,7 +3108,7 @@ export class DatabaseStorage implements IStorage {
     let query;
     if (groupBy === 'week') {
       // Generate series of weeks and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('week', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -3130,7 +3135,7 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     } else if (groupBy === 'month') {
       // Generate series of months and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE_TRUNC('month', ${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -3157,7 +3162,7 @@ export class DatabaseStorage implements IStorage {
       query = result.rows as any[];
     } else {
       // Generate series of days and left join with actual data
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         WITH date_series AS (
           SELECT generate_series(
             DATE(${startDate.toISOString()}::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'),
@@ -3215,7 +3220,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Build query - use junction table for course-questionSet relationship
-    let query = db.select({
+    let query = this.db.select({
       courseName: courses.courseNumber,
       count: startDate 
         ? sql<number>`COUNT(CASE WHEN ${userAnswers.answeredAt} >= ${startDate.toISOString()} THEN ${userAnswers.id} END)`
@@ -3262,7 +3267,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Build the query conditionally to avoid passing undefined to where clause
-    let query = db.select({
+    let query = this.db.select({
       courseId: courses.id,
       courseNumber: courses.courseNumber,
       courseTitle: courses.courseTitle,
@@ -3304,20 +3309,20 @@ export class DatabaseStorage implements IStorage {
   
   // User course progress operations
   async updateUserCourseProgress(userId: number, courseId: number, updates: Partial<InsertUserCourseProgress>): Promise<void> {
-    const existing = await db.select()
+    const existing = await this.db.select()
       .from(userCourseProgress)
       .where(and(eq(userCourseProgress.userId, userId), eq(userCourseProgress.courseId, courseId)))
       .limit(1);
     
     if (existing.length > 0) {
-      await db.update(userCourseProgress)
+      await this.db.update(userCourseProgress)
         .set({
           ...updates,
           lastActivity: new Date()
         })
         .where(eq(userCourseProgress.id, existing[0].id));
     } else {
-      await db.insert(userCourseProgress).values({
+      await this.db.insert(userCourseProgress).values({
         userId,
         courseId,
         ...updates
@@ -3326,7 +3331,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserProgressByCourse(userId: number, courseId: number): Promise<UserCourseProgress | null> {
-    const result = await db.select()
+    const result = await this.db.select()
       .from(userCourseProgress)
       .where(and(eq(userCourseProgress.userId, userId), eq(userCourseProgress.courseId, courseId)))
       .limit(1);
@@ -3338,17 +3343,17 @@ export class DatabaseStorage implements IStorage {
   async updateDailyActivitySummary(date: Date, updates: Partial<InsertDailyActivitySummary>): Promise<void> {
     const dateOnly = getDateAtMidnightEST(date);
     
-    const existing = await db.select()
+    const existing = await this.db.select()
       .from(dailyActivitySummary)
       .where(eq(dailyActivitySummary.date, dateOnly))
       .limit(1);
     
     if (existing.length > 0) {
-      await db.update(dailyActivitySummary)
+      await this.db.update(dailyActivitySummary)
         .set(updates)
         .where(eq(dailyActivitySummary.id, existing[0].id));
     } else {
-      await db.insert(dailyActivitySummary).values({
+      await this.db.insert(dailyActivitySummary).values({
         date: dateOnly,
         ...updates
       });
@@ -3356,7 +3361,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getDailyActivitySummaries(startDate: Date, endDate: Date): Promise<DailyActivitySummary[]> {
-    return await db.select()
+    return await this.db.select()
       .from(dailyActivitySummary)
       .where(and(
         sql`${dailyActivitySummary.date} >= ${startDate}`,
@@ -3367,7 +3372,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDailyQuestionCount(date: Date): Promise<number> {
     const dateOnly = getDateAtMidnightEST(date);
-    const [summary] = await db.select()
+    const [summary] = await this.db.select()
       .from(dailyActivitySummary)
       .where(eq(dailyActivitySummary.date, dateOnly))
       .limit(1);
@@ -3406,7 +3411,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // 1. Active Users (DAU/WAU/MAU) with active rate
-    const activeUsersQuery = await db.select({
+    const activeUsersQuery = await this.db.select({
       userId: userTestRuns.userId,
       sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})::integer`.as('session_count'),
       totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})::integer`.as('total_questions')
@@ -3420,7 +3425,7 @@ export class DatabaseStorage implements IStorage {
     .groupBy(userTestRuns.userId);
 
     // Get total users with access (all registered users)
-    const [totalUsersResult] = await db.select({ 
+    const [totalUsersResult] = await this.db.select({ 
       count: sql<number>`COUNT(*)`.as('count') 
     }).from(users);
     const totalUsers = Number(totalUsersResult?.count || 0);
@@ -3440,7 +3445,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get session durations for median calculation
     // We calculate based on the last answer time if no completedAt is set
-    const sessionDurations = await db.select({
+    const sessionDurations = await this.db.select({
       startedAt: userTestRuns.startedAt,
       completedAt: userTestRuns.completedAt,
       lastAnswerTime: sql<Date>`MAX(${userAnswers.answeredAt})`.as('last_answer_time'),
@@ -3488,7 +3493,7 @@ export class DatabaseStorage implements IStorage {
 
     // 4. Set Completion Rate (within 7 days)
     // Consider a set "completed" if all questions were answered or explicitly marked complete
-    const setsWithProgress = await db.execute(sql`
+    const setsWithProgress = await this.db.execute(sql`
       WITH set_stats AS (
         SELECT 
           utr.id,
@@ -3530,7 +3535,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 5. First-Attempt Accuracy
-    const firstAttempts = await db.select({
+    const firstAttempts = await this.db.select({
       questionVersionId: userAnswers.questionVersionId,
       isCorrect: userAnswers.isCorrect,
       userId: userTestRuns.userId,
@@ -3561,7 +3566,7 @@ export class DatabaseStorage implements IStorage {
 
     // 6. Question Sets per Active User
     // Calculate the average number of unique question sets accessed by active users
-    const userQuestionSets = await db.select({
+    const userQuestionSets = await this.db.select({
       userId: userTestRuns.userId,
       uniqueQuestionSets: sql<number>`COUNT(DISTINCT ${userTestRuns.questionSetId})`.as('unique_question_sets')
     })
@@ -3588,7 +3593,7 @@ export class DatabaseStorage implements IStorage {
       const currentWeekStart = new Date(todayStart);
       currentWeekStart.setDate(currentWeekStart.getDate() - 6);
       
-      const currentWeekUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+      const currentWeekUsers = await this.db.selectDistinct({ userId: userTestRuns.userId })
         .from(userTestRuns)
         .where(and(
           gte(userTestRuns.startedAt, currentWeekStart),
@@ -3601,7 +3606,7 @@ export class DatabaseStorage implements IStorage {
       const prevWeekEnd = new Date(currentWeekStart);
       prevWeekEnd.setDate(prevWeekEnd.getDate() - 1);
 
-      const prevWeekUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+      const prevWeekUsers = await this.db.selectDistinct({ userId: userTestRuns.userId })
         .from(userTestRuns)
         .where(and(
           gte(userTestRuns.startedAt, prevWeekStart),
@@ -3676,7 +3681,7 @@ export class DatabaseStorage implements IStorage {
     endDateClean.setHours(23, 59, 59, 999);
 
     // 1. Active Users (DAU/WAU/MAU) with active rate
-    const activeUsersQuery = await db.select({
+    const activeUsersQuery = await this.db.select({
       userId: userTestRuns.userId,
       sessionCount: sql<number>`COUNT(DISTINCT ${userTestRuns.id})::integer`.as('session_count'),
       totalQuestions: sql<number>`COUNT(DISTINCT ${userAnswers.id})::integer`.as('total_questions')
@@ -3690,7 +3695,7 @@ export class DatabaseStorage implements IStorage {
     .groupBy(userTestRuns.userId);
 
     // Get total users with access (all registered users)
-    const [totalUsersResult] = await db.select({ 
+    const [totalUsersResult] = await this.db.select({ 
       count: sql<number>`COUNT(*)`.as('count') 
     }).from(users);
     const totalUsers = Number(totalUsersResult?.count || 0);
@@ -3709,7 +3714,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // Get session durations for median calculation
-    const sessionDurations = await db.select({
+    const sessionDurations = await this.db.select({
       startedAt: userTestRuns.startedAt,
       completedAt: userTestRuns.completedAt,
       lastAnswerTime: sql<Date>`MAX(${userAnswers.answeredAt})`.as('last_answer_time'),
@@ -3755,7 +3760,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 4. Set Completion Rate
-    const setsWithProgress = await db.execute(sql`
+    const setsWithProgress = await this.db.execute(sql`
       WITH set_stats AS (
         SELECT 
           utr.id,
@@ -3793,7 +3798,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 5. First-Attempt Accuracy
-    const firstAttempts = await db.select({
+    const firstAttempts = await this.db.select({
       questionVersionId: userAnswers.questionVersionId,
       isCorrect: userAnswers.isCorrect,
       userId: userTestRuns.userId,
@@ -3823,7 +3828,7 @@ export class DatabaseStorage implements IStorage {
       : 0;
 
     // 6. Question Sets per Active User
-    const userQuestionSets = await db.select({
+    const userQuestionSets = await this.db.select({
       userId: userTestRuns.userId,
       uniqueQuestionSets: sql<number>`COUNT(DISTINCT ${userTestRuns.questionSetId})`.as('unique_question_sets')
     })
@@ -3853,7 +3858,7 @@ export class DatabaseStorage implements IStorage {
       midDate.setDate(midDate.getDate() + Math.floor(daysDiff / 2));
       
       // Users active in second half
-      const secondHalfUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+      const secondHalfUsers = await this.db.selectDistinct({ userId: userTestRuns.userId })
         .from(userTestRuns)
         .where(and(
           gte(userTestRuns.startedAt, midDate),
@@ -3861,7 +3866,7 @@ export class DatabaseStorage implements IStorage {
         ));
 
       // Users active in first half
-      const firstHalfUsers = await db.selectDistinct({ userId: userTestRuns.userId })
+      const firstHalfUsers = await this.db.selectDistinct({ userId: userTestRuns.userId })
         .from(userTestRuns)
         .where(and(
           gte(userTestRuns.startedAt, startDateClean),
@@ -3929,7 +3934,7 @@ export class DatabaseStorage implements IStorage {
     const endDateClean = new Date(endDate);
     
     // 1. Total registered users in the date range
-    const registeredUsersQuery = await db.select({
+    const registeredUsersQuery = await this.db.select({
       count: sql<number>`COUNT(*)`.as('count')
     })
     .from(users)
@@ -3940,7 +3945,7 @@ export class DatabaseStorage implements IStorage {
     const totalRegisteredUsers = Number(registeredUsersQuery[0]?.count || 0);
     
     // 2. Total question sets started (test runs) in the date range
-    const questionSetsStartedQuery = await db.select({
+    const questionSetsStartedQuery = await this.db.select({
       count: sql<number>`COUNT(*)`.as('count')
     })
     .from(userTestRuns)
@@ -3951,7 +3956,7 @@ export class DatabaseStorage implements IStorage {
     const totalQuestionSetsStarted = Number(questionSetsStartedQuery[0]?.count || 0);
     
     // 3. Total unique user sessions (unique users who had test runs in the date range)
-    const uniqueUserSessionsQuery = await db.select({
+    const uniqueUserSessionsQuery = await this.db.select({
       count: sql<number>`COUNT(DISTINCT ${userTestRuns.userId})`.as('count')
     })
     .from(userTestRuns)
@@ -3962,7 +3967,7 @@ export class DatabaseStorage implements IStorage {
     const totalUniqueUserSessions = Number(uniqueUserSessionsQuery[0]?.count || 0);
     
     // 4. Most common course (by question set usage)
-    const mostCommonCourseQuery = await db.select({
+    const mostCommonCourseQuery = await this.db.select({
       courseNumber: courses.courseNumber,
       courseTitle: courses.courseTitle,
       count: sql<number>`COUNT(DISTINCT ${userTestRuns.id})`.as('count')
@@ -3987,7 +3992,7 @@ export class DatabaseStorage implements IStorage {
       : null;
     
     // 5. Total questions answered in the date range
-    const questionsAnsweredQuery = await db.select({
+    const questionsAnsweredQuery = await this.db.select({
       count: sql<number>`COUNT(*)`.as('count')
     })
     .from(userAnswers)
