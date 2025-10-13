@@ -3,19 +3,28 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+// Only load Replit cartographer plugin in development with a proper Replit environment
+const isDevelopment = process.env.NODE_ENV !== "production";
+const isReplitEnv = process.env.REPL_ID !== undefined;
+const shouldLoadCartographer = isDevelopment && isReplitEnv;
+
+const plugins = [
+  react(),
+  runtimeErrorOverlay(),
+];
+
+// Add cartographer only in development to avoid build issues
+if (shouldLoadCartographer) {
+  try {
+    const cartographerModule = await import("@replit/vite-plugin-cartographer");
+    plugins.push(cartographerModule.cartographer());
+  } catch (error) {
+    console.warn("Could not load Replit cartographer plugin:", error);
+  }
+}
+
 export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+  plugins,
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
