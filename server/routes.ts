@@ -6,12 +6,13 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
+  promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback,
+  type QuestionVersion
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
-import { eq, sql, desc, asc, inArray } from "drizzle-orm";
+import { eq, sql, desc, asc, inArray, and } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
@@ -6224,7 +6225,7 @@ ${learningContent}
                 success: false,
                 error: `Skipped: ${(item as any).reason || 'Not found in preview'}`,
                 courseName: item.row.courseName,
-                questionSetNumber: item.row.questionSetNumber,
+                questionSetTitle: item.row.questionSetTitle,
                 questionNumber: item.row.questionNumber,
                 loid: item.row.loid,
                 updatedVersions: 0
