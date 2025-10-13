@@ -783,7 +783,7 @@ export default function QuestionSetPractice() {
                   // Show disabled dropdown with message for Test Course
                   return (
                     <Select value="" disabled>
-                      <SelectTrigger className="w-[140px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 transition-colors opacity-50">
+                      <SelectTrigger className="w-[147px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 transition-colors opacity-50">
                         <SelectValue placeholder="No question sets" />
                       </SelectTrigger>
                       <SelectContent></SelectContent>
@@ -801,7 +801,7 @@ export default function QuestionSetPractice() {
                       setLocation(newPath);
                     }}
                   >
-                    <SelectTrigger className="w-[140px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
+                    <SelectTrigger className="w-[147px] h-auto py-2.5 text-sm font-medium text-foreground border-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors">
                       <SelectValue placeholder="Select set" />
                     </SelectTrigger>
                     <SelectContent>
