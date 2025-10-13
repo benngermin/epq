@@ -5,6 +5,17 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 13, 2024 - Deployment Provisioning Optimization
+- **Removed Heavy Dependencies**:
+  - Removed `canvas` package from dependencies (not used in runtime code)
+  - Moved `playwright` from dependencies to devDependencies (only needed for testing)
+  - Uninstalled 30 GTK/Xorg system packages (cairo, pango, gtk3, etc.) that were only needed for canvas
+- **Results**: 
+  - Removed 31 unnecessary packages from production dependencies
+  - Dramatically reduced provisioning time by eliminating compilation of graphics libraries
+  - Prevented ~1GB browser binary downloads from blocking deployment
+  - Application now provisions quickly without hanging on VM setup
+
 ### October 13, 2024 - Critical Deployment Syntax Errors Fixed
 - **Fixed Parse-Time Syntax Errors**:
   - Fixed variable reference before declaration: moved healthcheck route after `const app = express()`
