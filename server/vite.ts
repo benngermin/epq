@@ -17,7 +17,6 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   // Dynamic imports to ensure vite is never loaded in production
   const { createServer: createViteServer, createLogger } = await import("vite");
-  const viteConfig = (await import("../vite.config.js")).default;
   
   const viteLogger = createLogger();
   
@@ -30,8 +29,8 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    root: path.resolve(import.meta.dirname, "..", "client"),
+    configFile: path.resolve(import.meta.dirname, "..", "vite.config.ts"),
     customLogger: {
       ...viteLogger,
       error: (msg: string, options?: any) => {

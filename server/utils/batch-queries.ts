@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { getDb } from '../db';
 import { questions, questionVersions } from '@shared/schema';
 import { inArray, eq } from 'drizzle-orm';
 
@@ -6,6 +6,7 @@ import { inArray, eq } from 'drizzle-orm';
 export async function batchFetchQuestionVersions(questionIds: number[]) {
   if (questionIds.length === 0) return new Map();
   
+  const db = getDb();
   const versions = await db
     .select()
     .from(questionVersions)
@@ -26,6 +27,7 @@ export async function batchFetchQuestionVersions(questionIds: number[]) {
 // Batch fetch questions with their latest versions
 export async function batchFetchQuestionsWithVersions(questionSetId: number, includeArchived: boolean = false) {
   // Fetch all questions for the set
+  const db = getDb();
   const allQuestions = await db
     .select()
     .from(questions)

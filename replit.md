@@ -5,6 +5,26 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 13, 2024 - Production Deployment Fixes
+- **Fixed Production Build Issues**:
+  - Added `pg` dependency required by `connect-pg-simple`
+  - Updated build scripts to separate client and server builds
+  - Changed server output to `.mjs` format for proper ESM support
+- **Lazy Loading & Dynamic Imports**:
+  - Updated `server/vite.ts` to use dynamic imports (dev-only)
+  - Updated `vite.config.ts` to conditionally load dev plugins
+  - Prevents dev dependencies from loading in production
+- **Database Initialization**:
+  - Implemented lazy DB initialization in `server/db.ts`
+  - Updated all database consumers to get DB at runtime
+  - Fixed module-time throws that could crash production
+- **Environment & Deployment**:
+  - Updated `server/index.ts` with proper dev/prod split
+  - Added IS_DEPLOYMENT check for Replit deployments
+  - Proper static file serving in production mode
+- **Session Store**:
+  - Session store already properly guarded with DATABASE_URL check
+
 ### October 13, 2024 - Bug Fixes Implementation
 - **Fixed TypeScript Errors**: 
   - Added missing `and` import from drizzle-orm
