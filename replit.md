@@ -5,6 +5,21 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 13, 2024 - Bug Fixes Implementation
+- **Fixed TypeScript Errors**: 
+  - Added missing `and` import from drizzle-orm
+  - Fixed type casting for error handling 
+  - Replaced undefined `QuestionVersion` type with proper type inference
+  - Corrected property name from `questionSetNumber` to `questionSetTitle`
+- **Fixed Empty Catch Block**:
+  - Added proper error logging in development environment for course info fetching during bulk refresh
+- **Fixed Console Logging Security**:
+  - Wrapped sensitive conversation history logging in development environment checks
+- **SessionStorage Access**:
+  - Verified existing checks for sessionStorage availability are properly in place
+- **Cognito Auth Error Handling**:
+  - Confirmed proper error page redirects are already implemented
+
 ### October 13, 2024 - HTML-Wrapped Markdown Fix
 - **Issue**: Bold markdown syntax (e.g., `**Correct Answer:**`) was displaying literally instead of rendering as bold
 - **Root Cause**: Static explanations from the server come wrapped in HTML tags (e.g., `<p>**Correct Answer:**...</p>`). The client's `isHtmlContent()` function detected the HTML wrapper first and skipped markdown processing entirely
