@@ -21,3 +21,7 @@ vite.config.ts.*
 
 # Security cleanup scripts
 clean-secrets.sh
+
+# Replit state directories
+.local/
+.config/
