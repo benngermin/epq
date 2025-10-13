@@ -60,15 +60,31 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           totalLength: sanitizedExplanation.length
         });
         
-        // If content has both HTML and markdown, extract text from HTML and process as markdown
+        // If content has both HTML and markdown, extract and convert preserving links
         if (isHtml && hasMarkdownSyntax) {
-          console.log('[StaticExplanation] Detected HTML-wrapped markdown, extracting text...');
-          // Strip HTML tags to get pure text with markdown
+          console.log('[StaticExplanation] Detected HTML-wrapped markdown, extracting with link preservation...');
+          
+          // Create a temporary div to parse the HTML
           const tempDiv = document.createElement('div');
           tempDiv.innerHTML = sanitizedExplanation;
+          
+          // Convert links to markdown format before extracting text
+          const links = tempDiv.querySelectorAll('a');
+          links.forEach(link => {
+            const href = link.getAttribute('href');
+            const text = link.textContent || '';
+            if (href) {
+              // Replace the link with markdown formatted link
+              const markdownLink = `[${text}](${href})`;
+              const textNode = document.createTextNode(markdownLink);
+              link.parentNode?.replaceChild(textNode, link);
+            }
+          });
+          
+          // Now extract the text with markdown-formatted links
           const extractedText = tempDiv.textContent || tempDiv.innerText || '';
           
-          console.log('[StaticExplanation] Extracted text:', extractedText.substring(0, 200));
+          console.log('[StaticExplanation] Extracted text with markdown links:', extractedText.substring(0, 200));
           
           // Process the extracted text as markdown
           setIsProcessing(true);
