@@ -64,10 +64,9 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
         if (isHtml && hasMarkdownSyntax) {
           console.log('[StaticExplanation] Detected HTML-wrapped markdown, extracting with link preservation...');
           
-          // Use DOMParser to safely parse HTML without executing scripts
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(sanitizedExplanation, 'text/html');
-          const tempDiv = doc.body;
+          // Create a temporary div to parse the HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = sanitizedExplanation;
           
           // Convert links to markdown format before extracting text
           const links = tempDiv.querySelectorAll('a');
