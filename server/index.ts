@@ -132,8 +132,8 @@ app.use((req, res, next) => {
   });
 
   // Setup development or production serving
-  // Check both NODE_ENV and IS_DEPLOYMENT to ensure proper mode
-  if (app.get("env") === "development" && !IS_DEPLOYMENT) {
+  // Check both NODE_ENV and IS_DEPLOY to ensure proper mode
+  if (app.get("env") === "development" && !IS_DEPLOY) {
     await setupVite(app, server);
   } else {
     // Production mode - serve static files

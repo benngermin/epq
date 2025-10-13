@@ -44,10 +44,17 @@ deploymentTarget = "vm"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
-# Only one external port, for production
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5050
+externalPort = 3000
+
+[[ports]]
+localPort = 44685
+externalPort = 3001
 
 [workflows]
 runButton = "Project"
