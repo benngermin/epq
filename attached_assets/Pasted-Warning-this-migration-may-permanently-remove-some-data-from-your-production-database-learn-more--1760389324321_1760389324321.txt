@@ -1,0 +1,42 @@
+Warning, this migration may permanently remove some data from your production database, learn more:
+You're about to delete question_set_id column in question_match_history table with 16724 items
+You're about to delete refresh_timestamp column in question_match_history table with 16724 items
+You're about to delete incoming_position column in question_match_history table with 16724 items
+You're about to delete incoming_loid column in question_match_history table with 16724 items
+You're about to delete matched_by column in question_match_history table with 16724 items
+You're about to delete confidence_score column in question_match_history table with 16724 items
+You're about to delete content_similarity column in question_match_history table with 16724 items
+You're about to delete position_shift column in question_match_history table with 16724 items
+CREATE TABLE "openrouter_config" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"model_name" text DEFAULT 'anthropic/claude-3.5-sonnet' NOT NULL,
+	"system_message" text DEFAULT 'You are an expert insurance instructor providing clear explanations for insurance exam questions.' NOT NULL,
+	"max_tokens" integer DEFAULT 32000 NOT NULL,
+	"reasoning" text DEFAULT 'medium' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"user_message" text DEFAULT 'Question: {{QUESTION_TEXT}}
+Correct Answer: {{CORRECT_ANSWER}}
+Learning Content:
+{{LEARNING_CONTENT}}
+Please provide a clear explanation for this question.' NOT NULL
+);
+ALTER TABLE "question_match_history" DROP CONSTRAINT "question_match_history_question_set_id_fkey";
+DROP INDEX "idx_question_versions_text_hash";
+ALTER TABLE "questions" ALTER COLUMN "content_fingerprint" SET DATA TYPE text;
+ALTER TABLE "questions" ALTER COLUMN "match_confidence" SET DATA TYPE integer;
+ALTER TABLE "questions" ADD COLUMN "display_order" integer DEFAULT 0 NOT NULL;
+ALTER TABLE "questions" ADD COLUMN "is_archived" boolean DEFAULT false NOT NULL;
+ALTER TABLE "questions" ADD COLUMN "last_modified" timestamp DEFAULT now() NOT NULL;
+ALTER TABLE "question_match_history" ADD COLUMN "matched_at" timestamp DEFAULT now();
+ALTER TABLE "question_match_history" ADD COLUMN "match_confidence" integer;
+ALTER TABLE "question_match_history" ADD COLUMN "match_details" jsonb;
+ALTER TABLE "question_match_history" ADD COLUMN "created_at" timestamp DEFAULT now();
+CREATE UNIQUE INDEX "uq_active_question_version" ON "question_versions" USING btree ("question_id") WHERE (is_active = true);
+ALTER TABLE "question_match_history" DROP COLUMN "question_set_id";
+ALTER TABLE "question_match_history" DROP COLUMN "refresh_timestamp";
+ALTER TABLE "question_match_history" DROP COLUMN "incoming_position";
+ALTER TABLE "question_match_history" DROP COLUMN "incoming_loid";
+ALTER TABLE "question_match_history" DROP COLUMN "matched_by";
+ALTER TABLE "question_match_history" DROP COLUMN "confidence_score";
+ALTER TABLE "question_match_history" DROP COLUMN "content_similarity";
+ALTER TABLE "question_match_history" DROP COLUMN "position_shift";

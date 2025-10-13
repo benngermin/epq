@@ -1918,7 +1918,7 @@ export class DatabaseStorage implements IStorage {
                 originalQuestionNumber: result.incoming.question_number,
                 loid: result.incoming.loid || question.loid,
                 lastMatchedAt: new Date(),
-                matchConfidence: result.score > 85 ? 100 : result.score > 60 ? 75 : 50 // Convert to integer
+                matchConfidence: result.score > 85 ? 'high' : result.score > 60 ? 'medium' : 'low' // Use text values to match production
               })
               .where(eq(questions.id, question.id));
             
@@ -2010,7 +2010,7 @@ export class DatabaseStorage implements IStorage {
               loid: result.incoming.loid,
               contentFingerprint: null,
               lastMatchedAt: new Date(),
-              matchConfidence: 0 // Set to 0 for new questions (integer field)
+              matchConfidence: 'new' // Set to 'new' for new questions (text field)
             }).returning();
             
             // Create first version

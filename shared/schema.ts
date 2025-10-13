@@ -69,7 +69,7 @@ export const questions = pgTable("questions", {
   // Keep old columns for backwards compatibility
   contentFingerprint: text("content_fingerprint"), // Optional, for backwards compatibility
   lastMatchedAt: timestamp("last_matched_at"), // Optional, for backwards compatibility
-  matchConfidence: integer("match_confidence"), // Optional, for backwards compatibility
+  matchConfidence: text("match_confidence"), // Keep as text to match production data (stores "high", "medium", "low")
 });
 
 export const questionVersions = pgTable("question_versions", {
