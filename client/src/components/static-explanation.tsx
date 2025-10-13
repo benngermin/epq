@@ -82,7 +82,17 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
           });
           
           // Now extract the text with markdown-formatted links
-          const extractedText = tempDiv.textContent || tempDiv.innerText || '';
+          let extractedText = tempDiv.textContent || tempDiv.innerText || '';
+          
+          // Clean up formatting issues that cause excessive spacing
+          // Remove list markers (-, *, +) at the start of lines that immediately follow **Source:**
+          extractedText = extractedText.replace(/(\*\*Source:\*\*)\s*\n+\s*[-*+]\s+/g, '$1 ');
+          
+          // Also handle general case where Source is followed by unnecessary newlines
+          extractedText = extractedText.replace(/(\*\*Source:\*\*)\s*\n+/g, '$1 ');
+          
+          // Clean up other excessive newlines around bold text
+          extractedText = extractedText.replace(/(\*\*[^*]+:\*\*)\s*\n{2,}/g, '$1\n');
           
           console.log('[StaticExplanation] Extracted text with markdown links:', extractedText.substring(0, 200));
           
