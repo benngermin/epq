@@ -70,7 +70,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
   };
 
   // Convert DOM node to React element recursively
-  const convertNodeToReact = (node: Node): React.ReactNode => {
+  const convertNodeToReact = (node: Node, previousSibling?: Node | null): React.ReactNode => {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.textContent || '';
     }
@@ -81,10 +81,46 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
     
     const element = node as Element;
     const tagName = element.tagName.toLowerCase();
-    const children = Array.from(element.childNodes).map(convertNodeToReact).filter(child => child !== null);
+    const children = Array.from(element.childNodes).map((child, index) => 
+      convertNodeToReact(child, element.childNodes[index - 1])
+    ).filter(child => child !== null);
     
     keyCounter++;
     const key = `${tagName}-${keyCounter}`;
+    
+    // Helper to check if previous sibling is a heading or bold text
+    const isPreviousHeadingOrBold = () => {
+      if (!previousSibling || previousSibling.nodeType !== Node.ELEMENT_NODE) {
+        return false;
+      }
+      const prevElement = previousSibling as Element;
+      const prevTag = prevElement.tagName.toLowerCase();
+      
+      // Check if previous element is a heading
+      if (/^h[1-6]$/.test(prevTag)) {
+        return true;
+      }
+      
+      // Check if previous element contains bold text ending with colon (like "Source:")
+      if (prevTag === 'p' || prevTag === 'div') {
+        const text = (prevElement.textContent || '').trim();
+        // Check for common header patterns
+        const headerPatterns = [
+          /^(Correct Answer:|Explanation:|Source:|Note:|Tip:|Warning:|References?:|Example:|Solution:)/i,
+          /:\s*$/  // Ends with colon
+        ];
+        
+        // Check if text matches header patterns
+        const isHeader = headerPatterns.some(pattern => pattern.test(text));
+        
+        // Also check if the element contains strong/b tags
+        const hasStrongTag = prevElement.querySelector('strong, b') !== null;
+        
+        return isHeader || (hasStrongTag && text.endsWith(':'));
+      }
+      
+      return false;
+    };
     
     // Handle different HTML elements
     switch (tagName) {
@@ -120,15 +156,23 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         return <hr key={key} className="my-2" />;
         
       case 'p':
+        // Check if this paragraph contains only bold text ending with colon (like "Source:")
+        const pText = element.textContent || '';
+        const isBoldHeader = /^(Correct Answer:|Explanation:|Source:|Note:|Tip:|Warning:)\s*$/i.test(pText.trim());
+        
         return (
-          <div key={key}>
+          <div key={key} className={isBoldHeader ? "mb-1" : "mb-2"}>
             {children}
           </div>
         );
         
       case 'div':
+        // Check if this div contains only bold text ending with colon
+        const divText = element.textContent || '';
+        const isDivBoldHeader = /^(Correct Answer:|Explanation:|Source:|Note:|Tip:|Warning:)\s*$/i.test(divText.trim());
+        
         return (
-          <div key={key}>
+          <div key={key} className={isDivBoldHeader ? "mb-1" : ""}>
             {children}
           </div>
         );
@@ -177,15 +221,23 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         );
         
       case 'ul':
+        // Use reduced top margin if list follows a heading or bold text
+        const ulClassName = isPreviousHeadingOrBold() 
+          ? "list-disc ml-5 mt-0.5 mb-2 space-y-1"  // Minimal top margin
+          : "list-disc ml-5 my-2 space-y-1";         // Normal margins
         return (
-          <ul key={key} className="list-disc ml-5 my-2 space-y-1">
+          <ul key={key} className={ulClassName}>
             {children}
           </ul>
         );
         
       case 'ol':
+        // Use reduced top margin if list follows a heading or bold text
+        const olClassName = isPreviousHeadingOrBold()
+          ? "list-decimal ml-5 mt-0.5 mb-2 space-y-1"  // Minimal top margin
+          : "list-decimal ml-5 my-2 space-y-1";         // Normal margins
         return (
-          <ol key={key} className="list-decimal ml-5 my-2 space-y-1">
+          <ol key={key} className={olClassName}>
             {children}
           </ol>
         );
@@ -295,7 +347,9 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
         return text;
       }
       
-      const reactElements = Array.from(container.childNodes).map(convertNodeToReact);
+      const reactElements = Array.from(container.childNodes).map((node, index) => 
+        convertNodeToReact(node, container.childNodes[index - 1])
+      );
       
       // Filter out null elements and return
       return reactElements.filter(element => element !== null);

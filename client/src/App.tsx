@@ -40,6 +40,7 @@ const QuestionSetPractice = lazyWithRetry(() => import("@/pages/question-set-pra
 const Debug = lazyWithRetry(() => import("@/pages/Debug"));
 const DragDropDemo = lazyWithRetry(() => import("@/pages/DragDropDemo"));
 const MarkdownTest = lazyWithRetry(() => import("@/pages/markdown-test"));
+const TestSpacing = lazyWithRetry(() => import("@/pages/test-spacing"));
 
 // Loading component
 const PageLoader = () => (
@@ -62,6 +63,7 @@ function Router() {
         <ProtectedRoute path="/debug" component={() => <DashboardErrorBoundary><Debug /></DashboardErrorBoundary>} />
         <Route path="/markdown-test" component={() => <DashboardErrorBoundary><MarkdownTest /></DashboardErrorBoundary>} />
         <Route path="/dragdrop-demo" component={() => <DashboardErrorBoundary><DragDropDemo /></DashboardErrorBoundary>} />
+        <Route path="/test-spacing" component={() => <DashboardErrorBoundary><TestSpacing /></DashboardErrorBoundary>} />
         <Route path="/demo" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
         <Route path="/demo/question-set/:id" component={() => <DashboardErrorBoundary><QuestionSetPractice /></DashboardErrorBoundary>} />
         <Route path="/auth" component={() => <AuthPage />} />
