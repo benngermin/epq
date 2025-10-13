@@ -4,7 +4,40 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["imagemagick", "jq", "libuuid", "cairo", "pango", "libpng", "libjpeg", "giflib", "librsvg", "pixman", "freetype", "fontconfig", "nspr", "nss", "atk", "cups", "libdrm", "libxkbcommon", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXrandr", "mesa", "alsa-lib", "at-spi2-core", "at-spi2-atk", "xorg.libX11", "xorg.libXcursor", "xorg.libXi", "xorg.libXext", "xorg.libXtst", "xorg.libXScrnSaver", "gtk3"]
+packages = [
+  "imagemagick",
+  "jq",
+  "libuuid",
+  "cairo",
+  "pango",
+  "libpng",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pixman",
+  "freetype",
+  "fontconfig",
+  "nspr",
+  "nss",
+  "atk",
+  "cups",
+  "libdrm",
+  "libxkbcommon",
+  "xorg.libXcomposite",
+  "xorg.libXdamage",
+  "xorg.libXrandr",
+  "mesa",
+  "alsa-lib",
+  "at-spi2-core",
+  "at-spi2-atk",
+  "xorg.libX11",
+  "xorg.libXcursor",
+  "xorg.libXi",
+  "xorg.libXext",
+  "xorg.libXtst",
+  "xorg.libXScrnSaver",
+  "gtk3",
+]
 
 [deployment]
 deploymentTarget = "vm"
@@ -14,46 +47,6 @@ run = ["npm", "run", "start"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 33107
-externalPort = 5000
-
-[[ports]]
-localPort = 33167
-externalPort = 8008
-
-[[ports]]
-localPort = 34019
-externalPort = 3000
-
-[[ports]]
-localPort = 37227
-externalPort = 6000
-
-[[ports]]
-localPort = 38755
-externalPort = 5173
-
-[[ports]]
-localPort = 41131
-externalPort = 6800
-
-[[ports]]
-localPort = 41289
-externalPort = 4200
-
-[[ports]]
-localPort = 41883
-externalPort = 3001
-
-[[ports]]
-localPort = 44441
-externalPort = 3002
-
-[[ports]]
-localPort = 45441
-externalPort = 8000
 
 [workflows]
 runButton = "Project"
