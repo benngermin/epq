@@ -3,10 +3,15 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from "@shared/schema";
 import ws from 'ws';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Defer DATABASE_URL validation to prevent deployment issues
+// The check will happen when the database is actually accessed
+function getDatabaseUrl(): string {
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL must be set. Did you forget to provision a database?",
+    );
+  }
+  return process.env.DATABASE_URL;
 }
 
 // Configure WebSocket for Neon serverless driver
@@ -14,7 +19,7 @@ neonConfig.webSocketConstructor = ws;
 
 // Create a connection pool with optimized limits to reduce churn
 const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
   max: 25, // Increased connections to handle more concurrent users
   min: 2, // Reduced minimum connections for better resource usage
   idleTimeoutMillis: 60000, // Reduced to 1 minute - balances connection reuse with resource cleanup
