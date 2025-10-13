@@ -13,10 +13,9 @@ const DEV_PORT = 5050;
 const PORT = Number(process.env.PORT) || (IS_DEPLOY ? 5000 : DEV_PORT);
 const HOST = '0.0.0.0';
 
-app.get('/healthz', (_req, res) => res.status(200).send('ok'));
-const IS_DEPLOYMENT = process.env.REPLIT_DEPLOYMENT === "true";
-
 const app = express();
+
+app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 
 // Security headers
 app.use((req, res, next) => {
