@@ -1,13 +1,13 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { closeDatabase } from "./db";
+import { getDb, closeDatabase } from "./db";
 import { createDatabaseIndexes } from "./utils/db-indexes";
 import { logWithEST } from "./utils/logger";
-import dotenv from "dotenv";
 
-// Load environment variables from .env file
-dotenv.config();
+const IS_DEPLOYMENT = process.env.REPLIT_DEPLOYMENT === "true";
 
 const app = express();
 
@@ -100,9 +100,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize database indexes for performance
-  await createDatabaseIndexes();
-  
+  // Register routes first (includes authentication setup)
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -127,21 +125,33 @@ app.use((req, res, next) => {
     });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  // Setup development or production serving
+  // Check both NODE_ENV and IS_DEPLOYMENT to ensure proper mode
+  if (app.get("env") === "development" && !IS_DEPLOYMENT) {
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Production mode - serve static files
+    app.use(express.static("dist/public"));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.resolve("dist/public", "index.html"));
+    });
+  }
+  
+  // Initialize database and indexes after routes are set up
+  try {
+    const db = getDb();
+    await createDatabaseIndexes(db);
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    // Continue running without database if not available
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 5000 or from PORT env var
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = process.env.PORT || 5000;
   server.listen({
-    port,
+    port: Number(port),
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
