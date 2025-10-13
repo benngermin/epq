@@ -1,7 +1,7 @@
 # Exam Practice Questions
 
 ## Overview
-This project is an AI-powered platform for insurance professional certification exam preparation. It provides adaptive learning experiences for certifications like CPCU and AIC, aiming to be a comprehensive and effective tool for exam success.
+This project is an advanced AI-powered platform designed for insurance professional certification exam preparation. It offers intelligent, adaptive learning experiences tailored to individual student needs, supporting multiple certification paths such as CPCU and AIC programs. The platform aims to provide a comprehensive and effective tool for certification exam success.
 
 ## User Preferences
 ### Communication Style
@@ -33,32 +33,32 @@ This project is an AI-powered platform for insurance professional certification 
 - **Dependencies, Research & Response Style**: Use latest stable libraries. Cite external research. Keep responses focused and concise, using code examples when helpful.
 
 ## System Architecture
-The platform features a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Wouter) and an Express.js backend (TypeScript). Data persistence uses PostgreSQL (Neon serverless) with Drizzle ORM. Authentication is managed via Passport.js with AWS Cognito SSO and local authentication, using express-session for session management. Vite handles building, and deployment is on Replit.
+The platform is built with a React.js frontend (TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Wouter) and an Express.js backend (TypeScript). It uses PostgreSQL (Neon serverless) with Drizzle ORM for data persistence. Authentication is managed via Passport.js with AWS Cognito SSO and local authentication, with session management using express-session. Vite is used for building, and deployment is on Replit.
 
 **Core Features:**
-- **Multi-Modal Authentication**: Supports AWS Cognito SSO for enterprises and local authentication for administrators, with 7-day session persistence.
-- **Course Management System**: Handles CPCU and AIC programs, dynamic content loading, external ID mapping, and content import via Bubble.io.
-- **Question Set System**: Manages question versioning, tracks progress, provides analytics, and supports randomized question ordering.
-- **AI-Powered Tutoring**: Offers a context-aware chatbot using OpenRouter API with configurable AI models, prompt versioning, response logging, user feedback, and static explanations for specific questions.
-- **Admin Dashboard**: Provides tools for user, course, and question set management, AI settings, analytics, bulk import/export, and activity logs.
-- **Performance Optimizations**: Includes database connection pooling with circuit breaker, retry mechanisms, lazy loading, database indexing, and health monitoring.
-- **UI/UX Decisions**: Optimized for mobile readability with widened message cards, fixed accessibility for submit buttons, proper safe area insets for iOS, and improved sticky footer behavior.
-- **Static Answer Support**: Allows questions to provide pre-written explanations using `isStaticAnswer` and `staticExplanation`. The upload system uses a three-field matching (Course + Question Set Title + Question Number) for reliable question identification and preservation of static explanations during content refreshes.
-- **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, eliminating the need for additional prompt injection.
+- **Multi-Modal Authentication**: AWS Cognito SSO for enterprise, local authentication for admins, with 7-day session persistence.
+- **Course Management System**: Supports CPCU and AIC, dynamic loading, external ID mapping, and Bubble.io integration for content import.
+- **Question Set System**: Includes question versioning, progress tracking, analytics, and randomized ordering.
+- **AI-Powered Tutoring**: Context-aware chatbot using OpenRouter API, configurable AI models, prompt versioning, response logging, user feedback, and static explanations for specific questions bypassing AI.
+- **Admin Dashboard**: User, course, and question set management, AI settings, analytics, bulk import/export, and activity logs.
+- **Performance Optimizations**: Database connection pooling with circuit breaker, retry mechanisms, lazy loading, database indexes, and health monitoring.
+- **UI/UX Decisions**: Widened and centered assistant message cards for mobile readability, fixed accessibility for submit buttons, proper safe area insets for iOS, and improved sticky footer behavior.
+- **Static Answer Support**: Questions can be marked with `isStaticAnswer` and `staticExplanation` to provide pre-written explanations instead of AI responses. The upload system uses three-field matching (Course + Question Set Title + Question Number) for reliable question identification.
+- **Three-Field Matching System**: Static explanations upload now uses deterministic matching based on course number, question set title (case-insensitive), and question number position. This replaces the previous unreliable text-based matching that could lose questions.
+- **Prompting Strategy**: AI maintains full conversation context through multi-turn message history, removing the need for additional prompt injection for follow-up messages.
+
+## Recent Changes (September 2025)
+- **Refactored Static Explanations Upload**: Implemented three-field matching algorithm using Course Number + Question Set Title + Question Number for reliable question identification
+- **CSV Format Update**: Upload CSV now requires Course, Question Set, Question Number, and Final Static Explanation fields (LOID and Question Text are now optional)
+- **Improved Matching Logic**: Normalized course numbers, case-insensitive question set matching, and proper handling of ambiguous matches
+- **Frontend Updates**: Admin upload page now displays three matching fields clearly and removes dependency on text matching
+- **Fixed Static Explanation Preservation During Refresh**: Updated `updateQuestionsForRefresh` method to preserve static explanations when creating new question versions during refresh operations. Previously, static explanations were being lost when new versions were created.
+- **Content-Based Question Matching**: Completely rewrote the question refresh matching algorithm to use content similarity (Levenshtein distance) instead of position-based matching. This ensures static explanations are preserved even when questions are deleted from the source data and all subsequent questions shift positions. The new algorithm uses multi-factor scoring: content similarity (80 points) + LOID bonus (20 points) + position as tiebreaker.
+- **Enhanced Database Schema for Matching**: Added tracking columns to questions table (`content_fingerprint`, `last_matched_at`, `match_confidence`) and created `question_match_history` table to log all matching decisions for debugging and analysis.
+- **Comprehensive Logging**: Added extensive debug logging throughout the matching process to track each matching decision, confidence scores, and preservation of static explanations.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon serverless)
 - **Authentication**: AWS Cognito (for SSO)
 - **AI Integration**: OpenRouter API
-- **Content Import**: Bubble.io
-
-## Recent Changes (October 12, 2025)
-- **Fixed Static Explanations Generation**:
-  - Fixed JavaScript error in admin panel where `questionId` was not defined in mutation callback - now correctly uses `variables` parameter
-  - Fixed issue where only the letter (e.g., "C") was sent to AI instead of complete answer
-  - Now sends full correct answer with both letter and text (e.g., "C. Average value method")
-  - Answer choices are now formatted with letters for better readability in prompts
-  - Selected answer is also formatted with complete text for comparison context
-  - Added comprehensive logging to verify all inputs sent to OpenRouter API
-  - Automatically switches to static mode when generating explanation
-  - This ensures AI models receive complete context for generating accurate explanations
+- **Content Import**: Bubble.io (for content import)

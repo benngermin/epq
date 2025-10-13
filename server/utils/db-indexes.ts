@@ -24,13 +24,6 @@ export async function createDatabaseIndexes() {
       CREATE INDEX IF NOT EXISTS idx_question_versions_question_id ON question_versions(question_id);
     `);
     
-    // Enforce a single active version per question (ONE TRUE VALUE)
-    await db.execute(sql`
-      CREATE UNIQUE INDEX IF NOT EXISTS uq_active_question_version
-      ON question_versions(question_id)
-      WHERE is_active = TRUE;
-    `);
-    
     // Indexes for user test runs and answers
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_user_test_runs_user_id ON user_test_runs(user_id);

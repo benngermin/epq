@@ -1,7 +1,7 @@
 import {
   users, courses, courseExternalMappings, courseQuestionSets, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
-  chatbotFeedback, userCourseProgress, dailyActivitySummary, openRouterConfig,
+  chatbotFeedback, userCourseProgress, dailyActivitySummary,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
   type CourseQuestionSet, type InsertCourseQuestionSet,
@@ -12,7 +12,6 @@ import {
   type ChatbotFeedback, type InsertChatbotFeedback,
   type UserCourseProgress, type InsertUserCourseProgress,
   type DailyActivitySummary, type InsertDailyActivitySummary,
-  type OpenRouterConfig, type InsertOpenRouterConfig,
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
@@ -202,28 +201,10 @@ export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestionByOriginalNumber(questionSetId: number, originalNumber: number): Promise<Question | undefined>;
   
-  // New question management methods
-  getQuestionsWithVersions(questionSetId: number, includeArchived?: boolean): Promise<Array<{
-    question: Question;
-    version: QuestionVersion | null;
-  }>>;
-  updateQuestion(id: number, updates: Partial<Question>): Promise<Question | undefined>;
-  archiveQuestion(id: number): Promise<boolean>;
-  recoverQuestion(id: number): Promise<boolean>;
-  reorderQuestions(questionSetId: number, questionIds: number[]): Promise<boolean>;
-  remixQuestions(questionSetId: number): Promise<boolean>;
-  deleteQuestion(id: number): Promise<boolean>;
-  createQuestionWithVersion(questionSetId: number, question: Partial<Question>, version: Partial<QuestionVersion>): Promise<{
-    question: Question;
-    version: QuestionVersion;
-  }>;
-  
   // Question version methods
   getQuestionVersionsByQuestion(questionId: number): Promise<QuestionVersion[]>;
   getQuestionVersion(id: number): Promise<QuestionVersion | undefined>;
   createQuestionVersion(version: InsertQuestionVersion): Promise<QuestionVersion>;
-  updateQuestionVersion(id: number, updates: Partial<QuestionVersion>): Promise<QuestionVersion | undefined>;
-  getActiveQuestionVersion(questionId: number): Promise<QuestionVersion | undefined>;
   
   // Static explanation update methods
   findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined>;
@@ -417,10 +398,6 @@ export interface IStorage {
     mostCommonCourse: { courseNumber: string; courseTitle: string; count: number } | null;
     totalQuestionsAnswered: number;
   }>;
-  
-  // OpenRouter config methods
-  getOpenRouterConfig(): Promise<OpenRouterConfig | undefined>;
-  updateOpenRouterConfig(config: Partial<InsertOpenRouterConfig>): Promise<OpenRouterConfig>;
   
   sessionStore: any;
 }
@@ -944,250 +921,6 @@ export class DatabaseStorage implements IStorage {
     return newVersion;
   }
 
-  // New question management methods implementation
-  async getQuestionsWithVersions(questionSetId: number, includeArchived: boolean = false): Promise<Array<{
-    question: Question;
-    version: QuestionVersion | null;
-  }>> {
-    const baseQuery = db.select({
-      question: questions,
-      version: questionVersions
-    })
-    .from(questions)
-    .leftJoin(questionVersions, and(
-      eq(questionVersions.questionId, questions.id),
-      eq(questionVersions.isActive, true)
-    ))
-    .where(
-      includeArchived 
-        ? eq(questions.questionSetId, questionSetId)
-        : and(
-            eq(questions.questionSetId, questionSetId),
-            eq(questions.isArchived, false)
-          )
-    )
-    .orderBy(asc(questions.displayOrder));
-
-    const results = await baseQuery;
-    
-    return results.map(r => ({
-      question: r.question,
-      version: r.version
-    }));
-  }
-
-  async updateQuestion(id: number, updates: Partial<Question>): Promise<Question | undefined> {
-    const [updated] = await db.update(questions)
-      .set({
-        ...updates,
-        lastModified: new Date()
-      })
-      .where(eq(questions.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async archiveQuestion(id: number): Promise<boolean> {
-    const result = await db.update(questions)
-      .set({ 
-        isArchived: true,
-        lastModified: new Date()
-      })
-      .where(eq(questions.id, id));
-    return (result.rowCount || 0) > 0;
-  }
-
-  async recoverQuestion(id: number): Promise<boolean> {
-    const result = await db.update(questions)
-      .set({ 
-        isArchived: false,
-        lastModified: new Date()
-      })
-      .where(eq(questions.id, id));
-    return (result.rowCount || 0) > 0;
-  }
-
-  async reorderQuestions(questionSetId: number, questionIds: number[]): Promise<boolean> {
-    try {
-      // Use batch update for better performance
-      // First, check if we actually need to update anything
-      if (questionIds.length === 0) {
-        return true;
-      }
-
-      // Begin transaction to ensure atomicity
-      return await db.transaction(async (tx) => {
-        // Build a SQL query that updates all questions at once using a CASE statement
-        // This is much more efficient than updating each question individually
-        const now = new Date();
-        
-        // Batch update approach using Drizzle ORM
-        // We'll update all questions that changed position in a single query
-        const updatePromises = questionIds.map((questionId, index) => 
-          tx.update(questions)
-            .set({ 
-              displayOrder: index,
-              lastModified: now
-            })
-            .where(and(
-              eq(questions.id, questionId),
-              eq(questions.questionSetId, questionSetId)
-            ))
-        );
-        
-        // Execute all updates in parallel for better performance
-        // This is still within a transaction so it's atomic
-        await Promise.all(updatePromises);
-        
-        return true;
-      });
-    } catch (error) {
-      console.error('Error reordering questions:', error);
-      return false;
-    }
-  }
-
-  async remixQuestions(questionSetId: number): Promise<boolean> {
-    try {
-      // Get all non-archived questions for this set
-      const allQuestions = await db.select()
-        .from(questions)
-        .where(and(
-          eq(questions.questionSetId, questionSetId),
-          eq(questions.isArchived, false)
-        ));
-      
-      // Shuffle the array
-      const shuffled = [...allQuestions];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      
-      // Update display order using batch updates for better performance
-      return await db.transaction(async (tx) => {
-        const now = new Date();
-        
-        // Create all update promises
-        const updatePromises = shuffled.map((question, index) => 
-          tx.update(questions)
-            .set({ 
-              displayOrder: index,
-              lastModified: now
-            })
-            .where(eq(questions.id, question.id))
-        );
-        
-        // Execute all updates in parallel
-        await Promise.all(updatePromises);
-        return true;
-      });
-    } catch (error) {
-      console.error('Error remixing questions:', error);
-      return false;
-    }
-  }
-
-  async deleteQuestion(id: number): Promise<boolean> {
-    try {
-      return await db.transaction(async (tx) => {
-        // Delete all question versions first
-        await tx.delete(questionVersions).where(eq(questionVersions.questionId, id));
-        
-        // Delete the question
-        const result = await tx.delete(questions).where(eq(questions.id, id));
-        return (result.rowCount || 0) > 0;
-      });
-    } catch (error) {
-      console.error('Error deleting question:', error);
-      return false;
-    }
-  }
-
-  async createQuestionWithVersion(
-    questionSetId: number, 
-    question: Partial<Question>, 
-    version: Partial<QuestionVersion>
-  ): Promise<{ question: Question; version: QuestionVersion }> {
-    return await db.transaction(async (tx) => {
-      // Get the max display order for the question set
-      const [maxOrder] = await tx.select({
-        max: sql<number>`COALESCE(MAX(${questions.displayOrder}), -1)`
-      })
-      .from(questions)
-      .where(eq(questions.questionSetId, questionSetId));
-      
-      // Create the question
-      const [newQuestion] = await tx.insert(questions).values({
-        questionSetId,
-        originalQuestionNumber: question.originalQuestionNumber || 0,
-        loid: question.loid || '',
-        displayOrder: (maxOrder?.max || -1) + 1,
-        isArchived: false,
-        lastModified: new Date()
-      }).returning();
-      
-      // Create the version
-      const [newVersion] = await tx.insert(questionVersions).values({
-        questionId: newQuestion.id,
-        versionNumber: 1,
-        topicFocus: version.topicFocus || '',
-        questionText: version.questionText || '',
-        questionType: version.questionType || 'multiple_choice',
-        answerChoices: version.answerChoices || [],
-        correctAnswer: version.correctAnswer || '',
-        acceptableAnswers: version.acceptableAnswers,
-        caseSensitive: version.caseSensitive || false,
-        allowMultiple: version.allowMultiple || false,
-        matchingPairs: version.matchingPairs,
-        correctOrder: version.correctOrder,
-        blanks: version.blanks,
-        dropZones: version.dropZones,
-        isActive: true,
-        isStaticAnswer: version.isStaticAnswer || false,
-        staticExplanation: version.staticExplanation
-      }).returning();
-      
-      return { question: newQuestion, version: newVersion };
-    });
-  }
-
-  async updateQuestionVersion(id: number, updates: Partial<QuestionVersion>): Promise<QuestionVersion | undefined> {
-    // Check if updates object is empty or has no valid values
-    const validUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
-      if (value !== undefined && value !== null) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as Partial<QuestionVersion>);
-    
-    // If no valid updates, return the current version
-    if (Object.keys(validUpdates).length === 0) {
-      const [current] = await db.select()
-        .from(questionVersions)
-        .where(eq(questionVersions.id, id))
-        .limit(1);
-      return current || undefined;
-    }
-    
-    const [updated] = await db.update(questionVersions)
-      .set(validUpdates)
-      .where(eq(questionVersions.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async getActiveQuestionVersion(questionId: number): Promise<QuestionVersion | undefined> {
-    const [version] = await db.select()
-      .from(questionVersions)
-      .where(and(
-        eq(questionVersions.questionId, questionId),
-        eq(questionVersions.isActive, true)
-      ))
-      .limit(1);
-    return version || undefined;
-  }
-
   async findQuestionVersionByDetails(courseName: string, questionSetNumber: number, questionNumber: number, loid: string): Promise<QuestionVersion | undefined> {
     const results = await db.select({
       questionVersion: questionVersions,
@@ -1568,43 +1301,6 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(aiSettings).values(settings).returning();
       return created;
     }
-  }
-
-  async getOpenRouterConfig(): Promise<OpenRouterConfig | undefined> {
-    const [config] = await db.select().from(openRouterConfig).limit(1);
-    return config || undefined;
-  }
-
-  async updateOpenRouterConfig(config: Partial<InsertOpenRouterConfig>): Promise<OpenRouterConfig> {
-    const existing = await this.getOpenRouterConfig();
-    if (existing) {
-      const [updated] = await db.update(openRouterConfig)
-        .set({ ...config, updatedAt: new Date() })
-        .where(eq(openRouterConfig.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db.insert(openRouterConfig)
-        .values({ ...config, updatedAt: new Date() })
-        .returning();
-      return created;
-    }
-  }
-
-  async getQuestionVersionById(questionVersionId: number): Promise<QuestionVersion | undefined> {
-    const [questionVersion] = await db.select()
-      .from(questionVersions)
-      .where(eq(questionVersions.id, questionVersionId))
-      .limit(1);
-    return questionVersion || undefined;
-  }
-
-  async updateQuestionVersionStaticExplanation(questionVersionId: number, explanation: string): Promise<QuestionVersion> {
-    const [updated] = await db.update(questionVersions)
-      .set({ staticExplanation: explanation })
-      .where(eq(questionVersions.id, questionVersionId))
-      .returning();
-    return updated;
   }
 
   async getAllPromptVersions(): Promise<PromptVersion[]> {

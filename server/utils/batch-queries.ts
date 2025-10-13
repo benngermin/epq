@@ -24,8 +24,8 @@ export async function batchFetchQuestionVersions(questionIds: number[]) {
 }
 
 // Batch fetch questions with their latest versions
-export async function batchFetchQuestionsWithVersions(questionSetId: number, includeArchived: boolean = false) {
-  // Fetch all questions for the set
+export async function batchFetchQuestionsWithVersions(questionSetId: number) {
+  // Fetch all questions for the set (questions table doesn't have isActive field)
   const allQuestions = await db
     .select()
     .from(questions)
@@ -92,31 +92,21 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
     };
   });
   
-  // Filter based on includeArchived flag and questions without active versions
+  // Filter out questions without active versions
+  // This ensures consistency with admin panel count and prevents blank questions from showing
   const questionsWithActiveVersions = questionsWithVersions.filter(q => {
-    // Filter out archived questions only if includeArchived is false
-    if (!includeArchived && q.isArchived) {
-      console.log(`Question ID ${q.id} in set ${questionSetId} is archived - excluding from results`);
-      return false;
-    }
-    // Filter out questions without active versions ONLY if we're not including archived
-    // (archived questions often have no active versions, but admin still needs to see them)
-    if (!q.latestVersion && !includeArchived) {
+    if (!q.latestVersion) {
       console.warn(`Question ID ${q.id} in set ${questionSetId} has no active versions - excluding from results`);
       return false;
-    }
-    // If includeArchived is true and the question is archived without an active version, keep it
-    if (includeArchived && q.isArchived && !q.latestVersion) {
-      console.log(`Question ID ${q.id} in set ${questionSetId} is archived with no active version - including for admin view`);
     }
     return true;
   });
   
-  // Sort questions by displayOrder to match admin panel ordering
+  // Sort questions by originalQuestionNumber in ascending order
   questionsWithActiveVersions.sort((a, b) => {
-    const aOrder = a.displayOrder ?? a.originalQuestionNumber ?? 0;
-    const bOrder = b.displayOrder ?? b.originalQuestionNumber ?? 0;
-    return aOrder - bOrder;
+    const aNum = a.originalQuestionNumber || 0;
+    const bNum = b.originalQuestionNumber || 0;
+    return aNum - bNum;
   });
   
   return questionsWithActiveVersions;
