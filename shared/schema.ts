@@ -66,6 +66,10 @@ export const questions = pgTable("questions", {
   displayOrder: integer("display_order").default(0).notNull(), // For ordering questions within a set
   isArchived: boolean("is_archived").default(false).notNull(), // For soft delete functionality
   lastModified: timestamp("last_modified").defaultNow().notNull(), // Track when question was last edited
+  // Keep old columns for backwards compatibility
+  contentFingerprint: text("content_fingerprint"), // Optional, for backwards compatibility
+  lastMatchedAt: timestamp("last_matched_at"), // Optional, for backwards compatibility
+  matchConfidence: integer("match_confidence"), // Optional, for backwards compatibility
 });
 
 export const questionVersions = pgTable("question_versions", {
@@ -188,6 +192,16 @@ export const dailyActivitySummary = pgTable("daily_activity_summary", {
   testRunsCompleted: integer("test_runs_completed").default(0).notNull(),
   questionsAnswered: integer("questions_answered").default(0).notNull(),
   aiInteractions: integer("ai_interactions").default(0).notNull(),
+});
+
+// Table to track question matching history (keeping for backwards compatibility)
+export const questionMatchHistory = pgTable("question_match_history", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").references(() => questions.id),
+  matchedAt: timestamp("matched_at").defaultNow().notNull(),
+  matchConfidence: integer("match_confidence"),
+  matchDetails: jsonb("match_details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // OpenRouter configuration for static explanation generation

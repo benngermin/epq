@@ -1918,7 +1918,7 @@ export class DatabaseStorage implements IStorage {
                 originalQuestionNumber: result.incoming.question_number,
                 loid: result.incoming.loid || question.loid,
                 lastMatchedAt: new Date(),
-                matchConfidence: result.score > 85 ? 'high' : result.score > 60 ? 'medium' : 'low'
+                matchConfidence: result.score > 85 ? 100 : result.score > 60 ? 75 : 50 // Convert to integer
               })
               .where(eq(questions.id, question.id));
             
@@ -1985,12 +1985,19 @@ export class DatabaseStorage implements IStorage {
               }
             }
             
-            // Log match in history table
+            // Log match in history table (simplified for backwards compatibility)
             await tx.execute(sql`
               INSERT INTO question_match_history 
-              (question_set_id, question_id, incoming_position, incoming_loid, matched_by, confidence_score, content_similarity, position_shift)
+              (question_id, matched_at, match_confidence, match_details)
               VALUES 
-              (${questionSetId}, ${question.id}, ${result.incoming.question_number}, ${result.incoming.loid}, ${result.matchType}, ${result.score}, ${result.contentSimilarity}, ${result.incoming.question_number - question.originalQuestionNumber})
+              (${question.id}, ${new Date()}, ${Math.round(result.score)}, ${JSON.stringify({
+                questionSetId,
+                incomingPosition: result.incoming.question_number,
+                incomingLoid: result.incoming.loid,
+                matchedBy: result.matchType,
+                contentSimilarity: result.contentSimilarity,
+                positionShift: result.incoming.question_number - question.originalQuestionNumber
+              })})
             `);
             
           } else {
@@ -2003,7 +2010,7 @@ export class DatabaseStorage implements IStorage {
               loid: result.incoming.loid,
               contentFingerprint: null,
               lastMatchedAt: new Date(),
-              matchConfidence: 'new'
+              matchConfidence: 0 // Set to 0 for new questions (integer field)
             }).returning();
             
             // Create first version
