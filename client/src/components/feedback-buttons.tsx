@@ -4,6 +4,7 @@ import { FeedbackModal } from "./feedback-modal";
 import { AboutAIAssistantModal } from "./about-ai-assistant-modal";
 import { AboutStaticExplanationsModal } from "./about-static-explanations-modal";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FeedbackButtonsProps {
   messageId: string;
@@ -21,6 +22,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
     setIsSubmitting(true);
@@ -85,11 +87,11 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   return (
     <>
       <div className="flex items-center justify-between mt-[2px] mb-[2px]">
-        <div className="flex gap-2">
+        <div className={`flex ${isMobile ? 'gap-1' : 'gap-2'}`}>
           <button
             onClick={handleThumbsUp}
             disabled={!!feedbackState || isSubmitting}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 ${isMobile ? 'px-2 py-1' : 'px-2.5 py-1.5'} rounded-md transition-all ${
               feedbackState === "positive"
                 ? "bg-blue-100 dark:bg-blue-900"
                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -108,7 +110,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
           <button
             onClick={handleThumbsDown}
             disabled={!!feedbackState || isSubmitting}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 ${isMobile ? 'px-2 py-1' : 'px-2.5 py-1.5'} rounded-md transition-all ${
               feedbackState === "negative"
                 ? "bg-blue-100 dark:bg-blue-900"
                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -127,7 +129,7 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
         </div>
         
         {/* AI disclaimer text */}
-        <div className="text-xs text-gray-500 flex items-center gap-1">
+        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 flex items-center gap-1 whitespace-nowrap`}>
           <span>{disclaimerText ? "📝" : "🤖"} {disclaimerText || "AI responses may be inaccurate"} • </span>
           <button
             onClick={() => setIsAboutModalOpen(true)}
