@@ -1,5 +1,5 @@
-/* Custom breakpoint for sidebar collapse at 832px */
-@media (min-width: 832px) {
+/* Custom breakpoint for sidebar collapse at 768px */
+@media (min-width: 768px) {
   .sidebar-desktop-visible {
     position: relative !important;
     z-index: auto !important;
@@ -26,7 +26,7 @@
   }
 }
 
-@media (max-width: 831px) {
+@media (max-width: 767px) {
   .sidebar-desktop-visible {
     position: fixed !important;
     top: 0 !important;
