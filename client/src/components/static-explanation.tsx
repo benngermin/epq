@@ -170,8 +170,8 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="max-w-3xl mx-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+        <div className="max-w-full lg:max-w-3xl mx-auto">
           {isProcessing ? (
             <p className="text-muted-foreground italic">Processing content...</p>
           ) : contentType === 'html' || contentType === 'markdown' ? (
@@ -187,9 +187,10 @@ export function StaticExplanation({ explanation, onReviewQuestion, questionVersi
                 processedContent.map((paragraph, index) => (
                   <p 
                     key={`paragraph-${index}`} 
-                    className={`text-base leading-relaxed whitespace-pre-wrap ${
+                    className={`text-base leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere ${
                       hasError ? 'text-muted-foreground italic' : 'text-foreground'
                     }`}
+                    style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                     data-testid={`text-explanation-${index}`}
                   >
                     {hasError ? paragraph : parseTextWithLinks(paragraph)}

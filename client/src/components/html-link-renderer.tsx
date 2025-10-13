@@ -364,7 +364,7 @@ export function HtmlLinkRenderer({ content, className = "" }: HtmlLinkRendererPr
   const parsedContent = parseContent(content);
 
   return (
-    <div className={`leading-relaxed ${className}`}>
+    <div className={`leading-relaxed break-words overflow-wrap-anywhere ${className}`} style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
       {parsedContent}
     </div>
   );
