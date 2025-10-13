@@ -3,9 +3,21 @@
 ## Overview
 A comprehensive web application for insurance exam preparation with AI-powered chat support and practice questions. The application provides practice exams with static explanations and AI chat assistance for incorrect answers.
 
-## Recent Changes (October 12, 2024)
+## Recent Changes
 
-### Markdown Rendering Fix
+### October 13, 2024 - Markdown Detection Pattern Fix
+- **Issue**: Bold markdown labels with spaces (e.g., `**Correct Answer:**`, `**Explanation:**`) were not being detected as markdown
+- **Root Cause**: Markdown detection patterns only matched word characters without spaces (e.g., `/\*\*\w+:/m`)
+- **Solution**: Enhanced markdown detection patterns to include:
+  - `/\*\*[\w\s]+:\*\*/` - Detects bold labels with spaces
+  - `/\*\*[\w\s().,!?]+:\*\*/` - Handles punctuation in bold labels
+  - Additional check for multiple markdown indicators
+- **Components Updated**:
+  - `client/src/lib/markdown-processor.tsx` - Enhanced `isMarkdownContent()` detection patterns
+  - `client/src/components/static-explanation.tsx` - Improved console logging for debugging
+- **Result**: Static explanations with bold markdown labels now correctly render as formatted HTML
+
+### October 12, 2024 - Markdown Rendering Styles
 - **Issue**: Static explanations were displaying raw markdown syntax (e.g., `**text**`) instead of rendering formatted text
 - **Root Cause**: The Tailwind Typography plugin's `prose` class wasn't properly styling `<strong>` and `<em>` tags
 - **Solution**: Added explicit CSS rules in `client/src/index.css` for proper markdown rendering
