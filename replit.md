@@ -5,6 +5,18 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 14, 2024 - Default Course Selection Update
+- **Issue**: Application was defaulting to AIC 300 instead of the preferred CPCU 500 course
+- **Solution**: Updated dashboard logic to consistently default to CPCU 500 (external_id: 8433) when no course_id parameter is provided
+- **Implementation**: 
+  1. Primary selection: Look for CPCU 500 with question sets when no course_id is provided
+  2. Fallback for missing courses: If a course_id is not found (404), try CPCU 500 first if it has question sets
+  3. Error handling: Apply same fallback logic in catch blocks for network errors
+  4. Safety check: Always verify CPCU 500 has question sets before using as fallback
+- **Components Updated**:
+  - `client/src/pages/dashboard.tsx` - Comprehensive fallback logic ensuring consistent CPCU 500 preference
+- **Result**: Application now reliably defaults to CPCU 500 across all scenarios when available with question sets
+
 ### October 14, 2024 - Demo URL Fix
 - **Issue**: Demo URL showing course as "Loading..." instead of defaulting to CPCU 500
 - **Root Cause**: The database schema was changed to use a junction table (`course_question_sets`) to link courses and question sets, but the API endpoints weren't returning the `courseId` field
