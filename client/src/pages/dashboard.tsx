@@ -129,34 +129,83 @@ export default function Dashboard() {
                 }
               }
             } else {
-              // If not found, default to first available course
+              // If not found, default to CPCU 500 if it has question sets
               if (import.meta.env.DEV) {
-                console.warn(`Course with id '${courseIdParam}' not found. Using first available course.`);
+                console.warn(`Course with id '${courseIdParam}' not found. Looking for default course: CPCU 500.`);
               }
-              targetCourse = courses.find(course => course.courseNumber === 'CPCU 500') || courses[0];
+              
+              // Try to find CPCU 500 with question sets
+              const cpcu500WithSets = courses.find(course => 
+                course.externalId === '8433' && course.questionSets && course.questionSets.length > 0
+              ) || courses.find(course => 
+                course.courseNumber === 'CPCU 500' && course.questionSets && course.questionSets.length > 0
+              );
+              
+              if (cpcu500WithSets) {
+                targetCourse = cpcu500WithSets;
+                if (import.meta.env.DEV) {
+                  console.log('Using CPCU 500 as fallback');
+                }
+              } else {
+                // Fall back to first course with question sets
+                targetCourse = courses.find(course => 
+                  course.questionSets && course.questionSets.length > 0
+                ) || courses[0];
+                if (import.meta.env.DEV) {
+                  console.log(`Using first available course: ${targetCourse?.courseNumber}`);
+                }
+              }
             }
           } catch (error) {
             if (import.meta.env.DEV) {
               console.error('Error fetching course by external ID:', error);
             }
-            targetCourse = courses[0];
+            
+            // Same fallback logic: try CPCU 500 first, then first course with question sets
+            const cpcu500WithSets = courses.find(course => 
+              course.externalId === '8433' && course.questionSets && course.questionSets.length > 0
+            ) || courses.find(course => 
+              course.courseNumber === 'CPCU 500' && course.questionSets && course.questionSets.length > 0
+            );
+            
+            if (cpcu500WithSets) {
+              targetCourse = cpcu500WithSets;
+            } else {
+              targetCourse = courses.find(course => 
+                course.questionSets && course.questionSets.length > 0
+              ) || courses[0];
+            }
           }
         } else {
-          // No course_id parameter, default to first available course with question sets
-          const firstCourseWithQuestionSets = courses.find(course => 
-            course.questionSets && course.questionSets.length > 0
+          // No course_id parameter, default to CPCU 500 (external_id: 8433) if available
+          const cpcu500Course = courses.find(course => 
+            course.externalId === '8433' && course.questionSets && course.questionSets.length > 0
+          ) || courses.find(course => 
+            course.courseNumber === 'CPCU 500' && course.questionSets && course.questionSets.length > 0
           );
           
-          if (firstCourseWithQuestionSets) {
-            targetCourse = firstCourseWithQuestionSets;
+          if (cpcu500Course) {
+            targetCourse = cpcu500Course;
             if (import.meta.env.DEV) {
-              console.log(`No course_id parameter, using first available course: ${firstCourseWithQuestionSets.courseNumber}`);
+              console.log(`No course_id parameter, using default course: CPCU 500`);
             }
           } else {
-            // No courses with question sets available
-            targetCourse = courses[0];
-            if (import.meta.env.DEV) {
-              console.log('No courses have question sets, using first course');
+            // Fall back to first available course with question sets
+            const firstCourseWithQuestionSets = courses.find(course => 
+              course.questionSets && course.questionSets.length > 0
+            );
+            
+            if (firstCourseWithQuestionSets) {
+              targetCourse = firstCourseWithQuestionSets;
+              if (import.meta.env.DEV) {
+                console.log(`CPCU 500 not available, using first available course: ${firstCourseWithQuestionSets.courseNumber}`);
+              }
+            } else {
+              // No courses with question sets available
+              targetCourse = courses[0];
+              if (import.meta.env.DEV) {
+                console.log('No courses have question sets, using first course');
+              }
             }
           }
         }
