@@ -4809,7 +4809,20 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(404).json({ message: "Question set not found" });
       }
       
-      res.json(questionSet);
+      // Get the courses linked to this question set
+      const linkedCourses = await storage.getCoursesForQuestionSet(id);
+      
+      // For demo, prioritize CPCU 500 if available, otherwise use the first course
+      let courseId = linkedCourses[0]?.id;
+      const cpcu500Course = linkedCourses.find(c => c.courseNumber === 'CPCU 500');
+      if (cpcu500Course) {
+        courseId = cpcu500Course.id;
+      }
+      
+      res.json({
+        ...questionSet,
+        courseId: courseId
+      });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error fetching question set:", error);
