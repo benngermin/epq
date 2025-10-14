@@ -5,6 +5,17 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 14, 2024 - Mobile Modal Responsiveness
+- **Issue**: "Before You Start" modal was touching the screen edges on mobile devices and was too tall
+- **Solution**: Added responsive Tailwind classes for better mobile display:
+  1. Width: `max-w-[calc(100%-2rem)]` on mobile, `sm:max-w-2xl` on desktop to ensure spacing from edges
+  2. Height: Added `max-h-[85vh]` with `overflow-y-auto` to constrain height and enable scrolling
+  3. Text sizing: Implemented responsive text sizes (`text-sm sm:text-base`) for better mobile readability
+  4. Spacing: Reduced padding and spacing on mobile (`p-3 sm:p-4`, `space-y-4 sm:space-y-6`)
+- **Components Updated**: 
+  - `client/src/components/before-you-start-modal.tsx` - Complete responsive design overhaul
+- **Result**: Modal now displays properly on mobile devices with appropriate spacing and sizing
+
 ### October 13, 2024 - HTML-Wrapped Markdown Fix
 - **Issue**: Bold markdown syntax (e.g., `**Correct Answer:**`) was displaying literally instead of rendering as bold
 - **Root Cause**: Static explanations from the server come wrapped in HTML tags (e.g., `<p>**Correct Answer:**...</p>`). The client's `isHtmlContent()` function detected the HTML wrapper first and skipped markdown processing entirely
