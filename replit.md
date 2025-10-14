@@ -5,6 +5,17 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 14, 2024 - Demo URL Fix
+- **Issue**: Demo URL showing course as "Loading..." instead of defaulting to CPCU 500
+- **Root Cause**: The database schema was changed to use a junction table (`course_question_sets`) to link courses and question sets, but the API endpoints weren't returning the `courseId` field
+- **Solution**: Modified `/api/demo/question-sets/:id` endpoint to:
+  1. Get courses linked to the question set using `storage.getCoursesForQuestionSet()`
+  2. Prioritize CPCU 500 when multiple courses are linked to the same question set
+  3. Include `courseId` in the response
+- **Components Updated**: 
+  - `server/routes.ts` - Added courseId lookup to demo question-set endpoint
+- **Result**: Demo URLs now correctly display CPCU 500 course information
+
 ### October 14, 2024 - Mobile Modal Responsiveness
 - **Issue**: "Before You Start" modal was touching the screen edges on mobile devices and was too tall
 - **Solution**: Added responsive Tailwind classes for better mobile display:
