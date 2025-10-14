@@ -538,14 +538,14 @@ export function registerRoutes(app: Express): Server {
   // Mobile SSO Authentication endpoint
   app.get("/auth/mobile-sso", authRateLimiter.middleware(), async (req: Request, res: Response) => {
     try {
-      // Extract query parameters
-      const { token, courseId } = req.query;
+      // Extract query parameters - note: expecting course_id with underscore
+      const { token, course_id } = req.query;
 
       // Log the attempt for debugging
       if (process.env.NODE_ENV === 'development') {
         console.log('Mobile SSO attempt:', { 
           hasToken: !!token, 
-          courseId: courseId || 'not provided' 
+          course_id: course_id || 'not provided' 
         });
       }
 
@@ -557,18 +557,18 @@ export function registerRoutes(app: Express): Server {
         return res.redirect('/auth/cognito?error=missing_token');
       }
 
-      // Validate courseId parameter
-      if (!courseId || typeof courseId !== 'string') {
+      // Validate course_id parameter
+      if (!course_id || typeof course_id !== 'string') {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Mobile SSO: Missing courseId');
+          console.error('Mobile SSO: Missing course_id');
         }
         return res.redirect('/auth/cognito?error=missing_course_id');
       }
 
-      // Validate courseId is a 4-digit integer (1000-9999)
-      if (!validator.isInt(courseId, { min: 1000, max: 9999 })) {
+      // Validate course_id is a 4-digit integer (1000-9999)
+      if (!validator.isInt(course_id, { min: 1000, max: 9999 })) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Mobile SSO: Invalid courseId format:', courseId);
+          console.error('Mobile SSO: Invalid course_id format:', course_id);
         }
         return res.redirect('/auth/cognito?error=invalid_course_id');
       }
@@ -612,14 +612,14 @@ export function registerRoutes(app: Express): Server {
         return res.redirect('/auth/cognito?error=user_creation_failed');
       }
 
-      // Check if the course exists using the courseId as externalId
+      // Check if the course exists using the course_id as externalId
       let course;
       try {
-        course = await storage.getCourseByExternalId(courseId);
+        course = await storage.getCourseByExternalId(course_id);
         
         if (!course) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('Mobile SSO: Course not found with externalId:', courseId);
+            console.error('Mobile SSO: Course not found with externalId:', course_id);
           }
           return res.redirect('/auth/cognito?error=course_not_found');
         }
