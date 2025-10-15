@@ -5447,6 +5447,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return aNum - bNum;
       });
       
+      // Add no-cache headers for mobile-view to prevent stale data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       res.json({
         questionSet: {
           ...questionSet,
