@@ -666,8 +666,12 @@ export default function QuestionSetPractice() {
                             return aNum - bNum;
                           })[0];
                         
-                        // Preserve demo mode when switching courses
-                        const newPath = isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`;
+                        // Preserve demo or mobile-view mode when switching courses
+                        const newPath = isDemo 
+                          ? `/demo/question-set/${firstQuestionSet.id}` 
+                          : isMobileView
+                          ? `/mobile-view/question-set/${firstQuestionSet.id}`
+                          : `/question-set/${firstQuestionSet.id}`;
                         setLocation(newPath);
                       }
                       // For Test Course with no question sets, just stay on current page
@@ -726,8 +730,12 @@ export default function QuestionSetPractice() {
                   <Select
                     value={questionSetId.toString()}
                     onValueChange={(value) => {
-                      // Preserve demo mode when switching question sets
-                      const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
+                      // Preserve demo or mobile-view mode when switching question sets
+                      const newPath = isDemo 
+                        ? `/demo/question-set/${value}` 
+                        : isMobileView
+                        ? `/mobile-view/question-set/${value}`
+                        : `/question-set/${value}`;
                       setLocation(newPath);
                     }}
                   >
@@ -800,8 +808,12 @@ export default function QuestionSetPractice() {
                   <Select
                     value={questionSetId.toString()}
                     onValueChange={(value) => {
-                      // Preserve demo mode when switching question sets
-                      const newPath = isDemo ? `/demo/question-set/${value}` : `/question-set/${value}`;
+                      // Preserve demo or mobile-view mode when switching question sets
+                      const newPath = isDemo 
+                        ? `/demo/question-set/${value}` 
+                        : isMobileView
+                        ? `/mobile-view/question-set/${value}`
+                        : `/question-set/${value}`;
                       setLocation(newPath);
                     }}
                   >
