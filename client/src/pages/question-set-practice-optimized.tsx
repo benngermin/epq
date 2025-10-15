@@ -211,55 +211,94 @@ export default function QuestionSetPractice() {
           }
         }
 
-        const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
-        const [questionSetRes, questionsRes] = await Promise.all([
-          fetch(`${apiPrefix}/question-sets/${questionSetId}`, { 
-            credentials: "include",
-            signal: abortControllerRef.current.signal 
-          }),
-          fetch(`${apiPrefix}/questions/${questionSetId}`, { 
-            credentials: "include",
-            signal: abortControllerRef.current.signal 
-          })
-        ]).catch(error => {
-          if (error.name === 'AbortError') {
-            debugLog('Fetch aborted due to component unmount');
-            throw error;
-          }
-          debugError('Failed to fetch practice data', error);
-          throw error;
-        });
-
-        // Check if responses are JSON before parsing
-        const contentType1 = questionSetRes.headers.get("content-type");
-        const contentType2 = questionsRes.headers.get("content-type");
+        // Mobile-view uses a single combined endpoint, while demo and authenticated use separate endpoints
+        let questionSet, questions, course, courseQuestionSets;
         
-        if (!contentType1?.includes("application/json") || !contentType2?.includes("application/json")) {
-          throw new Error("Server returned non-JSON response. Please refresh the page.");
-        }
+        if (isMobileView) {
+          // Mobile-view: Use the single practice-data endpoint that returns everything
+          const practiceDataRes = await fetch(`/api/mobile-view/practice-data/${questionSetId}`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          }).catch(error => {
+            if (error.name === 'AbortError') {
+              debugLog('Fetch aborted due to component unmount');
+              throw error;
+            }
+            debugError('Failed to fetch mobile-view practice data', error);
+            throw error;
+          });
 
-        if (!questionSetRes.ok || !questionsRes.ok) {
-          if (questionSetRes.status === 401 || questionsRes.status === 401) {
-            throw new Error('Authentication required');
+          // Check if response is JSON before parsing
+          const contentType = practiceDataRes.headers.get("content-type");
+          if (!contentType?.includes("application/json")) {
+            throw new Error("Server returned non-JSON response. Please refresh the page.");
           }
-          throw new Error(`Failed to load practice data`);
+
+          if (!practiceDataRes.ok) {
+            if (practiceDataRes.status === 401) {
+              throw new Error('Authentication required');
+            }
+            throw new Error(`Failed to load practice data`);
+          }
+
+          const mobileData = await practiceDataRes.json();
+          questionSet = mobileData.questionSet;
+          questions = mobileData.questions;
+          course = mobileData.course;
+          courseQuestionSets = mobileData.courseQuestionSets || [];
+          
+        } else {
+          // Demo and authenticated modes: Use separate endpoints
+          const apiPrefix = isDemo ? '/api/demo' : '/api';
+          const [questionSetRes, questionsRes] = await Promise.all([
+            fetch(`${apiPrefix}/question-sets/${questionSetId}`, { 
+              credentials: "include",
+              signal: abortControllerRef.current.signal 
+            }),
+            fetch(`${apiPrefix}/questions/${questionSetId}`, { 
+              credentials: "include",
+              signal: abortControllerRef.current.signal 
+            })
+          ]).catch(error => {
+            if (error.name === 'AbortError') {
+              debugLog('Fetch aborted due to component unmount');
+              throw error;
+            }
+            debugError('Failed to fetch practice data', error);
+            throw error;
+          });
+
+          // Check if responses are JSON before parsing
+          const contentType1 = questionSetRes.headers.get("content-type");
+          const contentType2 = questionsRes.headers.get("content-type");
+          
+          if (!contentType1?.includes("application/json") || !contentType2?.includes("application/json")) {
+            throw new Error("Server returned non-JSON response. Please refresh the page.");
+          }
+
+          if (!questionSetRes.ok || !questionsRes.ok) {
+            if (questionSetRes.status === 401 || questionsRes.status === 401) {
+              throw new Error('Authentication required');
+            }
+            throw new Error(`Failed to load practice data`);
+          }
+
+          questionSet = await questionSetRes.json();
+          questions = await questionsRes.json();
+
+          // Fetch course and question sets info
+          const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          });
+          const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          });
+
+          course = courseRes.ok ? await courseRes.json() : null;
+          courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
         }
-
-        const questionSet = await questionSetRes.json();
-        let questions = await questionsRes.json();
-
-        // Fetch course and question sets info
-        const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { 
-          credentials: "include",
-          signal: abortControllerRef.current.signal 
-        });
-        const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { 
-          credentials: "include",
-          signal: abortControllerRef.current.signal 
-        });
-
-        const course = courseRes.ok ? await courseRes.json() : null;
-        const courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
 
         debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
         
