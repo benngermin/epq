@@ -17,6 +17,17 @@ A comprehensive web application for insurance exam preparation with AI-powered c
   - **Implementation**: Modified `/api/mobile-view/chatbot/stream-init` endpoint to properly call the streaming function with mobile-view user ID (-2)
   - **Result**: Chat functionality now works correctly in mobile-view mode without requiring authentication
 
+- **Issue 3**: Questions weren't automatically flipping when users got them incorrect
+  - **Root Cause**: The auto-flip logic relied on `localAnswerState.hasAnswer` which wasn't properly set when navigating between already-answered questions
+  - **Solution**: Fixed auto-flip trigger logic to rely directly on server response (`question?.userAnswer`) and added proper flip state reset in navigation handlers
+  - **Implementation**: 
+    1. Updated navigation handlers (`handleNextQuestion`, `handlePreviousQuestion`, and keyboard navigation) to reset `isCardFlipped` state
+    2. Simplified auto-flip condition in `QuestionCard` to check server response directly without depending on local state
+  - **Components Updated**:
+    - `client/src/pages/question-set-practice-optimized.tsx` - Added `setIsCardFlipped(false)` to all navigation handlers
+    - `client/src/components/question-card.tsx` - Fixed auto-flip trigger logic to not depend on `localAnswerState.hasAnswer`
+  - **Result**: Questions now correctly auto-flip after 1.5 seconds when users get them incorrect in mobile view
+
 ### October 14, 2024 - Default Course Selection Update
 - **Issue**: Application was defaulting to AIC 300 instead of the preferred CPCU 500 course
 - **Solution**: Updated dashboard logic to consistently default to CPCU 500 (external_id: 8433) when no course_id parameter is provided
