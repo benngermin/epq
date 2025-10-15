@@ -167,15 +167,34 @@ export function QuestionCard({
 
   // Auto-flip for incorrect answers to show help (static explanation or AI chat)
   useEffect(() => {
+    // For auto-flip, we care about whether the question has been answered (either locally or on server)
+    const hasBeenAnswered = question?.userAnswer !== undefined || localAnswerState.hasAnswer;
+    
+    // Debug log to understand auto-flip conditions
+    console.log('[Auto-flip Debug]', {
+      hasUserAnswer: question?.userAnswer !== undefined,
+      localHasAnswer: localAnswerState.hasAnswer,
+      hasBeenAnswered,
+      isCorrect: question?.userAnswer?.isCorrect,
+      isFlipped,
+      hasAutoFlipped,
+      shouldFlip: question?.userAnswer !== undefined && 
+                  question?.userAnswer?.isCorrect === false &&
+                  !isFlipped &&
+                  !hasAutoFlipped
+    });
+    
     // Auto-flip for ANY incorrect answer after server responds
     // Only auto-flip if we haven't already auto-flipped for this answer
+    // We check question?.userAnswer directly since that's the server's response
     if (question?.userAnswer !== undefined && 
-        localAnswerState.hasAnswer && 
         question?.userAnswer?.isCorrect === false &&
         !isFlipped &&
         !hasAutoFlipped) { // Only auto-flip once per answer
       // Auto-flip to show help (either static explanation or AI chat) after a short delay
+      console.log('[Auto-flip] Triggering auto-flip for incorrect answer');
       const timer = setTimeout(() => {
+        console.log('[Auto-flip] Executing flip');
         setIsFlipped(true);
         setHasAutoFlipped(true); // Mark that we've auto-flipped for this answer
       }, 1500);
