@@ -5432,13 +5432,29 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Get courses for this question set
       const courses = await storage.getCoursesForQuestionSet(questionSetId);
       
+      // Get the first course as the primary course
+      const course = courses.length > 0 ? courses[0] : null;
+      
+      // Get all question sets for this course (for the dropdown)
+      const courseQuestionSets = course 
+        ? await withCircuitBreaker(() => storage.getQuestionSetsByCourse(course.id))
+        : [];
+      
+      // Sort question sets by title
+      courseQuestionSets.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
       res.json({
         questionSet: {
           ...questionSet,
           courseId: courses.length > 0 ? courses[0].id : null
         },
         questions,
-        courses
+        course,
+        courseQuestionSets
       });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
