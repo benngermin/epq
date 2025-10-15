@@ -5,6 +5,13 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 15, 2024 - Mobile-View Chat Stream Fix
+- **Issue**: Chat stream wasn't working in mobile-view mode, showing error "Failed to initialize chat stream"
+- **Root Cause**: Mobile-view endpoint was calling non-existent function `callOpenRouterStreaming` instead of `processStreamInBackground`
+- **Solution**: Updated mobile-view chat initialization to use `processStreamInBackground` (same as authenticated users)
+- **Implementation**: Modified `/api/mobile-view/chatbot/stream-init` endpoint to properly call the streaming function with mobile-view user ID (-2)
+- **Result**: Chat functionality now works correctly in mobile-view mode without requiring authentication
+
 ### October 14, 2024 - Default Course Selection Update
 - **Issue**: Application was defaulting to AIC 300 instead of the preferred CPCU 500 course
 - **Solution**: Updated dashboard logic to consistently default to CPCU 500 (external_id: 8433) when no course_id parameter is provided

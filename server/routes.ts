@@ -5518,16 +5518,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
         questionVersionId
       });
       
-      // Start streaming in background
-      callOpenRouterStreaming(
-        activePrompt.promptText,
-        aiSettings,
-        -2, // Mobile-view user ID
-        JSON.stringify(contextData),
-        streamId,
-        activeStreams.get(streamId)!,
-        conversationHistory || []
-      ).catch(error => {
+      // Start streaming in background using processStreamInBackground
+      // Note: Mobile-view uses -2 as user ID
+      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, -2, isMobile).catch(error => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Mobile-view streaming error:", error);
+        }
         const stream = activeStreams.get(streamId);
         if (stream) {
           stream.error = "Failed to get AI response. Please try again.";
