@@ -1,0 +1,131 @@
+2025-10-15 15:40:28.32
+f81b8e69
+User
+[DEBUG 2025-10-15T19:40:28.320Z] Validating answer
+2025-10-15 15:40:28.32
+f81b8e69
+User
+{
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"questionType": "multiple_choice",
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"userAnswerLength": 1,
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"userAnswerPreview": "C",
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"correctAnswerPreview": "C",
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"hasOptions": true,
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"options": {
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"caseSensitive": false,
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"hasAcceptableAnswers": false,
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"hasBlanks": false,
+2025-10-15 15:40:28.32
+f81b8e69
+User
+"hasDropZones": false
+2025-10-15 15:40:28.32
+f81b8e69
+User
+}
+2025-10-15 15:40:28.32
+f81b8e69
+User
+}
+2025-10-15 15:40:28.41
+f81b8e69
+User
+3:40:28 PM [express] POST /api/question-sets/32/answer 200 in 199ms :: {"questionVersionId":28130,"c…
+2025-10-15 15:40:28.50
+f81b8e69
+User
+3:40:28 PM [express] GET /api/chatbot/stream-chunk/3986_q26315_1760557224696_55w8fxbuv 304 in 102ms …
+2025-10-15 15:40:29.27
+f81b8e69
+User
+3:40:29 PM [express] GET /api/chatbot/stream-chunk/3986_q26315_1760557224696_55w8fxbuv 304 in 95ms :…
+2025-10-15 15:40:29.52
+f81b8e69
+User
+[DEBUG 2025-10-15T19:40:29.524Z] Validating answer
+2025-10-15 15:40:29.52
+f81b8e69
+User
+{
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"questionType": "multiple_choice",
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"userAnswerLength": 1,
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"userAnswerPreview": "C",
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"correctAnswerPreview": "C",
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"hasOptions": true,
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"options": {
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"caseSensitive": false,
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"hasAcceptableAnswers": false,
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"hasBlanks": false,
+2025-10-15 15:40:29.52
+f81b8e69
+User
+"hasDropZones": false
+2025-10-15 15:40:29.52
+f81b8e69
+User
+}
+2025-10-15 15:40:29.52
+f81b8e69
+User
+}
+2025-10-15 15:40:29.62
+f81b8e69
+User
+3:40:29 PM [express] POST /api/question-sets/31/answer 200 in 196ms :: {"questionVersionId":27982,"c…
+2025-10-15 15:40:30.18
+f81b8e69
+User

@@ -5413,6 +5413,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.get("/api/mobile-view/practice-data/:questionSetId", async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
+      const mobileViewUserId = -2; // Special user ID for mobile-view
       
       if (isNaN(questionSetId)) {
         return res.status(400).json({ message: "Invalid question set ID" });
@@ -5428,6 +5429,35 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const questions = await withCircuitBreaker(() => 
         batchFetchQuestionsWithVersions(questionSetId)
       );
+      
+      // Get or create test run for mobile-view user
+      let testRun = await storage.getActiveUserTestRunForQuestionSet(mobileViewUserId, questionSetId);
+      
+      // If there's an active test run, fetch the user's answers
+      let userAnswersMap = new Map();
+      if (testRun) {
+        const userAnswers = await storage.getUserAnswersByTestRun(testRun.id);
+        
+        // Create a map of questionVersionId to answer
+        for (const answer of userAnswers) {
+          userAnswersMap.set(answer.questionVersionId, {
+            chosenAnswer: answer.chosenAnswer,
+            isCorrect: answer.isCorrect
+          });
+        }
+      }
+      
+      // Add user answers to questions
+      const questionsWithAnswers = questions.map((question: any) => {
+        if (question.latestVersion && userAnswersMap.has(question.latestVersion.id)) {
+          const userAnswer = userAnswersMap.get(question.latestVersion.id);
+          return {
+            ...question,
+            userAnswer: userAnswer
+          };
+        }
+        return question;
+      });
       
       // Get courses for this question set
       const courses = await storage.getCoursesForQuestionSet(questionSetId);
@@ -5457,9 +5487,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
           ...questionSet,
           courseId: courses.length > 0 ? courses[0].id : null
         },
-        questions,
+        questions: questionsWithAnswers,
         course,
-        courseQuestionSets
+        courseQuestionSets,
+        testRunId: testRun?.id || null
       });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
