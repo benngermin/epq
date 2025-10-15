@@ -467,6 +467,7 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => Math.min(prev + 1, maxIndex));
       setShowChat(false);
       setSelectedAnswer("");
+      setIsCardFlipped(false);
     }
   }, [practiceData, currentQuestionIndex]);
 
@@ -476,6 +477,7 @@ export default function QuestionSetPractice() {
       setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
       setShowChat(false);
       setSelectedAnswer("");
+      setIsCardFlipped(false);
     }
   }, [currentQuestionIndex]);
 
@@ -505,6 +507,7 @@ export default function QuestionSetPractice() {
             setCurrentQuestionIndex(prev => Math.min(prev + 1, maxIndex));
             setShowChat(false);
             setSelectedAnswer("");
+            setIsCardFlipped(false);
           }
           break;
         case 'ArrowLeft':
@@ -513,6 +516,7 @@ export default function QuestionSetPractice() {
             setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
             setShowChat(false);
             setSelectedAnswer("");
+            setIsCardFlipped(false);
           }
           break;
       }
