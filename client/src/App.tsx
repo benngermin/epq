@@ -66,6 +66,8 @@ function Router() {
         <Route path="/test-spacing" component={() => <DashboardErrorBoundary><TestSpacing /></DashboardErrorBoundary>} />
         <Route path="/demo" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
         <Route path="/demo/question-set/:id" component={() => <DashboardErrorBoundary><QuestionSetPractice /></DashboardErrorBoundary>} />
+        <Route path="/mobile-view" component={() => <DashboardErrorBoundary><Dashboard /></DashboardErrorBoundary>} />
+        <Route path="/mobile-view/question-set/:id" component={() => <DashboardErrorBoundary><QuestionSetPractice /></DashboardErrorBoundary>} />
         <Route path="/auth" component={() => <AuthPage />} />
         <Route component={() => <NotFound />} />
       </Switch>

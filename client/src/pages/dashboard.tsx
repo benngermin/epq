@@ -9,18 +9,21 @@ export default function Dashboard() {
   const { user, isLoading: userLoading } = useAuth();
   const [, setLocation] = useLocation();
   
-  // Check if we're in demo mode
+  // Check if we're in demo or mobile-view mode
   const isDemo = window.location.pathname.startsWith('/demo');
+  const isMobileView = window.location.pathname.startsWith('/mobile-view');
+  const isUnauthenticatedMode = isDemo || isMobileView;
   
   // Version indicator to verify new dashboard loads (only in development)
   if (import.meta.env.DEV) {
     console.log("Dashboard Version: 3.0 - Direct-to-Assessment");
     console.log("Features: URL parameter based course resolution");
     console.log("Demo mode:", isDemo);
+    console.log("Mobile-view mode:", isMobileView);
   }
 
   const { data: courses, isLoading: coursesLoading } = useQuery<any[]>({
-    queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
+    queryKey: [isUnauthenticatedMode ? (isDemo ? "/api/demo/courses" : "/api/mobile-view/courses") : "/api/courses"],
     enabled: !!user, // Only fetch when user is authenticated
   });
 
@@ -77,7 +80,7 @@ export default function Dashboard() {
             // Check if operation was aborted
             if (abortController.signal.aborted) return;
             
-            const response = await fetch(isDemo ? `/api/demo/courses/by-external-id/${courseIdParam}` : `/api/courses/by-external-id/${courseIdParam}`, {
+            const response = await fetch(isUnauthenticatedMode ? (isDemo ? `/api/demo/courses/by-external-id/${courseIdParam}` : `/api/mobile-view/courses/by-external-id/${courseIdParam}`) : `/api/courses/by-external-id/${courseIdParam}`, {
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -102,7 +105,7 @@ export default function Dashboard() {
                 // Check if operation was aborted before second fetch
                 if (abortController.signal.aborted) return;
                 
-                const qsResponse = await fetch(isDemo ? `/api/demo/courses/${courseData.id}/question-sets` : `/api/courses/${courseData.id}/question-sets`, {
+                const qsResponse = await fetch(isUnauthenticatedMode ? (isDemo ? `/api/demo/courses/${courseData.id}/question-sets` : `/api/mobile-view/courses/${courseData.id}/question-sets`) : `/api/courses/${courseData.id}/question-sets`, {
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
                   signal: abortController.signal,
@@ -240,7 +243,7 @@ export default function Dashboard() {
         }
         
         // Navigate to the question set practice page
-        setLocation(isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/question-set/${firstQuestionSet.id}`);
+        setLocation(isUnauthenticatedMode ? (isDemo ? `/demo/question-set/${firstQuestionSet.id}` : `/mobile-view/question-set/${firstQuestionSet.id}`) : `/question-set/${firstQuestionSet.id}`);
       } else {
         if (import.meta.env.DEV) {
           console.error('No question sets available for the selected course', {
@@ -288,7 +291,7 @@ export default function Dashboard() {
     return () => {
       abortController.abort();
     };
-  }, [coursesLoading, userLoading, courses, setLocation, isDemo, user]);
+  }, [coursesLoading, userLoading, courses, setLocation, isDemo, isMobileView, isUnauthenticatedMode, user]);
 
   // Show loading state while processing
   if (coursesLoading || userLoading || !user) {

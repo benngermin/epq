@@ -32,8 +32,10 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   
-  // Check if we're in demo mode
+  // Check if we're in demo or mobile-view mode
   const isDemo = window.location.pathname.startsWith('/demo');
+  const isMobileView = window.location.pathname.startsWith('/mobile-view');
+  const isUnauthenticatedMode = isDemo || isMobileView;
   
   const {
     data: user,
@@ -41,11 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
-    queryFn: isDemo 
+    queryFn: isUnauthenticatedMode 
       ? async () => ({
-          id: -1,
-          name: "Demo User",
-          email: "demo@example.com",
+          id: isMobileView ? -2 : -1,
+          name: isMobileView ? "Mobile User" : "Demo User",
+          email: isMobileView ? "mobile@example.com" : "demo@example.com",
           cognitoSub: null,
           password: null,
           isAdmin: false,
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: true, // Only refetch on reconnect
-    enabled: isDemo ? true : undefined, // Always enable for demo mode
+    enabled: isUnauthenticatedMode ? true : undefined, // Always enable for demo/mobile-view mode
   });
 
   const { data: authConfig } = useQuery<AuthConfig>({

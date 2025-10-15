@@ -80,8 +80,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     // Detect if screen is mobile (less than 768px)
     const isMobile = window.innerWidth < 768;
     
-    // Check if we're in demo mode
+    // Check if we're in demo or mobile-view mode
     const isDemo = window.location.pathname.startsWith('/demo');
+    const isMobileView = window.location.pathname.startsWith('/mobile-view');
+    const isUnauthenticatedMode = isDemo || isMobileView;
+    const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
     
     try {
       // Initialize streaming - pass server conversation history for follow-up messages
@@ -98,7 +101,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         console.log("===================================");
       }
       
-      const response = await fetch(isDemo ? '/api/demo/chatbot/stream-init' : '/api/chatbot/stream-init', {
+      const response = await fetch(`${apiPrefix}/chatbot/stream-init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -132,7 +135,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       
       while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
         try {
-          const chunkResponse = await fetch(isDemo ? `/api/demo/chatbot/stream-chunk/${streamId}?cursor=${cursor}` : `/api/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
+          const chunkResponse = await fetch(`${apiPrefix}/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
             credentials: 'include',
             signal: abortControllerRef.current?.signal,
           }).catch(error => {
@@ -380,9 +383,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
         const streamId = currentStreamIdRef.current;
         currentStreamIdRef.current = "";
         const isDemo = window.location.pathname.startsWith('/demo');
+        const isMobileView = window.location.pathname.startsWith('/mobile-view');
+        const isUnauthenticatedMode = isDemo || isMobileView;
+        const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
         // Use setTimeout to avoid blocking unmount
         setTimeout(() => {
-          fetch(isDemo ? `/api/demo/chatbot/stream-abort/${streamId}` : `/api/chatbot/stream-abort/${streamId}`, {
+          fetch(`${apiPrefix}/chatbot/stream-abort/${streamId}`, {
             method: 'POST',
             credentials: 'include',
           }).catch(() => {

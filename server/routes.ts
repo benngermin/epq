@@ -5194,6 +5194,447 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Mobile-View API endpoints - No authentication required
+  // These endpoints provide read-only access to course data for mobile-view mode
+  // Unlike demo mode, mobile-view allows access to all courses based on course_id parameter
+  
+  app.get("/api/mobile-view/courses", async (req, res) => {
+    try {
+      const allCourses = await storage.getAllCourses();
+      
+      // Return all courses without deduplication since we now use mapping table
+      const uniqueCourses = allCourses.filter(course => {
+        // Filter out test courses and invalid courses that don't follow CPCU or AIC naming pattern
+        if (course.courseNumber === 'Test Course' || course.courseNumber.toLowerCase().includes('test')) {
+          return false;
+        }
+        
+        // Check if it follows CPCU or AIC pattern
+        const isValidCourse = /^(CPCU|AIC)/.test(course.courseNumber);
+        return isValidCourse;
+      });
+      
+      // Get question set counts for each course
+      const coursesWithCounts = await Promise.all(uniqueCourses.map(async (course) => {
+        const questionSets = await storage.getQuestionSetsByCourse(course.id);
+        return {
+          ...course,
+          questionSets: questionSets.map(qs => ({
+            id: qs.id,
+            title: qs.title,
+            description: qs.description,
+            questionCount: qs.questionCount || 0
+          })),
+          questionSetCount: questionSets.length
+        };
+      }));
+      
+      // Sort courses by course number
+      coursesWithCounts.sort((a, b) => {
+        const aNum = parseInt(a.courseNumber.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.courseNumber.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      res.json(coursesWithCounts);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching courses for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  app.get("/api/mobile-view/courses/by-external-id/:externalId", async (req, res) => {
+    try {
+      const { externalId } = req.params;
+      
+      if (!externalId) {
+        return res.status(400).json({ message: "External ID is required" });
+      }
+      
+      const course = await storage.getCourseByExternalId(externalId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      res.json(course);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course by external ID for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  app.get("/api/mobile-view/courses/:id", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
+      const course = await storage.getCourse(courseId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      res.json(course);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching course for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  app.get("/api/mobile-view/courses/:courseId/question-sets", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
+      const questionSets = await storage.getQuestionSetsByCourse(courseId);
+      
+      // Add question counts to each question set
+      const questionSetsWithCounts = await Promise.all(questionSets.map(async (qs) => {
+        const questionCount = await storage.getQuestionCountBySet(qs.id);
+        return { ...qs, questionCount };
+      }));
+      
+      // Sort question sets by title
+      questionSetsWithCounts.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      res.json(questionSetsWithCounts);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question sets for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch question sets" });
+    }
+  });
+
+  app.get("/api/mobile-view/question-sets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      const questionSet = await storage.getQuestionSet(id);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Get the courses associated with this question set
+      const courses = await storage.getCoursesForQuestionSet(id);
+      
+      // Add the first course ID for backward compatibility
+      const questionSetWithCourse = {
+        ...questionSet,
+        courseId: courses.length > 0 ? courses[0].id : null
+      };
+      
+      res.json(questionSetWithCourse);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching question set for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch question set" });
+    }
+  });
+
+  app.get("/api/mobile-view/questions/:questionSetId", async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Use optimized batch query instead of N+1 queries
+      const questionsWithLatestVersions = await withCircuitBreaker(() => 
+        batchFetchQuestionsWithVersions(questionSetId)
+      );
+      
+      res.json(questionsWithLatestVersions);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching questions for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  // Mobile-view answer submission - validates answer without storing it
+  app.post("/api/mobile-view/question-sets/:questionSetId/answer", async (req, res) => {
+    try {
+      const { questionVersionId, answer } = req.body;
+      
+      if (!questionVersionId || answer === undefined) {
+        return res.status(400).json({ message: "Question version ID and answer are required" });
+      }
+      
+      // Get question version to validate answer
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
+      
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+      
+      // Simple validation - check if answer matches correct answer
+      const isCorrect = questionVersion.correctAnswer === answer;
+      
+      res.json({
+        correct: isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+        answerExplanation: questionVersion.answerExplanation || null
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error validating answer for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to validate answer" });
+    }
+  });
+
+  // Mobile-view practice data endpoint - combines multiple data fetches
+  app.get("/api/mobile-view/practice-data/:questionSetId", async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+      
+      // Fetch question set
+      const questionSet = await storage.getQuestionSet(questionSetId);
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Fetch questions with versions using batch query
+      const questions = await withCircuitBreaker(() => 
+        batchFetchQuestionsWithVersions(questionSetId)
+      );
+      
+      // Get courses for this question set
+      const courses = await storage.getCoursesForQuestionSet(questionSetId);
+      
+      res.json({
+        questionSet: {
+          ...questionSet,
+          courseId: courses.length > 0 ? courses[0].id : null
+        },
+        questions,
+        courses
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching practice data for mobile-view:", error);
+      }
+      res.status(500).json({ message: "Failed to fetch practice data" });
+    }
+  });
+
+  // Mobile-view chatbot endpoints - No authentication required
+  // Initialize streaming for mobile-view
+  app.post("/api/mobile-view/chatbot/stream-init", aiRateLimiter.middleware(), async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      
+      // Generate stream ID with mobile-view user ID (-2)
+      const streamId = `mobile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Clean up any existing streams for mobile-view
+      const streamEntries = Array.from(activeStreams.entries());
+      const mobileStreamPattern = /^mobile_/;
+      for (const [existingStreamId, stream] of streamEntries) {
+        if (mobileStreamPattern.test(existingStreamId)) {
+          if (!stream.done && Date.now() - stream.lastActivity > 60000) {
+            stream.done = true;
+            stream.error = "Stream expired";
+          }
+        }
+      }
+      
+      // Get question version to build context
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
+      if (!questionVersion) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+      
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+      
+      // Get AI settings
+      const aiSettings = await storage.getAiSettings();
+      if (!aiSettings) {
+        return res.status(500).json({ error: "AI settings not configured" });
+      }
+      
+      // Get active prompt
+      const activePrompt = await storage.getActivePromptVersion();
+      if (!activePrompt) {
+        return res.status(500).json({ error: "No active prompt configured" });
+      }
+      
+      // Build complete context for mobile-view
+      const contextData = {
+        question: questionVersion.questionText,
+        answerChoices: questionVersion.answerChoices,
+        correctAnswer: questionVersion.correctAnswer,
+        chosenAnswer: chosenAnswer,
+        userMessage: userMessage,
+        courseMaterial: courseMaterial ? {
+          assignment: courseMaterial.assignment,
+          content: courseMaterial.content
+        } : null
+      };
+      
+      // Initialize stream
+      activeStreams.set(streamId, { 
+        chunks: [], 
+        done: false,
+        lastActivity: Date.now(),
+        conversationHistory: conversationHistory || [],
+        storedSystemMessage: JSON.stringify(contextData),
+        questionVersionId
+      });
+      
+      // Start streaming in background
+      callOpenRouterStreaming(
+        activePrompt.promptText,
+        aiSettings,
+        -2, // Mobile-view user ID
+        JSON.stringify(contextData),
+        streamId,
+        activeStreams.get(streamId)!,
+        conversationHistory || []
+      ).catch(error => {
+        const stream = activeStreams.get(streamId);
+        if (stream) {
+          stream.error = "Failed to get AI response. Please try again.";
+          stream.done = true;
+        }
+      });
+      
+      res.json({ streamId });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Mobile-view streaming chatbot error:", error);
+      }
+      res.status(500).json({ error: "Failed to initialize chat stream" });
+    }
+  });
+
+  // Get stream chunk for mobile-view
+  app.get("/api/mobile-view/chatbot/stream-chunk/:streamId", async (req, res) => {
+    const streamId = req.params.streamId;
+    const cursor = parseInt(req.query.cursor as string) || 0;
+    const stream = activeStreams.get(streamId);
+    
+    if (!stream) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
+    
+    // Update activity timestamp
+    stream.lastActivity = Date.now();
+    
+    // Join all chunks and send the new content since cursor
+    const fullContent = stream.chunks.join('');
+    const newContent = fullContent.substring(cursor);
+    
+    res.json({
+      content: newContent,
+      cursor: fullContent.length,
+      done: stream.done,
+      error: stream.error,
+      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
+    });
+    
+    // Clean up finished streams
+    if (stream.done) {
+      setTimeout(() => {
+        activeStreams.delete(streamId);
+      }, 2000);
+    }
+  });
+
+  // Abort stream for mobile-view
+  app.post("/api/mobile-view/chatbot/stream-abort/:streamId", async (req, res) => {
+    const streamId = req.params.streamId;
+    
+    // Clean up the stream
+    const stream = activeStreams.get(streamId);
+    if (stream) {
+      stream.done = true;
+      stream.error = "Stream aborted by user";
+      // Clean up after a delay
+      setTimeout(() => {
+        activeStreams.delete(streamId);
+      }, 5000);
+    }
+    
+    res.json({ success: true });
+  });
+
+  // Mobile-view feedback endpoint
+  app.post("/api/mobile-view/feedback", async (req, res) => {
+    try {
+      const feedbackSchema = z.object({
+        type: z.enum(["positive", "negative"]),
+        message: z.string().optional(),
+        messageId: z.string(),
+        questionVersionId: z.number().optional(),
+        conversation: z.array(z.object({
+          id: z.string(),
+          content: z.string(),
+          role: z.enum(["user", "assistant"]),
+        })).optional(),
+        timestamp: z.string(),
+      });
+
+      const parsed = feedbackSchema.parse(req.body);
+      
+      // For mobile-view mode, we store feedback with a special mobile user ID (-2)
+      await storage.createChatbotFeedback({
+        userId: -2, // Mobile-view user ID
+        messageId: parsed.messageId,
+        feedbackType: parsed.type,
+        feedbackMessage: parsed.message || null,
+        questionVersionId: parsed.questionVersionId || null,
+        conversation: parsed.conversation || null,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving mobile-view feedback:", error);
+      }
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
   // Diagnostic endpoint to check the production database
   app.get("/api/admin/diagnostic", requireAdmin, async (req, res) => {
     const results: any = {

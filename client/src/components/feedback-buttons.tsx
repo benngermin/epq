@@ -27,9 +27,12 @@ export function FeedbackButtons({ messageId, questionVersionId, conversation, on
   const submitFeedback = async (type: "positive" | "negative", message?: string) => {
     setIsSubmitting(true);
     try {
-      // Check if we're in demo mode
+      // Check if we're in demo or mobile-view mode
       const isDemo = window.location.pathname.startsWith('/demo');
-      const response = await fetch(isDemo ? "/api/demo/feedback" : "/api/feedback", {
+      const isMobileView = window.location.pathname.startsWith('/mobile-view');
+      const isUnauthenticatedMode = isDemo || isMobileView;
+      const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
+      const response = await fetch(`${apiPrefix}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

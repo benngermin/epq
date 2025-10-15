@@ -53,15 +53,18 @@ export default function QuestionSetPractice() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
   const [demoMatch, demoParams] = useRoute("/demo/question-set/:id");
+  const [mobileViewMatch, mobileViewParams] = useRoute("/mobile-view/question-set/:id");
   
   // Track component mount status for cleanup
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  // Check if we're in demo mode
+  // Check if we're in demo or mobile-view mode
   const isDemo = window.location.pathname.startsWith('/demo');
-  const actualMatch = isDemo ? demoMatch : match;
-  const actualParams = isDemo ? demoParams : params;
+  const isMobileView = window.location.pathname.startsWith('/mobile-view');
+  const isUnauthenticatedMode = isDemo || isMobileView;
+  const actualMatch = isMobileView ? mobileViewMatch : (isDemo ? demoMatch : match);
+  const actualParams = isMobileView ? mobileViewParams : (isDemo ? demoParams : params);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -76,15 +79,15 @@ export default function QuestionSetPractice() {
     };
   }, []);
   
-  // Redirect to auth if not logged in (except in demo mode)
+  // Redirect to auth if not logged in (except in demo or mobile-view mode)
   useEffect(() => {
     // Only redirect when we're sure the user is not authenticated (not during loading)
     // Also handle error states where the user query failed
-    // Skip redirect in demo mode
-    if (!isDemo && !authLoading && !user) {
+    // Skip redirect in demo or mobile-view mode
+    if (!isUnauthenticatedMode && !authLoading && !user) {
       setLocation("/auth");
     }
-  }, [user, authLoading, setLocation, isDemo]);
+  }, [user, authLoading, setLocation, isUnauthenticatedMode]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, { answer: string; isCorrect?: boolean }>>({});
@@ -178,13 +181,13 @@ export default function QuestionSetPractice() {
 
   // Fetch all courses for admin dropdown
   const { data: courses } = useQuery<(Course & { questionSets: any[] })[]>({
-    queryKey: [isDemo ? "/api/demo/courses" : "/api/courses"],
-    enabled: !isDemo && !!user?.isAdmin, // Only fetch if user is admin and not in demo
+    queryKey: [isUnauthenticatedMode ? (isDemo ? "/api/demo/courses" : "/api/mobile-view/courses") : "/api/courses"],
+    enabled: !isUnauthenticatedMode && !!user?.isAdmin, // Only fetch if user is admin and not in unauthenticated mode
   });
 
   // Combine all data fetching into a single query for better performance
   const { data: practiceData, isLoading, error } = useQuery({
-    queryKey: [isDemo ? "/api/demo/practice-data" : "/api/practice-data", questionSetId],
+    queryKey: [isUnauthenticatedMode ? (isDemo ? "/api/demo/practice-data" : "/api/mobile-view/practice-data") : "/api/practice-data", questionSetId],
     queryFn: async ({ signal }) => {
       try {
         // Create new abort controller for this request
@@ -196,8 +199,8 @@ export default function QuestionSetPractice() {
             abortControllerRef.current?.abort();
           });
         }
-        // First check if we're authenticated (skip in demo mode)
-        if (!isDemo) {
+        // First check if we're authenticated (skip in unauthenticated modes)
+        if (!isUnauthenticatedMode) {
           const authRes = await fetch('/api/user', { 
             credentials: "include",
             signal: abortControllerRef.current.signal 
@@ -208,12 +211,13 @@ export default function QuestionSetPractice() {
           }
         }
 
+        const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
         const [questionSetRes, questionsRes] = await Promise.all([
-          fetch(isDemo ? `/api/demo/question-sets/${questionSetId}` : `/api/question-sets/${questionSetId}`, { 
+          fetch(`${apiPrefix}/question-sets/${questionSetId}`, { 
             credentials: "include",
             signal: abortControllerRef.current.signal 
           }),
-          fetch(isDemo ? `/api/demo/questions/${questionSetId}` : `/api/questions/${questionSetId}`, { 
+          fetch(`${apiPrefix}/questions/${questionSetId}`, { 
             credentials: "include",
             signal: abortControllerRef.current.signal 
           })
