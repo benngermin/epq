@@ -15,6 +15,16 @@ interface SimpleStreamingChatProps {
 }
 
 export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAnswer, onReviewQuestion }: SimpleStreamingChatProps) {
+  // Debug logging for prop values
+  console.log('[SimpleStreamingChat] Component mounted/updated with props:', {
+    questionVersionId,
+    chosenAnswer,
+    hasChosenAnswer: !!chosenAnswer,
+    chosenAnswerLength: chosenAnswer?.length,
+    correctAnswer,
+    hasCorrectAnswer: !!correctAnswer
+  });
+  
   // Store the original chosen answer to use for follow-up questions
   const originalChosenAnswerRef = useRef(chosenAnswer);
   const [userInput, setUserInput] = useState("");
