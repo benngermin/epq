@@ -70,17 +70,23 @@ export function useSSEStream(options: UseSSEStreamOptions = {}) {
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No response stream available');
 
+      console.log('[SSE Hook] Reader obtained, starting to read stream...');
       let buffer = '';
+      let chunkCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
+        console.log(`[SSE Hook] Reading chunk ${chunkCount}, done: ${done}, has value: ${!!value}`);
         if (done) {
+          console.log('[SSE Hook] Stream complete');
           setIsStreaming(false);
           break;
         }
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
+        console.log(`[SSE Hook] Chunk ${chunkCount} decoded, buffer size: ${buffer.length}, content preview:`, chunk.substring(0, 100));
 
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
