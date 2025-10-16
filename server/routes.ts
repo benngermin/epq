@@ -1903,20 +1903,20 @@ export function registerRoutes(app: Express): Server {
       return;
     }
 
-    // Get config from database or use provided config
-    let openRouterConfig: any = config;
-    if (!openRouterConfig) {
-      openRouterConfig = await storage.getOpenRouterConfig();
+    // Get config from database or use provided config (AI Settings)
+    let aiConfig: any = config;
+    if (!aiConfig) {
+      aiConfig = await storage.getAiSettings();
     }
     
-    if (!openRouterConfig) {
-      res.write(`data: {"type":"error","message":"OpenRouter configuration not found. Please configure in admin panel."}\n\n`);
+    if (!aiConfig) {
+      res.write(`data: {"type":"error","message":"AI settings not found. Please configure in admin panel."}\n\n`);
       res.end();
       return;
     }
 
-    const modelName = openRouterConfig.modelName || "anthropic/claude-3.5-sonnet";
-    const reasoning = openRouterConfig.reasoning || "none";
+    const modelName = aiConfig.modelName || "anthropic/claude-3.5-sonnet";
+    const reasoning = aiConfig.reasoning || "none";
     const temperature = 0;
     const maxTokens = 56000;
     
@@ -2130,10 +2130,9 @@ export function registerRoutes(app: Express): Server {
         console.log("[SSE] Starting new conversation");
       }
       
-      // Fetch OpenRouter config
-      const openRouterConfig = await storage.getOpenRouterConfig();
-      if (!openRouterConfig) {
-        res.write('data: {"type":"error","message":"OpenRouter configuration not found. Please configure in admin panel."}\n\n');
+      // Use AI settings from admin panel
+      if (!aiSettings) {
+        res.write('data: {"type":"error","message":"AI settings not configured. Please configure in admin panel."}\n\n');
         res.end();
         return;
       }
@@ -2141,8 +2140,8 @@ export function registerRoutes(app: Express): Server {
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
       
-      // Call streamOpenRouterDirectly with config
-      await streamOpenRouterDirectly(res, messages, historyToPass, openRouterConfig);
+      // Call streamOpenRouterDirectly with AI settings
+      await streamOpenRouterDirectly(res, messages, historyToPass, aiSettings);
       console.log("[SSE] Streaming complete");
       
     } catch (error) {
