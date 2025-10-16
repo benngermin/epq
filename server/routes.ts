@@ -1921,10 +1921,7 @@ export function registerRoutes(app: Express): Server {
           messages,
           temperature,
           max_tokens: maxTokens,
-          stream: true,
-          reasoning: {
-            effort: "medium"
-          },
+          stream: true
         }),
       });
 
