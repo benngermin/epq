@@ -13,19 +13,17 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 - **Result**: Auto-flip now only triggers for questions that have been answered, not when navigating to new questions
 
 ### October 16, 2024 - Mobile WebView Flip Animation Fix
-- **Issue**: Question cards were not flipping when users got answers correct in mobile webviews
-- **Root Cause**: 
-  1. Auto-flip was only configured for incorrect answers, not correct ones
-  2. WebViews often have issues with CSS 3D transforms and backface-visibility
+- **Issue**: Question cards were not flipping properly in mobile webviews
+- **Root Cause**: WebViews often have issues with CSS 3D transforms and backface-visibility
 - **Solution**: 
-  1. Added auto-flip for both correct (150ms delay) and incorrect answers (1500ms delay)
-  2. Created webview detection utility to identify when running in mobile app browsers
-  3. Added special CSS mode for webviews using opacity/visibility transitions instead of 3D transforms
-  4. Added reflow forcing for webview compatibility
+  1. Created webview detection utility to identify when running in mobile app browsers
+  2. Added special CSS mode for webviews using opacity/visibility transitions instead of 3D transforms
+  3. Added reflow forcing for webview compatibility
+  4. Auto-flip functionality maintained for incorrect answers only (1.5s delay)
 - **Components Updated**:
-  - `client/src/components/question-card.tsx` - Added auto-flip for correct answers and webview compatibility
+  - `client/src/components/question-card.tsx` - Added webview compatibility for flipping
   - `client/src/utils/detect-webview.ts` - New utility for detecting webview environments
-- **Result**: Question cards now flip reliably in both regular browsers and mobile webviews
+- **Result**: Question cards auto-flip for incorrect answers only, working reliably in both browsers and webviews
 
 ### October 15, 2024 - Mobile-View Navigation & Chat Fixes
 - **Issue 1**: Mobile-view path was lost when switching question sets

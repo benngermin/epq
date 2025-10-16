@@ -169,17 +169,17 @@ export function QuestionCard({
     }
   };
 
-  // Auto-flip for correct AND incorrect answers to show help (static explanation or AI chat)
+  // Auto-flip for incorrect answers ONLY to show help (static explanation or AI chat)
   useEffect(() => {
-    // Check if we have a valid server response and haven't auto-flipped yet
-    // Must check for truthy userAnswer object with isCorrect property (not just !== undefined)
+    // Check if we have a valid server response with incorrect answer and haven't auto-flipped yet
+    // Only auto-flip for incorrect answers, not correct ones
     if (question?.userAnswer && 
-        typeof question.userAnswer.isCorrect === 'boolean' &&
+        question.userAnswer.isCorrect === false &&
         !isFlipped &&
         !hasAutoFlipped) {
       
       // Log the flip attempt for debugging in webview
-      debugLog(`${isWebView() ? 'WebView' : 'Browser'} - attempting auto-flip`, {
+      debugLog(`${isWebView() ? 'WebView' : 'Browser'} - attempting auto-flip for incorrect answer`, {
         isCorrect: question?.userAnswer?.isCorrect,
         isFlipped,
         hasAutoFlipped,
@@ -188,12 +188,12 @@ export function QuestionCard({
         isMobileViewPath: window.location.pathname.includes('/mobile-view')
       });
       
-      // Different delays for correct vs incorrect answers
-      const delay = question?.userAnswer?.isCorrect ? 150 : 1500;
+      // Delay before flipping to let user see their incorrect answer
+      const delay = 1500;
       
       // Auto-flip to show help after delay
       const timer = setTimeout(() => {
-        debugLog(`${isWebView() ? 'WebView' : 'Browser'} - executing flip`, {
+        debugLog(`${isWebView() ? 'WebView' : 'Browser'} - executing flip for incorrect answer`, {
           questionId: question?.id,
           delay,
           isCorrect: question?.userAnswer?.isCorrect
