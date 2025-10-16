@@ -1888,6 +1888,62 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
+  // New SSE endpoint for direct streaming
+  app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      const userId = req.user!.id;
+
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+
+      res.write('data: {"type":"connected"}\n\n');
+
+      // Get question and context
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        res.write('data: {"type":"error","message":"Question not found"}\n\n');
+        res.end();
+        return;
+      }
+
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      const courseMaterial = baseQuestion?.loid
+        ? await storage.getCourseMaterialByLoid(baseQuestion.loid)
+        : null;
+
+      const aiSettings = await storage.getAiSettings();
+      const activePrompt = await storage.getActivePromptVersion();
+
+      // Build system message
+      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, courseMaterial, activePrompt);
+
+      // Prepare messages array
+      let messages = [];
+      if (conversationHistory && conversationHistory.length > 0) {
+        messages = [...conversationHistory];
+        messages.push({
+          role: "user",
+          content: userMessage || "Please provide feedback on my answer."
+        });
+      } else {
+        messages.push({ role: "system", content: systemMessage });
+        messages.push({ role: "user", content: "Please provide feedback on my answer." });
+      }
+
+      // Stream directly from OpenRouter
+      await streamOpenRouterDirectly(res, messages, conversationHistory || [], userId);
+
+    } catch (error) {
+      console.error("SSE streaming error:", error);
+      res.write(`data: {"type":"error","message":"${(error as Error).message}"}\n\n`);
+      res.end();
+    }
+  });
+
   // Feedback endpoint for chatbot responses
   app.post("/api/feedback", requireAuth, async (req, res) => {
     try {
@@ -2051,6 +2107,185 @@ export function registerRoutes(app: Express): Server {
     cleaned = cleaned.replace(/\[\/color\]/gi, '');
     
     return cleaned;
+  }
+
+  // Helper function to build system message for SSE streaming
+  function buildSystemMessage(
+    questionVersion: any,
+    chosenAnswer: string,
+    courseMaterial: any,
+    activePrompt: any
+  ): string {
+    const formattedChoices = questionVersion.answerChoices.join('\n');
+    const selectedAnswer = chosenAnswer?.trim() || "No answer was selected";
+    const sourceMaterial = courseMaterial?.content
+      || questionVersion.topicFocus
+      || "No additional source material provided.";
+    const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
+
+    const systemPromptTemplate = activePrompt?.promptText || `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Next, review the provided source material that was used to create this assessment content:
+<course_material>
+{{COURSE_MATERIAL}}
+</course_material>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
+
+##Criteria:
+- Only use the provided content
+- Use clear, jargon-free wording
+- State clearly why each choice is ✅ Correct or ❌ Incorrect.
+- In 2-4 sentences, explain the concept that makes the choice right or wrong.
+- Paraphrase relevant ideas and reference section titles from the Source Material
+- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+
+    return systemPromptTemplate
+      .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+      .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+      .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+      .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
+      .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
+  }
+
+  // Direct SSE streaming function that passes through OpenRouter's stream to the client
+  async function streamOpenRouterDirectly(
+    res: Response,
+    messages: Array<{role: string, content: string}>,
+    conversationHistory: Array<{role: string, content: string}>,
+    userId?: number
+  ) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      res.write('data: {"type":"error","message":"OpenRouter API key not configured"}\n\n');
+      res.end();
+      return;
+    }
+
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.APP_URL || "http://localhost:5000",
+        },
+        body: JSON.stringify({
+          model: "anthropic/claude-sonnet-4",
+          messages,
+          temperature: 0,
+          max_tokens: 56000,
+          stream: true,
+          reasoning: { effort: "medium" }
+        }),
+      });
+
+      if (!response.ok) {
+        res.write(`data: {"type":"error","message":"OpenRouter API error"}\n\n`);
+        res.end();
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue;
+
+          const data = line.slice(6).trim();
+
+          if (data === '[DONE]') {
+            const updatedHistory = [
+              ...conversationHistory,
+              messages[messages.length - 1],
+              { role: "assistant", content: fullResponse }
+            ];
+
+            res.write(`data: ${JSON.stringify({
+              type: "done",
+              conversationHistory: updatedHistory
+            })}\n\n`);
+            res.end();
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+
+            if (content) {
+              fullResponse += content;
+              res.write(`data: ${JSON.stringify({
+                type: "chunk",
+                content: content
+              })}\n\n`);
+            }
+
+            const finishReason = parsed.choices?.[0]?.finish_reason;
+            if (finishReason) {
+              const updatedHistory = [
+                ...conversationHistory,
+                messages[messages.length - 1],
+                { role: "assistant", content: fullResponse }
+              ];
+
+              res.write(`data: ${JSON.stringify({
+                type: "done",
+                conversationHistory: updatedHistory
+              })}\n\n`);
+              res.end();
+              return;
+            }
+          } catch (e) {
+            // Skip unparseable chunks
+          }
+        }
+      }
+
+      // Fallback completion
+      const updatedHistory = [
+        ...conversationHistory,
+        messages[messages.length - 1],
+        { role: "assistant", content: fullResponse }
+      ];
+      res.write(`data: ${JSON.stringify({type: "done", conversationHistory: updatedHistory})}\n\n`);
+      res.end();
+
+    } catch (error) {
+      res.write(`data: {"type":"error","message":"Streaming failed"}\n\n`);
+      res.end();
+    }
   }
 
   // Background stream processing
