@@ -1923,10 +1923,8 @@ export function registerRoutes(app: Express): Server {
       
       // CRITICAL: Flush the headers and initial message immediately for SSE to work
       // This tells the browser that the SSE connection is established
-      if ((res as any).flush) {
-        (res as any).flush();
-        console.log('[SSE Endpoint] Flushed initial response');
-      }
+      res.flushHeaders();
+      console.log('[SSE Endpoint] Flushed initial response');
 
       // Get question and context
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
@@ -2242,9 +2240,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const errorText = await response.text();
         console.error('[streamOpenRouterDirectly] OpenRouter API error:', response.status, errorText);
         res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
-        if ((res as any).flush) {
-          (res as any).flush();
-        }
+        // No flush needed here - Node.js will handle it with res.end()
         res.end();
         return;
       }
@@ -2303,9 +2299,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               type: "done",
               conversationHistory: updatedHistory
             })}\n\n`);
-            if ((res as any).flush) {
-              (res as any).flush();
-            }
+            // No flush needed - Node.js auto-flushes after initial flushHeaders()
             res.end();
             return;
           }
@@ -2322,10 +2316,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               })}\n\n`;
               console.log(`[streamOpenRouterDirectly] Sending SSE chunk to client: ${sseData.substring(0, 100)}...`);
               res.write(sseData);
-              // Flush each chunk immediately for real-time streaming
-              if ((res as any).flush) {
-                (res as any).flush();
-              }
+              // No flush needed - Node.js auto-flushes chunks after initial flushHeaders()
             } else {
               console.log(`[streamOpenRouterDirectly] No content in parsed data:`, JSON.stringify(parsed).substring(0, 200));
             }
@@ -4021,10 +4012,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
     
     // Send initial event
     res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting bulk refresh...' }) + '\n\n');
-    // Flush immediately to ensure client receives the initial message
-    if ((res as any).flush) {
-      (res as any).flush();
-    }
+    // Flush headers immediately to ensure client receives the initial message
+    res.flushHeaders();
     
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
