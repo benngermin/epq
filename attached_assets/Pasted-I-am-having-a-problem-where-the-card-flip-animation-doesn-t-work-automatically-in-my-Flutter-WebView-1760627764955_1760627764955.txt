@@ -1,0 +1,136 @@
+I am having a problem where the card flip animation doesn't work automatically in my Flutter WebView when users answer questions incorrectly. Here's exactly what I
+  need fixed:
+
+  The Expected Behavior (Confirm This First)
+
+  Before making any changes, verify you understand the correct workflow:
+
+  1. When user answers CORRECTLY:
+    - Show green "Correct!" feedback
+    - Show "Get Help" button
+    - Card should NOT auto-flip
+    - Only flip to show chatbot if user manually clicks "Get Help"
+  2. When user answers INCORRECTLY:
+    - Show red "Incorrect" feedback
+    - Card MUST automatically flip after 1.5 seconds
+    - Show AI chatbot or static explanation on the back
+    - This auto-flip currently works in Chrome/Safari but NOT in Flutter WebView
+
+  The Problem to Identify
+
+  First, identify these facts in the code at client/src/components/question-card.tsx:
+
+  1. Line 148-236: There's a useEffect hook that tries to handle auto-flip for Flutter WebView when it detects question.userAnswer.isCorrect === false
+  2. Lines 163-233: Inside that useEffect, there's complex logic with MutationObserver and polling that never executes
+  3. Lines 258-296: There's a separate useEffect for regular browsers that DOES work
+  4. Line 340 (handleShowChatbot): The manual "Get Help" button works perfectly in Flutter WebView
+  5. The root cause: React's useEffect hooks don't execute in Flutter WebView because the JavaScript engine doesn't process the microtask queue after rendering. The
+  component re-renders (incorrect feedback appears on screen), but the effect callbacks never run.
+
+  The Exact Fix
+
+  Replace the broken useEffect approach with a ref callback that executes synchronously during React's commit phase. Here's what to do:
+
+  Step 1: Find the incorrect feedback div (around line 629-636)
+
+  Look for this code:
+  {isCorrect === false && (
+    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+      <div className="flex items-center">
+        <XCircle className="h-4 w-4 text-error mr-2" />
+        <span className="font-medium text-error text-sm">Incorrect</span>
+      </div>
+    </div>
+  )}
+
+  Step 2: Add a ref callback to that div
+
+  Modify it to include a ref attribute that triggers the flip for WebView:
+
+  {isCorrect === false && (
+    <div 
+      ref={(node) => {
+        // Ref callbacks execute synchronously during commit phase (works in Flutter WebView!)
+        if (node && isWebView() && !hasAutoFlipped) {
+          console.log('[WebView Ref Callback] Incorrect feedback mounted, scheduling flip');
+
+          // Use setTimeout (macrotask) instead of relying on useEffect (microtask)
+          // This works because Flutter WebView processes macrotasks reliably
+          const timerId = setTimeout(() => {
+            console.log('[WebView Ref Callback] Executing flip now');
+            setIsFlipped(true);
+            setHasAutoFlipped(true);
+          }, 1500); // 1.5 second delay to match browser behavior
+
+          // Store timer ID so we can clean it up if component unmounts
+          (window as any).webViewFlipTimer = timerId;
+        }
+      }}
+      className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+    >
+      <div className="flex items-center">
+        <XCircle className="h-4 w-4 text-error mr-2" />
+        <span className="font-medium text-error text-sm">Incorrect</span>
+      </div>
+    </div>
+  )}
+
+  Step 3: Clean up the timer in the cleanup useEffect
+
+  Find the useEffect that runs on question change (around lines 110-146). In the cleanup section at the top, add cleanup for the new timer:
+
+  useEffect(() => {
+    // Clean up any existing intervals/timers/observers
+    if ((window as any).flipInterval) {
+      window.clearInterval((window as any).flipInterval);
+      (window as any).flipInterval = null;
+    }
+    if ((window as any).flipObserver) {
+      (window as any).flipObserver.disconnect();
+      (window as any).flipObserver = null;
+    }
+    // ADD THIS NEW CLEANUP:
+    if ((window as any).webViewFlipTimer) {
+      window.clearTimeout((window as any).webViewFlipTimer);
+      (window as any).webViewFlipTimer = null;
+    }
+
+    // ... rest of the useEffect
+  }, [question?.id, onFlipChange]);
+
+  Step 4: Remove or comment out the broken WebView logic
+
+  In the useEffect at lines 148-236, find the section that starts with:
+  // IMMEDIATE AUTO-FLIP FOR INCORRECT ANSWERS IN WEBVIEW
+  // Trigger flip directly here instead of in separate useEffect
+  if (question.userAnswer.isCorrect === false && !isFlipped && !hasAutoFlipped && isWebView()) {
+
+  Comment out or delete lines 163-233 (the entire WebView-specific flip logic inside that useEffect). Replace it with a simple comment:
+
+  // WEBVIEW AUTO-FLIP: Now handled via ref callback on incorrect feedback div
+  // See the ref callback around line 630 for the working implementation
+  if (question.userAnswer.isCorrect === false && !isFlipped && !hasAutoFlipped && isWebView()) {
+    console.log('[WebView] Incorrect answer detected - flip handled by ref callback');
+  }
+
+  Why This Works
+
+  The fix works because:
+
+  1. Ref callbacks execute synchronously during React's commit phase, not in the microtask queue
+  2. setTimeout creates a macrotask which Flutter WebView processes reliably (unlike microtasks)
+  3. Bypasses the broken useEffect entirely - no dependency on microtask queue
+  4. Maintains the same UX - 1.5 second delay matches browser behavior
+  5. Only affects incorrect answers - correct answers still work as before
+
+  Testing Checklist
+
+  After applying the fix, test these scenarios in Flutter WebView:
+
+  - User answers correctly → No auto-flip, "Get Help" button works manually
+  - User answers incorrectly → Card auto-flips after 1.5 seconds, shows chatbot/static explanation
+  - Console shows logs: [WebView Ref Callback] Incorrect feedback mounted, scheduling flip then [WebView Ref Callback] Executing flip now
+  - Switching to next question cleans up timer properly (no memory leaks)
+  - Still works correctly in Chrome/Safari browsers (don't break existing functionality)
+
+  This fix specifically targets the Flutter WebView microtask queue starvation issue while preserving all existing behavior in standard browsers.
