@@ -11,32 +11,83 @@ dotenv.config();
 
 const app = express();
 
-// Security headers
+// Security headers middleware - Enhanced security configuration
 app.use((req, res, next) => {
-  // Prevent XSS attacks
+  // Prevent MIME type sniffing attacks
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Prevent clickjacking attacks by denying iframe embedding
   res.setHeader('X-Frame-Options', 'DENY');
+  
+  // Enable XSS filtering (legacy but still useful for older browsers)
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  // HTTPS enforcement in production
+  // HTTPS enforcement in production - ensures all future requests use HTTPS
   if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
   
-  // Content Security Policy - Improved security by removing unsafe-eval
-  // Note: unsafe-inline is still needed for React and Tailwind CSS
+  /**
+   * Content Security Policy (CSP) Configuration
+   * 
+   * SECURITY NOTE: 'unsafe-inline' for scripts and styles
+   * 
+   * Why we need 'unsafe-inline':
+   * 1. React development mode injects inline scripts for hot reloading
+   * 2. Tailwind CSS uses inline styles for dynamic utility classes  
+   * 3. Some UI libraries (Radix UI) inject inline styles for positioning
+   * 
+   * Mitigation strategies in place:
+   * - All user input is sanitized before rendering
+   * - React's built-in XSS protection (dangerouslySetInnerHTML avoided)
+   * - 'unsafe-eval' has been removed for better security
+   * - All other directives are as restrictive as possible
+   * 
+   * Future improvements could include:
+   * - Moving to a nonce-based approach for inline scripts
+   * - Using CSS-in-JS solutions that support CSP
+   * - Pre-compiling all Tailwind utilities
+   */
   res.setHeader('Content-Security-Policy', 
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline'; " +  // Removed unsafe-eval for better security
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self' https://openrouter.ai; " +
-    "font-src 'self' data: https://fonts.gstatic.com;"
+    "script-src 'self' 'unsafe-inline'; " +  // Required for React dev mode and some libraries
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " + // Required for Tailwind and inline styles
+    "img-src 'self' data: https:; " + // Allow images from self, data URIs, and any HTTPS source
+    "connect-src 'self' https://openrouter.ai; " + // API connections
+    "font-src 'self' data: https://fonts.gstatic.com; " + // Font sources
+    "object-src 'none'; " + // Disable plugins like Flash
+    "base-uri 'self'; " + // Restrict base tag usage
+    "form-action 'self'; " + // Forms can only submit to same origin
+    "frame-ancestors 'none'; " + // Prevent embedding in iframes
+    "upgrade-insecure-requests;" // Automatically upgrade HTTP to HTTPS
   );
   
-  // Additional Security Headers
+  // Control referrer information sent with requests
+  // 'strict-origin-when-cross-origin' provides good balance of privacy and functionality
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  // Permissions Policy (formerly Feature Policy) 
+  // Explicitly disable features we don't use
+  res.setHeader('Permissions-Policy', 
+    'camera=(), ' +           // No camera access
+    'microphone=(), ' +        // No microphone access  
+    'geolocation=(), ' +       // No location access
+    'interest-cohort=(), ' +   // Opt out of FLoC
+    'payment=(), ' +           // No payment APIs
+    'usb=(), ' +               // No USB access
+    'magnetometer=(), ' +      // No magnetometer
+    'gyroscope=(), ' +         // No gyroscope
+    'accelerometer=()'         // No accelerometer
+  );
+  
+  // Prevent Adobe Flash and other cross-domain policies
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  
+  // Disable DNS prefetching to prevent privacy leaks
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  
+  // Prevent IE from executing downloads in site context
+  res.setHeader('X-Download-Options', 'noopen');
   
   next();
 });

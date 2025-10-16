@@ -2949,12 +2949,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const processedSystemMessage = replaceTemplateVariables(systemMessage);
       const processedUserMessage = replaceTemplateVariables(userMessage);
 
-      // Enhanced logging to verify correct inputs
-      console.log("\n=== STATIC EXPLANATION GENERATION - INPUT VERIFICATION ===");
-      console.log("Question ID:", questionVersion.questionId);
-      console.log("Question Version ID:", questionVersionId);
-      console.log("Question Type:", questionVersion.questionType);
-      console.log("Question Text:", questionVersion.questionText);
+      // Enhanced logging to verify correct inputs (development only)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("\n=== STATIC EXPLANATION GENERATION - INPUT VERIFICATION ===");
+        console.log("Question ID:", questionVersion.questionId);
+        console.log("Question Version ID:", questionVersionId);
+        console.log("Question Type:", questionVersion.questionType);
+        console.log("Question Text:", questionVersion.questionText);
+      }
       
       // Debug logging for OpenRouter API calls
       if (process.env.NODE_ENV === 'development') {
@@ -3012,7 +3014,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         learningContentUsed: !!learningContent
       });
     } catch (error) {
-      console.error("Error generating explanation:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error generating explanation:", error);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: "Failed to generate explanation", error: errorMessage });
     }
@@ -3707,7 +3711,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       if (!response.ok) {
         const responseText = await response.text();
-        console.error("Bubble API response:", response.status, responseText);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Bubble API response:", response.status, responseText);
+        }
         throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
       }
 
@@ -3740,7 +3746,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }
       });
     } catch (error) {
-      console.error("Error fetching from Bubble API:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching from Bubble API:", error);
+      }
       res.status(500).json({ message: "Failed to fetch question sets from Bubble repository" });
     }
   });
@@ -3822,7 +3830,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
           importResults.imported++;
         } catch (error) {
-          console.error(`Error importing question set ${bubbleQuestionSet._id}:`, error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`Error importing question set ${bubbleQuestionSet._id}:`, error);
+          }
           importResults.failed++;
           importResults.errors.push(`Failed to import ${bubbleQuestionSet.title || bubbleQuestionSet._id}: ${(error as Error).message}`);
         }
@@ -3833,14 +3843,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
         results: importResults
       });
     } catch (error) {
-      console.error("Error importing question sets:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error importing question sets:", error);
+      }
       res.status(500).json({ message: "Failed to import question sets" });
     }
   });
 
   // New endpoint to update all question sets from Bubble
   app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
-    console.log("🔄 Starting update-all-question-sets process...");
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔄 Starting update-all-question-sets process...");
+    }
     const startTime = Date.now();
     const { courseNumber } = req.body; // Optional course number filter
     
@@ -3850,9 +3864,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
       if (!bubbleApiKey) {
-        console.error("❌ Bubble API key not configured in environment variables");
-        console.error("NODE_ENV:", process.env.NODE_ENV);
-        console.error("Total env vars:", Object.keys(process.env).length);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("❌ Bubble API key not configured in environment variables");
+          console.error("NODE_ENV:", process.env.NODE_ENV);
+          console.error("Total env vars:", Object.keys(process.env).length);
+        }
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
@@ -3867,7 +3883,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const response = await fetch(baseUrl, { headers });
       
       if (!response.ok) {
-        console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`❌ Bubble API error: ${response.status} ${response.statusText}`);
+        }
         throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
       }
 
