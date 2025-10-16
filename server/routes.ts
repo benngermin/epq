@@ -1892,7 +1892,8 @@ export function registerRoutes(app: Express): Server {
   async function streamOpenRouterDirectly(
     res: any, 
     messages: Array<{ role: string, content: string }>,
-    conversationHistory: Array<{ role: string, content: string }>
+    conversationHistory: Array<{ role: string, content: string }>,
+    config?: { modelName?: string; reasoning?: string }
   ) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     
@@ -1902,12 +1903,43 @@ export function registerRoutes(app: Express): Server {
       return;
     }
 
-    const modelName = "anthropic/claude-sonnet-4";
+    // Get config from database or use provided config
+    let openRouterConfig: any = config;
+    if (!openRouterConfig) {
+      openRouterConfig = await storage.getOpenRouterConfig();
+    }
+    
+    if (!openRouterConfig) {
+      res.write(`data: {"type":"error","message":"OpenRouter configuration not found. Please configure in admin panel."}\n\n`);
+      res.end();
+      return;
+    }
+
+    const modelName = openRouterConfig.modelName || "anthropic/claude-3.5-sonnet";
+    const reasoning = openRouterConfig.reasoning || "none";
     const temperature = 0;
     const maxTokens = 56000;
     
     try {
       console.log("[SSE OpenRouter] Starting stream with", messages.length, "messages");
+      console.log("[SSE OpenRouter] Using model:", modelName);
+      console.log("[SSE OpenRouter] Using reasoning:", reasoning);
+      
+      // Build request body
+      const requestBody: any = {
+        model: modelName,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true
+      };
+      
+      // Only add reasoning if it's not 'none'
+      if (reasoning && reasoning !== 'none') {
+        requestBody.reasoning = {
+          effort: reasoning
+        };
+      }
       
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -1916,13 +1948,7 @@ export function registerRoutes(app: Express): Server {
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
         },
-        body: JSON.stringify({
-          model: modelName,
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          stream: true
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -2104,11 +2130,19 @@ export function registerRoutes(app: Express): Server {
         console.log("[SSE] Starting new conversation");
       }
       
+      // Fetch OpenRouter config
+      const openRouterConfig = await storage.getOpenRouterConfig();
+      if (!openRouterConfig) {
+        res.write('data: {"type":"error","message":"OpenRouter configuration not found. Please configure in admin panel."}\n\n');
+        res.end();
+        return;
+      }
+      
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
       
-      // Call streamOpenRouterDirectly
-      await streamOpenRouterDirectly(res, messages, historyToPass);
+      // Call streamOpenRouterDirectly with config
+      await streamOpenRouterDirectly(res, messages, historyToPass, openRouterConfig);
       console.log("[SSE] Streaming complete");
       
     } catch (error) {

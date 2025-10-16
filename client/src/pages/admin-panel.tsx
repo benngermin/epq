@@ -262,10 +262,11 @@ function OpenRouterSettingsSection() {
     modelName: z.string().min(1, "Model is required"),
     systemMessage: z.string().min(1, "System message is required"),
     userMessage: z.string().min(1, "User message is required"),
+    reasoning: z.string().default("none"),
   });
   
   // Query for OpenRouter config
-  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string; userMessage: string }>({
+  const { data: openRouterConfig, isLoading } = useQuery<{ modelName: string; systemMessage: string; userMessage: string; reasoning?: string }>({
     queryKey: ["/api/admin/openrouter-config"],
   });
 
@@ -276,6 +277,7 @@ function OpenRouterSettingsSection() {
       modelName: "anthropic/claude-3.5-sonnet",
       systemMessage: "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
       userMessage: "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
+      reasoning: "none",
     },
   });
 
@@ -286,6 +288,7 @@ function OpenRouterSettingsSection() {
         modelName: openRouterConfig.modelName || "anthropic/claude-3.5-sonnet",
         systemMessage: openRouterConfig.systemMessage || "You are an expert insurance instructor providing clear explanations for insurance exam questions.",
         userMessage: openRouterConfig.userMessage || "Question: {{QUESTION_TEXT}}\n\nCorrect Answer: {{CORRECT_ANSWER}}\n\nLearning Content:\n{{LEARNING_CONTENT}}\n\nPlease provide a clear explanation for this question.",
+        reasoning: openRouterConfig.reasoning || "none",
       });
     }
   }, [openRouterConfig, form]);
@@ -360,22 +363,48 @@ function OpenRouterSettingsSection() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="modelName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>OpenRouter Model Slug</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., anthropic/claude-3.5-sonnet" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="modelName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>OpenRouter Model Slug</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., anthropic/claude-3.5-sonnet" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reasoning"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reasoning Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reasoning level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
