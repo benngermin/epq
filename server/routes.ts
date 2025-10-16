@@ -2295,27 +2295,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
       .replace(/\{\{COURSE_MATERIAL\}\}/g, courseMaterial);
     
-    // Test verification for Phase 1A
-    if (process.env.NODE_ENV === 'development') {
-      // Test with sample data  
-      const testQuestionVersion = {
-        questionText: "What is 2+2?",
-        answerChoices: ["3", "4", "5", "6"],
-        correctAnswer: "4",
-        questionType: "multiple_choice"
-      };
-      const testSystemMessage = buildSystemMessage(
-        testQuestionVersion,
-        "3",
-        "This is basic arithmetic from Chapter 1",
-        null
-      );
-      console.log("=== PHASE 1A VERIFICATION: buildSystemMessage ===");
-      console.log("Test System Message (first 500 chars):", testSystemMessage.substring(0, 500));
-      console.log("Test passed: buildSystemMessage extracted successfully");
-      console.log("=================================================");
-    }
-    
     return systemMessage;
   }
 
