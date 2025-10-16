@@ -4021,6 +4021,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
     
     // Send initial event
     res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting bulk refresh...' }) + '\n\n');
+    // Flush immediately to ensure client receives the initial message
+    if ((res as any).flush) {
+      (res as any).flush();
+    }
     
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;

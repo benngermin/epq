@@ -1,0 +1,75 @@
+FOUND IT! 🎯
+
+  Perfect! Now I can see exactly what's happening. The server logs show that:
+  1. ✅ Server IS receiving the request
+  2. ✅ Server IS receiving chunks from OpenRouter
+  3. ✅ Server IS successfully sending SSE chunks like data: 
+  {"type":"chunk","content":"The correct answer is..."}
+  4. ✅ The content includes proper text
+
+  BUT the client logs show the fetch never receives ANY response - it hangs after
+  initiating the request.
+
+  The Root Cause
+
+  The issue is in server/routes.ts at line 1903. The server writes the initial
+  "connected" message:
+
+  res.write('data: {"type":"connected"}\n\n');  // Line 1903
+
+  But there's NO flush after this initial write!
+
+  The client's fetch promise never resolves because the response is being buffered.
+  The client is waiting for the initial response (including the "connected" message),
+   but it never arrives because the server hasn't flushed the buffer.
+
+  Later in the streaming (line 2326), you DO have flush logic:
+  if ((res as any).flush) {
+    (res as any).flush();
+  }
+
+  But this flush is missing right after the initial "connected" message.
+
+  ---
+  The Fix
+
+  I need you to add a flush immediately after line 1903 in server/routes.ts. Here's
+  what to change:
+
+  Location: server/routes.ts around line 1892-1910
+
+  Current code:
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  res.write('data: {"type":"connected"}\n\n');  // Line 1903
+
+  // Get question and context
+  const questionVersion = await storage.getQuestionVersion(questionVersionId);
+
+  Change to:
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  res.write('data: {"type":"connected"}\n\n');
+  // CRITICAL: Flush immediately so client receives the connection confirmation
+  if ((res as any).flush) {
+    (res as any).flush();
+  }
+
+  // Get question and context
+  const questionVersion = await storage.getQuestionVersion(questionVersionId);
+
+  Why this works: The flush forces the server to send the buffered data immediately
+  to the client. Once the client receives the initial "connected" message, the fetch
+  promise resolves, the ReadableStream is established, and subsequent chunks will
+  flow through properly.
+
+  This same fix should also be applied to the demo and mobile-view SSE endpoints at
+  similar locations in the code.
