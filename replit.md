@@ -5,6 +5,27 @@ A comprehensive web application for insurance exam preparation with AI-powered c
 
 ## Recent Changes
 
+### October 16, 2024 - Converted Chat System from Polling to Server-Sent Events (SSE)
+- **Issue**: The chat system was using a polling-based architecture that made multiple HTTP requests to fetch streaming chunks
+- **Solution**: Implemented true Server-Sent Events (SSE) for real-time streaming
+- **Implementation**: 
+  1. **Backend Changes**:
+     - Created new SSE endpoint at `/api/chatbot/stream-sse` with proper headers and `res.flushHeaders()`
+     - Extracted `buildSystemMessage()` helper function for consistent message construction
+     - Implemented `streamOpenRouterDirectly()` function that accumulates OpenRouter delta chunks
+     - Properly handles SSE data formatting with "data: " prefix and double newlines
+  2. **Frontend Changes**:
+     - Created `useSSEStream` hook for managing SSE connections
+     - Converted both `simple-streaming-chat.tsx` and `chat-interface.tsx` to use the SSE hook
+     - Removed 300+ lines of polling code from chat components
+     - Simplified state management and error handling
+- **Components Updated**:
+  - `server/routes.ts` - Added SSE endpoint and streaming helpers
+  - `client/src/hooks/use-sse-stream.ts` - New SSE hook for frontend
+  - `client/src/components/simple-streaming-chat.tsx` - Converted to SSE
+  - `client/src/components/chat-interface.tsx` - Converted to SSE
+- **Result**: Real-time chat streaming with reduced server load, cleaner code, and better performance
+
 ### October 16, 2024 - Fixed Auto-Flip Bug for Unanswered Questions
 - **Issue**: After adding auto-flip for correct answers, questions were immediately flipping when navigating to new questions
 - **Root Cause**: Auto-flip condition checked `question?.userAnswer !== undefined` which incorrectly triggered when `userAnswer` was `null`
