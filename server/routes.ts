@@ -1888,7 +1888,142 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
-  // ============= PHASE 1B: Minimal SSE Endpoint =============
+  // ============= PHASE 1C: OpenRouter Streaming Function =============
+  async function streamOpenRouterDirectly(
+    res: any, 
+    messages: Array<{ role: string, content: string }>,
+    conversationHistory: Array<{ role: string, content: string }>
+  ) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    
+    if (!apiKey) {
+      res.write(`data: {"type":"error","message":"AI assistant is not configured"}\n\n`);
+      res.end();
+      return;
+    }
+
+    const modelName = "anthropic/claude-sonnet-4";
+    const temperature = 0;
+    const maxTokens = 56000;
+    
+    try {
+      console.log("[SSE OpenRouter] Starting stream with", messages.length, "messages");
+      
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          stream: true,
+          reasoning: {
+            effort: "medium"
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[SSE OpenRouter] API error:", response.status, errorText);
+        res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
+        res.end();
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error("No response stream available");
+      }
+
+      let fullResponse = ""; // CRITICAL: Accumulator for full response
+      let buffer = '';
+      let chunkCount = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log("[SSE OpenRouter] Stream complete, total chunks:", chunkCount);
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          
+          const data = trimmed.slice(6); // Remove "data: " prefix
+          
+          if (data === '[DONE]') {
+            console.log("[SSE OpenRouter] Received [DONE] signal");
+            break;
+          }
+          
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            
+            if (content) {
+              // CRITICAL: Accumulate content
+              fullResponse += content;
+              chunkCount++;
+              
+              // Send FULL accumulated response (not just delta!)
+              res.write(`data: ${JSON.stringify({
+                type: "chunk", 
+                content: fullResponse
+              })}\n\n`);
+              
+              // Log progress every 10 chunks
+              if (chunkCount % 10 === 0) {
+                console.log(`[SSE OpenRouter] Sent ${chunkCount} chunks, accumulated length: ${fullResponse.length}`);
+              }
+            }
+            
+            // Check for completion
+            if (parsed.choices?.[0]?.finish_reason) {
+              console.log("[SSE OpenRouter] Finish reason:", parsed.choices[0].finish_reason);
+              break;
+            }
+          } catch (e) {
+            console.error("[SSE OpenRouter] Failed to parse chunk:", e);
+          }
+        }
+      }
+
+      // Build updated conversation history
+      const updatedHistory = [...conversationHistory];
+      // Add the assistant's response
+      updatedHistory.push({ role: "assistant", content: fullResponse });
+      
+      // Send done message with updated conversation history
+      res.write(`data: ${JSON.stringify({
+        type: "done",
+        conversationHistory: updatedHistory
+      })}\n\n`);
+      
+      console.log("[SSE OpenRouter] Sent done message with history");
+      res.end();
+      
+    } catch (error) {
+      console.error("[SSE OpenRouter] Stream error:", error);
+      res.write(`data: {"type":"error","message":"Stream processing error"}\n\n`);
+      res.end();
+    }
+  }
+
+  // ============= PHASE 1B/1C: SSE Streaming Endpoint =============
   // SSE streaming endpoint (Server-Sent Events)
   app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
     console.log("[SSE] Request received at /api/chatbot/stream-sse");
@@ -1919,18 +2054,65 @@ export function registerRoutes(app: Express): Server {
       res.write('data: {"type":"connected"}\n\n');
       console.log("[SSE] Sent connected message");
       
-      // Test with delayed messages for Phase 1B verification
-      setTimeout(() => {
-        console.log("[SSE] Sending test chunk after 1 second");
-        res.write('data: {"type":"chunk","content":"This is a test chunk from SSE endpoint"}\n\n');
-      }, 1000);
-      
-      setTimeout(() => {
-        console.log("[SSE] Sending done message after 2 seconds");
-        res.write('data: {"type":"done","conversationHistory":[]}\n\n');
+      // Get question and context from database
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        res.write('data: {"type":"error","message":"Question not found"}\n\n');
         res.end();
-        console.log("[SSE] Response ended");
-      }, 2000);
+        return;
+      }
+      
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+      
+      const aiSettings = await storage.getAiSettings();
+      const activePrompt = await storage.getActivePromptVersion();
+      
+      // Get source material for both initial and follow-up responses
+      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
+      
+      if (courseMaterial) {
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
+      }
+      
+      // Build system message using Phase 1A helper
+      const systemMessage = buildSystemMessage(
+        questionVersion,
+        chosenAnswer,
+        sourceMaterial,
+        activePrompt
+      );
+      console.log("[SSE] System message built, length:", systemMessage.length);
+      
+      // Prepare messages array
+      let messages = [];
+      
+      if (userMessage && conversationHistory && conversationHistory.length > 0) {
+        // Follow-up message - use existing conversation history
+        messages = [...conversationHistory];
+        messages.push({ role: "user", content: userMessage });
+        console.log("[SSE] Using conversation history with", messages.length, "messages");
+      } else {
+        // Initial message - create new conversation
+        messages = [
+          { role: "system", content: systemMessage },
+          { role: "user", content: "Please provide feedback on my answer." }
+        ];
+        console.log("[SSE] Starting new conversation");
+      }
+      
+      // Create initial conversation history if needed
+      const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
+      
+      // Call streamOpenRouterDirectly
+      await streamOpenRouterDirectly(res, messages, historyToPass);
+      console.log("[SSE] Streaming complete");
       
     } catch (error) {
       console.error("[SSE] Error in stream-sse endpoint:", error);
