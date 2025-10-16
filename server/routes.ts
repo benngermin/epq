@@ -1920,6 +1920,13 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[SSE Endpoint] Headers set, sending connected message');
       res.write('data: {"type":"connected"}\n\n');
+      
+      // CRITICAL: Flush the headers and initial message immediately for SSE to work
+      // This tells the browser that the SSE connection is established
+      if ((res as any).flush) {
+        (res as any).flush();
+        console.log('[SSE Endpoint] Flushed initial response');
+      }
 
       // Get question and context
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
@@ -2235,6 +2242,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const errorText = await response.text();
         console.error('[streamOpenRouterDirectly] OpenRouter API error:', response.status, errorText);
         res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
+        if ((res as any).flush) {
+          (res as any).flush();
+        }
         res.end();
         return;
       }
@@ -2293,6 +2303,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
               type: "done",
               conversationHistory: updatedHistory
             })}\n\n`);
+            if ((res as any).flush) {
+              (res as any).flush();
+            }
             res.end();
             return;
           }
@@ -2309,6 +2322,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
               })}\n\n`;
               console.log(`[streamOpenRouterDirectly] Sending SSE chunk to client: ${sseData.substring(0, 100)}...`);
               res.write(sseData);
+              // Flush each chunk immediately for real-time streaming
+              if ((res as any).flush) {
+                (res as any).flush();
+              }
             } else {
               console.log(`[streamOpenRouterDirectly] No content in parsed data:`, JSON.stringify(parsed).substring(0, 200));
             }
