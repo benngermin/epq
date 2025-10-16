@@ -1,0 +1,227 @@
+ I am having a problem where my polling-based chatbot needs to be converted to true Server-Sent Events (SSE)
+  streaming. Previous attempts failed because the client's fetch() hangs indefinitely even though server logs show
+  streaming works. Please implement SSE streaming following this instruction exactly:
+
+  ---
+  🔴 CRITICAL SSE FUNDAMENTALS (Read First)
+
+  The Core Problem with Previous Attempts:
+  - Express/Node.js uses res.flushHeaders() NOT res.flush()
+  - res.flush() doesn't exist - any code using it fails silently
+  - Without calling res.flushHeaders(), HTTP headers never reach the client
+  - Result: client's fetch() promise hangs forever waiting for response headers
+
+  Content Accumulation (Critical):
+  - OpenRouter sends DELTA chunks (only new content)
+  - We MUST accumulate into fullResponse variable
+  - Send the FULL accumulated response in each SSE chunk, not deltas
+  - This matches original polling behavior
+
+  Verification is Mandatory:
+  - Test each phase with curl/logs before proceeding
+  - Backend must work standalone before touching frontend
+
+  ---
+  🔵 BACKEND IMPLEMENTATION (Phase-by-Phase)
+
+  Phase 1A: Extract System Message Builder
+
+  File: server/routes.ts
+
+  Create buildSystemMessage() helper function that extracts the logic currently in processStreamInBackground(). Takes
+  questionVersion, chosenAnswer, courseMaterial, activePrompt and returns the templated system message string.
+
+  ✅ Verify: Call it with test data and log the output.
+
+  ---
+  Phase 1B: Create Minimal SSE Endpoint (No OpenRouter Yet)
+
+  File: server/routes.ts
+
+  Create POST /api/chatbot/stream-sse with requireAuth and aiRateLimiter middleware.
+
+  Critical Setup Sequence:
+  // 1. Set status FIRST
+  res.status(200);
+
+  // 2. Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  // 3. CRITICAL: Flush headers (NOT res.flush() - that doesn't exist!)
+  res.flushHeaders();
+
+  // 4. Now send data
+  res.write('data: {"type":"connected"}\n\n');
+
+  Add extensive logging: before flush, after flush, after each write.
+
+  Send test messages: "connected", then a "chunk" after 1 second, then "done" after another second. End response.
+
+  ✅ Verify with curl:
+  curl -N -X POST http://localhost:5000/api/chatbot/stream-sse \
+    -H "Content-Type: application/json" \
+    -H "Cookie: connect.sid=YOUR_SESSION_ID" \
+    -d '{"questionVersionId":123,"chosenAnswer":"test"}'
+
+  Expected: Immediate output showing all three messages with delays. No hanging.
+
+  STOP if curl hangs - debug before proceeding.
+
+  ---
+  Phase 1C: Add OpenRouter Streaming
+
+  File: server/routes.ts
+
+  Create streamOpenRouterDirectly(res, messages, conversationHistory) function:
+
+  1. Fetch from OpenRouter with stream: true
+  2. Get reader: response.body?.getReader()
+  3. Create decoder: new TextDecoder()
+  4. Create accumulator: let fullResponse = "" (critical!)
+  5. Loop through reader chunks:
+    - Decode chunk, add to buffer
+    - Split by newlines, keep last incomplete line in buffer
+    - Parse lines starting with "data: "
+    - Extract parsed.choices?.[0]?.delta?.content
+    - Accumulate: fullResponse += content (critical!)
+    - Send full response: res.write(\data: ${JSON.stringify({type:"chunk", content: fullResponse})}\n\n)` (not delta!)
+    - Check for finish_reason or [DONE] to end stream
+  6. On completion: send "done" message with updated conversation history
+
+  Update the endpoint from Phase 1B:
+  - Remove test messages
+  - Get question/context from database
+  - Build system message using Phase 1A helper
+  - Prepare messages array (handle conversation history if exists)
+  - Call streamOpenRouterDirectly()
+
+  Add logging at each step: request received, headers flushed, system message built, OpenRouter status, chunk count
+  every 10 chunks.
+
+  ✅ Verify with curl using real question ID:
+  Should see streaming AI response with accumulated content growing.
+
+  STOP if OpenRouter streaming doesn't work.
+
+  ---
+  🟢 FRONTEND IMPLEMENTATION (Only After Backend Verified)
+
+  Phase 2A: Create SSE Hook
+
+  File: Create client/src/hooks/use-sse-stream.ts
+
+  Export useSSEStream(options) hook that returns { isStreaming, startStream, stopStream }.
+
+  startStream function:
+  1. Abort previous streams, set isStreaming true
+  2. Determine endpoint based on URL path (demo/mobile-view/regular)
+  3. Fetch with method POST, credentials include, signal for abort
+  4. Check response.ok before reading stream
+  5. Get reader: response.body?.getReader()
+  6. Loop reading chunks:
+    - Decode chunks with TextDecoder
+    - Accumulate into buffer, split by newlines
+    - Parse lines starting with "data: "
+    - Call options.onChunk(message.content) for chunk type
+    - Call options.onComplete(message.conversationHistory) for done type
+    - Call options.onError(message.message) for error type
+
+  Add extensive logging: before fetch, after response received, chunk count, message types.
+
+  ---
+  Phase 2B: Update Chat Component
+
+  File: client/src/components/chat-interface.tsx or simple-streaming-chat.tsx
+
+  Remove old polling code:
+  - All refs: streamingContent, forceRender, isStreamingRef, currentStreamIdRef, etc.
+  - All polling logic with while loops fetching /stream-chunk/
+  - Old streaming state management
+
+  Add SSE hook:
+  const currentMessageIdRef = useRef<string>("");
+  const { isStreaming, startStream, stopStream } = useSSEStream({
+    onChunk: (content) => {
+      // Update message with ID matching currentMessageIdRef
+      // content is already full accumulated response
+      setMessages(prev => prev.map(msg =>
+        msg.id === currentMessageIdRef.current && msg.isStreaming
+          ? { ...msg, content: content }
+          : msg
+      ));
+    },
+    onComplete: (history) => {
+      // Mark message complete, update conversation history
+    },
+    onError: (error) => {
+      // Remove message, show toast
+    }
+  });
+
+  Replace streamChatResponse function:
+  - Generate unique message ID
+  - Store in currentMessageIdRef
+  - Add placeholder message to state with isStreaming: true
+  - Call startStream(questionVersionId, chosenAnswer, userMessage, conversationHistory)
+
+  Update cleanup effect:
+  - Call stopStream() when question changes
+
+  Keep all other UI code unchanged.
+
+  ---
+  🟡 DEBUGGING CHECKLIST
+
+  Client fetch hangs:
+  - Check server logs for "Headers flushed"
+  - Verify res.flushHeaders() is called (not res.flush())
+  - Verify res.status(200) before headers
+  - Browser Network tab: request should not be "pending" forever
+
+  No chunks appear:
+  - Browser console should show "[SSE Hook] Reading chunk" logs
+  - Verify onChunk receives full accumulated content, not deltas
+  - Check message ID matching logic in state updates
+
+  Response truncated:
+  - Verify fullResponse += content accumulation
+  - Verify sending fullResponse not content in SSE chunks
+  - Check "done" message is sent on completion
+
+  ---
+  ✅ TESTING SEQUENCE (Mandatory)
+
+  Test 1: Backend with curl (must pass first)
+  - Immediate streaming output, no hanging
+  - See "connected", then multiple "chunk" messages, then "done"
+
+  Test 2: Browser Network tab
+  - Status 200, Type: text/event-stream
+  - NOT pending forever
+
+  Test 3: Browser Console
+  - Logs show "Response received", "Reader obtained", "Reading chunk X"
+  - Does NOT hang at "Fetching SSE endpoint"
+
+  Test 4: Full UI flow
+  - Answer incorrectly → chatbot streams
+  - Follow-up question → history preserved
+  - Change question → stream aborts cleanly
+
+  ---
+  🔴 CRITICAL REMINDERS
+
+  1. USE res.flushHeaders() NOT res.flush() - the latter doesn't exist
+  2. Accumulate content: fullResponse += content
+  3. Send full response in chunks: Send fullResponse, not content
+  4. Test backend with curl BEFORE frontend
+  5. Add extensive logging everywhere
+  6. Verify each phase before next
+
+  ---
+  This works because: res.flushHeaders() immediately sends HTTP status and headers to client, allowing fetch() promise
+  to resolve. OpenRouter sends deltas which we accumulate and send as full responses matching original polling
+  behavior. Phase-by-phase verification prevents cascading failures.
