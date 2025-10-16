@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -10,6 +10,7 @@ import { StaticExplanation } from "./static-explanation";
 import { cn } from "@/lib/utils";
 import { debugLog, debugError } from "@/utils/debug";
 import { validateAnswerClientSide, shouldShowOptimisticResult } from "@/utils/client-validation";
+import { isWebView, forceReflow } from "@/utils/detect-webview";
 
 // Utility function to clean blank_n patterns, brackets, and asterisk patterns from question text
 const cleanQuestionText = (text: string): string => {
@@ -64,6 +65,7 @@ export function QuestionCard({
   selectedAnswer,
   chatResetTimestamp
 }: QuestionCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
   // Log question details in development mode only
   useEffect(() => {
     if (import.meta.env.DEV && question) {
@@ -165,23 +167,42 @@ export function QuestionCard({
     }
   };
 
-  // Auto-flip for incorrect answers to show help (static explanation or AI chat)
+  // Auto-flip for correct AND incorrect answers to show help (static explanation or AI chat)
   useEffect(() => {
-    // Auto-flip for ANY incorrect answer after server responds
-    // Only auto-flip if we haven't already auto-flipped for this answer
-    // We check question?.userAnswer directly since that's the server's response
+    // Check if we have a server response and haven't auto-flipped yet
     if (question?.userAnswer !== undefined && 
-        question?.userAnswer?.isCorrect === false &&
         !isFlipped &&
-        !hasAutoFlipped) { // Only auto-flip once per answer
-      // Auto-flip to show help (either static explanation or AI chat) after a short delay
+        !hasAutoFlipped) {
+      
+      // Log the flip attempt for debugging in webview
+      if (isWebView()) {
+        debugLog('WebView detected - attempting auto-flip', {
+          isCorrect: question?.userAnswer?.isCorrect,
+          isFlipped,
+          hasAutoFlipped,
+          questionId: question?.id
+        });
+      }
+      
+      // Different delays for correct vs incorrect answers
+      const delay = question?.userAnswer?.isCorrect ? 150 : 1500;
+      
+      // Auto-flip to show help after delay
       const timer = setTimeout(() => {
         setIsFlipped(true);
-        setHasAutoFlipped(true); // Mark that we've auto-flipped for this answer
-      }, 1500);
+        setHasAutoFlipped(true);
+        
+        // Force reflow for webview compatibility
+        if (isWebView() && cardRef.current) {
+          requestAnimationFrame(() => {
+            forceReflow(cardRef.current);
+          });
+        }
+      }, delay);
+      
       return () => clearTimeout(timer);
     }
-  }, [question?.userAnswer, localAnswerState.hasAnswer, isFlipped, hasAutoFlipped]);
+  }, [question?.userAnswer, isFlipped, hasAutoFlipped]);
 
   const handleSubmit = () => {
     if (!selectedAnswerState || hasAnswer || !question?.latestVersion) return;
@@ -233,7 +254,7 @@ export function QuestionCard({
 
   return (
     <div className="w-full flex-1 min-h-0 flex flex-col">
-      <div className={cn("card-flip w-full flex-1 min-h-0", isFlipped && "flipped")}>
+      <div ref={cardRef} className={cn("card-flip w-full flex-1 min-h-0", isFlipped && "flipped", isWebView() && "webview-mode")}>
         <div className="card-flip-inner flex-1 min-h-0 flex flex-col">
           {/* Question Front */}
           <div className="card-flip-front">
@@ -660,27 +681,69 @@ export function QuestionCard({
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
         }
+        
+        /* WebView Mode - Use opacity and visibility transitions instead of 3D transforms */
+        .card-flip.webview-mode .card-flip-inner {
+          transform: none !important;
+          transition: none !important;
+        }
+        .card-flip.webview-mode .card-flip-front,
+        .card-flip.webview-mode .card-flip-back {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .card-flip.webview-mode .card-flip-front {
+          opacity: 1;
+          visibility: visible;
+          z-index: 2;
+        }
+        .card-flip.webview-mode .card-flip-back {
+          opacity: 0;
+          visibility: hidden;
+          z-index: 1;
+          transform: none !important;
+        }
+        .card-flip.webview-mode.flipped .card-flip-front {
+          opacity: 0;
+          visibility: hidden;
+          z-index: 1;
+        }
+        .card-flip.webview-mode.flipped .card-flip-back {
+          opacity: 1;
+          visibility: visible;
+          z-index: 2;
+        }
+        
+        /* Reflow trigger class for forcing webview updates */
+        .reflow-trigger {
+          transform: translateZ(0);
+        }
+        
         @media (max-width: 767px) {
           /* Mobile: Use display toggle instead of 3D flip */
-          .card-flip.flipped .card-flip-inner {
+          .card-flip:not(.webview-mode).flipped .card-flip-inner {
             transform: none;
           }
-          .card-flip-front {
+          .card-flip:not(.webview-mode) .card-flip-front {
             display: flex;
             flex-direction: column;
             flex: 1;
             min-height: 0;
           }
-          .card-flip-back {
+          .card-flip:not(.webview-mode) .card-flip-back {
             display: none;
             position: relative;
             flex: 1;
             min-height: 0;
           }
-          .card-flip.flipped .card-flip-front {
+          .card-flip:not(.webview-mode).flipped .card-flip-front {
             display: none;
           }
-          .card-flip.flipped .card-flip-back {
+          .card-flip:not(.webview-mode).flipped .card-flip-back {
             display: flex;
             flex-direction: column;
             flex: 1;
@@ -691,14 +754,15 @@ export function QuestionCard({
           }
         }
         @media (min-width: 768px) {
-          /* Desktop: Use 3D flip with absolute positioning */
-          .card-flip-front, .card-flip-back {
+          /* Desktop: Use 3D flip with absolute positioning (unless in webview mode) */
+          .card-flip:not(.webview-mode) .card-flip-front,
+          .card-flip:not(.webview-mode) .card-flip-back {
             position: absolute;
             height: 100%;
             top: 0;
             left: 0;
           }
-          .card-flip-back {
+          .card-flip:not(.webview-mode) .card-flip-back {
             transform: rotateY(180deg);
           }
         }`}
