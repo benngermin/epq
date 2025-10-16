@@ -108,6 +108,16 @@ export function QuestionCard({
 
   // Initialize state when question changes
   useEffect(() => {
+    // Clean up any existing intervals/timers/observers
+    if ((window as any).flipInterval) {
+      window.clearInterval((window as any).flipInterval);
+      (window as any).flipInterval = null;
+    }
+    if ((window as any).flipObserver) {
+      (window as any).flipObserver.disconnect();
+      (window as any).flipObserver = null;
+    }
+    
     setIsFlipped(false);
     setHasAutoFlipped(false); // Reset auto-flip flag for new question
     onFlipChange?.(false);
@@ -151,60 +161,75 @@ export function QuestionCard({
         // IMMEDIATE AUTO-FLIP FOR INCORRECT ANSWERS IN WEBVIEW
         // Trigger flip directly here instead of in separate useEffect
         if (question.userAnswer.isCorrect === false && !isFlipped && !hasAutoFlipped && isWebView()) {
-          console.log('[WebView Direct Flip] Triggering immediate flip for incorrect answer');
+          console.log('[WebView Direct Flip] Incorrect answer detected, initiating flip sequence');
           
-          // Method 1: Direct DOM manipulation with interval fallback
-          let attempts = 0;
-          const maxAttempts = 30; // 1.5 seconds at 50ms intervals
-          
-          const flipInterval = window.setInterval(() => {
-            attempts++;
-            console.log(`[WebView Flip] Attempt ${attempts}/${maxAttempts}`);
-            
-            if (attempts >= maxAttempts || isFlipped) {
-              // Execute the flip
-              console.log('[WebView Flip] Executing flip via interval');
-              setIsFlipped(true);
-              setHasAutoFlipped(true);
-              
-              // Direct DOM manipulation as fallback
-              if (cardRef.current) {
-                // Force add the flipped class directly
-                cardRef.current.classList.add('flipped');
-                
-                // For WebView mode, also directly manipulate the front/back visibility
-                const front = cardRef.current.querySelector('.card-flip-front') as HTMLElement;
-                const back = cardRef.current.querySelector('.card-flip-back') as HTMLElement;
-                
-                if (front && back) {
-                  console.log('[WebView Flip] Direct DOM manipulation');
-                  // Force visibility change
-                  front.style.opacity = '0';
-                  front.style.visibility = 'hidden';
-                  front.style.pointerEvents = 'none';
-                  back.style.opacity = '1';
-                  back.style.visibility = 'visible';
-                  back.style.pointerEvents = 'auto';
+          // Method 1: MutationObserver to detect when incorrect feedback appears
+          const setupObserver = () => {
+            const observer = new MutationObserver((mutations) => {
+              // Look for the appearance of incorrect answer indicators
+              for (const mutation of mutations) {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                  // Check if we can find an incorrect answer indicator
+                  const hasIncorrectFeedback = cardRef.current?.querySelector('.text-destructive, [class*="incorrect"], [class*="wrong"]');
+                  const hasXIcon = cardRef.current?.querySelector('svg[class*="XCircle"], svg[class*="x-circle"]');
+                  
+                  if ((hasIncorrectFeedback || hasXIcon) && !isFlipped) {
+                    console.log('[WebView MutationObserver] Incorrect answer feedback detected, flipping now');
+                    
+                    // Execute flip immediately via DOM
+                    if (cardRef.current) {
+                      cardRef.current.classList.add('flipped');
+                      const front = cardRef.current.querySelector('.card-flip-front') as HTMLElement;
+                      const back = cardRef.current.querySelector('.card-flip-back') as HTMLElement;
+                      
+                      if (front && back) {
+                        front.style.cssText = 'opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;';
+                        back.style.cssText = 'opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; display: block !important;';
+                      }
+                    }
+                    
+                    setIsFlipped(true);
+                    setHasAutoFlipped(true);
+                    observer.disconnect();
+                    (window as any).flipObserver = null;
+                  }
                 }
-                
-                forceReflow(cardRef.current);
               }
-              
-              window.clearInterval(flipInterval);
+            });
+            
+            if (cardRef.current) {
+              observer.observe(cardRef.current, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'style']
+              });
+              (window as any).flipObserver = observer;
             }
-          }, 50);
+          };
           
-          // Store for cleanup
-          (window as any).flipInterval = flipInterval;
+          setupObserver();
           
-          // Method 2: Also try regular timeout as backup
-          window.setTimeout(() => {
-            if (!isFlipped) {
-              console.log('[WebView Flip] Timeout backup triggered');
-              setIsFlipped(true);
-              setHasAutoFlipped(true);
+          // Method 2: Polling fallback - check every 100ms for 2 seconds
+          let pollCount = 0;
+          const pollInterval = window.setInterval(() => {
+            pollCount++;
+            
+            if (pollCount > 20 || isFlipped) { // 2 seconds max
+              window.clearInterval(pollInterval);
+              if (!isFlipped) {
+                console.log('[WebView Polling] Force flip after timeout');
+                setIsFlipped(true);
+                setHasAutoFlipped(true);
+                
+                if (cardRef.current) {
+                  cardRef.current.classList.add('flipped');
+                }
+              }
             }
-          }, 1600);
+          }, 100);
+          
+          (window as any).flipInterval = pollInterval;
         }
       }
     }

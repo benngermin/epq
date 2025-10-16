@@ -1,0 +1,132 @@
+2025-10-16 10:05:59.77
+64da330a
+User
+"userAnswerPreview": "A",
+2025-10-16 10:05:59.77
+64da330a
+User
+"correctAnswerPreview": "A",
+2025-10-16 10:05:59.77
+64da330a
+User
+"hasOptions": true,
+2025-10-16 10:05:59.77
+64da330a
+User
+"options": {
+2025-10-16 10:05:59.77
+64da330a
+User
+"caseSensitive": false,
+2025-10-16 10:05:59.77
+64da330a
+User
+"hasAcceptableAnswers": false,
+2025-10-16 10:05:59.77
+64da330a
+User
+"hasBlanks": false,
+2025-10-16 10:05:59.77
+64da330a
+User
+"hasDropZones": false
+2025-10-16 10:05:59.77
+64da330a
+User
+}
+2025-10-16 10:05:59.77
+64da330a
+User
+}
+2025-10-16 10:06:00.01
+64da330a
+User
+10:06:00 AM [express] POST /api/question-sets/4/answer 200 in 340ms :: {"questionVersionId":25648,"ch…
+2025-10-16 10:06:03.51
+64da330a
+User
+10:06:03 AM [express] GET /api/user 200 in 127ms :: {"id":4088,"name":"Robert Kincaid","email":"rrkin…
+2025-10-16 10:06:03.70
+64da330a
+User
+10:06:03 AM [express] GET /api/auth/config 200 in 303ms :: {"hasLocalAuth":false,"hasCognitoSSO":true…
+2025-10-16 10:06:03.87
+64da330a
+User
+10:06:03 AM [express] GET /api/user 200 in 129ms :: {"id":4088,"name":"Robert Kincaid","email":"rrkin…
+2025-10-16 10:06:04.25
+64da330a
+User
+10:06:04 AM [express] GET /api/question-sets/5 200 in 165ms :: {"id":5,"title":"Question Set 1","desc…
+2025-10-16 10:06:04.52
+64da330a
+User
+10:06:04 AM [express] GET /api/questions/5 200 in 427ms :: [{"id":3243,"questionSetId":5,"originalQue…
+2025-10-16 10:06:05.37
+64da330a
+User
+10:06:05 AM [express] GET /api/courses/8 200 in 257ms :: {"id":8,"courseNumber":"CPCU 530","courseTit…
+2025-10-16 10:06:06.51
+64da330a
+User
+[DEBUG 2025-10-16T14:06:06.516Z] Validating answer
+2025-10-16 10:06:06.51
+64da330a
+User
+{
+2025-10-16 10:06:06.51
+64da330a
+User
+"questionType": "multiple_choice",
+2025-10-16 10:06:06.51
+64da330a
+User
+"userAnswerLength": 1,
+2025-10-16 10:06:06.51
+64da330a
+User
+"userAnswerPreview": "A",
+2025-10-16 10:06:06.51
+64da330a
+User
+"correctAnswerPreview": "A",
+2025-10-16 10:06:06.51
+64da330a
+User
+"hasOptions": true,
+2025-10-16 10:06:06.51
+64da330a
+User
+"options": {
+2025-10-16 10:06:06.51
+64da330a
+User
+"caseSensitive": false,
+2025-10-16 10:06:06.51
+64da330a
+User
+"hasAcceptableAnswers": false,
+2025-10-16 10:06:06.51
+64da330a
+User
+"hasBlanks": false,
+2025-10-16 10:06:06.51
+64da330a
+User
+"hasDropZones": false
+2025-10-16 10:06:06.51
+64da330a
+User
+}
+2025-10-16 10:06:06.51
+64da330a
+User
+}
+2025-10-16 10:06:06.61
+64da330a
+User
+10:06:06 AM [express] POST /api/question-sets/43/answer 200 in 194ms :: {"questionVersionId":27055,"c…
+
+Wrap
+
+Colors
