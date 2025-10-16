@@ -1888,6 +1888,63 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
+  // ============= PHASE 1B: Minimal SSE Endpoint =============
+  // SSE streaming endpoint (Server-Sent Events)
+  app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
+    console.log("[SSE] Request received at /api/chatbot/stream-sse");
+    
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      const userId = req.user!.id;
+      
+      console.log("[SSE] Processing request for questionVersionId:", questionVersionId);
+      console.log("[SSE] User message:", userMessage ? "Follow-up" : "Initial");
+      
+      // CRITICAL: Set status FIRST
+      res.status(200);
+      console.log("[SSE] Status 200 set");
+      
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      console.log("[SSE] Headers set");
+      
+      // CRITICAL: Flush headers (NOT res.flush() - that doesn't exist!)
+      res.flushHeaders();
+      console.log("[SSE] Headers flushed - client should receive response now");
+      
+      // Send initial connected message
+      res.write('data: {"type":"connected"}\n\n');
+      console.log("[SSE] Sent connected message");
+      
+      // Test with delayed messages for Phase 1B verification
+      setTimeout(() => {
+        console.log("[SSE] Sending test chunk after 1 second");
+        res.write('data: {"type":"chunk","content":"This is a test chunk from SSE endpoint"}\n\n');
+      }, 1000);
+      
+      setTimeout(() => {
+        console.log("[SSE] Sending done message after 2 seconds");
+        res.write('data: {"type":"done","conversationHistory":[]}\n\n');
+        res.end();
+        console.log("[SSE] Response ended");
+      }, 2000);
+      
+    } catch (error) {
+      console.error("[SSE] Error in stream-sse endpoint:", error);
+      // If headers not sent yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to initialize SSE stream" });
+      } else {
+        // Headers already sent, send SSE error message
+        res.write(`data: {"type":"error","message":"Failed to process request"}\n\n`);
+        res.end();
+      }
+    }
+  });
+
   // Feedback endpoint for chatbot responses
   app.post("/api/feedback", requireAuth, async (req, res) => {
     try {
@@ -1998,6 +2055,87 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "Failed to save feedback" });
     }
   });
+
+  // Helper function to build system message for AI chatbot
+  function buildSystemMessage(
+    questionVersion: any,
+    chosenAnswer: string,
+    courseMaterial: string,
+    activePrompt: any
+  ): string {
+    const formattedChoices = questionVersion.answerChoices.join('\n');
+    const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
+    
+    const systemPromptTemplate = activePrompt?.promptText || 
+      `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
+
+First, carefully review the assessment content:
+
+<assessment_item>
+{{QUESTION_TEXT}}
+</assessment_item>
+
+<answer_choices>
+{{ANSWER_CHOICES}}
+</answer_choices>
+
+<selected_answer>
+{{SELECTED_ANSWER}}
+</selected_answer>
+
+<correct_answer>
+{{CORRECT_ANSWER}}
+</correct_answer>
+
+Next, review the provided source material that was used to create this assessment content:
+<course_material>
+{{COURSE_MATERIAL}}
+</course_material>
+
+Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
+
+##Criteria:
+- Only use the provided content
+- Use clear, jargon-free wording
+- State clearly why each choice is ✅ Correct or ❌ Incorrect.
+- In 2-4 sentences, explain the concept that makes the choice right or wrong.
+- Paraphrase relevant ideas and reference section titles from the Source Material
+- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
+    
+    // Extract correct answer, handling select_from_list questions with blanks
+    const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
+    
+    // Substitute variables in the system message
+    const systemMessage = systemPromptTemplate
+      .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
+      .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
+      .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
+      .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
+      .replace(/\{\{COURSE_MATERIAL\}\}/g, courseMaterial);
+    
+    // Test verification for Phase 1A
+    if (process.env.NODE_ENV === 'development') {
+      // Test with sample data  
+      const testQuestionVersion = {
+        questionText: "What is 2+2?",
+        answerChoices: ["3", "4", "5", "6"],
+        correctAnswer: "4",
+        questionType: "multiple_choice"
+      };
+      const testSystemMessage = buildSystemMessage(
+        testQuestionVersion,
+        "3",
+        "This is basic arithmetic from Chapter 1",
+        null
+      );
+      console.log("=== PHASE 1A VERIFICATION: buildSystemMessage ===");
+      console.log("Test System Message (first 500 chars):", testSystemMessage.substring(0, 500));
+      console.log("Test passed: buildSystemMessage extracted successfully");
+      console.log("=================================================");
+    }
+    
+    return systemMessage;
+  }
 
   // Helper function to extract correct answer from blanks for select_from_list questions
   function extractCorrectAnswerFromBlanks(questionVersion: any): string {
