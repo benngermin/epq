@@ -2207,6 +2207,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
+      
+      // Check if reader is available before attempting to read from it
+      if (!reader) {
+        res.write('data: {"type":"error","message":"No response stream available"}\n\n');
+        res.end();
+        return;
+      }
+      
       let fullResponse = "";
       let buffer = '';
 
@@ -2283,6 +2291,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.end();
 
     } catch (error) {
+      console.error('SSE streaming error in streamOpenRouterDirectly:', error);
       res.write(`data: {"type":"error","message":"Streaming failed"}\n\n`);
       res.end();
     }
