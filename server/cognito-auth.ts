@@ -317,6 +317,8 @@ export class CognitoAuth {
         req.session.save((err) => {
           if (err) {
             console.error('Failed to save session after login:', err);
+            // Redirect to error page instead of continuing
+            return res.redirect('/auth?error=session_error&message=' + encodeURIComponent('Unable to complete sign-in. Please try again.'));
           }
 
           res.redirect(redirectUrl);
