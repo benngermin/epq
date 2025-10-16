@@ -2270,11 +2270,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
+        console.log(`[streamOpenRouterDirectly] Processing ${lines.length} lines from buffer`);
 
         for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data: ')) continue;
+          console.log(`[streamOpenRouterDirectly] Processing line: ${line.substring(0, 100)}...`);
+          if (!line.trim() || !line.startsWith('data: ')) {
+            console.log(`[streamOpenRouterDirectly] Skipping line (no 'data:' prefix or empty)`);
+            continue;
+          }
 
           const data = line.slice(6).trim();
+          console.log(`[streamOpenRouterDirectly] Extracted data: ${data.substring(0, 100)}...`);
 
           if (data === '[DONE]') {
             const updatedHistory = [
@@ -2297,10 +2303,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
             if (content) {
               fullResponse += content;
-              res.write(`data: ${JSON.stringify({
+              const sseData = `data: ${JSON.stringify({
                 type: "chunk",
                 content: content
-              })}\n\n`);
+              })}\n\n`;
+              console.log(`[streamOpenRouterDirectly] Sending SSE chunk to client: ${sseData.substring(0, 100)}...`);
+              res.write(sseData);
+            } else {
+              console.log(`[streamOpenRouterDirectly] No content in parsed data:`, JSON.stringify(parsed).substring(0, 200));
             }
 
             const finishReason = parsed.choices?.[0]?.finish_reason;
@@ -2319,7 +2329,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
               return;
             }
           } catch (e) {
-            // Skip unparseable chunks
+            console.log(`[streamOpenRouterDirectly] Error parsing JSON:`, e);
+            console.log(`[streamOpenRouterDirectly] Failed to parse data:`, data.substring(0, 200));
           }
         }
       }
