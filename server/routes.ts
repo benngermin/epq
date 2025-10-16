@@ -2758,9 +2758,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   app.put("/api/admin/ai-settings", requireAdmin, async (req, res) => {
     try {
-      const { modelName } = req.body;
+      const { modelName, reasoning } = req.body;
       const settings = await storage.updateAiSettings({
-        modelName
+        modelName,
+        reasoning
       });
       res.json(settings);
     } catch (error) {

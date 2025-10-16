@@ -124,6 +124,7 @@ export const aiSettings = pgTable("ai_settings", {
   modelName: text("model_name").default("google/gemini-2.5-flash"),
   temperature: integer("temperature").default(70), // stored as integer (0-100)
   maxTokens: integer("max_tokens").default(150),
+  reasoning: text("reasoning").default("none"),
 });
 
 export const promptVersions = pgTable("prompt_versions", {

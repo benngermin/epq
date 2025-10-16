@@ -48,6 +48,7 @@ const courseQuestionSetSchema = z.object({
 
 const aiSettingsSchema = z.object({
   modelName: z.string().min(1, "Model is required"),
+  reasoning: z.string().default("none"),
 });
 
 const promptSchema = z.object({
@@ -73,6 +74,7 @@ function AISettingsSection() {
     resolver: zodResolver(aiSettingsSchema),
     defaultValues: {
       modelName: "google/gemini-2.0-flash-exp", // Updated to latest Gemini model
+      reasoning: "none",
     },
   });
 
@@ -88,6 +90,7 @@ function AISettingsSection() {
     if (aiSettings) {
       aiSettingsForm.reset({
         modelName: aiSettings.modelName || "google/gemini-2.0-flash-exp",
+        reasoning: aiSettings.reasoning || "none",
       });
     }
   }, [aiSettings, aiSettingsForm]);
@@ -169,35 +172,63 @@ function AISettingsSection() {
         <CardContent>
           <Form {...aiSettingsForm}>
             <form onSubmit={aiSettingsForm.handleSubmit(onSubmitAISettings)} className="space-y-4">
-              <FormField
-                control={aiSettingsForm.control}
-                name="modelName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>AI Model (OpenRouter Slug)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., google/gemini-2.0-flash-exp, openai/gpt-4o, anthropic/claude-3.5-sonnet"
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Enter any valid OpenRouter model slug. You can find available models at{" "}
-                      <a 
-                        href="https://openrouter.ai/models" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        openrouter.ai/models
-                      </a>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={aiSettingsForm.control}
+                  name="modelName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>AI Model (OpenRouter Slug)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., google/gemini-2.0-flash-exp, openai/gpt-4o, anthropic/claude-3.5-sonnet"
+                          {...field}
+                        />
+                      </FormControl>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Enter any valid OpenRouter model slug. You can find available models at{" "}
+                        <a 
+                          href="https://openrouter.ai/models" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          openrouter.ai/models
+                        </a>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-
+                <FormField
+                  control={aiSettingsForm.control}
+                  name="reasoning"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reasoning Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reasoning level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None (Fastest)</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High (Most thorough)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Controls how much internal reasoning the AI does before responding.
+                        'None' gives the fastest responses.
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <Button type="submit" disabled={updateAISettingsMutation.isPending}>
                 {updateAISettingsMutation.isPending ? "Updating..." : "Update Model Settings"}
