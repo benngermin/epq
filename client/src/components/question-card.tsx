@@ -51,7 +51,6 @@ interface QuestionCardProps {
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
   selectedAnswer?: string;
-  showChat?: boolean;
   chatResetTimestamp?: number;
 }
 
@@ -64,7 +63,6 @@ export function QuestionCard({
   onNextQuestion,
   hasNextQuestion,
   selectedAnswer,
-  showChat,
   chatResetTimestamp
 }: QuestionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -278,17 +276,9 @@ export function QuestionCard({
   const handleShowChatbot = () => {
     setIsFlipped(true);
   };
-  
-  // Auto-flip card when showChat becomes true
-  useEffect(() => {
-    if (showChat && !isFlipped) {
-      debugLog('Auto-flipping card because showChat is true');
-      setIsFlipped(true);
-    }
-  }, [showChat]);
 
-  // Show chatbot when flipped AND showChat is true (or undefined for backward compatibility)
-  const showChatbot = isFlipped && (showChat !== false);
+  // Show chatbot when flipped (we always have an answer at this point since Get Help only shows after answering)
+  const showChatbot = isFlipped;
 
   return (
     <div className="w-full flex-1 min-h-0 flex flex-col">

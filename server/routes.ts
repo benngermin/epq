@@ -521,16 +521,6 @@ export function registerRoutes(app: Express): Server {
   };
 
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-    // Log all SSE chatbot requests for debugging
-    if (req.path.includes('/chatbot/stream-sse')) {
-      console.log(`[requireAuth] SSE chatbot request: ${req.method} ${req.path}`, {
-        isAuthenticated: req.isAuthenticated(),
-        hasUser: !!req.user,
-        sessionID: req.sessionID,
-        headers: req.headers
-      });
-    }
-    
     if (!req.isAuthenticated() || !req.user) {
       // Only log errors for non-user endpoint requests to reduce noise
       if (req.path !== '/api/user') {
@@ -1898,76 +1888,6 @@ export function registerRoutes(app: Express): Server {
     res.json({ success: true });
   });
 
-  // New SSE endpoint for direct streaming
-  app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
-    console.log('[SSE Endpoint] Request received:', {
-      questionVersionId: req.body.questionVersionId,
-      chosenAnswer: req.body.chosenAnswer,
-      userMessage: req.body.userMessage,
-      hasUser: !!req.user,
-      userId: req.user?.id
-    });
-    
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
-      const userId = req.user!.id;
-
-      // Set SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache, no-transform');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
-
-      console.log('[SSE Endpoint] Headers set, sending connected message');
-      res.write('data: {"type":"connected"}\n\n');
-      
-      // CRITICAL: Flush the headers and initial message immediately for SSE to work
-      // This tells the browser that the SSE connection is established
-      res.flushHeaders();
-      console.log('[SSE Endpoint] Flushed initial response');
-
-      // Get question and context
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        res.write('data: {"type":"error","message":"Question not found"}\n\n');
-        res.end();
-        return;
-      }
-
-      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-      const courseMaterial = baseQuestion?.loid
-        ? await storage.getCourseMaterialByLoid(baseQuestion.loid)
-        : null;
-
-      const aiSettings = await storage.getAiSettings();
-      const activePrompt = await storage.getActivePromptVersion();
-
-      // Build system message
-      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, courseMaterial, activePrompt);
-
-      // Prepare messages array
-      let messages = [];
-      if (conversationHistory && conversationHistory.length > 0) {
-        messages = [...conversationHistory];
-        messages.push({
-          role: "user",
-          content: userMessage || "Please provide feedback on my answer."
-        });
-      } else {
-        messages.push({ role: "system", content: systemMessage });
-        messages.push({ role: "user", content: "Please provide feedback on my answer." });
-      }
-
-      // Stream directly from OpenRouter
-      await streamOpenRouterDirectly(res, messages, conversationHistory || [], userId);
-
-    } catch (error) {
-      console.error("SSE streaming error:", error);
-      res.write(`data: {"type":"error","message":"${(error as Error).message}"}\n\n`);
-      res.end();
-    }
-  });
-
   // Feedback endpoint for chatbot responses
   app.post("/api/feedback", requireAuth, async (req, res) => {
     try {
@@ -2131,232 +2051,6 @@ export function registerRoutes(app: Express): Server {
     cleaned = cleaned.replace(/\[\/color\]/gi, '');
     
     return cleaned;
-  }
-
-  // Helper function to build system message for SSE streaming
-  function buildSystemMessage(
-    questionVersion: any,
-    chosenAnswer: string,
-    courseMaterial: any,
-    activePrompt: any
-  ): string {
-    const formattedChoices = questionVersion?.answerChoices ? questionVersion.answerChoices.join('\n') : '';
-    const selectedAnswer = chosenAnswer?.trim() || "No answer was selected";
-    const sourceMaterial = courseMaterial?.content
-      || questionVersion.topicFocus
-      || "No additional source material provided.";
-    const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
-
-    const systemPromptTemplate = activePrompt?.promptText || `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Next, review the provided source material that was used to create this assessment content:
-<course_material>
-{{COURSE_MATERIAL}}
-</course_material>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
-
-##Criteria:
-- Only use the provided content
-- Use clear, jargon-free wording
-- State clearly why each choice is ✅ Correct or ❌ Incorrect.
-- In 2-4 sentences, explain the concept that makes the choice right or wrong.
-- Paraphrase relevant ideas and reference section titles from the Source Material
-- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
-
-    return systemPromptTemplate
-      .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-      .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-      .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-      .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
-      .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-  }
-
-  // Direct SSE streaming function that passes through OpenRouter's stream to the client
-  async function streamOpenRouterDirectly(
-    res: Response,
-    messages: Array<{role: string, content: string}>,
-    conversationHistory: Array<{role: string, content: string}>,
-    userId?: number
-  ) {
-    console.log('[streamOpenRouterDirectly] Function called with messages count:', messages.length);
-    const apiKey = process.env.OPENROUTER_API_KEY;
-
-    if (!apiKey) {
-      console.error('[streamOpenRouterDirectly] No API key found');
-      res.write('data: {"type":"error","message":"OpenRouter API key not configured"}\n\n');
-      res.end();
-      return;
-    }
-
-    try {
-      console.log('[streamOpenRouterDirectly] Making request to OpenRouter API');
-      const requestBody = {
-        model: "anthropic/claude-sonnet-4",
-        messages,
-        temperature: 0,
-        max_tokens: 56000,
-        stream: true,
-        reasoning: { effort: "medium" }
-      };
-      console.log('[streamOpenRouterDirectly] Request body:', JSON.stringify(requestBody, null, 2));
-      
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.APP_URL || "http://localhost:5000",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('[streamOpenRouterDirectly] Response status:', response.status, response.ok);
-      console.log('[streamOpenRouterDirectly] Response body exists:', !!response.body);
-      console.log('[streamOpenRouterDirectly] Response headers:', {
-        contentType: response.headers.get('content-type'),
-        transferEncoding: response.headers.get('transfer-encoding')
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[streamOpenRouterDirectly] OpenRouter API error:', response.status, errorText);
-        res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
-        // No flush needed here - Node.js will handle it with res.end()
-        res.end();
-        return;
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      
-      console.log('[streamOpenRouterDirectly] Reader obtained:', !!reader);
-      
-      // Check if reader is available before attempting to read from it
-      if (!reader) {
-        console.error('[streamOpenRouterDirectly] No reader available from response body');
-        res.write('data: {"type":"error","message":"No response stream available"}\n\n');
-        res.end();
-        return;
-      }
-      
-      console.log('[streamOpenRouterDirectly] Starting to read stream chunks...');
-      
-      let fullResponse = "";
-      let buffer = '';
-      let chunkCount = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        chunkCount++;
-        console.log(`[streamOpenRouterDirectly] Reading chunk ${chunkCount}, done: ${done}, has value: ${!!value}`);
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        console.log(`[streamOpenRouterDirectly] Chunk ${chunkCount} decoded, buffer size: ${buffer.length}`);
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        console.log(`[streamOpenRouterDirectly] Processing ${lines.length} lines from buffer`);
-
-        for (const line of lines) {
-          console.log(`[streamOpenRouterDirectly] Processing line: ${line.substring(0, 100)}...`);
-          if (!line.trim() || !line.startsWith('data: ')) {
-            console.log(`[streamOpenRouterDirectly] Skipping line (no 'data:' prefix or empty)`);
-            continue;
-          }
-
-          const data = line.slice(6).trim();
-          console.log(`[streamOpenRouterDirectly] Extracted data: ${data.substring(0, 100)}...`);
-
-          if (data === '[DONE]') {
-            const updatedHistory = [
-              ...conversationHistory,
-              messages[messages.length - 1],
-              { role: "assistant", content: fullResponse }
-            ];
-
-            res.write(`data: ${JSON.stringify({
-              type: "done",
-              conversationHistory: updatedHistory
-            })}\n\n`);
-            // No flush needed - Node.js auto-flushes after initial flushHeaders()
-            res.end();
-            return;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-
-            if (content) {
-              fullResponse += content;
-              const sseData = `data: ${JSON.stringify({
-                type: "chunk",
-                content: fullResponse
-              })}\n\n`;
-              console.log(`[streamOpenRouterDirectly] Sending SSE chunk to client: ${sseData.substring(0, 100)}...`);
-              res.write(sseData);
-              // No flush needed - Node.js auto-flushes chunks after initial flushHeaders()
-            } else {
-              console.log(`[streamOpenRouterDirectly] No content in parsed data:`, JSON.stringify(parsed).substring(0, 200));
-            }
-
-            const finishReason = parsed.choices?.[0]?.finish_reason;
-            if (finishReason) {
-              const updatedHistory = [
-                ...conversationHistory,
-                messages[messages.length - 1],
-                { role: "assistant", content: fullResponse }
-              ];
-
-              res.write(`data: ${JSON.stringify({
-                type: "done",
-                conversationHistory: updatedHistory
-              })}\n\n`);
-              res.end();
-              return;
-            }
-          } catch (e) {
-            console.log(`[streamOpenRouterDirectly] Error parsing JSON:`, e);
-            console.log(`[streamOpenRouterDirectly] Failed to parse data:`, data.substring(0, 200));
-          }
-        }
-      }
-
-      // Fallback completion
-      const updatedHistory = [
-        ...conversationHistory,
-        messages[messages.length - 1],
-        { role: "assistant", content: fullResponse }
-      ];
-      res.write(`data: ${JSON.stringify({type: "done", conversationHistory: updatedHistory})}\n\n`);
-      res.end();
-
-    } catch (error) {
-      console.error('SSE streaming error in streamOpenRouterDirectly:', error);
-      res.write(`data: {"type":"error","message":"Streaming failed"}\n\n`);
-      res.end();
-    }
   }
 
   // Background stream processing
@@ -4012,8 +3706,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     
     // Send initial event
     res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting bulk refresh...' }) + '\n\n');
-    // Flush headers immediately to ensure client receives the initial message
-    res.flushHeaders();
     
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
@@ -5198,10 +4890,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Return real validation result (without storing)
       res.json({
         success: true,
-        questionVersionId: questionVersionId,
         isCorrect: isCorrect,
         chosenAnswer: answer,
-        correctAnswer: questionVersion.correctAnswer,
         message: "Demo mode - answers are not saved"
       });
     } catch (error) {
@@ -5462,61 +5152,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
     
     res.json({ success: true });
-  });
-
-  // Demo SSE streaming endpoint
-  app.post("/api/demo/chatbot/stream-sse", aiRateLimiter.middleware(), async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
-      
-      // Get question version data
-      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
-      if (!questionVersion) {
-        throw new Error("Question version not found");
-      }
-      
-      // Build system message for demo mode
-      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, null, null);
-      
-      // Build messages array
-      const messages = [];
-      
-      // Add conversation history if it exists
-      if (conversationHistory && conversationHistory.length > 0) {
-        messages.push(...conversationHistory);
-      } else {
-        // Start with system message for new conversations
-        messages.push({ role: "system", content: systemMessage });
-      }
-      
-      // Add user message if provided
-      if (userMessage) {
-        messages.push({ role: "user", content: userMessage });
-      }
-      
-      // Set SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.flushHeaders();
-      
-      // Stream directly from OpenRouter
-      await streamOpenRouterDirectly(
-        res,
-        messages,
-        conversationHistory || [],
-        -1  // Demo user ID
-      );
-      
-    } catch (error) {
-      console.error('Demo SSE stream error:', error);
-      // Send error event
-      res.write(`data: ${JSON.stringify({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Stream failed' 
-      })}\n\n`);
-      res.end();
-    }
   });
 
   // Demo feedback endpoint - allows demo users to submit feedback
@@ -6006,61 +5641,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
     
     res.json({ success: true });
-  });
-
-  // Mobile-view SSE streaming endpoint
-  app.post("/api/mobile-view/chatbot/stream-sse", aiRateLimiter.middleware(), async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
-      
-      // Get question version data
-      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
-      if (!questionVersion) {
-        throw new Error("Question version not found");
-      }
-      
-      // Build system message for mobile-view mode (user ID -2)
-      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, null, null);
-      
-      // Build messages array
-      const messages = [];
-      
-      // Add conversation history if it exists
-      if (conversationHistory && conversationHistory.length > 0) {
-        messages.push(...conversationHistory);
-      } else {
-        // Start with system message for new conversations
-        messages.push({ role: "system", content: systemMessage });
-      }
-      
-      // Add user message if provided
-      if (userMessage) {
-        messages.push({ role: "user", content: userMessage });
-      }
-      
-      // Set SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.flushHeaders();
-      
-      // Stream directly from OpenRouter
-      await streamOpenRouterDirectly(
-        res,
-        messages,
-        conversationHistory || [],
-        -2  // Mobile-view user ID
-      );
-      
-    } catch (error) {
-      console.error('Mobile-view SSE stream error:', error);
-      // Send error event
-      res.write(`data: ${JSON.stringify({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Stream failed' 
-      })}\n\n`);
-      res.end();
-    }
   });
 
   // Mobile-view feedback endpoint

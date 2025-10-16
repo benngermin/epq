@@ -1035,7 +1035,6 @@ export default function QuestionSetPractice() {
                   onNextQuestion={handleNextQuestion}
                   hasNextQuestion={currentQuestionIndex < practiceData.questions.length - 1}
                   selectedAnswer={selectedAnswer}
-                  showChat={showChat}
                   chatResetTimestamp={chatResetTimestamp}
                 />
               ) : (

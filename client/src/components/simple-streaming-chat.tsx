@@ -5,7 +5,6 @@ import { Bot, Send, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HtmlLinkRenderer } from "@/components/html-link-renderer";
 import { FeedbackButtons } from "@/components/feedback-buttons";
-import { useSSEStream } from "@/hooks/use-sse-stream";
 
 interface SimpleStreamingChatProps {
   questionVersionId: number;
@@ -15,16 +14,6 @@ interface SimpleStreamingChatProps {
 }
 
 export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAnswer, onReviewQuestion }: SimpleStreamingChatProps) {
-  // Debug logging for prop values
-  console.log('[SimpleStreamingChat] Component mounted/updated with props:', {
-    questionVersionId,
-    chosenAnswer,
-    hasChosenAnswer: !!chosenAnswer,
-    chosenAnswerLength: chosenAnswer?.length,
-    correctAnswer,
-    hasCorrectAnswer: !!correctAnswer
-  });
-  
   // Store the original chosen answer to use for follow-up questions
   const originalChosenAnswerRef = useRef(chosenAnswer);
   const [userInput, setUserInput] = useState("");
@@ -36,6 +25,10 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
 
   const { toast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const currentQuestionKey = useRef<string>("");
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const currentStreamIdRef = useRef<string>("");
   const prevQuestionIdRef = useRef<number | string | undefined>(undefined);
 
   // Keep a *stable* reference to the learner's first submitted answer
@@ -45,52 +38,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [chosenAnswer]);
 
-  // Initialize SSE stream hook
-  const { startStream, stopStream } = useSSEStream({
-    onChunk: (content) => {
-      // Update the last assistant message with streaming content
-      setMessages(prev => {
-        const updated = [...prev];
-        for (let i = updated.length - 1; i >= 0; i--) {
-          if (updated[i].role === "assistant") {
-            updated[i] = { ...updated[i], content };
-            break;
-          }
-        }
-        return updated;
-      });
-    },
-    onComplete: (conversationHistory) => {
-      // Store the server's conversation history for future follow-ups
-      if (conversationHistory) {
-        setServerConversationHistory(conversationHistory);
-        console.log("Stored server conversation history with", conversationHistory.length, "messages");
-      }
-      setIsStreaming(false);
-    },
-    onError: (error) => {
-      console.error('AI streaming error:', error);
-      toast({
-        title: "Error",
-        description: error || "Failed to get response from AI assistant",
-        variant: "destructive",
-      });
-      
-      // Update the last assistant message with error
-      setMessages(prev => {
-        const updated = [...prev];
-        for (let i = updated.length - 1; i >= 0; i--) {
-          if (updated[i].role === "assistant") {
-            updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
-            break;
-          }
-        }
-        return updated;
-      });
-      setIsStreaming(false);
-    }
-  });
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -99,16 +46,25 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   }, [messages]);
 
   const loadAiResponse = async (userMessage?: string) => {
-    console.log('[SSE Debug] loadAiResponse called with:', { userMessage, questionVersionId, chosenAnswer });
-    
     // Prevent concurrent requests
     if (isStreaming) {
-      console.log('[SSE Debug] Request already in progress, skipping');
+      console.log('Request already in progress, skipping');
       return;
     }
     
-    // Stop any ongoing stream
-    stopStream();
+    // Cancel any ongoing requests with a reason
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      try {
+        abortControllerRef.current.abort('Starting new request');
+      } catch (e) {
+        // Ignore abort errors
+      }
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
     
     /* Guard against accidental empty submissions */
     const finalChosenAnswer = originalChosenAnswerRef.current || chosenAnswer || "";
@@ -128,40 +84,234 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isDemo = window.location.pathname.startsWith('/demo');
     const isMobileView = window.location.pathname.startsWith('/mobile-view');
     const isUnauthenticatedMode = isDemo || isMobileView;
-    const endpoint = isUnauthenticatedMode ? (isDemo ? '/api/demo/chatbot/stream-sse' : '/api/mobile-view/chatbot/stream-sse') : '/api/chatbot/stream-sse';
+    const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
     
-    // Use server conversation history if available (for follow-ups), otherwise undefined (for initial)
-    const conversationToSend = userMessage && serverConversationHistory ? serverConversationHistory : undefined;
-    
-    // Debug logging for conversation history
-    if (userMessage && serverConversationHistory) {
-      console.log("=== CLIENT CONVERSATION HISTORY ===");
-      console.log("Current Question Version ID:", questionVersionId);
-      console.log("Server conversation history length:", serverConversationHistory.length);
-      console.log("Conversation roles:", serverConversationHistory.map((m: any) => m.role));
-      console.log("Has system message:", serverConversationHistory.some((m: any) => m.role === "system"));
-      console.log("===================================");
+    try {
+      // Initialize streaming - pass server conversation history for follow-up messages
+      // Use server conversation history if available (for follow-ups), otherwise undefined (for initial)
+      const conversationToSend = userMessage && serverConversationHistory ? serverConversationHistory : undefined;
+      
+      // Debug logging for conversation history
+      if (userMessage && serverConversationHistory) {
+        console.log("=== CLIENT CONVERSATION HISTORY ===");
+        console.log("Current Question Version ID:", questionVersionId);
+        console.log("Server conversation history length:", serverConversationHistory.length);
+        console.log("Conversation roles:", serverConversationHistory.map(m => m.role));
+        console.log("Has system message:", serverConversationHistory.some(m => m.role === "system"));
+        console.log("===================================");
+      }
+      
+      const response = await fetch(`${apiPrefix}/chatbot/stream-init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          questionVersionId, 
+          chosenAnswer: finalChosenAnswer, 
+          userMessage, 
+          isMobile,
+          conversationHistory: conversationToSend // Pass server conversation history for follow-ups
+        }),
+        credentials: 'include',
+        signal: abortControllerRef.current.signal,
+      });
+
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to get AI response: ${response.status} - ${errorText}`);
+      }
+      
+      const { streamId } = await response.json();
+      currentStreamIdRef.current = streamId;
+
+      // Poll for streaming chunks with adaptive delay
+      let done = false;
+      let accumulatedContent = "";
+      let cursor = 0; // Track position in stream
+      let pollDelay = 150; // Start with 150ms delay
+      const maxDelay = 1000;
+      const minDelay = 100;
+      let retries = 0; // Add retry counter
+      
+      while (!done && !(abortControllerRef.current?.signal?.aborted ?? false)) {
+        try {
+          const chunkResponse = await fetch(`${apiPrefix}/chatbot/stream-chunk/${streamId}?cursor=${cursor}`, {
+            credentials: 'include',
+            signal: abortControllerRef.current?.signal,
+          }).catch(error => {
+            // If it's an abort error, throw it to be handled by the outer catch
+            if (error.name === 'AbortError') {
+              throw error;
+            }
+            // For other errors, rethrow them
+            throw error;
+          });
+
+          if (!chunkResponse.ok) {
+            if (chunkResponse.status === 404) {
+              // Stream not found - likely cleaned up
+              break;
+            }
+            // For other errors, retry with backoff
+            retries++;
+            if (retries > 10) {
+              throw new Error('Failed to fetch stream after multiple retries');
+            }
+            await new Promise(resolve => setTimeout(resolve, Math.min(500 * retries, 3000)));
+            continue;
+          }
+          
+          // Reset retries on successful response
+          retries = 0;
+
+          const chunkData = await chunkResponse.json();
+          
+          if (chunkData.done) {
+            // Make sure to update with final content before marking as done
+            if (chunkData.content && chunkData.content.length > accumulatedContent.length) {
+              accumulatedContent = chunkData.content;
+              setMessages(prev => {
+                const updated = [...prev];
+                for (let i = updated.length - 1; i >= 0; i--) {
+                  if (updated[i].role === "assistant") {
+                    updated[i] = { ...updated[i], content: accumulatedContent };
+                    break;
+                  }
+                }
+                return updated;
+              });
+            }
+            
+            // Store the server's conversation history for future follow-ups
+            if (chunkData.conversationHistory && !chunkData.error) {
+              setServerConversationHistory(chunkData.conversationHistory);
+              console.log("Stored server conversation history with", chunkData.conversationHistory.length, "messages");
+            }
+            
+            done = true;
+            break;
+          }
+          
+          if (chunkData.content) {
+            // Always use the full content from server, don't rely on accumulation
+            const serverContent = chunkData.content;
+            
+            if (serverContent.length > accumulatedContent.length) {
+              // New content available
+              accumulatedContent = serverContent;
+              cursor = serverContent.length;
+              
+              // Update the last assistant message with full server content
+              setMessages(prev => {
+                const updated = [...prev];
+                for (let i = updated.length - 1; i >= 0; i--) {
+                  if (updated[i].role === "assistant") {
+                    updated[i] = { ...updated[i], content: serverContent };
+                    break;
+                  }
+                }
+                return updated;
+              });
+              
+              // Auto-scroll to bottom when new content arrives
+              requestAnimationFrame(() => {
+                if (scrollContainerRef.current) {
+                  scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                }
+              });
+            }
+            
+            // Mark initial response as received if this is the first response
+            if (!userMessage && !hasInitialResponse) {
+              setHasInitialResponse(true);
+            }
+            
+            // Shrink delay when we get new content (faster polling for active streams)
+            pollDelay = Math.max(minDelay, pollDelay * 0.8);
+            
+
+          } else {
+            // No new content - grow delay to reduce polling frequency
+            pollDelay = Math.min(maxDelay, pollDelay * 1.2);
+          }
+
+          if (chunkData.error) {
+            throw new Error(chunkData.error);
+          }
+
+          // Adaptive delay before next poll
+          if (!done) {
+            await new Promise(resolve => setTimeout(resolve, pollDelay));
+          }
+
+        } catch (pollError: any) {
+          // Break the loop if it's an abort error
+          if (pollError.name === 'AbortError' || abortControllerRef.current?.signal?.aborted) {
+            break;
+          }
+          // Break the loop if stream is not found (404 error)
+          const errorMessage = pollError instanceof Error ? pollError.message : String(pollError);
+          if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+            break;
+          }
+          // For other errors, retry with delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+    } catch (error: any) {
+      // Clean up abort controller reference
+      if (abortControllerRef.current?.signal.aborted) {
+        abortControllerRef.current = null;
+      }
+      
+      // Check if this is an abort/unmount scenario - be very comprehensive
+      const isAbortError = 
+        error.name === 'AbortError' || 
+        error.message?.includes('aborted') ||
+        error.message?.includes('abort') ||
+        error.message?.includes('Question changed') ||
+        error.message?.includes('Component unmounting') ||
+        error.message?.includes('unmount') ||
+        error.message === 'signal is aborted without reason' ||
+        error.message?.includes('Failed to fetch') || // Often happens during unmount
+        error.code === 'ABORT_ERR' ||
+        error.code === 20 || // DOMException abort code
+        abortControllerRef.current?.signal?.aborted ||
+        !document.body.contains(scrollContainerRef.current); // Component no longer in DOM
+      
+      if (isAbortError) {
+        // This is expected behavior during navigation - silently return
+        return;
+      }
+      
+      // Only log and show toast for actual unexpected errors
+      console.error('AI streaming error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to get response from AI assistant",
+        variant: "destructive",
+      });
+      
+      // Update the last assistant message with error
+      setMessages(prev => {
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].role === "assistant") {
+            updated[i] = { ...updated[i], content: "Error loading response. Please try again." };
+            break;
+          }
+        }
+        return updated;
+      });
+    } finally {
+      setIsStreaming(false);
+      currentStreamIdRef.current = "";
+      // Ensure abort controller is cleaned up
+      if (abortControllerRef.current?.signal.aborted) {
+        abortControllerRef.current = null;
+      }
     }
-    
-    // Mark initial response as received if this is the first response
-    if (!userMessage && !hasInitialResponse) {
-      setHasInitialResponse(true);
-    }
-    
-    // Start SSE streaming
-    console.log('[SSE Debug] Calling startStream with:', { 
-      endpoint, 
-      questionVersionId, 
-      finalChosenAnswer,
-      userMessage,
-      conversationToSend 
-    });
-    startStream(
-      questionVersionId,
-      finalChosenAnswer,
-      userMessage,
-      conversationToSend
-    );
   };
 
   /* -----------------------------------------------------------
@@ -171,15 +321,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   useEffect(() => {
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
     
-    console.log('[SimpleStreamingChat] Effect triggered:', {
-      questionVersionId,
-      prevQuestionId: prevQuestionIdRef.current,
-      isNewQuestion,
-      chosenAnswer,
-      hasChosenAnswer: !!chosenAnswer,
-      chosenAnswerTrimmed: chosenAnswer?.trim()
-    });
-    
     if (isNewQuestion) {
       // Question changed - always clear messages and server history to prevent contamination
       setMessages([]);
@@ -187,15 +328,20 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       setUserInput(""); // Also clear any pending user input
       setServerConversationHistory(null); // Clear server conversation history
       
-      // Stop any ongoing stream
-      stopStream();
-      
+      // Abort any ongoing request
+      if (abortControllerRef.current) {
+        try {
+          abortControllerRef.current.abort('Question changed');
+        } catch (e) {
+          // Ignore abort errors when switching questions
+        }
+      }
+      abortControllerRef.current = null;
       prevQuestionIdRef.current = questionVersionId;
       
       // If we have a chosen answer for the new question, start loading AI response
       // Make sure chosenAnswer is not just an empty string
       if (chosenAnswer && chosenAnswer.trim() !== "") {
-        console.log('[SimpleStreamingChat] Starting AI response for answer:', chosenAnswer);
         // Start fresh with initial assistant message
         setMessages([{
           id: "initial-response",
@@ -211,8 +357,6 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
           }
         });
-      } else {
-        console.log('[SimpleStreamingChat] Not starting AI response - no answer or empty answer');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,10 +365,39 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Stop any ongoing stream
-      stopStream();
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        // Wrap in try-catch to prevent any unhandled rejection
+        try {
+          abortControllerRef.current.abort('Component unmounting');
+        } catch (e) {
+          // Ignore abort errors
+        }
+        abortControllerRef.current = null;
+      }
+      // Abort any active stream on server - use setTimeout to avoid blocking
+      if (currentStreamIdRef.current) {
+        const streamId = currentStreamIdRef.current;
+        currentStreamIdRef.current = "";
+        const isDemo = window.location.pathname.startsWith('/demo');
+        const isMobileView = window.location.pathname.startsWith('/mobile-view');
+        const isUnauthenticatedMode = isDemo || isMobileView;
+        const apiPrefix = isUnauthenticatedMode ? (isDemo ? '/api/demo' : '/api/mobile-view') : '/api';
+        // Use setTimeout to avoid blocking unmount
+        setTimeout(() => {
+          fetch(`${apiPrefix}/chatbot/stream-abort/${streamId}`, {
+            method: 'POST',
+            credentials: 'include',
+          }).catch(() => {
+            // Ignore all errors on cleanup
+          });
+        }, 0);
+      }
     };
-  }, [stopStream]);
+  }, []);
 
   const handleSendMessage = () => {
     const msg = userInput.trim();
