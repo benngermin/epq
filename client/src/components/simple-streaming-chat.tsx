@@ -89,9 +89,11 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   }, [messages]);
 
   const loadAiResponse = async (userMessage?: string) => {
+    console.log('[SSE Debug] loadAiResponse called with:', { userMessage, questionVersionId, chosenAnswer });
+    
     // Prevent concurrent requests
     if (isStreaming) {
-      console.log('Request already in progress, skipping');
+      console.log('[SSE Debug] Request already in progress, skipping');
       return;
     }
     
@@ -137,6 +139,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
     
     // Start SSE streaming
+    console.log('[SSE Debug] Calling startStream with:', { 
+      endpoint, 
+      questionVersionId, 
+      finalChosenAnswer,
+      userMessage,
+      conversationToSend 
+    });
     startStream(
       questionVersionId,
       finalChosenAnswer,

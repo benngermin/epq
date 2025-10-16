@@ -23,6 +23,7 @@ export function useSSEStream(options: UseSSEStreamOptions = {}) {
     userMessage?: string,
     conversationHistory?: any[]
   ) => {
+    console.log('[SSE Hook] startStream called with:', { questionVersionId, chosenAnswer, userMessage });
     stopStream();
     setIsStreaming(true);
 
@@ -30,9 +31,15 @@ export function useSSEStream(options: UseSSEStreamOptions = {}) {
       abortControllerRef.current = new AbortController();
 
       const isDemo = window.location.pathname.startsWith('/demo');
-      const endpoint = isDemo ? '/api/demo/chatbot/stream-sse' : '/api/chatbot/stream-sse';
+      const isMobileView = window.location.pathname.startsWith('/mobile-view');
+      const endpoint = isDemo 
+        ? '/api/demo/chatbot/stream-sse' 
+        : isMobileView 
+          ? '/api/mobile-view/chatbot/stream-sse'
+          : '/api/chatbot/stream-sse';
       const isMobile = window.innerWidth < 768;
 
+      console.log('[SSE Hook] Fetching SSE endpoint:', endpoint);
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -2116,7 +2116,7 @@ export function registerRoutes(app: Express): Server {
     courseMaterial: any,
     activePrompt: any
   ): string {
-    const formattedChoices = questionVersion.answerChoices.join('\n');
+    const formattedChoices = questionVersion?.answerChoices ? questionVersion.answerChoices.join('\n') : '';
     const selectedAnswer = chosenAnswer?.trim() || "No answer was selected";
     const sourceMaterial = courseMaterial?.content
       || questionVersion.topicFocus
@@ -5394,8 +5394,30 @@ Remember, your goal is to support student comprehension through meaningful feedb
     try {
       const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
       
+      // Get question version data
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
+      if (!questionVersion) {
+        throw new Error("Question version not found");
+      }
+      
       // Build system message for demo mode
-      const systemMessage = buildSystemMessage(questionVersionId, chosenAnswer, null, isMobile);
+      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, null, null);
+      
+      // Build messages array
+      const messages = [];
+      
+      // Add conversation history if it exists
+      if (conversationHistory && conversationHistory.length > 0) {
+        messages.push(...conversationHistory);
+      } else {
+        // Start with system message for new conversations
+        messages.push({ role: "system", content: systemMessage });
+      }
+      
+      // Add user message if provided
+      if (userMessage) {
+        messages.push({ role: "user", content: userMessage });
+      }
       
       // Set SSE headers
       res.setHeader('Content-Type', 'text/event-stream');
@@ -5406,9 +5428,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Stream directly from OpenRouter
       await streamOpenRouterDirectly(
         res,
-        systemMessage,
-        userMessage,
-        conversationHistory
+        messages,
+        conversationHistory || [],
+        -1  // Demo user ID
       );
       
     } catch (error) {
@@ -5916,8 +5938,30 @@ Remember, your goal is to support student comprehension through meaningful feedb
     try {
       const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
       
+      // Get question version data
+      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
+      if (!questionVersion) {
+        throw new Error("Question version not found");
+      }
+      
       // Build system message for mobile-view mode (user ID -2)
-      const systemMessage = buildSystemMessage(questionVersionId, chosenAnswer, null, isMobile);
+      const systemMessage = buildSystemMessage(questionVersion, chosenAnswer, null, null);
+      
+      // Build messages array
+      const messages = [];
+      
+      // Add conversation history if it exists
+      if (conversationHistory && conversationHistory.length > 0) {
+        messages.push(...conversationHistory);
+      } else {
+        // Start with system message for new conversations
+        messages.push({ role: "system", content: systemMessage });
+      }
+      
+      // Add user message if provided
+      if (userMessage) {
+        messages.push({ role: "user", content: userMessage });
+      }
       
       // Set SSE headers
       res.setHeader('Content-Type', 'text/event-stream');
@@ -5928,9 +5972,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Stream directly from OpenRouter
       await streamOpenRouterDirectly(
         res,
-        systemMessage,
-        userMessage,
-        conversationHistory
+        messages,
+        conversationHistory || [],
+        -2  // Mobile-view user ID
       );
       
     } catch (error) {
