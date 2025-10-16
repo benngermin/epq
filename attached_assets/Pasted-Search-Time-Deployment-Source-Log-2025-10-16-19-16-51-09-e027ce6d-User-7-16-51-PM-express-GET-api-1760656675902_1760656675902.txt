@@ -1,0 +1,177 @@
+Search
+Time
+Deployment
+Source
+Log
+2025-10-16 19:16:51.09
+e027ce6d
+User
+7:16:51 PM [express] GET /api/chatbot/stream-chunk/4175_q28937_1760656607869_uywatqytp 304 in 93ms :…
+2025-10-16 19:17:29.95
+e027ce6d
+User
+"hasAcceptableAnswers": false,
+2025-10-16 19:17:29.95
+e027ce6d
+User
+"hasDropZones": false
+2025-10-16 19:17:29.95
+e027ce6d
+User
+}
+2025-10-16 19:17:30.17
+e027ce6d
+User
+7:17:30 PM [express] POST /api/question-sets/19/answer 200 in 322ms :: {"questionVersionId":25516,"c…
+2025-10-16 19:17:34.30
+e027ce6d
+User
+7:17:34 PM [express] GET /api/user 304 in 326ms :: {"id":2072,"name":"Bobby","email":"bobby.franklin…
+2025-10-16 19:17:34.51
+e027ce6d
+User
+7:17:34 PM [express] GET /api/question-sets/7 304 in 158ms :: {"id":7,"title":"Question Set 1","desc…
+2025-10-16 19:17:34.76
+e027ce6d
+User
+7:17:34 PM [express] GET /api/questions/7 304 in 393ms :: [{"id":3736,"questionSetId":7,"originalQue…
+2025-10-16 19:17:35.17
+e027ce6d
+User
+7:17:35 PM [express] GET /api/courses/7/question-sets 304 in 123ms :: [{"id":7,"title":"Question Set…
+2025-10-16 19:17:35.67
+e027ce6d
+User
+[DEBUG 2025-10-16T23:17:35.674Z] Validating answer
+2025-10-16 19:17:35.67
+e027ce6d
+User
+{
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"userAnswerLength": 1,
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"userAnswerPreview": "B",
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"options": {
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"hasBlanks": false,
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"hasDropZones": false
+2025-10-16 19:17:35.67
+e027ce6d
+User
+}
+2025-10-16 19:17:35.67
+e027ce6d
+User
+}
+2025-10-16 19:17:35.76
+e027ce6d
+User
+7:17:35 PM [express] POST /api/question-sets/15/answer 200 in 186ms :: {"questionVersionId":27815,"c…
+2025-10-16 19:17:34.97
+e027ce6d
+User
+7:17:34 PM [express] GET /api/courses/7 304 in 124ms :: {"id":7,"courseNumber":"CPCU 540","courseTit…
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"questionType": "multiple_choice",
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"correctAnswerPreview": "B",
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"hasOptions": true,
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"caseSensitive": false,
+2025-10-16 19:17:35.67
+e027ce6d
+User
+"hasAcceptableAnswers": false,
+2025-10-16 19:17:44.82
+e027ce6d
+User
+[DEBUG 2025-10-16T23:17:44.820Z] Validating answer
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"questionType": "multiple_choice",
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"userAnswerLength": 1,
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"userAnswerPreview": "B",
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"correctAnswerPreview": "B",
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"options": {
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"caseSensitive": false,
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"hasAcceptableAnswers": false,
+2025-10-16 19:17:44.82
+e027ce6d
+User
+"hasBlanks": false,
+2025-10-16 19:17:44.82
+e027ce6d
+User
+}
+2025-10-16 19:17:45.04
+e027ce6d
+User
+7:17:45 PM [express] POST /api/question-sets/19/answer 200 in 313ms :: {"questionVersionId":25521,"c…
+2025-10-16 19:17:45.43
+e027ce6d
+User
+[DEBUG 2025-10-16T23:17:45.436Z] Validating answer
+2025-10-16 19:17:45.43
+e027ce6d
+User
+{
+2025-10-16 19:17:45.43
+e027ce6d
+User
+"questionType": "multiple_choice",
+2025-10-16 19:17:45.43
+e027ce6d
+User
+"userAnswerLength": 1,
+2025-10-16 19:17:45.43
+e027ce6d
+User
+"correctAnswerPreview": "A",
+2025-10-16 19:17:45.43
+e027ce6d
+User
+"options": {
+2025-10-16 19:17:45.43
+e027ce6d
+User
+"caseSensitive": false,
