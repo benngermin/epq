@@ -5125,8 +5125,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Return real validation result (without storing)
       res.json({
         success: true,
+        questionVersionId: questionVersionId,
         isCorrect: isCorrect,
         chosenAnswer: answer,
+        correctAnswer: questionVersion.correctAnswer,
         message: "Demo mode - answers are not saved"
       });
     } catch (error) {

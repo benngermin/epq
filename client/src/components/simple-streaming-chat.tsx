@@ -161,6 +161,15 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   useEffect(() => {
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
     
+    console.log('[SimpleStreamingChat] Effect triggered:', {
+      questionVersionId,
+      prevQuestionId: prevQuestionIdRef.current,
+      isNewQuestion,
+      chosenAnswer,
+      hasChosenAnswer: !!chosenAnswer,
+      chosenAnswerTrimmed: chosenAnswer?.trim()
+    });
+    
     if (isNewQuestion) {
       // Question changed - always clear messages and server history to prevent contamination
       setMessages([]);
@@ -176,6 +185,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       // If we have a chosen answer for the new question, start loading AI response
       // Make sure chosenAnswer is not just an empty string
       if (chosenAnswer && chosenAnswer.trim() !== "") {
+        console.log('[SimpleStreamingChat] Starting AI response for answer:', chosenAnswer);
         // Start fresh with initial assistant message
         setMessages([{
           id: "initial-response",
@@ -191,6 +201,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
             scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
           }
         });
+      } else {
+        console.log('[SimpleStreamingChat] Not starting AI response - no answer or empty answer');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
