@@ -171,8 +171,10 @@ export function QuestionCard({
 
   // Auto-flip for correct AND incorrect answers to show help (static explanation or AI chat)
   useEffect(() => {
-    // Check if we have a server response and haven't auto-flipped yet
-    if (question?.userAnswer !== undefined && 
+    // Check if we have a valid server response and haven't auto-flipped yet
+    // Must check for truthy userAnswer object with isCorrect property (not just !== undefined)
+    if (question?.userAnswer && 
+        typeof question.userAnswer.isCorrect === 'boolean' &&
         !isFlipped &&
         !hasAutoFlipped) {
       
