@@ -147,6 +147,65 @@ export function QuestionCard({
           isCorrect: question.userAnswer.isCorrect,
           isOptimistic: false // Server result is always authoritative
         }));
+        
+        // IMMEDIATE AUTO-FLIP FOR INCORRECT ANSWERS IN WEBVIEW
+        // Trigger flip directly here instead of in separate useEffect
+        if (question.userAnswer.isCorrect === false && !isFlipped && !hasAutoFlipped && isWebView()) {
+          console.log('[WebView Direct Flip] Triggering immediate flip for incorrect answer');
+          
+          // Method 1: Direct DOM manipulation with interval fallback
+          let attempts = 0;
+          const maxAttempts = 30; // 1.5 seconds at 50ms intervals
+          
+          const flipInterval = window.setInterval(() => {
+            attempts++;
+            console.log(`[WebView Flip] Attempt ${attempts}/${maxAttempts}`);
+            
+            if (attempts >= maxAttempts || isFlipped) {
+              // Execute the flip
+              console.log('[WebView Flip] Executing flip via interval');
+              setIsFlipped(true);
+              setHasAutoFlipped(true);
+              
+              // Direct DOM manipulation as fallback
+              if (cardRef.current) {
+                // Force add the flipped class directly
+                cardRef.current.classList.add('flipped');
+                
+                // For WebView mode, also directly manipulate the front/back visibility
+                const front = cardRef.current.querySelector('.card-flip-front') as HTMLElement;
+                const back = cardRef.current.querySelector('.card-flip-back') as HTMLElement;
+                
+                if (front && back) {
+                  console.log('[WebView Flip] Direct DOM manipulation');
+                  // Force visibility change
+                  front.style.opacity = '0';
+                  front.style.visibility = 'hidden';
+                  front.style.pointerEvents = 'none';
+                  back.style.opacity = '1';
+                  back.style.visibility = 'visible';
+                  back.style.pointerEvents = 'auto';
+                }
+                
+                forceReflow(cardRef.current);
+              }
+              
+              window.clearInterval(flipInterval);
+            }
+          }, 50);
+          
+          // Store for cleanup
+          (window as any).flipInterval = flipInterval;
+          
+          // Method 2: Also try regular timeout as backup
+          window.setTimeout(() => {
+            if (!isFlipped) {
+              console.log('[WebView Flip] Timeout backup triggered');
+              setIsFlipped(true);
+              setHasAutoFlipped(true);
+            }
+          }, 1600);
+        }
       }
     }
   }, [question?.userAnswer, localAnswerState.hasAnswer, localAnswerState.isCorrect]);
@@ -169,8 +228,14 @@ export function QuestionCard({
     }
   };
 
-  // Auto-flip for incorrect answers ONLY to show help (static explanation or AI chat)
+  // Auto-flip for incorrect answers for NON-WEBVIEW environments
+  // (WebView handled in the sync effect above for better reliability)
   useEffect(() => {
+    // Skip this effect for WebView environments since they're handled elsewhere
+    if (isWebView()) {
+      return;
+    }
+    
     // Check if we have a valid server response with incorrect answer and haven't auto-flipped yet
     // Only auto-flip for incorrect answers, not correct ones
     if (question?.userAnswer && 
@@ -178,14 +243,12 @@ export function QuestionCard({
         !isFlipped &&
         !hasAutoFlipped) {
       
-      // Log the flip attempt for debugging in webview
-      debugLog(`${isWebView() ? 'WebView' : 'Browser'} - attempting auto-flip for incorrect answer`, {
+      // Log the flip attempt for debugging
+      debugLog('Browser - attempting auto-flip for incorrect answer', {
         isCorrect: question?.userAnswer?.isCorrect,
         isFlipped,
         hasAutoFlipped,
-        questionId: question?.id,
-        userAgent: window.navigator.userAgent,
-        isMobileViewPath: window.location.pathname.includes('/mobile-view')
+        questionId: question?.id
       });
       
       // Delay before flipping to let user see their incorrect answer
@@ -193,7 +256,7 @@ export function QuestionCard({
       
       // Auto-flip to show help after delay
       const timer = setTimeout(() => {
-        debugLog(`${isWebView() ? 'WebView' : 'Browser'} - executing flip for incorrect answer`, {
+        debugLog('Browser - executing flip for incorrect answer', {
           questionId: question?.id,
           delay,
           isCorrect: question?.userAnswer?.isCorrect
@@ -201,52 +264,7 @@ export function QuestionCard({
         
         setIsFlipped(true);
         setHasAutoFlipped(true);
-        
-        // Force multiple reflow techniques for stubborn webviews
-        if (isWebView() && cardRef.current) {
-          // Method 1: Force immediate reflow
-          forceReflow(cardRef.current);
-          
-          // Method 2: Toggle visibility
-          requestAnimationFrame(() => {
-            if (cardRef.current) {
-              const el = cardRef.current;
-              el.style.display = 'none';
-              void el.offsetHeight; // Force reflow
-              el.style.display = '';
-              
-              // Method 3: Add and remove a class to trigger re-render
-              el.classList.add('flip-triggered');
-              setTimeout(() => {
-                el.classList.remove('flip-triggered');
-              }, 10);
-            }
-            debugLog('WebView - forced multiple reflows after flip');
-          });
-        }
       }, delay);
-      
-      // Fallback mechanism for WebViews that don't respect setTimeout
-      if (isWebView()) {
-        // Use requestAnimationFrame as a fallback timing mechanism
-        let frameCount = 0;
-        const targetFrames = Math.floor(delay / 16); // ~60fps
-        
-        const animationFrameFlip = () => {
-          frameCount++;
-          if (frameCount >= targetFrames && !isFlipped && !hasAutoFlipped) {
-            debugLog('WebView - using requestAnimationFrame fallback for flip');
-            setIsFlipped(true);
-            setHasAutoFlipped(true);
-            if (cardRef.current) {
-              forceReflow(cardRef.current);
-            }
-          } else if (frameCount < targetFrames && !isFlipped && !hasAutoFlipped) {
-            requestAnimationFrame(animationFrameFlip);
-          }
-        };
-        requestAnimationFrame(animationFrameFlip);
-      }
       
       return () => clearTimeout(timer);
     }
