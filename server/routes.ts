@@ -2225,6 +2225,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
 
       console.log('[streamOpenRouterDirectly] Response status:', response.status, response.ok);
+      console.log('[streamOpenRouterDirectly] Response body exists:', !!response.body);
+      console.log('[streamOpenRouterDirectly] Response headers:', {
+        contentType: response.headers.get('content-type'),
+        transferEncoding: response.headers.get('transfer-encoding')
+      });
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -2237,22 +2242,31 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       
+      console.log('[streamOpenRouterDirectly] Reader obtained:', !!reader);
+      
       // Check if reader is available before attempting to read from it
       if (!reader) {
+        console.error('[streamOpenRouterDirectly] No reader available from response body');
         res.write('data: {"type":"error","message":"No response stream available"}\n\n');
         res.end();
         return;
       }
       
+      console.log('[streamOpenRouterDirectly] Starting to read stream chunks...');
+      
       let fullResponse = "";
       let buffer = '';
+      let chunkCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
+        console.log(`[streamOpenRouterDirectly] Reading chunk ${chunkCount}, done: ${done}, has value: ${!!value}`);
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
+        console.log(`[streamOpenRouterDirectly] Chunk ${chunkCount} decoded, buffer size: ${buffer.length}`);
 
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
