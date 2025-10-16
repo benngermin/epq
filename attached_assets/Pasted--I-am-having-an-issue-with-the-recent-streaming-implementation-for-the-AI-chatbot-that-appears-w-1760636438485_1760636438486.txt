@@ -1,0 +1,68 @@
+
+⏺ I am having an issue with the recent streaming implementation for the AI
+  chatbot that appears when users get questions incorrect. After switching from
+  polling-based streaming to Server-Sent Events (SSE), the API call is getting
+  hung - it just continuously loads and no response is ever streamed back to the
+  client.
+
+  The Problem:
+  The SSE streaming endpoint at /api/chatbot/stream-sse in server/routes.ts is
+  calling the streamOpenRouterDirectly function (starting around line 2170),
+  which attempts to read from the OpenRouter API's response stream. However,
+  there's a critical missing null check that's causing the hang.
+
+  What's Happening:
+  1. The OpenRouter API call returns successfully (response.ok is true)
+  2. We attempt to get a reader from the response body: const reader = 
+  response.body?.getReader(); (line 2208)
+  3. If response.body is null or undefined, reader becomes undefined
+  4. When we try to call reader.read() on line 2214, it throws an error: "Cannot
+  read property 'read' of undefined"
+  5. This error gets caught by the catch block (line 2285), but the error
+  handling doesn't properly notify the client
+  6. The client continues waiting indefinitely, showing a loading state with no
+  response
+
+  What Needs to Be Fixed:
+  In the streamOpenRouterDirectly function in server/routes.ts, immediately after
+   line 2208 where we get the reader, we need to add a null check before
+  attempting to read from it.
+
+  Specific Instructions:
+  1. Open server/routes.ts
+  2. Locate the streamOpenRouterDirectly function (around line 2170)
+  3. Find line 2208: const reader = response.body?.getReader();
+  4. Immediately after the decoder initialization (line 2209), add this null
+  check:
+
+  if (!reader) {
+    res.write('data: {"type":"error","message":"No response stream 
+  available"}\n\n');
+    res.end();
+    return;
+  }
+
+  Why This Fix Works:
+  This prevents the undefined reader from being accessed, and instead sends a
+  proper error message back to the client via SSE. The client's error handler
+  will catch this and display an appropriate error message instead of hanging
+  indefinitely.
+
+  Additional Logging (Optional but Recommended):
+  Add console error logging in the catch block at line 2285 to help diagnose
+  future issues:
+
+  } catch (error) {
+    console.error('SSE streaming error in streamOpenRouterDirectly:', error);
+    res.write(`data: {"type":"error","message":"Streaming failed"}\n\n`);
+    res.end();
+  }
+
+  This same fix should be applied to all three SSE streaming endpoints that use
+  streamOpenRouterDirectly:
+  - /api/chatbot/stream-sse (authenticated users)
+  - /api/demo/chatbot/stream-sse (demo mode)
+  - /api/mobile-view/chatbot/stream-sse (mobile view)
+
+  Since they all call the same streamOpenRouterDirectly function, fixing it once
+  will resolve the issue for all three endpoints.
