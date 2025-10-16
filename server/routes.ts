@@ -5389,6 +5389,39 @@ Remember, your goal is to support student comprehension through meaningful feedb
     res.json({ success: true });
   });
 
+  // Demo SSE streaming endpoint
+  app.post("/api/demo/chatbot/stream-sse", aiRateLimiter.middleware(), async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
+      
+      // Build system message for demo mode
+      const systemMessage = buildSystemMessage(questionVersionId, chosenAnswer, null, isMobile);
+      
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+      
+      // Stream directly from OpenRouter
+      await streamOpenRouterDirectly(
+        res,
+        systemMessage,
+        userMessage,
+        conversationHistory
+      );
+      
+    } catch (error) {
+      console.error('Demo SSE stream error:', error);
+      // Send error event
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Stream failed' 
+      })}\n\n`);
+      res.end();
+    }
+  });
+
   // Demo feedback endpoint - allows demo users to submit feedback
   app.post("/api/demo/feedback", async (req, res) => {
     try {
@@ -5876,6 +5909,39 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
     
     res.json({ success: true });
+  });
+
+  // Mobile-view SSE streaming endpoint
+  app.post("/api/mobile-view/chatbot/stream-sse", aiRateLimiter.middleware(), async (req, res) => {
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, conversationHistory, isMobile } = req.body;
+      
+      // Build system message for mobile-view mode (user ID -2)
+      const systemMessage = buildSystemMessage(questionVersionId, chosenAnswer, null, isMobile);
+      
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+      
+      // Stream directly from OpenRouter
+      await streamOpenRouterDirectly(
+        res,
+        systemMessage,
+        userMessage,
+        conversationHistory
+      );
+      
+    } catch (error) {
+      console.error('Mobile-view SSE stream error:', error);
+      // Send error event
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Stream failed' 
+      })}\n\n`);
+      res.end();
+    }
   });
 
   // Mobile-view feedback endpoint
