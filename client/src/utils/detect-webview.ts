@@ -2,10 +2,23 @@
 export function isWebView(): boolean {
   const userAgent = window.navigator.userAgent.toLowerCase();
   
+  // Force WebView mode for /mobile-view paths (designed for mobile app integration)
+  if (window.location.pathname.includes('/mobile-view')) {
+    return true;
+  }
+  
+  // Check for explicit WebView mode via query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('webview') === 'true') {
+    return true;
+  }
+  
   // Check for common webview indicators
   const webviewIndicators = [
     'wv',
-    'webview', 
+    'webview',
+    'flutter', // Flutter WebView
+    'dart', // Dart runtime (Flutter)
     // Android WebView
     (userAgent.includes('android') && userAgent.includes('version/')),
     // iOS WebView indicators

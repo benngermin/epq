@@ -202,14 +202,51 @@ export function QuestionCard({
         setIsFlipped(true);
         setHasAutoFlipped(true);
         
-        // Force reflow for webview compatibility
+        // Force multiple reflow techniques for stubborn webviews
         if (isWebView() && cardRef.current) {
+          // Method 1: Force immediate reflow
+          forceReflow(cardRef.current);
+          
+          // Method 2: Toggle visibility
           requestAnimationFrame(() => {
-            forceReflow(cardRef.current);
-            debugLog('WebView - forced reflow after flip');
+            if (cardRef.current) {
+              const el = cardRef.current;
+              el.style.display = 'none';
+              void el.offsetHeight; // Force reflow
+              el.style.display = '';
+              
+              // Method 3: Add and remove a class to trigger re-render
+              el.classList.add('flip-triggered');
+              setTimeout(() => {
+                el.classList.remove('flip-triggered');
+              }, 10);
+            }
+            debugLog('WebView - forced multiple reflows after flip');
           });
         }
       }, delay);
+      
+      // Fallback mechanism for WebViews that don't respect setTimeout
+      if (isWebView()) {
+        // Use requestAnimationFrame as a fallback timing mechanism
+        let frameCount = 0;
+        const targetFrames = Math.floor(delay / 16); // ~60fps
+        
+        const animationFrameFlip = () => {
+          frameCount++;
+          if (frameCount >= targetFrames && !isFlipped && !hasAutoFlipped) {
+            debugLog('WebView - using requestAnimationFrame fallback for flip');
+            setIsFlipped(true);
+            setHasAutoFlipped(true);
+            if (cardRef.current) {
+              forceReflow(cardRef.current);
+            }
+          } else if (frameCount < targetFrames && !isFlipped && !hasAutoFlipped) {
+            requestAnimationFrame(animationFrameFlip);
+          }
+        };
+        requestAnimationFrame(animationFrameFlip);
+      }
       
       return () => clearTimeout(timer);
     }
@@ -732,6 +769,32 @@ export function QuestionCard({
         /* Reflow trigger class for forcing webview updates */
         .reflow-trigger {
           transform: translateZ(0);
+        }
+        
+        /* Flip triggered class for forcing animation in WebView */
+        .flip-triggered {
+          animation: forceRepaint 0.01s;
+        }
+        
+        @keyframes forceRepaint {
+          from { opacity: 1; }
+          to { opacity: 0.999; }
+        }
+        
+        /* Enhanced WebView mode with !important for higher specificity */
+        .card-flip.webview-mode.flipped .card-flip-front {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          z-index: 1 !important;
+          display: block !important;
+        }
+        .card-flip.webview-mode.flipped .card-flip-back {
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          z-index: 2 !important;
+          display: block !important;
         }
         
         @media (max-width: 767px) {
