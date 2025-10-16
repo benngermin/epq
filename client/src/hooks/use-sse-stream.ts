@@ -54,7 +54,17 @@ export function useSSEStream(options: UseSSEStreamOptions = {}) {
         signal: abortControllerRef.current.signal
       });
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('[SSE Hook] Response received:', {
+        status: response.status,
+        ok: response.ok,
+        headers: response.headers.get('content-type')
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SSE Hook] Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();

@@ -521,6 +521,16 @@ export function registerRoutes(app: Express): Server {
   };
 
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    // Log all SSE chatbot requests for debugging
+    if (req.path.includes('/chatbot/stream-sse')) {
+      console.log(`[requireAuth] SSE chatbot request: ${req.method} ${req.path}`, {
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user,
+        sessionID: req.sessionID,
+        headers: req.headers
+      });
+    }
+    
     if (!req.isAuthenticated() || !req.user) {
       // Only log errors for non-user endpoint requests to reduce noise
       if (req.path !== '/api/user') {
@@ -1890,6 +1900,14 @@ export function registerRoutes(app: Express): Server {
 
   // New SSE endpoint for direct streaming
   app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
+    console.log('[SSE Endpoint] Request received:', {
+      questionVersionId: req.body.questionVersionId,
+      chosenAnswer: req.body.chosenAnswer,
+      userMessage: req.body.userMessage,
+      hasUser: !!req.user,
+      userId: req.user?.id
+    });
+    
     try {
       const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
@@ -1900,6 +1918,7 @@ export function registerRoutes(app: Express): Server {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
 
+      console.log('[SSE Endpoint] Headers set, sending connected message');
       res.write('data: {"type":"connected"}\n\n');
 
       // Get question and context
@@ -2173,15 +2192,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
     conversationHistory: Array<{role: string, content: string}>,
     userId?: number
   ) {
+    console.log('[streamOpenRouterDirectly] Function called with messages count:', messages.length);
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
+      console.error('[streamOpenRouterDirectly] No API key found');
       res.write('data: {"type":"error","message":"OpenRouter API key not configured"}\n\n');
       res.end();
       return;
     }
 
     try {
+      console.log('[streamOpenRouterDirectly] Making request to OpenRouter API');
+      const requestBody = {
+        model: "anthropic/claude-sonnet-4",
+        messages,
+        temperature: 0,
+        max_tokens: 56000,
+        stream: true,
+        reasoning: { effort: "medium" }
+      };
+      console.log('[streamOpenRouterDirectly] Request body:', JSON.stringify(requestBody, null, 2));
+      
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -2189,18 +2221,15 @@ Remember, your goal is to support student comprehension through meaningful feedb
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.APP_URL || "http://localhost:5000",
         },
-        body: JSON.stringify({
-          model: "anthropic/claude-sonnet-4",
-          messages,
-          temperature: 0,
-          max_tokens: 56000,
-          stream: true,
-          reasoning: { effort: "medium" }
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('[streamOpenRouterDirectly] Response status:', response.status, response.ok);
+      
       if (!response.ok) {
-        res.write(`data: {"type":"error","message":"OpenRouter API error"}\n\n`);
+        const errorText = await response.text();
+        console.error('[streamOpenRouterDirectly] OpenRouter API error:', response.status, errorText);
+        res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
         res.end();
         return;
       }
