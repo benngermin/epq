@@ -6,12 +6,13 @@ import { z } from "zod";
 import { 
   insertCourseSchema, insertQuestionSetSchema, insertAiSettingsSchema,
   insertPromptVersionSchema, questionImportSchema, insertUserAnswerSchema, courseMaterials, type QuestionImport,
-  promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback
+  promptVersions, questionSets, courses, courseQuestionSets, questions, questionVersions, userAnswers, userTestRuns, chatbotFeedback,
+  type QuestionVersion
 } from "@shared/schema";
 import { db } from "./db";
 import { withRetry } from "./utils/db-retry";
 import { withCircuitBreaker } from "./utils/connection-pool";
-import { eq, sql, desc, asc, inArray } from "drizzle-orm";
+import { eq, sql, desc, asc, inArray, and } from "drizzle-orm";
 import { batchFetchQuestionsWithVersions } from "./utils/batch-queries";
 import { getDebugStatus } from "./debug-status";
 import { handleDatabaseError } from "./utils/error-handler";
@@ -1921,9 +1922,6 @@ export function registerRoutes(app: Express): Server {
     const maxTokens = 56000;
     
     try {
-      console.log("[SSE OpenRouter] Starting stream with", messages.length, "messages");
-      console.log("[SSE OpenRouter] Using model:", modelName);
-      console.log("[SSE OpenRouter] Using reasoning:", reasoning);
       
       // Build request body
       const requestBody: any = {
@@ -1974,7 +1972,6 @@ export function registerRoutes(app: Express): Server {
         const { done, value } = await reader.read();
         
         if (done) {
-          console.log("[SSE OpenRouter] Stream complete, total chunks:", chunkCount);
           break;
         }
 
@@ -1989,7 +1986,6 @@ export function registerRoutes(app: Express): Server {
           const data = trimmed.slice(6); // Remove "data: " prefix
           
           if (data === '[DONE]') {
-            console.log("[SSE OpenRouter] Received [DONE] signal");
             break;
           }
           
@@ -2010,13 +2006,11 @@ export function registerRoutes(app: Express): Server {
               
               // Log progress every 10 chunks
               if (chunkCount % 10 === 0) {
-                console.log(`[SSE OpenRouter] Sent ${chunkCount} chunks, accumulated length: ${fullResponse.length}`);
               }
             }
             
             // Check for completion
             if (parsed.choices?.[0]?.finish_reason) {
-              console.log("[SSE OpenRouter] Finish reason:", parsed.choices[0].finish_reason);
               break;
             }
           } catch (e) {
@@ -2036,7 +2030,6 @@ export function registerRoutes(app: Express): Server {
         conversationHistory: updatedHistory
       })}\n\n`);
       
-      console.log("[SSE OpenRouter] Sent done message with history");
       res.end();
       
     } catch (error) {
@@ -2049,33 +2042,26 @@ export function registerRoutes(app: Express): Server {
   // ============= PHASE 1B/1C: SSE Streaming Endpoint =============
   // SSE streaming endpoint (Server-Sent Events)
   app.post("/api/chatbot/stream-sse", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
-    console.log("[SSE] Request received at /api/chatbot/stream-sse");
     
     try {
       const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
       const userId = req.user!.id;
       
-      console.log("[SSE] Processing request for questionVersionId:", questionVersionId);
-      console.log("[SSE] User message:", userMessage ? "Follow-up" : "Initial");
       
       // CRITICAL: Set status FIRST
       res.status(200);
-      console.log("[SSE] Status 200 set");
       
       // Set SSE headers
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
-      console.log("[SSE] Headers set");
       
       // CRITICAL: Flush headers (NOT res.flush() - that doesn't exist!)
       res.flushHeaders();
-      console.log("[SSE] Headers flushed - client should receive response now");
       
       // Send initial connected message
       res.write('data: {"type":"connected"}\n\n');
-      console.log("[SSE] Sent connected message");
       
       // Get question and context from database
       const questionVersion = await storage.getQuestionVersion(questionVersionId);
@@ -2111,7 +2097,6 @@ export function registerRoutes(app: Express): Server {
         sourceMaterial,
         activePrompt
       );
-      console.log("[SSE] System message built, length:", systemMessage.length);
       
       // Prepare messages array
       let messages = [];
@@ -2120,14 +2105,12 @@ export function registerRoutes(app: Express): Server {
         // Follow-up message - use existing conversation history
         messages = [...conversationHistory];
         messages.push({ role: "user", content: userMessage });
-        console.log("[SSE] Using conversation history with", messages.length, "messages");
       } else {
         // Initial message - create new conversation
         messages = [
           { role: "system", content: systemMessage },
           { role: "user", content: "Please provide feedback on my answer." }
         ];
-        console.log("[SSE] Starting new conversation");
       }
       
       // Use AI settings from admin panel
@@ -2140,9 +2123,11 @@ export function registerRoutes(app: Express): Server {
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
       
-      // Call streamOpenRouterDirectly with AI settings
-      await streamOpenRouterDirectly(res, messages, historyToPass, aiSettings);
-      console.log("[SSE] Streaming complete");
+      // Call streamOpenRouterDirectly with AI settings - convert null to undefined
+      await streamOpenRouterDirectly(res, messages, historyToPass, {
+        modelName: aiSettings.modelName || undefined,
+        reasoning: aiSettings.reasoning || undefined
+      });
       
     } catch (error) {
       console.error("[SSE] Error in stream-sse endpoint:", error);
@@ -2968,7 +2953,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       });
     } catch (error) {
       console.error("Error generating explanation:", error);
-      res.status(500).json({ message: "Failed to generate explanation", error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: "Failed to generate explanation", error: errorMessage });
     }
   });
 
@@ -5633,8 +5619,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Add question counts to each question set
       const questionSetsWithCounts = await Promise.all(questionSets.map(async (qs) => {
-        const questionCount = await storage.getQuestionCountBySet(qs.id);
-        return { ...qs, questionCount };
+        const questions = await storage.getQuestionsByQuestionSet(qs.id);
+        return { ...qs, questionCount: questions.length };
       }));
       
       // Sort question sets by title
@@ -5729,7 +5715,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.json({
         correct: isCorrect,
         correctAnswer: questionVersion.correctAnswer,
-        answerExplanation: questionVersion.answerExplanation || null
+        staticExplanation: questionVersion.staticExplanation || null
       });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -7056,7 +7042,7 @@ ${learningContent}
                 success: false,
                 error: `Skipped: ${(item as any).reason || 'Not found in preview'}`,
                 courseName: item.row.courseName,
-                questionSetNumber: item.row.questionSetNumber,
+                questionSetTitle: item.row.questionSetTitle,
                 questionNumber: item.row.questionNumber,
                 loid: item.row.loid,
                 updatedVersions: 0

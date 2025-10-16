@@ -13,7 +13,6 @@ export function useSSEStream(options: UseSSEStreamOptions) {
 
   const stopStream = useCallback(() => {
     if (abortControllerRef.current) {
-      console.log("[SSE Hook] Aborting stream");
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
@@ -26,8 +25,6 @@ export function useSSEStream(options: UseSSEStreamOptions) {
     userMessage: string | undefined,
     conversationHistory?: Array<{ role: string; content: string }>
   ) => {
-    console.log("[SSE Hook] Starting stream for questionVersionId:", questionVersionId);
-    
     // Abort previous streams
     stopStream();
     
@@ -43,14 +40,6 @@ export function useSSEStream(options: UseSSEStreamOptions) {
       const isMobileView = window.location.pathname.startsWith('/mobile-view');
       const apiPrefix = isDemo ? '/api/demo' : (isMobileView ? '/api/mobile-view' : '/api');
       const endpoint = `${apiPrefix}/chatbot/stream-sse`;
-      
-      console.log("[SSE Hook] Fetching SSE endpoint:", endpoint);
-      console.log("[SSE Hook] With data:", { 
-        questionVersionId, 
-        chosenAnswer, 
-        hasUserMessage: !!userMessage,
-        historyLength: conversationHistory?.length || 0
-      });
       
       // Detect if screen is mobile
       const isMobile = window.innerWidth < 768;
@@ -71,12 +60,9 @@ export function useSSEStream(options: UseSSEStreamOptions) {
         signal: abortControllerRef.current.signal
       });
       
-      console.log("[SSE Hook] Response received, status:", response.status);
-      console.log("[SSE Hook] Response headers:", response.headers.get('content-type'));
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[SSE Hook] Response not OK:", errorText);
+        console.error("SSE Response error:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -85,17 +71,13 @@ export function useSSEStream(options: UseSSEStreamOptions) {
         throw new Error("No response body reader available");
       }
       
-      console.log("[SSE Hook] Reader obtained, starting to read chunks");
-      
       const decoder = new TextDecoder();
       let buffer = '';
-      let chunkCount = 0;
       
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) {
-          console.log("[SSE Hook] Stream complete");
           break;
         }
         
@@ -113,13 +95,10 @@ export function useSSEStream(options: UseSSEStreamOptions) {
             
             try {
               const message = JSON.parse(data);
-              chunkCount++;
-              
-              console.log(`[SSE Hook] Reading chunk ${chunkCount}, type: ${message.type}`);
               
               switch (message.type) {
                 case 'connected':
-                  console.log("[SSE Hook] Connected to SSE stream");
+                  // Stream connected
                   break;
                   
                 case 'chunk':
@@ -128,31 +107,29 @@ export function useSSEStream(options: UseSSEStreamOptions) {
                   break;
                   
                 case 'done':
-                  console.log("[SSE Hook] Stream done, history length:", message.conversationHistory?.length || 0);
                   options.onComplete(message.conversationHistory || []);
                   setIsStreaming(false);
                   break;
                   
                 case 'error':
-                  console.error("[SSE Hook] Stream error:", message.message);
+                  console.error("SSE Stream error:", message.message);
                   options.onError(message.message || 'Unknown error');
                   setIsStreaming(false);
                   break;
                   
                 default:
-                  console.warn("[SSE Hook] Unknown message type:", message.type);
+                  // Unknown message type
+                  break;
               }
             } catch (e) {
-              console.error("[SSE Hook] Failed to parse SSE message:", e);
+              console.error("Failed to parse SSE message:", e);
             }
           }
         }
       }
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log("[SSE Hook] Stream aborted by user");
-      } else {
-        console.error("[SSE Hook] Stream error:", error);
+      if (error.name !== 'AbortError') {
+        console.error("SSE Stream error:", error);
         options.onError(error.message || 'Failed to connect to stream');
       }
       setIsStreaming(false);
