@@ -2318,7 +2318,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               fullResponse += content;
               const sseData = `data: ${JSON.stringify({
                 type: "chunk",
-                content: content
+                content: fullResponse
               })}\n\n`;
               console.log(`[streamOpenRouterDirectly] Sending SSE chunk to client: ${sseData.substring(0, 100)}...`);
               res.write(sseData);
