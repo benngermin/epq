@@ -126,43 +126,39 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   };
 
   /* -----------------------------------------------------------
-   * Trigger the assistant *only when we actually have an answer*,
-   * or when the question itself changes.
+   * Trigger the assistant when:
+   * 1. Component mounts with a chosenAnswer (initial mount)
+   * 2. Question changes with a chosenAnswer
+   * 3. chosenAnswer changes from empty to non-empty
    * --------------------------------------------------------- */
   useEffect(() => {
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
+    const hasAnswer = chosenAnswer && chosenAnswer.trim() !== "";
     
-    if (isNewQuestion) {
-      // Question changed - always clear messages and server history to prevent contamination
-      setMessages([]);
-      setHasInitialResponse(false);
-      setUserInput(""); // Also clear any pending user input
-      setServerConversationHistory(null); // Clear server conversation history
-      
-      // Stop any ongoing SSE stream
-      stopStream();
+    // Check if this is initial mount with an answer
+    const isInitialMount = prevQuestionIdRef.current === undefined && hasAnswer;
+    
+    if (isNewQuestion || isInitialMount) {
+      // If question changed, clear previous state
+      if (isNewQuestion && prevQuestionIdRef.current !== undefined) {
+        setMessages([]);
+        setHasInitialResponse(false);
+        setUserInput("");
+        setServerConversationHistory(null);
+        stopStream();
+      }
       
       prevQuestionIdRef.current = questionVersionId;
       
-      // If we have a chosen answer for the new question, start loading AI response
-      // Make sure chosenAnswer is not just an empty string
-      if (chosenAnswer && chosenAnswer.trim() !== "") {
-        // Start fresh with initial assistant message
-        setMessages([{
-          id: "initial-response",
-          content: "",
-          role: "assistant",
-          questionVersionId: questionVersionId
-        }]);
-        loadAiResponse();                       // kick off first answer
-        
-        // Auto-scroll when initial message is added
-        requestAnimationFrame(() => {
-          if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-          }
-        });
+      // Start loading AI response if we have an answer
+      if (hasAnswer) {
+        // Load AI response immediately - it will create the placeholder message
+        loadAiResponse();
       }
+    } else if (hasAnswer && messages.length === 0 && !isStreaming && !hasInitialResponse) {
+      // Edge case: If we have an answer but haven't started streaming yet
+      // This handles the case where the component mounts with chosenAnswer already set
+      loadAiResponse();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionVersionId, chosenAnswer]);
