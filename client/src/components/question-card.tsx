@@ -117,6 +117,11 @@ export function QuestionCard({
       (window as any).flipObserver.disconnect();
       (window as any).flipObserver = null;
     }
+    // Clean up WebView ref callback timer
+    if ((window as any).webViewFlipTimer) {
+      window.clearTimeout((window as any).webViewFlipTimer);
+      (window as any).webViewFlipTimer = null;
+    }
     
     setIsFlipped(false);
     setHasAutoFlipped(false); // Reset auto-flip flag for new question
@@ -158,78 +163,10 @@ export function QuestionCard({
           isOptimistic: false // Server result is always authoritative
         }));
         
-        // IMMEDIATE AUTO-FLIP FOR INCORRECT ANSWERS IN WEBVIEW
-        // Trigger flip directly here instead of in separate useEffect
+        // WEBVIEW AUTO-FLIP: Now handled via ref callback on incorrect feedback div
+        // See the ref callback around line 630 for the working implementation
         if (question.userAnswer.isCorrect === false && !isFlipped && !hasAutoFlipped && isWebView()) {
-          console.log('[WebView Direct Flip] Incorrect answer detected, initiating flip sequence');
-          
-          // Method 1: MutationObserver to detect when incorrect feedback appears
-          const setupObserver = () => {
-            const observer = new MutationObserver((mutations) => {
-              // Look for the appearance of incorrect answer indicators
-              for (const mutation of mutations) {
-                if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                  // Check if we can find an incorrect answer indicator
-                  const hasIncorrectFeedback = cardRef.current?.querySelector('.text-destructive, [class*="incorrect"], [class*="wrong"]');
-                  const hasXIcon = cardRef.current?.querySelector('svg[class*="XCircle"], svg[class*="x-circle"]');
-                  
-                  if ((hasIncorrectFeedback || hasXIcon) && !isFlipped) {
-                    console.log('[WebView MutationObserver] Incorrect answer feedback detected, flipping now');
-                    
-                    // Execute flip immediately via DOM
-                    if (cardRef.current) {
-                      cardRef.current.classList.add('flipped');
-                      const front = cardRef.current.querySelector('.card-flip-front') as HTMLElement;
-                      const back = cardRef.current.querySelector('.card-flip-back') as HTMLElement;
-                      
-                      if (front && back) {
-                        front.style.cssText = 'opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;';
-                        back.style.cssText = 'opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; display: block !important;';
-                      }
-                    }
-                    
-                    setIsFlipped(true);
-                    setHasAutoFlipped(true);
-                    observer.disconnect();
-                    (window as any).flipObserver = null;
-                  }
-                }
-              }
-            });
-            
-            if (cardRef.current) {
-              observer.observe(cardRef.current, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ['class', 'style']
-              });
-              (window as any).flipObserver = observer;
-            }
-          };
-          
-          setupObserver();
-          
-          // Method 2: Polling fallback - check every 100ms for 2 seconds
-          let pollCount = 0;
-          const pollInterval = window.setInterval(() => {
-            pollCount++;
-            
-            if (pollCount > 20 || isFlipped) { // 2 seconds max
-              window.clearInterval(pollInterval);
-              if (!isFlipped) {
-                console.log('[WebView Polling] Force flip after timeout');
-                setIsFlipped(true);
-                setHasAutoFlipped(true);
-                
-                if (cardRef.current) {
-                  cardRef.current.classList.add('flipped');
-                }
-              }
-            }
-          }, 100);
-          
-          (window as any).flipInterval = pollInterval;
+          console.log('[WebView] Incorrect answer detected - flip handled by ref callback');
         }
       }
     }
@@ -627,7 +564,26 @@ export function QuestionCard({
                       )}
                       
                       {isCorrect === false && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div 
+                          ref={(node) => {
+                            // Ref callbacks execute synchronously during commit phase (works in Flutter WebView!)
+                            if (node && isWebView() && !hasAutoFlipped) {
+                              console.log('[WebView Ref Callback] Incorrect feedback mounted, scheduling flip');
+
+                              // Use setTimeout (macrotask) instead of relying on useEffect (microtask)
+                              // This works because Flutter WebView processes macrotasks reliably
+                              const timerId = setTimeout(() => {
+                                console.log('[WebView Ref Callback] Executing flip now');
+                                setIsFlipped(true);
+                                setHasAutoFlipped(true);
+                              }, 1500); // 1.5 second delay to match browser behavior
+
+                              // Store timer ID so we can clean it up if component unmounts
+                              (window as any).webViewFlipTimer = timerId;
+                            }
+                          }}
+                          className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                        >
                           <div className="flex items-center">
                             <XCircle className="h-4 w-4 text-error mr-2" />
                             <span className="font-medium text-error text-sm">Incorrect</span>
