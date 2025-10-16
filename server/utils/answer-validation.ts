@@ -740,10 +740,28 @@ export function validateAnswer(
         return userAnswer === correctAnswer;
     }
   } catch (error) {
+    // Log error details for debugging validation failures
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     debugError('Error during answer validation', {
       questionType,
-      error: error instanceof Error ? error.message : String(error)
+      error: errorMessage,
+      stack: errorStack,
+      userAnswerPreview: userAnswer?.substring(0, 100),
+      correctAnswerPreview: correctAnswer?.substring(0, 100)
     });
+    
+    // Also log to console in development for immediate visibility
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Answer validation error:', {
+        questionType,
+        error: errorMessage,
+        userAnswer: userAnswer?.substring(0, 50),
+        correctAnswer: correctAnswer?.substring(0, 50)
+      });
+    }
+    
     return false;
   }
 }

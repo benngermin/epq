@@ -84,7 +84,15 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
 
     if (!response.ok) {
       const errorText = await response.text();
-      // Removed OpenRouter error logging
+      // Log OpenRouter API errors for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('OpenRouter API error:', {
+          status: response.status,
+          error: errorText.substring(0, 500), // Limit error text to avoid huge logs
+          modelName,
+          promptLength: prompt.length
+        });
+      }
       throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     }
 
@@ -110,7 +118,10 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
         responseTime,
       });
     } catch (logError) {
-      // Removed chatbot interaction logging
+      // Log error when saving chatbot interaction fails
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to save chatbot interaction log:', logError);
+      }
     }
     
     return aiResponse;
@@ -470,7 +481,10 @@ async function streamOpenRouterToBuffer(
         responseTime,
       });
     } catch (logError) {
-      // Removed chatbot interaction logging
+      // Log error when saving chatbot interaction fails
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to save chatbot interaction log:', logError);
+      }
     }
     
     // Mark stream as done after successful completion
@@ -525,11 +539,13 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated() || !req.user) {
       // Only log errors for non-user endpoint requests to reduce noise
       if (req.path !== '/api/user') {
-        console.error(`Authentication failed for ${req.method} ${req.path}:`, {
-          isAuthenticated: req.isAuthenticated(),
-          hasUser: !!req.user,
-          isChatbotEndpoint: req.path.includes('/chatbot')
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Authentication failed for ${req.method} ${req.path}:`, {
+            isAuthenticated: req.isAuthenticated(),
+            hasUser: !!req.user,
+            isChatbotEndpoint: req.path.includes('/chatbot')
+          });
+        }
       }
       return res.status(401).json({ message: "Authentication required" });
     }
@@ -2902,40 +2918,44 @@ Remember, your goal is to support student comprehension through meaningful feedb
       console.log("Question Type:", questionVersion.questionType);
       console.log("Question Text:", questionVersion.questionText);
       
-      if (questionVersion.questionType === 'multiple_choice') {
-        console.log("\nAnswer Choices (raw):", questionVersion.answerChoices);
-        console.log("Answer Choices (formatted):", formattedAnswerChoices);
-        console.log("\nCorrect Answer (raw):", questionVersion.correctAnswer);
-        console.log("Correct Answer (formatted):", fullCorrectAnswer);
-      } else {
-        console.log("\nAnswer Choices:", questionVersion.answerChoices);
-        console.log("Correct Answer:", questionVersion.correctAnswer);
+      // Debug logging for OpenRouter API calls
+      if (process.env.NODE_ENV === 'development') {
+        if (questionVersion.questionType === 'multiple_choice') {
+          console.log("\nAnswer Choices (raw):", questionVersion.answerChoices);
+          console.log("Answer Choices (formatted):", formattedAnswerChoices);
+          console.log("\nCorrect Answer (raw):", questionVersion.correctAnswer);
+          console.log("Correct Answer (formatted):", fullCorrectAnswer);
+        } else {
+          console.log("\nAnswer Choices:", questionVersion.answerChoices);
+          console.log("Correct Answer:", questionVersion.correctAnswer);
+        }
+        
+        console.log("\nLearning Content Available:", !!learningContent);
+        if (learningContent) {
+          console.log("Learning Content Length:", learningContent.length);
+          console.log("Learning Content Preview:", learningContent.substring(0, 200) + "...");
+        }
+        
+        console.log("\n--- Processed Messages ---");
+        console.log("System Message Length:", processedSystemMessage.length);
+        console.log("System Message Preview:", processedSystemMessage.substring(0, 500));
+        console.log("\nUser Message Length:", processedUserMessage.length);
+        console.log("User Message Preview:", processedUserMessage.substring(0, 500));
+        
+        console.log("\n=== OPENROUTER API CALL DETAILS ===");
+        console.log("URL: https://openrouter.ai/api/v1/chat/completions");
+        console.log("Model:", modelName);
+        console.log("Temperature: 0 (deterministic)");
+        console.log("Max Tokens: 56000");
       }
-      
-      console.log("\nLearning Content Available:", !!learningContent);
-      if (learningContent) {
-        console.log("Learning Content Length:", learningContent.length);
-        console.log("Learning Content Preview:", learningContent.substring(0, 200) + "...");
-      }
-      
-      console.log("\n--- Processed Messages ---");
-      console.log("System Message Length:", processedSystemMessage.length);
-      console.log("System Message Preview:", processedSystemMessage.substring(0, 500));
-      console.log("\nUser Message Length:", processedUserMessage.length);
-      console.log("User Message Preview:", processedUserMessage.substring(0, 500));
-      
-      console.log("\n=== OPENROUTER API CALL DETAILS ===");
-      console.log("URL: https://openrouter.ai/api/v1/chat/completions");
-      console.log("Model:", modelName);
-      console.log("Temperature: 0 (deterministic)");
-      console.log("Max Tokens: 56000");
-      console.log("\nFull Messages Being Sent:");
       const messagesToSend = [
         { role: "system", content: processedSystemMessage },
         { role: "user", content: processedUserMessage }
       ];
-      console.log(JSON.stringify(messagesToSend, null, 2));
-      console.log("\n=== END API CALL DETAILS ===\n");
+      if (process.env.NODE_ENV === 'development') {
+        console.log(JSON.stringify(messagesToSend, null, 2));
+        console.log("\n=== END API CALL DETAILS ===\n");
+      }
       
       // Call OpenRouter with both system and user messages
       const explanation = await callOpenRouter(processedUserMessage, { modelName }, req.user?.id, processedSystemMessage);
@@ -2943,7 +2963,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Update the question version with the generated explanation
       const updatedVersion = await storage.updateQuestionVersionStaticExplanation(questionVersionId, explanation);
 
-      console.log(`Static explanation updated for question version ${questionVersionId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Static explanation updated for question version ${questionVersionId}`);
+      }
       
       res.json({ 
         success: true, 
@@ -4227,7 +4249,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
                   courseId = course.id;
                 }
               }
-            } catch {}
+            } catch (courseError) {
+              // Log error when fetching course information fails
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Error fetching course information during refresh:', courseError);
+              }
+            }
             
             refreshResults.failed++;
             refreshResults.errors.push({

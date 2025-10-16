@@ -163,11 +163,26 @@ app.use((req, res, next) => {
   
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    // Don't exit the process in production, but log for monitoring
+    const timestamp = new Date().toISOString();
+    const errorDetails = {
+      timestamp,
+      type: 'UnhandledRejection',
+      reason: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+      promise: String(promise)
+    };
+    
+    // Always log unhandled rejections for monitoring
+    console.error('[CRITICAL] Unhandled Promise Rejection:', errorDetails);
+    
+    // In development, exit to catch issues early
     if (process.env.NODE_ENV === 'development') {
-      console.error('Exiting due to unhandled promise rejection in development');
+      console.error('Exiting due to unhandled promise rejection in development mode');
       process.exit(1);
+    } else {
+      // In production, log for monitoring but keep service running
+      // Consider sending to error tracking service here
+      console.error('[PRODUCTION] Service continuing after unhandled rejection - investigate immediately');
     }
   });
 })().catch((error) => {
