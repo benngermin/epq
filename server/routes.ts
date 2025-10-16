@@ -5593,6 +5593,107 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Demo SSE streaming endpoint (Server-Sent Events)
+  // This provides real-time streaming for demo mode
+  app.post("/api/demo/chatbot/stream-sse", aiRateLimiter.middleware(), async (req, res) => {
+    
+    try {
+      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
+      
+      // CRITICAL: Set status FIRST
+      res.status(200);
+      
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      
+      // CRITICAL: Flush headers
+      res.flushHeaders();
+      
+      // Send initial connected message
+      res.write('data: {"type":"connected"}\n\n');
+      
+      // Get question and context from database
+      const questionVersion = await storage.getQuestionVersion(questionVersionId);
+      if (!questionVersion) {
+        res.write('data: {"type":"error","message":"Question not found"}\n\n');
+        res.end();
+        return;
+      }
+      
+      // Get the base question to access LOID
+      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+      let courseMaterial = null;
+      
+      if (baseQuestion?.loid) {
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+      }
+      
+      const aiSettings = await storage.getAiSettings();
+      const activePrompt = await storage.getActivePromptVersion();
+      
+      // Get source material for both initial and follow-up responses
+      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
+      
+      if (courseMaterial) {
+        // Clean course material for mobile (removes URLs)
+        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
+      }
+      
+      // Build system message using helper
+      const systemMessage = buildSystemMessage(
+        questionVersion,
+        chosenAnswer,
+        sourceMaterial,
+        activePrompt
+      );
+      
+      // Prepare messages array
+      let messages = [];
+      
+      if (userMessage && conversationHistory && conversationHistory.length > 0) {
+        // Follow-up message - use existing conversation history
+        messages = [...conversationHistory];
+        messages.push({ role: "user", content: userMessage });
+      } else {
+        // Initial message - create new conversation
+        messages = [
+          { role: "system", content: systemMessage },
+          { role: "user", content: "Please provide feedback on my answer." }
+        ];
+      }
+      
+      // Use AI settings from admin panel
+      if (!aiSettings) {
+        res.write('data: {"type":"error","message":"AI settings not configured. Please configure in admin panel."}\n\n');
+        res.end();
+        return;
+      }
+      
+      // Create initial conversation history if needed
+      const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
+      
+      // Call streamOpenRouterDirectly with AI settings - convert null to undefined
+      await streamOpenRouterDirectly(res, messages, historyToPass, {
+        modelName: aiSettings.modelName || undefined,
+        reasoning: aiSettings.reasoning || undefined
+      });
+      
+    } catch (error) {
+      console.error("[Demo SSE] Error in stream-sse endpoint:", error);
+      // If headers not sent yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to initialize SSE stream" });
+      } else {
+        // Headers already sent, send SSE error message
+        res.write(`data: {"type":"error","message":"Failed to process request"}\n\n`);
+        res.end();
+      }
+    }
+  });
+
   // Mobile-View API endpoints - No authentication required
   // These endpoints provide read-only access to course data for mobile-view mode
   // Unlike demo mode, mobile-view allows access to all courses based on course_id parameter
