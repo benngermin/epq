@@ -57,7 +57,9 @@ export function useSSEStream(options: UseSSEStreamOptions = {}) {
       console.log('[SSE Hook] Response received:', {
         status: response.status,
         ok: response.ok,
-        headers: response.headers.get('content-type')
+        headers: response.headers.get('content-type'),
+        bodyUsed: response.bodyUsed,
+        body: response.body
       });
 
       if (!response.ok) {
