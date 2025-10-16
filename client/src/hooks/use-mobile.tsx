@@ -7,17 +7,23 @@ export function useIsMobile() {
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    
+    // Define handler function
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches)
     }
     
-    // Use the modern addEventListener API
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    // Set initial value
+    setIsMobile(mql.matches)
     
-    // Modern cleanup using removeEventListener
+    // Add event listener using modern API
+    // The 'change' event is the standard for MediaQueryList
+    mql.addEventListener("change", handleChange)
+    
+    // Cleanup function to prevent memory leaks
     return () => {
-      mql.removeEventListener("change", onChange)
+      // Remove event listener using the same function reference
+      mql.removeEventListener("change", handleChange)
     }
   }, [])
 
