@@ -75,7 +75,9 @@ export function QuestionCard({
         questionIndex: question.questionIndex,
         hasLatestVersion: !!question.latestVersion,
         questionType: question.latestVersion?.questionType,
-        hasUserAnswer: !!question.userAnswer
+        hasUserAnswer: !!question.userAnswer,
+        isWebView: isWebView(),
+        userAgent: window.navigator.userAgent
       });
     }
   }, [question?.id]);
@@ -175,20 +177,26 @@ export function QuestionCard({
         !hasAutoFlipped) {
       
       // Log the flip attempt for debugging in webview
-      if (isWebView()) {
-        debugLog('WebView detected - attempting auto-flip', {
-          isCorrect: question?.userAnswer?.isCorrect,
-          isFlipped,
-          hasAutoFlipped,
-          questionId: question?.id
-        });
-      }
+      debugLog(`${isWebView() ? 'WebView' : 'Browser'} - attempting auto-flip`, {
+        isCorrect: question?.userAnswer?.isCorrect,
+        isFlipped,
+        hasAutoFlipped,
+        questionId: question?.id,
+        userAgent: window.navigator.userAgent,
+        isMobileViewPath: window.location.pathname.includes('/mobile-view')
+      });
       
       // Different delays for correct vs incorrect answers
       const delay = question?.userAnswer?.isCorrect ? 150 : 1500;
       
       // Auto-flip to show help after delay
       const timer = setTimeout(() => {
+        debugLog(`${isWebView() ? 'WebView' : 'Browser'} - executing flip`, {
+          questionId: question?.id,
+          delay,
+          isCorrect: question?.userAnswer?.isCorrect
+        });
+        
         setIsFlipped(true);
         setHasAutoFlipped(true);
         
@@ -196,6 +204,7 @@ export function QuestionCard({
         if (isWebView() && cardRef.current) {
           requestAnimationFrame(() => {
             forceReflow(cardRef.current);
+            debugLog('WebView - forced reflow after flip');
           });
         }
       }, delay);
