@@ -355,14 +355,30 @@ async function streamOpenRouterToBuffer(
 
     let buffer = '';
     let isDone = false;
+    let readerCancelled = false; // Track if reader has been cancelled
     const streamStartTime = Date.now();
     const STREAM_MAX_DURATION = 60000; // 60 seconds max for a single stream
+    
+    // Helper function to safely cancel the reader once
+    const cancelReader = async () => {
+      if (readerCancelled || !reader) return;
+      readerCancelled = true;
+      
+      try {
+        await reader.cancel();
+      } catch (e) {
+        // Log cancellation errors in development
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Reader cancellation error (may be already closed):', e);
+        }
+      }
+    };
     
     try {
       while (true) {
         // Check if stream was aborted
         if (stream.aborted) {
-          await reader.cancel();
+          await cancelReader();
           break;
         }
         
@@ -370,11 +386,24 @@ async function streamOpenRouterToBuffer(
         if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
           // Stream exceeded max duration
           stream.error = "Response took too long. Please try again.";
-          await reader.cancel();
+          await cancelReader();
           break;
         }
 
-        const { done, value } = await reader.read();
+        let readResult;
+        try {
+          readResult = await reader.read();
+        } catch (readError) {
+          // Handle read errors gracefully
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Stream read error:', readError);
+          }
+          stream.error = "Stream reading failed. Please try again.";
+          await cancelReader();
+          break;
+        }
+        
+        const { done, value } = readResult;
         
         if (done) {
           break;
@@ -457,11 +486,7 @@ async function streamOpenRouterToBuffer(
       throw error;
     } finally {
       // Always cancel the reader to free resources
-      try {
-        await reader.cancel();
-      } catch (e) {
-        // Ignore errors when canceling an already closed reader
-      }
+      await cancelReader();
     }
 
     const responseTime = Date.now() - startTime;
@@ -495,8 +520,12 @@ async function streamOpenRouterToBuffer(
     // OpenRouter streaming error
     const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
     
-    stream.error = errorResponse;
-    stream.done = true;
+    // Ensure stream state is properly set
+    if (stream) {
+      stream.error = errorResponse;
+      stream.done = true;
+      stream.lastActivity = Date.now();
+    }
     
     // Log the error interaction
     try {
@@ -511,7 +540,16 @@ async function streamOpenRouterToBuffer(
         responseTime: Date.now() - startTime,
       });
     } catch (logError) {
-      // Removed chatbot error logging
+      // Error logging failed, but continue cleanup
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to log error interaction:', logError);
+      }
+    }
+  } finally {
+    // Ensure stream is marked as done in all cases
+    if (stream && !stream.done) {
+      stream.done = true;
+      stream.lastActivity = Date.now();
     }
   }
 
