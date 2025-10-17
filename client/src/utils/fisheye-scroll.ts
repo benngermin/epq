@@ -74,43 +74,53 @@ export function scrollToQuestion(questionId: number, offset: number = 20): boole
   const headerHeight = header ? header.offsetHeight : 0;
   const totalOffset = headerHeight + offset;
   
-  // Calculate the scroll position
-  const elementPosition = questionElement.offsetTop;
-  const targetScrollTop = elementPosition - totalOffset;
+  // Robust scroll math: viewport-relative, not offsetParent-relative
+  const viewportRect = scrollContainer.getBoundingClientRect();
+  const cardRect = questionElement.getBoundingClientRect();
+  const deltaTop = cardRect.top - viewportRect.top;
+  
+  const target = Math.max(
+    0,
+    Math.min(
+      scrollContainer.scrollTop + deltaTop - totalOffset, // totalOffset already includes header + offset
+      scrollContainer.scrollHeight - scrollContainer.clientHeight
+    )
+  );
   
   console.log('Scroll calculation:', {
-    elementPosition,
-    headerHeight,
-    totalOffset,
-    targetScrollTop,
-    currentScroll: scrollContainer.scrollTop
+    viewportRect,
+    cardRect,
+    deltaTop,
+    currentScrollTop: scrollContainer.scrollTop,
+    targetScrollTop: target,
+    totalOffset
   });
   
   // Perform the scroll
   scrollContainer.scrollTo({
-    top: targetScrollTop,
+    top: target,
     behavior: 'smooth'
   });
   
-  // Focus the element after scrolling
-  setTimeout(() => {
-    questionElement.setAttribute('tabindex', '-1');
-    questionElement.focus({ preventScroll: true });
-    
-    // Try to focus the first input
-    const firstInput = questionElement.querySelector(
-      'textarea, input:not([type="hidden"]), select, button:not([data-drag-handle])'
-    ) as HTMLElement;
-    
-    if (firstInput) {
-      firstInput.focus({ preventScroll: true });
-      console.log('Focused first input in question');
-    }
-    
-    console.log('Final scroll position:', scrollContainer.scrollTop);
-  }, 500);
+  // (Optional) focus without re-scrolling
+  queueMicrotask(() => {
+    questionElement.querySelector<HTMLElement>('textarea, input:not([type="hidden"]), select, button:not([data-drag-handle])')
+      ?.focus({ preventScroll: true });
+  });
   
   return true;
+}
+
+/**
+ * Alias for scrollToQuestion for consistency with component usage
+ * @param questionId - The ID of the question to scroll to
+ * @param options - Optional configuration
+ */
+export function attemptScrollToQuestion(
+  questionId: number, 
+  options: { smooth?: boolean; offset?: number } = {}
+): boolean {
+  return scrollToQuestion(questionId, options.offset || 20);
 }
 
 /**

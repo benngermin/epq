@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { attemptScrollToQuestion } from "@/utils/fisheye-scroll";
 
 interface FisheyeNavigationItem {
   id: number;
@@ -56,59 +57,15 @@ export function FisheyeNavigation({
     return baseWidth * scale;
   };
 
-  // Helper function to calculate offsetTop relative to an ancestor
-  const topWithin = (el: HTMLElement, ancestor: HTMLElement): number => {
-    let t = 0;
-    let n: HTMLElement | null = el;
-    while (n && n !== ancestor) {
-      t += n.offsetTop;
-      n = n.offsetParent as HTMLElement | null;
-    }
-    return t;
-  };
-
-  // Helper function to find question element by ID
-  const findQuestionEl = (id: string): HTMLElement | null => {
-    return document.getElementById(`q-${id}`)
-        || document.querySelector<HTMLElement>(`[data-testid="card-question-${id}"]`)
-        || document.querySelector<HTMLElement>(`[data-question-id="${id}"]`)?.closest('[id^="q-"]') as HTMLElement | null;
-  };
-
   // Handle fisheye item click with proper viewport scrolling
   const handleFisheyeClick = (e: React.MouseEvent<HTMLButtonElement>, itemId: number) => {
     e.preventDefault(); // Stop any hash/window jumps
-
-    // Find the scroller viewport
-    const scroller = document.querySelector<HTMLElement>(
-      '[data-role="editor-scroller"] [data-radix-scroll-area-viewport]'
-    );
-
-    if (!scroller) {
-      console.log('Scroller viewport not found, falling back to onItemClick');
-      onItemClick(itemId);
-      return;
-    }
-
-    const card = findQuestionEl(itemId.toString());
-    if (!card) {
-      console.log(`Question element q-${itemId} not found, using onItemClick`);
-      onItemClick(itemId);
-      return;
-    }
-
-    // Calculate scroll position using offsetTop
-    const sticky = parseInt(getComputedStyle(scroller).scrollPaddingTop || '0', 10) || 0;
-    const y = Math.max(0, topWithin(card, scroller) - sticky);
     
-    console.log(`Scrolling to question ${itemId}, position: ${y}`);
-    scroller.scrollTo({ top: y, behavior: 'smooth' });
-
-    // Focus the card after scrolling for accessibility
-    setTimeout(() => {
-      card.setAttribute('tabindex', '-1');
-      card.focus({ preventScroll: true });
-    }, 300);
-
+    const ok = attemptScrollToQuestion(itemId, { smooth: true });
+    if (!ok) {
+      console.warn('Fisheye scroll failed for', itemId);
+    }
+    
     // Also trigger the original callback for any additional logic
     onItemClick(itemId);
   };
