@@ -1007,7 +1007,7 @@ export default function AdminQuestionEditor() {
                   value={filterExplanationType} 
                   onValueChange={(val: "all" | "ai" | "static") => setFilterExplanationType(val)}
                 >
-                  <SelectTrigger className="w-[160px]" data-testid="filter-explanation-type">
+                  <SelectTrigger className="w-[220px]" data-testid="filter-explanation-type">
                     <SelectValue placeholder="Explanation Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1022,7 +1022,7 @@ export default function AdminQuestionEditor() {
                   value={filterQuestionType} 
                   onValueChange={setFilterQuestionType}
                 >
-                  <SelectTrigger className="w-[160px]" data-testid="filter-question-type">
+                  <SelectTrigger className="w-[220px]" data-testid="filter-question-type">
                     <SelectValue placeholder="Question Type" />
                   </SelectTrigger>
                   <SelectContent>
