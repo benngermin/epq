@@ -813,33 +813,7 @@ export default function AdminQuestionEditor() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto p-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load questions. Please try again.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Prepare fisheye navigation items
+  // Prepare fisheye navigation items - must be before conditional returns
   const fisheyeItems = useMemo(() => {
     return filteredQuestions.map((item, index) => ({
       id: item.question.id,
@@ -909,6 +883,34 @@ export default function AdminQuestionEditor() {
     
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, [filteredQuestions]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Skeleton className="h-12 w-64" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load questions. Please try again.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // Build breadcrumbs
   const breadcrumbs = [
