@@ -23,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, Save, Archive, RotateCcw, Shuffle, ChevronDown, ChevronRight, 
-  GripVertical, Loader2, Sparkles, AlertCircle
+  GripVertical, Loader2, Sparkles, AlertCircle, Filter, X
 } from "lucide-react";
 
 interface Question {
@@ -79,6 +79,10 @@ export default function AdminQuestionEditor() {
   const [newQuestionType, setNewQuestionType] = useState("multiple_choice");
   const [newQuestionMode, setNewQuestionMode] = useState<"ai" | "static">("ai");
   const [reorderDebounceTimer, setReorderDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // Filter states
+  const [filterExplanationType, setFilterExplanationType] = useState<"all" | "ai" | "static">("all");
+  const [filterQuestionType, setFilterQuestionType] = useState<string>("all");
 
   // Fetch course info
   const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
@@ -124,13 +128,51 @@ export default function AdminQuestionEditor() {
     enabled: !!setId
   });
 
-  // Filter questions based on active tab
+  // Get all unique question types for filter dropdown
+  const availableQuestionTypes = useMemo(() => {
+    if (!questionsData?.questions) return [];
+    const types = new Set<string>();
+    questionsData.questions.forEach(q => {
+      if (q.version?.questionType) {
+        types.add(q.version.questionType);
+      }
+    });
+    return Array.from(types).sort();
+  }, [questionsData]);
+
+  // Filter questions based on active tab and filters
   const filteredQuestions = useMemo(() => {
     if (!questionsData?.questions) return [];
-    return questionsData.questions.filter(q => 
+    
+    let filtered = questionsData.questions.filter(q => 
       activeTab === "active" ? !q.question.isArchived : q.question.isArchived
-    ).sort((a, b) => a.question.displayOrder - b.question.displayOrder);
-  }, [questionsData, activeTab]);
+    );
+    
+    // Apply explanation type filter
+    if (filterExplanationType !== "all") {
+      filtered = filtered.filter(q => {
+        const edits = editedQuestions.get(q.question.id);
+        const isStatic = edits?.isStaticAnswer !== undefined 
+          ? edits.isStaticAnswer 
+          : q.version?.isStaticAnswer;
+        
+        if (filterExplanationType === "static") {
+          return isStatic === true;
+        } else {
+          return isStatic === false;
+        }
+      });
+    }
+    
+    // Apply question type filter
+    if (filterQuestionType !== "all") {
+      filtered = filtered.filter(q => 
+        q.version?.questionType === filterQuestionType
+      );
+    }
+    
+    return filtered.sort((a, b) => a.question.displayOrder - b.question.displayOrder);
+  }, [questionsData, activeTab, filterExplanationType, filterQuestionType, editedQuestions]);
 
   // Check for unsaved changes
   const hasUnsavedChanges = editedQuestions.size > 0;
@@ -828,6 +870,74 @@ export default function AdminQuestionEditor() {
               </Button>
             </div>
           </div>
+          
+          {/* Filter Controls */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Filters:</span>
+            </div>
+            
+            {/* Explanation Type Filter */}
+            <Select 
+              value={filterExplanationType} 
+              onValueChange={(val: "all" | "ai" | "static") => setFilterExplanationType(val)}
+            >
+              <SelectTrigger className="w-[180px]" data-testid="filter-explanation-type">
+                <SelectValue placeholder="Explanation Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Explanations</SelectItem>
+                <SelectItem value="ai">AI Explanations</SelectItem>
+                <SelectItem value="static">Static Explanations</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Question Type Filter */}
+            <Select 
+              value={filterQuestionType} 
+              onValueChange={setFilterQuestionType}
+            >
+              <SelectTrigger className="w-[180px]" data-testid="filter-question-type">
+                <SelectValue placeholder="Question Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Question Types</SelectItem>
+                {availableQuestionTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.split("_").map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(" ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Clear Filters Button */}
+            {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterExplanationType("all");
+                  setFilterQuestionType("all");
+                }}
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+            
+            {/* Show filtered count when filters are active */}
+            {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
+              <div className="ml-auto text-sm text-muted-foreground">
+                Showing {filteredQuestions.length} of {questionsData?.questions.filter(q => 
+                  activeTab === "active" ? !q.question.isArchived : q.question.isArchived
+                ).length || 0} questions
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tabs Section - Fixed */}
@@ -863,10 +973,25 @@ export default function AdminQuestionEditor() {
                 <Card>
                   <CardContent className="text-center py-12">
                     <p className="text-muted-foreground">
-                      {activeTab === "active" 
-                        ? "No active questions. Create your first question to get started."
-                        : "No archived questions."}
+                      {(filterExplanationType !== "all" || filterQuestionType !== "all") 
+                        ? "No questions match the selected filters."
+                        : activeTab === "active" 
+                          ? "No active questions. Create your first question to get started."
+                          : "No archived questions."}
                     </p>
+                    {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => {
+                          setFilterExplanationType("all");
+                          setFilterQuestionType("all");
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
