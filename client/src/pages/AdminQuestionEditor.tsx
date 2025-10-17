@@ -3,10 +3,8 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { debugScrollStructure, attemptScrollToQuestion } from "@/utils/fisheye-scroll";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
 import { AdminLayout } from "@/components/AdminLayout";
-import { FisheyeNavigation } from "@/components/FisheyeNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,11 +83,6 @@ export default function AdminQuestionEditor() {
   // Filter states
   const [filterExplanationType, setFilterExplanationType] = useState<"all" | "ai" | "static">("all");
   const [filterQuestionType, setFilterQuestionType] = useState<string>("all");
-  
-  // Fisheye navigation state
-  const [currentQuestionId, setCurrentQuestionId] = useState<number | undefined>(undefined);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const fisheyeRef = useRef<HTMLDivElement>(null);
 
   // Fetch course info
   const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
@@ -143,7 +136,6 @@ export default function AdminQuestionEditor() {
     setNewQuestionMode("ai");
     setFilterExplanationType("all");
     setFilterQuestionType("all");
-    setCurrentQuestionId(undefined);
     
     // Clear any debounced timers
     if (reorderDebounceTimer) {
@@ -854,70 +846,6 @@ export default function AdminQuestionEditor() {
     });
   };
 
-  // Prepare fisheye navigation items - must be before conditional returns
-  const fisheyeItems = useMemo(() => {
-    console.log('Creating fisheye items from questions:', filteredQuestions.length);
-    return filteredQuestions.map((item, index) => ({
-      id: item.question.id,
-      label: item.version?.questionText?.substring(0, 100) || "No question text",
-      hasEdits: editedQuestions.has(item.question.id),
-      type: item.version?.questionType,
-      mode: getCurrentValue(item.question.id, item.version, "isStaticAnswer") ? "static" : "ai" as "ai" | "static"
-    }));
-  }, [filteredQuestions, editedQuestions]);
-  
-  // Handle fisheye item click - smooth scroll to question and focus it
-  const handleFisheyeClick = useCallback((questionId: number) => {
-    console.log('Fisheye clicked for question:', questionId);
-    
-    const ok = attemptScrollToQuestion(questionId, { smooth: true });
-    if (!ok) {
-      console.warn('Fisheye scroll failed for', questionId);
-      debugScrollStructure();
-    }
-    
-    setCurrentQuestionId(questionId);
-  }, []);
-  
-  // Track current question in view
-  useEffect(() => {
-    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (!scrollContainer) return;
-    
-    const handleScroll = () => {
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const middleY = containerRect.top + containerRect.height / 3;
-      
-      // Find which question is in the middle of the viewport
-      const questionElements = scrollContainer.querySelectorAll('[id^="q-"]');
-      let closestQuestion: Element | null = null;
-      let closestDistance = Infinity;
-      
-      questionElements.forEach((element) => {
-        const rect = element.getBoundingClientRect();
-        const elementMiddle = rect.top + rect.height / 2;
-        const distance = Math.abs(elementMiddle - middleY);
-        
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestQuestion = element as Element;
-        }
-      });
-      
-      if (closestQuestion) {
-        const questionId = (closestQuestion as HTMLElement).id;
-        if (questionId && questionId.startsWith('q-')) {
-          const id = parseInt(questionId.substring(2));
-          if (id) setCurrentQuestionId(id);
-        }
-      }
-    };
-    
-    scrollContainer.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial check
-    
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [filteredQuestions]);
 
   // Loading state
   if (isLoading) {
@@ -1073,19 +1001,8 @@ export default function AdminQuestionEditor() {
           <TabsContent value={activeTab} className="flex-1 overflow-hidden">
             {/* Question Editor Panel */}
             <Card className="h-full flex flex-col">
-              {/* Fisheye Navigation - sticky at top, scrolls horizontally */}
-              {filteredQuestions.length > 0 && (
-                <div ref={fisheyeRef} className="flex-shrink-0 sticky top-0 z-10 bg-background" data-role="panel-header">
-                  <FisheyeNavigation
-                    items={fisheyeItems}
-                    onItemClick={handleFisheyeClick}
-                    currentItemId={currentQuestionId}
-                  />
-                </div>
-              )}
-              
-              {/* ScrollArea for question content only */}
-              <ScrollArea className="flex-1" ref={scrollAreaRef} data-role="editor-scroller">
+              {/* ScrollArea for question content */}
+              <ScrollArea className="flex-1" data-role="editor-scroller">
                 <div className="px-4">
                   <div className="space-y-4 py-4">
                 {filteredQuestions.length === 0 ? (

@@ -352,7 +352,7 @@
   }
 }
 
-/* Fisheye scroll behavior for Radix ScrollArea */
+/* Scroll behavior for Radix ScrollArea */
 :root { 
   --editor-sticky-offset: 72px; /* Adjust if needed */
 }
