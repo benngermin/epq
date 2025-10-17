@@ -2887,13 +2887,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Fetch learning content using LOID
       let learningContent = "";
       if (question[0].loid) {
-        console.log(`Fetching course material for LOID: ${question[0].loid}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Fetching course material for LOID: ${question[0].loid}`);
+        }
         const courseMaterial = await storage.getCourseMaterialByLoid(question[0].loid);
         if (courseMaterial) {
           learningContent = courseMaterial.content;
-          console.log(`Found learning content: ${learningContent.substring(0, 100)}...`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Found learning content: ${learningContent.substring(0, 100)}...`);
+          }
         } else {
-          console.log(`No course material found for LOID: ${question[0].loid}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`No course material found for LOID: ${question[0].loid}`);
+          }
         }
       }
 
