@@ -870,7 +870,7 @@ export default function AdminQuestionEditor() {
       });
       
       if (closestQuestion) {
-        const questionIdStr = closestQuestion.getAttribute('data-question-id');
+        const questionIdStr = (closestQuestion as HTMLElement).getAttribute('data-question-id');
         if (questionIdStr) {
           const id = parseInt(questionIdStr);
           if (id) setCurrentQuestionId(id);
@@ -1036,24 +1036,27 @@ export default function AdminQuestionEditor() {
 
           {/* Scrollable Content Area */}
           <TabsContent value={activeTab} className="flex-1 overflow-hidden">
-            <div className="flex h-full gap-2">
-              {/* Fisheye Navigation - part of content area */}
-              {filteredQuestions.length > 0 && (
-                <div className="w-20 flex-shrink-0 pt-2">
-                  <FisheyeNavigation
-                    items={fisheyeItems}
-                    onItemClick={handleFisheyeClick}
-                    currentItemId={currentQuestionId}
-                  />
-                </div>
-              )}
-              
-              {/* Main Content - aligned with the controls above */}
-              <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                <div className="space-y-4 pr-4">
-              {filteredQuestions.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-12">
+            {/* Question Editor Panel */}
+            <Card className="h-full">
+              {/* Single ScrollArea containing both fisheye and content */}
+              <ScrollArea className="h-full" ref={scrollAreaRef}>
+                <div className="flex h-full">
+                  {/* Fisheye Navigation - inside scrollable area */}
+                  {filteredQuestions.length > 0 && (
+                    <div className="w-20 flex-shrink-0 h-full pr-3 pl-1">
+                      <FisheyeNavigation
+                        items={fisheyeItems}
+                        onItemClick={handleFisheyeClick}
+                        currentItemId={currentQuestionId}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Main Content with gutter */}
+                  <div className="flex-1 px-4">
+                    <div className="space-y-4 py-4">
+                {filteredQuestions.length === 0 ? (
+                  <div className="text-center py-12">
                     <p className="text-muted-foreground">
                       {(filterExplanationType !== "all" || filterQuestionType !== "all") 
                         ? "No questions match the selected filters."
@@ -1074,9 +1077,8 @@ export default function AdminQuestionEditor() {
                         Clear Filters
                       </Button>
                     )}
-                  </CardContent>
-                </Card>
-              ) : (
+                  </div>
+                ) : (
                 filteredQuestions.map((item, index) => {
                   const { question, version } = item;
                   const isExpanded = expandedQuestions.has(question.id);
@@ -1421,9 +1423,11 @@ export default function AdminQuestionEditor() {
                   );
                 })
               )}
-              </div>
-            </ScrollArea>
-            </div>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

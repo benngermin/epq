@@ -67,11 +67,11 @@ export function FisheyeNavigation({
   return (
     <div
       ref={containerRef}
-      className="fixed left-0 top-1/2 -translate-y-1/2 z-30 w-24 h-[80vh] overflow-y-auto overflow-x-hidden bg-background/50 backdrop-blur-sm border-r"
+      className="h-full overflow-y-auto overflow-x-hidden"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="py-4 space-y-0.5">
+      <div className="py-1 space-y-0.5">
         {items.map((item, index) => {
           const scale = getItemScale(index);
           const opacity = getItemOpacity(index);
@@ -80,13 +80,14 @@ export function FisheyeNavigation({
           const isCurrent = currentItemId === item.id;
           
           return (
-            <div
+            <button
               key={item.id}
               className={cn(
-                "relative px-2 cursor-pointer transition-all duration-200 ease-out flex items-center",
-                "hover:bg-accent/50",
-                isCurrent && "bg-accent",
-                isHovered && "z-10"
+                "relative w-full px-2 cursor-pointer transition-all duration-200 ease-out flex items-center rounded-sm",
+                "hover:bg-muted/50 hover:ring-2 hover:ring-inset hover:ring-muted-foreground/20",
+                isCurrent && "bg-muted ring-2 ring-inset ring-primary/20",
+                isHovered && "z-10",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0"
               )}
               style={{
                 height: `${height}px`,
@@ -127,7 +128,7 @@ export function FisheyeNavigation({
               {/* Hover Details Tooltip */}
               {isHovered && (
                 <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                  <div className="bg-popover text-popover-foreground border rounded-md shadow-lg px-3 py-2 max-w-xs">
+                  <div className="bg-popover text-popover-foreground rounded-md shadow-md px-3 py-2 max-w-xs">
                     <div className="text-sm font-medium">{item.label}</div>
                     {item.type && (
                       <div className="text-xs text-muted-foreground mt-0.5">
@@ -139,7 +140,7 @@ export function FisheyeNavigation({
                   </div>
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
