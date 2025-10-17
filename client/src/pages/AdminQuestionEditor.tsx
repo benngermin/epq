@@ -121,6 +121,45 @@ export default function AdminQuestionEditor() {
     }
   }, [questionSet, questionSetError]);
 
+  // Clear cached state when switching question sets
+  useEffect(() => {
+    console.log(`[CLEAR STATE] Question set changed to ${setId}, clearing all local state`);
+    
+    // Clear all local state
+    setEditedQuestions(new Map());
+    setExpandedQuestions(new Set());
+    setDraggedQuestion(null);
+    setDragOverQuestion(null);
+    setDropPosition(null);
+    setConfirmSaveId(null);
+    setConfirmArchiveId(null);
+    setConfirmRecoverId(null);
+    setConfirmDeleteExplanation(null);
+    setGeneratingExplanation(null);
+    setSavingModeSwitch(null);
+    setActiveTab("active");
+    setIsCreatingQuestion(false);
+    setNewQuestionType("multiple_choice");
+    setNewQuestionMode("ai");
+    setFilterExplanationType("all");
+    setFilterQuestionType("all");
+    setCurrentQuestionId(undefined);
+    
+    // Clear any debounced timers
+    if (reorderDebounceTimer) {
+      clearTimeout(reorderDebounceTimer);
+      setReorderDebounceTimer(null);
+    }
+    
+    // Invalidate query cache for this question set
+    queryClient.invalidateQueries({ 
+      queryKey: [`/api/admin/questions-with-versions/${setId}`] 
+    });
+    
+    // Force refetch
+    refetch();
+  }, [setId]); // Only run when setId changes
+
   // Fetch all question sets for the course to determine position
   const { data: courseQuestionSets } = useQuery<{ id: number; title: string }[]>({
     queryKey: [`/api/courses/${courseId}/question-sets`],
