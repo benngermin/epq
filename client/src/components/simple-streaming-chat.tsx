@@ -31,7 +31,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const prevQuestionIdRef = useRef<number | undefined>(undefined);
   
   // Check if we're on mobile view
-  const isMobileView = location === "/mobile-view";
+  const isMobileView = location.startsWith("/mobile-view");
 
   // Set up SSE streaming hook
   const { isStreaming, startStream, stopStream } = useSSEStream({
@@ -81,12 +81,12 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [chosenAnswer]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (disabled on mobile view)
   useEffect(() => {
-    if (scrollContainerRef.current) {
+    if (!isMobileView && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isMobileView]);
 
   const loadAiResponse = async (userMessage?: string) => {
     // Prevent concurrent requests
@@ -209,12 +209,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     loadAiResponse(msg);  // stream the assistant's reply
     
-    // Auto-scroll after adding user message
-    setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-      }
-    }, 100);
+    // Auto-scroll after adding user message (disabled on mobile view)
+    if (!isMobileView) {
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+      }, 100);
+    }
   };
 
 
