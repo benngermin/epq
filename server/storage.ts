@@ -949,31 +949,65 @@ export class DatabaseStorage implements IStorage {
     question: Question;
     version: QuestionVersion | null;
   }>> {
-    const baseQuery = db.select({
-      question: questions,
-      version: questionVersions
-    })
-    .from(questions)
-    .leftJoin(questionVersions, and(
-      eq(questionVersions.questionId, questions.id),
-      eq(questionVersions.isActive, true)
-    ))
-    .where(
-      includeArchived 
-        ? eq(questions.questionSetId, questionSetId)
-        : and(
-            eq(questions.questionSetId, questionSetId),
-            eq(questions.isArchived, false)
-          )
-    )
-    .orderBy(asc(questions.displayOrder));
-
-    const results = await baseQuery;
+    // First fetch all questions
+    const questionsQuery = includeArchived 
+      ? db.select().from(questions).where(eq(questions.questionSetId, questionSetId))
+      : db.select().from(questions).where(and(
+          eq(questions.questionSetId, questionSetId),
+          eq(questions.isArchived, false)
+        ));
     
-    return results.map(r => ({
-      question: r.question,
-      version: r.version
+    const allQuestions = await questionsQuery;
+    
+    if (allQuestions.length === 0) return [];
+    
+    // Get all question IDs
+    const questionIds = allQuestions.map(q => q.id);
+    
+    // Fetch all active versions for these questions
+    const versions = await db.select()
+      .from(questionVersions)
+      .where(and(
+        inArray(questionVersions.questionId, questionIds),
+        eq(questionVersions.isActive, true)
+      ))
+      .orderBy(desc(questionVersions.versionNumber), desc(questionVersions.id));
+    
+    // Create a map of questionId to its most recent active version
+    const versionMap = new Map<number, QuestionVersion>();
+    const duplicateActiveVersions = new Map<number, number>();
+    
+    versions.forEach(version => {
+      const count = duplicateActiveVersions.get(version.questionId) || 0;
+      duplicateActiveVersions.set(version.questionId, count + 1);
+      
+      // Only set the version if we haven't already (since we ordered by versionNumber desc, we get the latest first)
+      if (!versionMap.has(version.questionId)) {
+        versionMap.set(version.questionId, version);
+      }
+    });
+    
+    // Log warnings for questions with multiple active versions
+    duplicateActiveVersions.forEach((count, questionId) => {
+      if (count > 1) {
+        console.warn(`[DATA INTEGRITY WARNING] Question ${questionId} has ${count} active versions. Using the most recent one.`);
+      }
+    });
+    
+    // Map questions to their versions
+    const results = allQuestions.map(question => ({
+      question,
+      version: versionMap.get(question.id) || null
     }));
+    
+    // Sort by displayOrder
+    results.sort((a, b) => {
+      const aOrder = a.question.displayOrder ?? a.question.originalQuestionNumber ?? 0;
+      const bOrder = b.question.displayOrder ?? b.question.originalQuestionNumber ?? 0;
+      return aOrder - bOrder;
+    });
+    
+    return results;
   }
 
   async updateQuestion(id: number, updates: Partial<Question>): Promise<Question | undefined> {
