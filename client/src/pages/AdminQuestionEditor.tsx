@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { scrollToQuestion, debugScrollStructure } from "@/utils/fisheye-scroll";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
 import { AdminLayout } from "@/components/AdminLayout";
 import { FisheyeNavigation } from "@/components/FisheyeNavigation";
@@ -816,6 +817,7 @@ export default function AdminQuestionEditor() {
 
   // Prepare fisheye navigation items - must be before conditional returns
   const fisheyeItems = useMemo(() => {
+    console.log('Creating fisheye items from questions:', filteredQuestions.length);
     return filteredQuestions.map((item, index) => ({
       id: item.question.id,
       label: item.version?.questionText?.substring(0, 100) || "No question text",
@@ -838,63 +840,15 @@ export default function AdminQuestionEditor() {
   const handleFisheyeClick = useCallback((questionId: number) => {
     console.log('Fisheye clicked for question:', questionId);
     
-    // Find the question element using the stable ID
-    const questionElement = document.getElementById(`q-${questionId}`) as HTMLElement;
+    // Use the utility function to handle scrolling
+    const success = scrollToQuestion(questionId, 20);
     
-    if (!questionElement) {
-      console.error('Could not find question element with id:', `q-${questionId}`);
-      // Log all available question IDs for debugging
-      const allQuestions = document.querySelectorAll('[id^="q-"]');
-      console.log('Available question IDs:', Array.from(allQuestions).map(el => el.id));
-      return;
+    if (success) {
+      setCurrentQuestionId(questionId);
+    } else {
+      // Debug the DOM structure if scrolling failed
+      debugScrollStructure();
     }
-    
-    console.log('Found question element:', questionElement);
-    
-    if (!scrollAreaRef.current) {
-      console.error('ScrollArea ref not found');
-      return;
-    }
-    
-    // Find the scroll viewport within the ScrollArea component
-    const scrollViewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    
-    if (!scrollViewport) {
-      console.error('Could not find scroll viewport');
-      // Try alternative selectors
-      const alternativeViewport = scrollAreaRef.current.querySelector('[data-role="editor-scroller"]') as HTMLElement;
-      console.log('Alternative viewport search:', alternativeViewport);
-      return;
-    }
-    
-    console.log('Found scroll viewport:', scrollViewport);
-    
-    // Get the header element to calculate offset
-    const header = fisheyeRef.current;
-    const offset = (header?.offsetHeight || 0) + 8; // Header height + 8px padding
-    
-    console.log('Header offset:', offset);
-    console.log('Current scroll position:', scrollViewport.scrollTop);
-    
-    // Scroll to the question with offset for the sticky header
-    scrollToWithin(scrollViewport, questionElement, offset);
-    
-    console.log('Scroll command executed');
-    
-    // Set focus to the question element for accessibility
-    questionElement.setAttribute('tabindex', '-1');
-    questionElement.focus({ preventScroll: true });
-    
-    // Also focus the first input after a delay for better UX
-    setTimeout(() => {
-      const firstInput = questionElement.querySelector('textarea, input, button:not([data-drag-handle])') as HTMLElement;
-      if (firstInput) {
-        firstInput.focus({ preventScroll: true });
-      }
-      console.log('New scroll position:', scrollViewport.scrollTop);
-    }, 400);
-    
-    setCurrentQuestionId(questionId);
   }, []);
   
   // Track current question in view

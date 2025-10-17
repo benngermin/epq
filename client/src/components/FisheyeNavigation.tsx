@@ -109,7 +109,10 @@ export function FisheyeNavigation({
                 transformOrigin: 'center'
               }}
               onMouseEnter={() => setHoveredIndex(index)}
-              onClick={() => onItemClick(item.id)}
+              onClick={() => {
+                console.log('Fisheye button clicked:', item.id);
+                onItemClick(item.id);
+              }}
               onKeyDown={(e) => handleKeyDown(e, item.id)}
               data-testid={`fisheye-item-${item.id}`}
               title={`Question ${index + 1}: ${item.label.substring(0, 50)}...`}
