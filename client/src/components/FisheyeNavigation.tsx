@@ -143,12 +143,6 @@ export function FisheyeNavigation({
                   )}
                 </div>
                 
-                {/* Type badge for hovered items */}
-                {isHovered && item.type && (
-                  <span className="text-xs opacity-80">
-                    {item.type.split("_").map(w => w[0].toUpperCase()).join("")}
-                  </span>
-                )}
               </div>
             </button>
           );
