@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fisheye Scroll</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Fisheye Navigation */
+        .fisheye-nav {
+            position: sticky;
+            top: 0;
+            background: #333;
+            padding: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: 2px solid #666;
+        }
+        
+        .fisheye-nav button {
+            padding: 8px 16px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .fisheye-nav button:hover {
+            background: #777;
+        }
+        
+        .fisheye-nav button.active {
+            background: #007bff;
+        }
+        
+        /* Main Content Scroller */
+        .main-scroller {
+            flex: 1;
+            overflow-y: auto;
+            background: #f5f5f5;
+            position: relative;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .question-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .question-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .question-card.highlight {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+        
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            max-width: 300px;
+        }
+        
+        .status h4 {
+            margin-top: 0;
+        }
+        
+        .log {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Fisheye Navigation -->
+        <div class="fisheye-nav" data-role="fisheye">
+            <button data-target="q-1" onclick="scrollToQuestion(1)">Q1</button>
+            <button data-target="q-2" onclick="scrollToQuestion(2)">Q2</button>
+            <button data-target="q-3" onclick="scrollToQuestion(3)">Q3</button>
+            <button data-target="q-4" onclick="scrollToQuestion(4)">Q4</button>
+            <button data-target="q-5" onclick="scrollToQuestion(5)">Q5</button>
+            <button data-target="q-6" onclick="scrollToQuestion(6)">Q6</button>
+            <button data-target="q-7" onclick="scrollToQuestion(7)">Q7</button>
+            <button data-target="q-8" onclick="scrollToQuestion(8)">Q8</button>
+            <button data-target="q-9" onclick="scrollToQuestion(9)">Q9</button>
+            <button data-target="q-10" onclick="scrollToQuestion(10)">Q10</button>
+        </div>
+        
+        <!-- Main Question List Scroller -->
+        <div class="main-scroller" data-role="editor-scroller" id="mainScroller">
+            <div class="content">
+                <div id="q-1" class="question-card">
+                    <h3>Question 1</h3>
+                    <p>This is question 1. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-2" class="question-card">
+                    <h3>Question 2</h3>
+                    <p>This is question 2. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-3" class="question-card">
+                    <h3>Question 3</h3>
+                    <p>This is question 3. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-4" class="question-card">
+                    <h3>Question 4</h3>
+                    <p>This is question 4. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-5" class="question-card">
+                    <h3>Question 5</h3>
+                    <p>This is question 5. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-6" class="question-card">
+                    <h3>Question 6</h3>
+                    <p>This is question 6. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-7" class="question-card">
+                    <h3>Question 7</h3>
+                    <p>This is question 7. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-8" class="question-card">
+                    <h3>Question 8</h3>
+                    <p>This is question 8. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-9" class="question-card">
+                    <h3>Question 9</h3>
+                    <p>This is question 9. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+                
+                <div id="q-10" class="question-card">
+                    <h3>Question 10</h3>
+                    <p>This is question 10. It contains some text that represents the question content. In a real application, this would be the actual question text and answer options.</p>
+                    <textarea placeholder="Enter your answer here..." rows="4" style="width: 100%; margin-top: 10px;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Display -->
+    <div class="status">
+        <h4>Scroll Test Status</h4>
+        <div id="statusLog" class="log"></div>
+    </div>
+    
+    <script>
+        const logElement = document.getElementById('statusLog');
+        let currentQuestion = null;
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}\n`;
+            logElement.textContent = entry + logElement.textContent;
+            console.log(message);
+        }
+        
+        function scrollToWithin(scrollerEl, targetEl, offset = 0) {
+            const top = targetEl.getBoundingClientRect().top
+                      - scrollerEl.getBoundingClientRect().top
+                      + scrollerEl.scrollTop
+                      - offset;
+            
+            log(`Calculated scroll position: ${top}`);
+            scrollerEl.scrollTo({ top, behavior: 'smooth' });
+        }
+        
+        function scrollToQuestion(questionId) {
+            log(`Fisheye clicked for Q${questionId}`);
+            
+            const scroller = document.getElementById('mainScroller');
+            const target = document.getElementById(`q-${questionId}`);
+            const header = document.querySelector('.fisheye-nav');
+            
+            if (!scroller) {
+                log('ERROR: Main scroller not found');
+                return;
+            }
+            
+            if (!target) {
+                log(`ERROR: Question Q${questionId} not found`);
+                return;
+            }
+            
+            // Highlight the clicked question
+            document.querySelectorAll('.question-card').forEach(card => {
+                card.classList.remove('highlight');
+            });
+            target.classList.add('highlight');
+            
+            // Update active button
+            document.querySelectorAll('.fisheye-nav button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Since header is sticky, we don't need offset
+            const offset = 20; // Just a small padding from top
+            
+            log(`Scrolling main content to Q${questionId}`);
+            log(`Current scroll: ${scroller.scrollTop}px`);
+            
+            scrollToWithin(scroller, target, offset);
+            
+            // Focus the question after scroll
+            setTimeout(() => {
+                const textarea = target.querySelector('textarea');
+                if (textarea) {
+                    textarea.focus();
+                    log(`Focused Q${questionId} textarea`);
+                }
+                log(`New scroll position: ${scroller.scrollTop}px`);
+            }, 400);
+            
+            currentQuestion = questionId;
+        }
+        
+        // Track scroll position
+        document.getElementById('mainScroller').addEventListener('scroll', (e) => {
+            const scrollTop = e.target.scrollTop;
+            // Don't log every scroll event, just significant ones
+            if (Math.abs(scrollTop - (window.lastScrollTop || 0)) > 50) {
+                log(`Main content scrolled to: ${scrollTop}px`);
+                window.lastScrollTop = scrollTop;
+            }
+        });
+        
+        // Initial log
+        log('Test page loaded - Click fisheye buttons to test scrolling');
+        log('The main question list should scroll, NOT the fisheye nav');
+    </script>
+</body>
+</html>

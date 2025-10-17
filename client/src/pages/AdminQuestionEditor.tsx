@@ -836,13 +836,20 @@ export default function AdminQuestionEditor() {
 
   // Handle fisheye item click - smooth scroll to question and focus it
   const handleFisheyeClick = useCallback((questionId: number) => {
+    console.log('Fisheye clicked for question:', questionId);
+    
     // Find the question element using the stable ID
     const questionElement = document.getElementById(`q-${questionId}`) as HTMLElement;
     
     if (!questionElement) {
       console.error('Could not find question element with id:', `q-${questionId}`);
+      // Log all available question IDs for debugging
+      const allQuestions = document.querySelectorAll('[id^="q-"]');
+      console.log('Available question IDs:', Array.from(allQuestions).map(el => el.id));
       return;
     }
+    
+    console.log('Found question element:', questionElement);
     
     if (!scrollAreaRef.current) {
       console.error('ScrollArea ref not found');
@@ -854,15 +861,25 @@ export default function AdminQuestionEditor() {
     
     if (!scrollViewport) {
       console.error('Could not find scroll viewport');
+      // Try alternative selectors
+      const alternativeViewport = scrollAreaRef.current.querySelector('[data-role="editor-scroller"]') as HTMLElement;
+      console.log('Alternative viewport search:', alternativeViewport);
       return;
     }
+    
+    console.log('Found scroll viewport:', scrollViewport);
     
     // Get the header element to calculate offset
     const header = fisheyeRef.current;
     const offset = (header?.offsetHeight || 0) + 8; // Header height + 8px padding
     
+    console.log('Header offset:', offset);
+    console.log('Current scroll position:', scrollViewport.scrollTop);
+    
     // Scroll to the question with offset for the sticky header
     scrollToWithin(scrollViewport, questionElement, offset);
+    
+    console.log('Scroll command executed');
     
     // Set focus to the question element for accessibility
     questionElement.setAttribute('tabindex', '-1');
@@ -874,6 +891,7 @@ export default function AdminQuestionEditor() {
       if (firstInput) {
         firstInput.focus({ preventScroll: true });
       }
+      console.log('New scroll position:', scrollViewport.scrollTop);
     }, 400);
     
     setCurrentQuestionId(questionId);

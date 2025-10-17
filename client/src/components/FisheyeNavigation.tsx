@@ -64,22 +64,8 @@ export function FisheyeNavigation({
     }
   };
 
-  // Auto-scroll to current item when it changes
-  useEffect(() => {
-    if (currentItemId && scrollContainerRef.current) {
-      const currentButton = scrollContainerRef.current.querySelector(
-        `[data-fisheye-id="${currentItemId}"]`
-      ) as HTMLElement;
-      
-      if (currentButton) {
-        currentButton.scrollIntoView({ 
-          behavior: 'smooth', 
-          inline: 'center',
-          block: 'nearest' 
-        });
-      }
-    }
-  }, [currentItemId]);
+  // Removed auto-scroll of fisheye items - we want the main question list to scroll, not the fisheye
+  // The fisheye should remain stationary while the main content scrolls
   
   return (
     <div
