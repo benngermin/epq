@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { questions, questionVersions } from '@shared/schema';
-import { inArray, eq } from 'drizzle-orm';
+import { inArray, eq, and, desc } from 'drizzle-orm';
 
 // Batch fetch question versions to reduce N+1 queries
 export async function batchFetchQuestionVersions(questionIds: number[]) {
@@ -36,16 +36,40 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
   // Get all question IDs
   const questionIds = allQuestions.map(q => q.id);
   
-  // Batch fetch all versions
-  const versionMap = await batchFetchQuestionVersions(questionIds);
+  // Fetch all ACTIVE versions directly (not all versions) and order by versionNumber desc
+  const activeVersions = await db
+    .select()
+    .from(questionVersions)
+    .where(and(
+      inArray(questionVersions.questionId, questionIds),
+      eq(questionVersions.isActive, true)
+    ))
+    .orderBy(desc(questionVersions.versionNumber), desc(questionVersions.id));
+  
+  // Create a map of questionId to its most recent active version
+  const versionMap = new Map<number, typeof activeVersions[0]>();
+  const duplicateActiveVersions = new Map<number, number>();
+  
+  activeVersions.forEach(version => {
+    const count = duplicateActiveVersions.get(version.questionId) || 0;
+    duplicateActiveVersions.set(version.questionId, count + 1);
+    
+    // Only set the version if we haven't already (since we ordered by versionNumber desc)
+    if (!versionMap.has(version.questionId)) {
+      versionMap.set(version.questionId, version);
+    }
+  });
+  
+  // Log warnings for data integrity issues
+  duplicateActiveVersions.forEach((count, questionId) => {
+    if (count > 1) {
+      console.warn(`[BATCH FETCH WARNING] Question ${questionId} in set ${questionSetId} has ${count} active versions. Using version with highest versionNumber.`);
+    }
+  });
   
   // Combine questions with their latest active versions
   const questionsWithVersions = allQuestions.map(question => {
-    const versions = versionMap.get(question.id) || [];
-    // Filter to only active versions and get the latest one
-    const activeVersions = versions.filter((v: any) => v.isActive);
-    const latestVersion = activeVersions
-      .sort((a: any, b: any) => b.versionNumber - a.versionNumber)[0];
+    const latestVersion = versionMap.get(question.id);
     
     // Transform latestVersion to use camelCase field names
     let transformedLatestVersion = null;
@@ -71,7 +95,7 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
         
         if (!hasValidExplanation) {
           // Log warning and clear the static flag to fall back to chat
-          console.warn(`Question version ${transformedLatestVersion.id} marked as static but has invalid explanation. Falling back to chat.`);
+          console.warn(`[VALIDATION WARNING] Question version ${transformedLatestVersion.id} marked as static but has invalid explanation. Falling back to chat.`);
           transformedLatestVersion.isStaticAnswer = false;
           transformedLatestVersion.staticExplanation = null;
         }
@@ -87,6 +111,9 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
       if ('drop_zones' in transformedLatestVersion) {
         delete (transformedLatestVersion as any).drop_zones;
       }
+    } else if (!includeArchived && !question.isArchived) {
+      // Log warning if active question has no active version
+      console.warn(`[DATA INTEGRITY WARNING] Question ${question.id} (Q#${question.originalQuestionNumber}) in set ${questionSetId} has no active version`);
     }
     
     return {
