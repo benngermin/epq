@@ -6284,6 +6284,78 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Diagnostic endpoint to check for version integrity issues
+  app.get("/api/admin/diagnostic/version-integrity", requireAdmin, async (req, res) => {
+    try {
+      // Check for questions with multiple active versions
+      const multipleActiveVersions = await db.select({
+        questionId: questionVersions.questionId,
+        count: sql<number>`COUNT(*)`,
+        versionIds: sql<string>`STRING_AGG(CAST(${questionVersions.id} AS VARCHAR), ',')`
+      })
+      .from(questionVersions)
+      .where(eq(questionVersions.isActive, true))
+      .groupBy(questionVersions.questionId)
+      .having(sql`COUNT(*) > 1`);
+
+      // Check for version-question mismatches
+      const versionMismatches = await db.select({
+        qvId: questionVersions.id,
+        qvQuestionId: questionVersions.questionId,
+        qId: questions.id,
+        qSetId: questions.questionSetId,
+        qNumber: questions.originalQuestionNumber
+      })
+      .from(questionVersions)
+      .leftJoin(questions, eq(questions.id, questionVersions.questionId))
+      .where(sql`${questions.id} IS NULL`);
+
+      // Check for questions without any active version
+      const questionsWithoutActiveVersion = await db.select({
+        questionId: questions.id,
+        questionNumber: questions.originalQuestionNumber,
+        questionSetId: questions.questionSetId,
+        loid: questions.loid
+      })
+      .from(questions)
+      .leftJoin(questionVersions, and(
+        eq(questionVersions.questionId, questions.id),
+        eq(questionVersions.isActive, true)
+      ))
+      .where(and(
+        eq(questions.isArchived, false),
+        sql`${questionVersions.id} IS NULL`
+      ));
+
+      res.json({
+        success: true,
+        issues: {
+          multipleActiveVersions: {
+            count: multipleActiveVersions.length,
+            details: multipleActiveVersions
+          },
+          versionMismatches: {
+            count: versionMismatches.length,
+            details: versionMismatches.slice(0, 10) // Limit to first 10 for readability
+          },
+          questionsWithoutActiveVersion: {
+            count: questionsWithoutActiveVersion.length,
+            details: questionsWithoutActiveVersion.slice(0, 10)
+          }
+        },
+        recommendation: multipleActiveVersions.length > 0 || versionMismatches.length > 0 || questionsWithoutActiveVersion.length > 0 
+          ? "Data integrity issues found. Run the cleanup script to fix these issues."
+          : "No data integrity issues found."
+      });
+    } catch (error: any) {
+      console.error("Error checking version integrity:", error);
+      res.status(500).json({ 
+        error: "Failed to check version integrity",
+        message: error.message
+      });
+    }
+  });
+
   // Diagnostic endpoint to check the production database
   app.get("/api/admin/diagnostic", requireAdmin, async (req, res) => {
     const results: any = {
