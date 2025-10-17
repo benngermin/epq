@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
 import { AdminLayout } from "@/components/AdminLayout";
+import { FisheyeNavigation } from "@/components/FisheyeNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,6 +84,10 @@ export default function AdminQuestionEditor() {
   // Filter states
   const [filterExplanationType, setFilterExplanationType] = useState<"all" | "ai" | "static">("all");
   const [filterQuestionType, setFilterQuestionType] = useState<string>("all");
+  
+  // Fisheye navigation state
+  const [currentQuestionId, setCurrentQuestionId] = useState<number | undefined>(undefined);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Fetch course info
   const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
@@ -834,6 +839,77 @@ export default function AdminQuestionEditor() {
     );
   }
 
+  // Prepare fisheye navigation items
+  const fisheyeItems = useMemo(() => {
+    return filteredQuestions.map((item, index) => ({
+      id: item.question.id,
+      label: item.version?.questionText?.substring(0, 100) || "No question text",
+      hasEdits: editedQuestions.has(item.question.id),
+      type: item.version?.questionType,
+      mode: getCurrentValue(item.question.id, item.version, "isStaticAnswer") ? "static" : "ai" as "ai" | "static"
+    }));
+  }, [filteredQuestions, editedQuestions]);
+  
+  // Handle fisheye item click - scroll to question
+  const handleFisheyeClick = useCallback((questionId: number) => {
+    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`);
+    if (questionElement && scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        const rect = questionElement.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const offset = rect.top - containerRect.top + scrollContainer.scrollTop - 20; // 20px padding
+        
+        scrollContainer.scrollTo({
+          top: offset,
+          behavior: 'smooth'
+        });
+        
+        setCurrentQuestionId(questionId);
+      }
+    }
+  }, []);
+  
+  // Track current question in view
+  useEffect(() => {
+    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollContainer) return;
+    
+    const handleScroll = () => {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const middleY = containerRect.top + containerRect.height / 3;
+      
+      // Find which question is in the middle of the viewport
+      const questionElements = scrollContainer.querySelectorAll('[data-question-id]');
+      let closestQuestion: Element | null = null;
+      let closestDistance = Infinity;
+      
+      questionElements.forEach((element) => {
+        const rect = element.getBoundingClientRect();
+        const elementMiddle = rect.top + rect.height / 2;
+        const distance = Math.abs(elementMiddle - middleY);
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestQuestion = element as Element;
+        }
+      });
+      
+      if (closestQuestion) {
+        const questionIdStr = closestQuestion.getAttribute('data-question-id');
+        if (questionIdStr) {
+          const id = parseInt(questionIdStr);
+          if (id) setCurrentQuestionId(id);
+        }
+      }
+    };
+    
+    scrollContainer.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+    
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [filteredQuestions]);
+
   // Build breadcrumbs
   const breadcrumbs = [
     { label: "Content Management", href: "/admin" },
@@ -870,79 +946,11 @@ export default function AdminQuestionEditor() {
               </Button>
             </div>
           </div>
-          
-          {/* Filter Controls */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Filters:</span>
-            </div>
-            
-            {/* Explanation Type Filter */}
-            <Select 
-              value={filterExplanationType} 
-              onValueChange={(val: "all" | "ai" | "static") => setFilterExplanationType(val)}
-            >
-              <SelectTrigger className="w-[180px]" data-testid="filter-explanation-type">
-                <SelectValue placeholder="Explanation Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Explanations</SelectItem>
-                <SelectItem value="ai">AI Explanations</SelectItem>
-                <SelectItem value="static">Static Explanations</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {/* Question Type Filter */}
-            <Select 
-              value={filterQuestionType} 
-              onValueChange={setFilterQuestionType}
-            >
-              <SelectTrigger className="w-[180px]" data-testid="filter-question-type">
-                <SelectValue placeholder="Question Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Question Types</SelectItem>
-                {availableQuestionTypes.map(type => (
-                  <SelectItem key={type} value={type}>
-                    {type.split("_").map(word => 
-                      word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(" ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Clear Filters Button */}
-            {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setFilterExplanationType("all");
-                  setFilterQuestionType("all");
-                }}
-                data-testid="button-clear-filters"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear Filters
-              </Button>
-            )}
-            
-            {/* Show filtered count when filters are active */}
-            {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
-              <div className="ml-auto text-sm text-muted-foreground">
-                Showing {filteredQuestions.length} of {questionsData?.questions.filter(q => 
-                  activeTab === "active" ? !q.question.isArchived : q.question.isArchived
-                ).length || 0} questions
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Tabs Section - Fixed */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col max-w-6xl w-full mx-auto">
-          <div className="flex-shrink-0 flex items-center justify-between pb-4 pr-4">
+          <div className="flex-shrink-0 flex items-center justify-between pb-4 pr-4 gap-4">
             <TabsList>
               <TabsTrigger value="active" data-testid="tab-active">
                 Active Questions ({questionsData?.questions.filter(q => !q.question.isArchived).length || 0})
@@ -952,22 +960,90 @@ export default function AdminQuestionEditor() {
               </TabsTrigger>
             </TabsList>
             
-            {activeTab === "active" && filteredQuestions.length > 1 && (
-              <Button
-                variant="outline"
-                onClick={handleRemixQuestions}
-                disabled={reorderQuestionsMutation.isPending}
-                data-testid="button-remix"
-              >
-                <Shuffle className="h-4 w-4 mr-2" />
-                Remix Order
-              </Button>
-            )}
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              {/* Filter Controls */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                
+                {/* Explanation Type Filter */}
+                <Select 
+                  value={filterExplanationType} 
+                  onValueChange={(val: "all" | "ai" | "static") => setFilterExplanationType(val)}
+                >
+                  <SelectTrigger className="w-[160px]" data-testid="filter-explanation-type">
+                    <SelectValue placeholder="Explanation Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Explanations</SelectItem>
+                    <SelectItem value="ai">AI Explanations</SelectItem>
+                    <SelectItem value="static">Static Explanations</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Question Type Filter */}
+                <Select 
+                  value={filterQuestionType} 
+                  onValueChange={setFilterQuestionType}
+                >
+                  <SelectTrigger className="w-[160px]" data-testid="filter-question-type">
+                    <SelectValue placeholder="Question Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Question Types</SelectItem>
+                    {availableQuestionTypes.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {type.split("_").map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(" ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Clear Filters Button */}
+                {(filterExplanationType !== "all" || filterQuestionType !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilterExplanationType("all");
+                      setFilterQuestionType("all");
+                    }}
+                    data-testid="button-clear-filters"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              
+              {/* Remix Button */}
+              {activeTab === "active" && filteredQuestions.length > 1 && (
+                <Button
+                  variant="outline"
+                  onClick={handleRemixQuestions}
+                  disabled={reorderQuestionsMutation.isPending}
+                  data-testid="button-remix"
+                >
+                  <Shuffle className="h-4 w-4 mr-2" />
+                  Remix Order
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Scrollable Content Area */}
-          <TabsContent value={activeTab} className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
+          <TabsContent value={activeTab} className="flex-1 overflow-hidden relative">
+            {/* Fisheye Navigation */}
+            {filteredQuestions.length > 0 && (
+              <FisheyeNavigation
+                items={fisheyeItems}
+                onItemClick={handleFisheyeClick}
+                currentItemId={currentQuestionId}
+              />
+            )}
+            
+            {/* Main Content - add padding left for fisheye */}
+            <ScrollArea className="h-full pl-28" ref={scrollAreaRef}>
               <div className="space-y-4 pr-4">
               {filteredQuestions.length === 0 ? (
                 <Card>
