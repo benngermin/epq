@@ -951,7 +951,18 @@ export default function AdminQuestionEditor() {
         </div>
 
         {/* Tabs Section - Fixed */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col max-w-6xl w-full mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col max-w-6xl w-full mx-auto relative">
+          {/* Fisheye Navigation - positioned absolutely to the left */}
+          {filteredQuestions.length > 0 && (
+            <div className="absolute left-0 top-[60px] bottom-0 w-20 -ml-24 z-10">
+              <FisheyeNavigation
+                items={fisheyeItems}
+                onItemClick={handleFisheyeClick}
+                currentItemId={currentQuestionId}
+              />
+            </div>
+          )}
+          
           <div className="flex-shrink-0 flex items-center justify-between pb-4 pr-4 gap-4">
             <TabsList>
               <TabsTrigger value="active" data-testid="tab-active">
@@ -1035,21 +1046,9 @@ export default function AdminQuestionEditor() {
 
           {/* Scrollable Content Area */}
           <TabsContent value={activeTab} className="flex-1 overflow-hidden">
-            <div className="max-w-6xl mx-auto flex gap-4 h-full px-6">
-              {/* Fisheye Navigation - positioned just left of content */}
-              {filteredQuestions.length > 0 && (
-                <div className="w-20 flex-shrink-0">
-                  <FisheyeNavigation
-                    items={fisheyeItems}
-                    onItemClick={handleFisheyeClick}
-                    currentItemId={currentQuestionId}
-                  />
-                </div>
-              )}
-              
-              {/* Main Content */}
-              <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                <div className="space-y-4 pr-4">
+            {/* Main Content - aligned with the controls above */}
+            <ScrollArea className="h-full" ref={scrollAreaRef}>
+              <div className="space-y-4 pr-4">
               {filteredQuestions.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -1422,7 +1421,6 @@ export default function AdminQuestionEditor() {
               )}
               </div>
             </ScrollArea>
-          </div>
           </TabsContent>
         </Tabs>
       </div>
