@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { HtmlLinkRenderer } from "@/components/html-link-renderer";
 import { FeedbackButtons } from "@/components/feedback-buttons";
 import { useSSEStream } from "@/hooks/use-sse-stream";
+import { useLocation } from "wouter";
 
 interface SimpleStreamingChatProps {
   questionVersionId: number;
@@ -24,9 +25,13 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   const [serverConversationHistory, setServerConversationHistory] = useState<Array<{role: string, content: string}> | null>(null);
 
   const { toast } = useToast();
+  const [location] = useLocation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentMessageIdRef = useRef<string>("");
   const prevQuestionIdRef = useRef<number | undefined>(undefined);
+  
+  // Check if we're on mobile view
+  const isMobileView = location === "/mobile-view";
 
   // Set up SSE streaming hook
   const { isStreaming, startStream, stopStream } = useSSEStream({
@@ -39,12 +44,14 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
           : msg
       ));
       
-      // Auto-scroll to bottom when new content arrives
-      requestAnimationFrame(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        }
-      });
+      // Auto-scroll to bottom when new content arrives (disabled on mobile view)
+      if (!isMobileView) {
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          }
+        });
+      }
     },
     onComplete: (history) => {
       // Mark message complete, update conversation history
