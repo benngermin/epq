@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { scrollToQuestion, debugScrollStructure } from "@/utils/fisheye-scroll";
+import { debugScrollStructure } from "@/utils/fisheye-scroll";
 import { QuestionTypeEditor } from "@/components/QuestionTypeEditor";
 import { AdminLayout } from "@/components/AdminLayout";
 import { FisheyeNavigation } from "@/components/FisheyeNavigation";
@@ -827,28 +827,60 @@ export default function AdminQuestionEditor() {
     }));
   }, [filteredQuestions, editedQuestions]);
   
-  // Helper function for smooth scrolling within a container
-  const scrollToWithin = (scrollerEl: HTMLElement, targetEl: HTMLElement, offset: number = 0) => {
-    const top = targetEl.getBoundingClientRect().top
-              - scrollerEl.getBoundingClientRect().top
-              + scrollerEl.scrollTop
-              - offset;
-    scrollerEl.scrollTo({ top, behavior: 'smooth' });
+  // Helper function to calculate offsetTop relative to an ancestor
+  const topWithin = (el: HTMLElement, ancestor: HTMLElement): number => {
+    let t = 0;
+    let n: HTMLElement | null = el;
+    while (n && n !== ancestor) {
+      t += n.offsetTop;
+      n = n.offsetParent as HTMLElement | null;
+    }
+    return t;
+  };
+
+  // Helper function to find question element by ID
+  const findQuestionEl = (id: string): HTMLElement | null => {
+    return document.getElementById(`q-${id}`)
+        || document.querySelector<HTMLElement>(`[data-testid="card-question-${id}"]`)
+        || document.querySelector<HTMLElement>(`[data-question-id="${id}"]`)?.closest('[id^="q-"]') as HTMLElement | null;
   };
 
   // Handle fisheye item click - smooth scroll to question and focus it
   const handleFisheyeClick = useCallback((questionId: number) => {
     console.log('Fisheye clicked for question:', questionId);
     
-    // Use the utility function to handle scrolling
-    const success = scrollToQuestion(questionId, 20);
-    
-    if (success) {
-      setCurrentQuestionId(questionId);
-    } else {
-      // Debug the DOM structure if scrolling failed
+    // Find the scroller viewport
+    const scroller = document.querySelector<HTMLElement>(
+      '[data-role="editor-scroller"] [data-radix-scroll-area-viewport]'
+    );
+
+    if (!scroller) {
+      console.error('Scroller viewport not found');
       debugScrollStructure();
+      return;
     }
+
+    const card = findQuestionEl(questionId.toString());
+    if (!card) {
+      console.error(`Question element q-${questionId} not found`);
+      debugScrollStructure();
+      return;
+    }
+
+    // Calculate scroll position using offsetTop
+    const sticky = parseInt(getComputedStyle(scroller).scrollPaddingTop || '0', 10) || 0;
+    const y = Math.max(0, topWithin(card, scroller) - sticky);
+    
+    console.log(`Scrolling to question ${questionId}, position: ${y}`);
+    scroller.scrollTo({ top: y, behavior: 'smooth' });
+
+    // Focus the card after scrolling for accessibility
+    setTimeout(() => {
+      card.setAttribute('tabindex', '-1');
+      card.focus({ preventScroll: true });
+    }, 300);
+
+    setCurrentQuestionId(questionId);
   }, []);
   
   // Track current question in view

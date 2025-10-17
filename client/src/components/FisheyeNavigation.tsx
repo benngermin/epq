@@ -56,16 +56,77 @@ export function FisheyeNavigation({
     return baseWidth * scale;
   };
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent, itemId: number) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onItemClick(itemId);
+  // Helper function to calculate offsetTop relative to an ancestor
+  const topWithin = (el: HTMLElement, ancestor: HTMLElement): number => {
+    let t = 0;
+    let n: HTMLElement | null = el;
+    while (n && n !== ancestor) {
+      t += n.offsetTop;
+      n = n.offsetParent as HTMLElement | null;
     }
+    return t;
   };
 
-  // Removed auto-scroll of fisheye items - we want the main question list to scroll, not the fisheye
-  // The fisheye should remain stationary while the main content scrolls
+  // Helper function to find question element by ID
+  const findQuestionEl = (id: string): HTMLElement | null => {
+    return document.getElementById(`q-${id}`)
+        || document.querySelector<HTMLElement>(`[data-testid="card-question-${id}"]`)
+        || document.querySelector<HTMLElement>(`[data-question-id="${id}"]`)?.closest('[id^="q-"]') as HTMLElement | null;
+  };
+
+  // Handle fisheye item click with proper viewport scrolling
+  const handleFisheyeClick = (e: React.MouseEvent<HTMLButtonElement>, itemId: number) => {
+    e.preventDefault(); // Stop any hash/window jumps
+
+    // Find the scroller viewport
+    const scroller = document.querySelector<HTMLElement>(
+      '[data-role="editor-scroller"] [data-radix-scroll-area-viewport]'
+    );
+
+    if (!scroller) {
+      console.log('Scroller viewport not found, falling back to onItemClick');
+      onItemClick(itemId);
+      return;
+    }
+
+    const card = findQuestionEl(itemId.toString());
+    if (!card) {
+      console.log(`Question element q-${itemId} not found, using onItemClick`);
+      onItemClick(itemId);
+      return;
+    }
+
+    // Calculate scroll position using offsetTop
+    const sticky = parseInt(getComputedStyle(scroller).scrollPaddingTop || '0', 10) || 0;
+    const y = Math.max(0, topWithin(card, scroller) - sticky);
+    
+    console.log(`Scrolling to question ${itemId}, position: ${y}`);
+    scroller.scrollTo({ top: y, behavior: 'smooth' });
+
+    // Focus the card after scrolling for accessibility
+    setTimeout(() => {
+      card.setAttribute('tabindex', '-1');
+      card.focus({ preventScroll: true });
+    }, 300);
+
+    // Also trigger the original callback for any additional logic
+    onItemClick(itemId);
+  };
+
+  // Handle keyboard navigation with same scrolling behavior
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, itemId: number) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      // Simulate click for keyboard activation
+      const target = e.currentTarget;
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      });
+      target.dispatchEvent(clickEvent);
+    }
+  };
   
   return (
     <div
@@ -109,10 +170,7 @@ export function FisheyeNavigation({
                 transformOrigin: 'center'
               }}
               onMouseEnter={() => setHoveredIndex(index)}
-              onClick={() => {
-                console.log('Fisheye button clicked:', item.id);
-                onItemClick(item.id);
-              }}
+              onClick={(e) => handleFisheyeClick(e, item.id)}
               onKeyDown={(e) => handleKeyDown(e, item.id)}
               data-testid={`fisheye-item-${item.id}`}
               title={`Question ${index + 1}: ${item.label.substring(0, 50)}...`}

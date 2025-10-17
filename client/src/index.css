@@ -351,3 +351,20 @@
     max-width: 100% !important;
   }
 }
+
+/* Fisheye scroll behavior for Radix ScrollArea */
+:root { 
+  --editor-sticky-offset: 72px; /* Adjust if needed */
+}
+
+/* Configure scroll behavior for the editor scroller viewport */
+[data-role="editor-scroller"] [data-radix-scroll-area-viewport] {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--editor-sticky-offset);
+}
+
+/* Question cards have stable ids and need scroll margin */
+[id^="q-"], 
+[data-testid^="card-question-"] {
+  scroll-margin-top: var(--editor-sticky-offset);
+}
