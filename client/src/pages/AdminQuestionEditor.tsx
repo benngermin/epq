@@ -827,35 +827,55 @@ export default function AdminQuestionEditor() {
   
   // Handle fisheye item click - smooth scroll to question and focus it
   const handleFisheyeClick = useCallback((questionId: number) => {
+    console.log('Fisheye click - looking for question:', questionId);
+    
+    // Find the question element
     const questionElement = document.querySelector(`[data-question-id="${questionId}"]`) as HTMLElement;
-    if (questionElement && scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        // Dynamically get the actual fisheye header height
-        const fisheyeHeight = fisheyeRef.current?.offsetHeight || 0;
-        
-        // Calculate offset accounting for the sticky fisheye header
-        const rect = questionElement.getBoundingClientRect();
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const offset = rect.top - containerRect.top + scrollContainer.scrollTop - fisheyeHeight - 20;
-        
-        // Smooth scroll to the question
-        scrollContainer.scrollTo({
-          top: offset,
-          behavior: 'smooth'
-        });
-        
-        // Focus the first focusable element in the question card
-        setTimeout(() => {
-          const firstInput = questionElement.querySelector('textarea, input, button') as HTMLElement;
-          if (firstInput) {
-            firstInput.focus();
-          }
-        }, 300); // Wait for scroll animation to complete
-        
-        setCurrentQuestionId(questionId);
-      }
+    console.log('Question element found:', !!questionElement);
+    
+    if (!questionElement) {
+      console.error('Could not find question element with id:', questionId);
+      return;
     }
+    
+    if (!scrollAreaRef.current) {
+      console.error('ScrollArea ref not found');
+      return;
+    }
+    
+    // Find the scroll viewport within the ScrollArea component
+    const scrollViewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    
+    if (!scrollViewport) {
+      console.error('Could not find scroll viewport');
+      return;
+    }
+    
+    console.log('Scroll viewport found, attempting to scroll');
+    
+    // Use the question element's offsetTop relative to its offsetParent
+    // This should give us the correct position within the scrollable container
+    const targetScrollTop = questionElement.offsetTop - 20; // 20px padding from top
+    
+    console.log('Target scroll position:', targetScrollTop);
+    console.log('Current scroll position:', scrollViewport.scrollTop);
+    
+    // Scroll to the question
+    scrollViewport.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth'
+    });
+    
+    // Focus the first input after scrolling
+    setTimeout(() => {
+      const firstInput = questionElement.querySelector('textarea, input, button') as HTMLElement;
+      if (firstInput) {
+        firstInput.focus();
+        console.log('Focused element');
+      }
+    }, 400);
+    
+    setCurrentQuestionId(questionId);
   }, []);
   
   // Track current question in view
