@@ -88,6 +88,7 @@ export default function AdminQuestionEditor() {
   // Fisheye navigation state
   const [currentQuestionId, setCurrentQuestionId] = useState<number | undefined>(undefined);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fisheyeRef = useRef<HTMLDivElement>(null);
 
   // Fetch course info
   const { data: course } = useQuery<{ courseNumber: string; courseTitle: string }>({
@@ -824,20 +825,33 @@ export default function AdminQuestionEditor() {
     }));
   }, [filteredQuestions, editedQuestions]);
   
-  // Handle fisheye item click - scroll to question
+  // Handle fisheye item click - smooth scroll to question and focus it
   const handleFisheyeClick = useCallback((questionId: number) => {
-    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`);
+    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`) as HTMLElement;
     if (questionElement && scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
+        // Dynamically get the actual fisheye header height
+        const fisheyeHeight = fisheyeRef.current?.offsetHeight || 0;
+        
+        // Calculate offset accounting for the sticky fisheye header
         const rect = questionElement.getBoundingClientRect();
         const containerRect = scrollContainer.getBoundingClientRect();
-        const offset = rect.top - containerRect.top + scrollContainer.scrollTop - 20; // 20px padding
+        const offset = rect.top - containerRect.top + scrollContainer.scrollTop - fisheyeHeight - 20;
         
+        // Smooth scroll to the question
         scrollContainer.scrollTo({
           top: offset,
           behavior: 'smooth'
         });
+        
+        // Focus the first focusable element in the question card
+        setTimeout(() => {
+          const firstInput = questionElement.querySelector('textarea, input, button') as HTMLElement;
+          if (firstInput) {
+            firstInput.focus();
+          }
+        }, 300); // Wait for scroll animation to complete
         
         setCurrentQuestionId(questionId);
       }
@@ -1037,24 +1051,22 @@ export default function AdminQuestionEditor() {
           {/* Scrollable Content Area */}
           <TabsContent value={activeTab} className="flex-1 overflow-hidden">
             {/* Question Editor Panel */}
-            <Card className="h-full">
-              {/* Single ScrollArea containing both fisheye and content */}
-              <ScrollArea className="h-full" ref={scrollAreaRef}>
-                <div className="flex h-full">
-                  {/* Fisheye Navigation - inside scrollable area */}
-                  {filteredQuestions.length > 0 && (
-                    <div className="w-20 flex-shrink-0 h-full pr-3 pl-1">
-                      <FisheyeNavigation
-                        items={fisheyeItems}
-                        onItemClick={handleFisheyeClick}
-                        currentItemId={currentQuestionId}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Main Content with gutter */}
-                  <div className="flex-1 px-4">
-                    <div className="space-y-4 py-4">
+            <Card className="h-full flex flex-col">
+              {/* Fisheye Navigation - sticky at top, scrolls horizontally */}
+              {filteredQuestions.length > 0 && (
+                <div ref={fisheyeRef} className="flex-shrink-0 sticky top-0 z-10 bg-background">
+                  <FisheyeNavigation
+                    items={fisheyeItems}
+                    onItemClick={handleFisheyeClick}
+                    currentItemId={currentQuestionId}
+                  />
+                </div>
+              )}
+              
+              {/* ScrollArea for question content only */}
+              <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                <div className="px-4">
+                  <div className="space-y-4 py-4">
                 {filteredQuestions.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">
@@ -1423,7 +1435,6 @@ export default function AdminQuestionEditor() {
                   );
                 })
               )}
-                    </div>
                   </div>
                 </div>
               </ScrollArea>

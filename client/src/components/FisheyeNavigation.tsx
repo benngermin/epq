@@ -22,16 +22,8 @@ export function FisheyeNavigation({
   currentItemId 
 }: FisheyeNavigationProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [hoveredY, setHoveredY] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      setHoveredY(y);
-    }
-  };
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const handleMouseLeave = () => {
     setHoveredIndex(null);
@@ -42,104 +34,122 @@ export function FisheyeNavigation({
     
     const distance = Math.abs(index - hoveredIndex);
     
-    if (distance === 0) return 1.8;
-    if (distance === 1) return 1.4;
-    if (distance === 2) return 1.15;
+    if (distance === 0) return 1.3;
+    if (distance === 1) return 1.15;
+    if (distance === 2) return 1.05;
     return 1;
   };
   
   const getItemOpacity = (index: number) => {
-    if (hoveredIndex === null) return 0.7;
+    if (hoveredIndex === null) return 0.8;
     
     const distance = Math.abs(index - hoveredIndex);
     
     if (distance === 0) return 1;
     if (distance <= 2) return 0.9;
-    return 0.6;
+    return 0.7;
   };
   
-  const getItemHeight = (index: number) => {
+  const getItemWidth = (index: number) => {
     const scale = getItemScale(index);
-    const baseHeight = 20;
-    return baseHeight * scale;
+    const baseWidth = 60;
+    return baseWidth * scale;
   };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent, itemId: number) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onItemClick(itemId);
+    }
+  };
+
+  // Auto-scroll to current item when it changes
+  useEffect(() => {
+    if (currentItemId && scrollContainerRef.current) {
+      const currentButton = scrollContainerRef.current.querySelector(
+        `[data-fisheye-id="${currentItemId}"]`
+      ) as HTMLElement;
+      
+      if (currentButton) {
+        currentButton.scrollIntoView({ 
+          behavior: 'smooth', 
+          inline: 'center',
+          block: 'nearest' 
+        });
+      }
+    }
+  }, [currentItemId]);
   
   return (
     <div
       ref={containerRef}
-      className="h-full overflow-y-auto overflow-x-hidden"
-      onMouseMove={handleMouseMove}
+      className="relative w-full border-b bg-muted/5"
       onMouseLeave={handleMouseLeave}
     >
-      <div className="py-1 space-y-0.5">
+      <div 
+        ref={scrollContainerRef}
+        className="flex items-center gap-1 px-4 py-2 overflow-x-auto overflow-y-hidden scrollbar-thin"
+        style={{ scrollbarWidth: 'thin' }}
+      >
         {items.map((item, index) => {
           const scale = getItemScale(index);
           const opacity = getItemOpacity(index);
-          const height = getItemHeight(index);
+          const width = getItemWidth(index);
           const isHovered = hoveredIndex === index;
           const isCurrent = currentItemId === item.id;
           
           return (
             <button
               key={item.id}
+              data-fisheye-id={item.id}
               className={cn(
-                "relative w-full px-2 cursor-pointer transition-all duration-200 ease-out flex items-center rounded-sm",
+                "relative flex items-center justify-center cursor-pointer transition-all duration-200 ease-out",
+                "px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap",
                 "hover:bg-muted/50 hover:ring-2 hover:ring-inset hover:ring-muted-foreground/20",
-                isCurrent && "bg-muted ring-2 ring-inset ring-primary/20",
+                isCurrent && "bg-primary/10 ring-2 ring-inset ring-primary/50 text-primary",
+                !isCurrent && "text-muted-foreground hover:text-foreground",
                 isHovered && "z-10",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0"
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               )}
               style={{
-                height: `${height}px`,
-                transform: `scale(${scale})`,
+                minWidth: `${width}px`,
+                transform: `scaleY(${scale})`,
                 opacity,
-                transformOrigin: 'left center'
+                transformOrigin: 'center'
               }}
               onMouseEnter={() => setHoveredIndex(index)}
               onClick={() => onItemClick(item.id)}
+              onKeyDown={(e) => handleKeyDown(e, item.id)}
               data-testid={`fisheye-item-${item.id}`}
+              title={`Question ${index + 1}: ${item.label.substring(0, 50)}...`}
             >
-              <div className="flex items-center gap-1 w-full min-w-0">
+              <div className="flex items-center gap-1.5">
                 {/* Question Number */}
-                <span className={cn(
-                  "text-xs font-semibold whitespace-nowrap",
-                  isHovered ? "text-primary" : "text-muted-foreground",
-                  isCurrent && "text-primary"
-                )}>
+                <span className="font-semibold">
                   Q{index + 1}
                 </span>
                 
                 {/* Status Indicators */}
-                {isHovered && (
-                  <div className="flex items-center gap-0.5">
-                    {item.hasEdits && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" title="Modified" />
-                    )}
-                    {item.mode === "static" && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Static" />
-                    )}
-                    {item.mode === "ai" && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="AI" />
-                    )}
-                  </div>
+                <div className="flex items-center gap-0.5">
+                  {item.hasEdits && (
+                    <div className="w-2 h-2 rounded-full bg-yellow-500" title="Modified" />
+                  )}
+                  {item.mode === "static" && (
+                    <div className="w-2 h-2 rounded-full bg-blue-500" title="Static" />
+                  )}
+                  {(!item.mode || item.mode === "ai") && (
+                    <div className="w-2 h-2 rounded-full bg-green-500" title="AI" />
+                  )}
+                </div>
+                
+                {/* Type badge for hovered items */}
+                {isHovered && item.type && (
+                  <span className="text-xs opacity-80">
+                    {item.type.split("_").map(w => w[0].toUpperCase()).join("")}
+                  </span>
                 )}
               </div>
-              
-              {/* Hover Details Tooltip */}
-              {isHovered && (
-                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                  <div className="bg-popover text-popover-foreground rounded-md shadow-md px-3 py-2 max-w-xs">
-                    <div className="text-sm font-medium">{item.label}</div>
-                    {item.type && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {item.type.split("_").map(word => 
-                          word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join(" ")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </button>
           );
         })}
