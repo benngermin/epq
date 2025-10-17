@@ -825,16 +825,22 @@ export default function AdminQuestionEditor() {
     }));
   }, [filteredQuestions, editedQuestions]);
   
+  // Helper function for smooth scrolling within a container
+  const scrollToWithin = (scrollerEl: HTMLElement, targetEl: HTMLElement, offset: number = 0) => {
+    const top = targetEl.getBoundingClientRect().top
+              - scrollerEl.getBoundingClientRect().top
+              + scrollerEl.scrollTop
+              - offset;
+    scrollerEl.scrollTo({ top, behavior: 'smooth' });
+  };
+
   // Handle fisheye item click - smooth scroll to question and focus it
   const handleFisheyeClick = useCallback((questionId: number) => {
-    console.log('Fisheye click - looking for question:', questionId);
-    
-    // Find the question element
-    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`) as HTMLElement;
-    console.log('Question element found:', !!questionElement);
+    // Find the question element using the stable ID
+    const questionElement = document.getElementById(`q-${questionId}`) as HTMLElement;
     
     if (!questionElement) {
-      console.error('Could not find question element with id:', questionId);
+      console.error('Could not find question element with id:', `q-${questionId}`);
       return;
     }
     
@@ -851,27 +857,22 @@ export default function AdminQuestionEditor() {
       return;
     }
     
-    console.log('Scroll viewport found, attempting to scroll');
+    // Get the header element to calculate offset
+    const header = fisheyeRef.current;
+    const offset = (header?.offsetHeight || 0) + 8; // Header height + 8px padding
     
-    // Use the question element's offsetTop relative to its offsetParent
-    // This should give us the correct position within the scrollable container
-    const targetScrollTop = questionElement.offsetTop - 20; // 20px padding from top
+    // Scroll to the question with offset for the sticky header
+    scrollToWithin(scrollViewport, questionElement, offset);
     
-    console.log('Target scroll position:', targetScrollTop);
-    console.log('Current scroll position:', scrollViewport.scrollTop);
+    // Set focus to the question element for accessibility
+    questionElement.setAttribute('tabindex', '-1');
+    questionElement.focus({ preventScroll: true });
     
-    // Scroll to the question
-    scrollViewport.scrollTo({
-      top: targetScrollTop,
-      behavior: 'smooth'
-    });
-    
-    // Focus the first input after scrolling
+    // Also focus the first input after a delay for better UX
     setTimeout(() => {
-      const firstInput = questionElement.querySelector('textarea, input, button') as HTMLElement;
+      const firstInput = questionElement.querySelector('textarea, input, button:not([data-drag-handle])') as HTMLElement;
       if (firstInput) {
-        firstInput.focus();
-        console.log('Focused element');
+        firstInput.focus({ preventScroll: true });
       }
     }, 400);
     
@@ -888,7 +889,7 @@ export default function AdminQuestionEditor() {
       const middleY = containerRect.top + containerRect.height / 3;
       
       // Find which question is in the middle of the viewport
-      const questionElements = scrollContainer.querySelectorAll('[data-question-id]');
+      const questionElements = scrollContainer.querySelectorAll('[id^="q-"]');
       let closestQuestion: Element | null = null;
       let closestDistance = Infinity;
       
@@ -904,9 +905,9 @@ export default function AdminQuestionEditor() {
       });
       
       if (closestQuestion) {
-        const questionIdStr = (closestQuestion as HTMLElement).getAttribute('data-question-id');
-        if (questionIdStr) {
-          const id = parseInt(questionIdStr);
+        const questionId = (closestQuestion as HTMLElement).id;
+        if (questionId && questionId.startsWith('q-')) {
+          const id = parseInt(questionId.substring(2));
           if (id) setCurrentQuestionId(id);
         }
       }
@@ -1074,7 +1075,7 @@ export default function AdminQuestionEditor() {
             <Card className="h-full flex flex-col">
               {/* Fisheye Navigation - sticky at top, scrolls horizontally */}
               {filteredQuestions.length > 0 && (
-                <div ref={fisheyeRef} className="flex-shrink-0 sticky top-0 z-10 bg-background">
+                <div ref={fisheyeRef} className="flex-shrink-0 sticky top-0 z-10 bg-background" data-role="panel-header">
                   <FisheyeNavigation
                     items={fisheyeItems}
                     onItemClick={handleFisheyeClick}
@@ -1084,7 +1085,7 @@ export default function AdminQuestionEditor() {
               )}
               
               {/* ScrollArea for question content only */}
-              <ScrollArea className="flex-1" ref={scrollAreaRef}>
+              <ScrollArea className="flex-1" ref={scrollAreaRef} data-role="editor-scroller">
                 <div className="px-4">
                   <div className="space-y-4 py-4">
                 {filteredQuestions.length === 0 ? (
@@ -1136,6 +1137,7 @@ export default function AdminQuestionEditor() {
                       )}
                       
                       <Card 
+                        id={`q-${question.id}`}
                         className={`
                           ${hasEdits ? "border-yellow-500" : ""}
                           ${draggedQuestion === question.id ? "opacity-60 scale-[0.985] blur-[0.5px]" : ""}

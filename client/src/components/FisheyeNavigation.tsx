@@ -86,11 +86,13 @@ export function FisheyeNavigation({
       ref={containerRef}
       className="relative w-full border-b bg-muted/5"
       onMouseLeave={handleMouseLeave}
+      data-role="fisheye"
     >
       <div 
         ref={scrollContainerRef}
         className="flex items-center gap-1 px-4 py-2 overflow-x-auto overflow-y-hidden scrollbar-thin"
         style={{ scrollbarWidth: 'thin' }}
+        data-role="fisheye-scroller"
       >
         {items.map((item, index) => {
           const scale = getItemScale(index);
@@ -103,6 +105,8 @@ export function FisheyeNavigation({
             <button
               key={item.id}
               data-fisheye-id={item.id}
+              data-target={`q-${item.id}`}
+              data-role="fisheye-item"
               className={cn(
                 "relative flex items-center justify-center cursor-pointer transition-all duration-200 ease-out",
                 "px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap",
