@@ -6356,6 +6356,117 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Data cleanup endpoint to fix version integrity issues
+  app.post("/api/admin/fix-version-integrity", requireAdmin, async (req, res) => {
+    try {
+      let fixed = {
+        multipleActiveVersions: 0,
+        orphanedVersions: 0,
+        questionsWithoutVersions: 0
+      };
+
+      // Start transaction for all fixes
+      await db.transaction(async (tx) => {
+        // Fix 1: Handle questions with multiple active versions
+        // Get all questions with multiple active versions
+        const multipleActiveVersions = await tx.select({
+          questionId: questionVersions.questionId,
+          count: sql<number>`COUNT(*)`,
+          maxVersionNumber: sql<number>`MAX(${questionVersions.versionNumber})`,
+          maxId: sql<number>`MAX(${questionVersions.id})`
+        })
+        .from(questionVersions)
+        .where(eq(questionVersions.isActive, true))
+        .groupBy(questionVersions.questionId)
+        .having(sql`COUNT(*) > 1`);
+
+        // For each question with multiple active versions, keep only the latest one
+        for (const issue of multipleActiveVersions) {
+          // Deactivate all versions except the one with the highest versionNumber (or highest ID if versionNumbers are equal)
+          await tx.update(questionVersions)
+            .set({ isActive: false })
+            .where(and(
+              eq(questionVersions.questionId, issue.questionId),
+              eq(questionVersions.isActive, true),
+              sql`NOT (${questionVersions.versionNumber} = ${issue.maxVersionNumber} AND ${questionVersions.id} = ${issue.maxId})`
+            ));
+          
+          fixed.multipleActiveVersions++;
+          console.log(`[FIX] Deactivated duplicate versions for question ${issue.questionId}`);
+        }
+
+        // Fix 2: Remove orphaned versions (versions pointing to non-existent questions)
+        const orphanedVersions = await tx.select({
+          id: questionVersions.id,
+          questionId: questionVersions.questionId
+        })
+        .from(questionVersions)
+        .leftJoin(questions, eq(questions.id, questionVersions.questionId))
+        .where(sql`${questions.id} IS NULL`);
+
+        if (orphanedVersions.length > 0) {
+          const orphanedIds = orphanedVersions.map(v => v.id);
+          await tx.delete(questionVersions)
+            .where(inArray(questionVersions.id, orphanedIds));
+          
+          fixed.orphanedVersions = orphanedVersions.length;
+          console.log(`[FIX] Removed ${orphanedVersions.length} orphaned versions`);
+        }
+
+        // Fix 3: Create default versions for questions without any active version
+        const questionsWithoutActiveVersion = await tx.select({
+          questionId: questions.id,
+          questionNumber: questions.originalQuestionNumber,
+          questionSetId: questions.questionSetId,
+          loid: questions.loid
+        })
+        .from(questions)
+        .leftJoin(questionVersions, and(
+          eq(questionVersions.questionId, questions.id),
+          eq(questionVersions.isActive, true)
+        ))
+        .where(and(
+          eq(questions.isArchived, false),
+          sql`${questionVersions.id} IS NULL`
+        ));
+
+        // For each question without an active version, check if ANY version exists
+        for (const q of questionsWithoutActiveVersion) {
+          const existingVersions = await tx.select()
+            .from(questionVersions)
+            .where(eq(questionVersions.questionId, q.questionId))
+            .orderBy(desc(questionVersions.versionNumber));
+
+          if (existingVersions.length > 0) {
+            // Activate the most recent version
+            await tx.update(questionVersions)
+              .set({ isActive: true })
+              .where(eq(questionVersions.id, existingVersions[0].id));
+            
+            fixed.questionsWithoutVersions++;
+            console.log(`[FIX] Activated existing version for question ${q.questionId}`);
+          } else {
+            // No versions exist at all - this needs manual intervention
+            console.warn(`[WARNING] Question ${q.questionId} has no versions at all - requires manual intervention`);
+          }
+        }
+      });
+
+      res.json({
+        success: true,
+        message: "Version integrity issues have been fixed",
+        fixed,
+        nextStep: "Run the diagnostic endpoint again to verify all issues are resolved"
+      });
+    } catch (error: any) {
+      console.error("Error fixing version integrity:", error);
+      res.status(500).json({ 
+        error: "Failed to fix version integrity",
+        message: error.message
+      });
+    }
+  });
+
   // Diagnostic endpoint to check the production database
   app.get("/api/admin/diagnostic", requireAdmin, async (req, res) => {
     const results: any = {
