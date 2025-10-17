@@ -1034,19 +1034,22 @@ export default function AdminQuestionEditor() {
           </div>
 
           {/* Scrollable Content Area */}
-          <TabsContent value={activeTab} className="flex-1 overflow-hidden relative">
-            {/* Fisheye Navigation */}
-            {filteredQuestions.length > 0 && (
-              <FisheyeNavigation
-                items={fisheyeItems}
-                onItemClick={handleFisheyeClick}
-                currentItemId={currentQuestionId}
-              />
-            )}
-            
-            {/* Main Content - add padding left for fisheye */}
-            <ScrollArea className="h-full pl-28" ref={scrollAreaRef}>
-              <div className="space-y-4 pr-4">
+          <TabsContent value={activeTab} className="flex-1 overflow-hidden">
+            <div className="max-w-6xl mx-auto flex gap-4 h-full px-6">
+              {/* Fisheye Navigation - positioned just left of content */}
+              {filteredQuestions.length > 0 && (
+                <div className="w-20 flex-shrink-0">
+                  <FisheyeNavigation
+                    items={fisheyeItems}
+                    onItemClick={handleFisheyeClick}
+                    currentItemId={currentQuestionId}
+                  />
+                </div>
+              )}
+              
+              {/* Main Content */}
+              <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                <div className="space-y-4 pr-4">
               {filteredQuestions.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -1419,6 +1422,7 @@ export default function AdminQuestionEditor() {
               )}
               </div>
             </ScrollArea>
+          </div>
           </TabsContent>
         </Tabs>
       </div>
