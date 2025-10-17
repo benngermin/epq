@@ -1,0 +1,59 @@
+I need you to make fisheye clicks scroll the **Radix ScrollArea viewport** (not the window) to the matching question card, using the viewport under `[data-role="editor-scroller"]` and computing the scroll target with `offsetTop` (not `getBoundingClientRect`, which is why we keep logging `Final scroll position: 0`). Implement exactly this:
+
+```css
+/* 1) Offsets so targets don't hide under the sticky strip */
+:root { --editor-sticky-offset: 72px; } /* adjust if needed */
+[data-role="editor-scroller"] [data-radix-scroll-area-viewport]{
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--editor-sticky-offset);
+}
+/* Question cards have stable ids like #q-4651; backstop with data-testids */
+[id^="q-"], [data-testid^="card-question-"]{ scroll-margin-top: var(--editor-sticky-offset); }
+```
+
+```ts
+// 2) Replace the fisheye click handler with this (delete the old "viewport selector/final scroll 0" code)
+const scroller = document.querySelector<HTMLElement>(
+  '[data-role="editor-scroller"] [data-radix-scroll-area-viewport]'
+);
+const fisheye = document.querySelector<HTMLElement>('[data-role="fisheye"]');
+
+function topWithin(el: HTMLElement, ancestor: HTMLElement){
+  let t = 0, n: HTMLElement | null = el;
+  while (n && n !== ancestor){ t += n.offsetTop; n = n.offsetParent as HTMLElement | null; }
+  return t;
+}
+function findQuestionEl(id: string){
+  return document.getElementById(`q-${id}`)
+      || document.querySelector<HTMLElement>(`[data-testid="card-question-${id}"]`)
+      || document.querySelector<HTMLElement>(`[data-question-id="${id}"]`)?.closest('[id^="q-"]') as HTMLElement | null;
+}
+
+fisheye?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-target-id]');
+  if (!btn || !scroller) return;
+  e.preventDefault(); // stop any hash/window jumps
+
+  const id = btn.dataset.targetId!;
+  const card = findQuestionEl(id);
+  if (!card) return;
+
+  const sticky = parseInt(getComputedStyle(scroller).scrollPaddingTop || '0', 10) || 0;
+  const y = Math.max(0, topWithin(card, scroller) - sticky);
+  scroller.scrollTo({ top: y, behavior: 'smooth' });
+
+  card.setAttribute('tabindex','-1');
+  card.focus({ preventScroll: true });
+});
+
+// keyboard parity
+fisheye?.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.key === 'Enter' || e.key === ' ') (e.target as HTMLElement).click();
+});
+```
+
+**Acceptance**
+
+* Clicking (or Enter/Space on) a fisheye item scrolls **`[data-role="editor-scroller"] [data-radix-scroll-area-viewport]`** so the matching `#q-<id>` card lands fully visible below the sticky strip.
+* `window.pageYOffset` stays unchanged; only the viewport’s `scrollTop` changes (>0 when jumping down).
+* No “Final scroll position: 0” logs remain; we are no longer using `getBoundingClientRect` math.
