@@ -1,0 +1,75 @@
+Your code is using `offsetTop`/a custom `topWithin(...)` to compute where to scroll, but the Radix `ScrollArea` viewport is **not** an `offsetParent` of the question cards. That means you’re computing a position relative to the **page**, then trying to apply it to the **inner viewport** (`[data-radix-scroll-area-viewport]`). Result: the call to `scrollTo({ top })` often targets the wrong number and the list doesn’t move.
+
+Fix it once and for all by computing the target from **bounding-rect deltas + current `scrollTop`** of the viewport (not from `offsetTop`). Do it in one place and reuse it.
+
+# Do this
+
+## 1) Replace the scroll math in `client/src/utils/fisheye-scroll.ts`
+
+Find:
+
+```ts
+const position = questionElement.offsetTop - offset - 8;
+scrollContainer.scrollTo({ top: position, behavior: 'smooth' });
+```
+
+Replace with:
+
+```ts
+// Robust scroll math: viewport-relative, not offsetParent-relative
+const viewportRect = scrollContainer.getBoundingClientRect();
+const cardRect     = questionElement.getBoundingClientRect();
+const deltaTop     = cardRect.top - viewportRect.top;
+
+const target = Math.max(
+  0,
+  Math.min(
+    scrollContainer.scrollTop + deltaTop - offset - 8, // 8px breathing room
+    scrollContainer.scrollHeight - scrollContainer.clientHeight
+  )
+);
+
+scrollContainer.scrollTo({ top: target, behavior: 'smooth' });
+
+// (Optional) focus without re-scrolling
+queueMicrotask(() => {
+  questionElement.querySelector<HTMLElement>('textarea, input, [tabindex]:not([tabindex="-1"])')
+    ?.focus({ preventScroll: true });
+});
+```
+
+> Keep using your existing `offset` (sticky height). The important change is **`scrollTop + (cardRect.top - viewportRect.top)`**.
+
+## 2) Stop duplicating the scroll logic
+
+In both places you currently re-implement it:
+
+* `client/src/components/FisheyeNavigation.tsx`
+* `client/src/pages/AdminQuestionEditor.tsx`
+
+…remove the local `offsetTop`/`topWithin` math and **call the util**:
+
+```ts
+import { attemptScrollToQuestion } from '@/utils/fisheye-scroll';
+
+const handleFisheyeClick = (id: number) => {
+  const ok = attemptScrollToQuestion(id, { smooth: true });
+  if (!ok) console.warn('Fisheye scroll failed for', id);
+};
+```
+
+## 3) Make sure we’re targeting the right scroller
+
+Your selector is fine, keep it:
+
+```ts
+document.querySelector<HTMLElement>(
+  '[data-role="editor-scroller"] [data-radix-scroll-area-viewport]'
+);
+```
+
+(That’s the element whose `scrollTop` we read/modify.)
+
+---
+
+That’s it. The root cause was using `offsetTop` against a nested scroll container. Switching to **viewport-relative bounding rects + current `scrollTop`** fixes the coordinate system mismatch, so clicks in the fisheye will actually scroll the question list.
