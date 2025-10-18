@@ -6805,13 +6805,48 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Get questions with their active versions
       const questionsWithVersions = await storage.getQuestionsWithVersions(questionSetId, includeArchived);
       
+      // Separate active and archived questions
+      const activeQuestions = questionsWithVersions.filter(q => !q.question.isArchived);
+      const archivedQuestions = questionsWithVersions.filter(q => q.question.isArchived);
+      
+      // Sort active questions by displayOrder
+      const sortedActiveQuestions = [...activeQuestions].sort((a, b) => 
+        a.question.displayOrder - b.question.displayOrder
+      );
+      
+      // Check if active questions need normalization
+      const needsNormalization = sortedActiveQuestions.some((item, index) => 
+        item.question.displayOrder !== index
+      );
+      
+      if (needsNormalization && sortedActiveQuestions.length > 0) {
+        // Normalize display order for active questions only
+        const activeQuestionIds = sortedActiveQuestions.map(q => q.question.id);
+        await storage.reorderQuestions(questionSetId, activeQuestionIds);
+        
+        // Update the local data to reflect normalized displayOrder
+        sortedActiveQuestions.forEach((item, index) => {
+          item.question.displayOrder = index;
+        });
+      }
+      
+      // Sort archived questions by their displayOrder (don't normalize)
+      const sortedArchivedQuestions = [...archivedQuestions].sort((a, b) => 
+        a.question.displayOrder - b.question.displayOrder
+      );
+      
+      // Combine the results based on what was requested
+      const sortedQuestions = includeArchived 
+        ? [...sortedActiveQuestions, ...sortedArchivedQuestions]
+        : sortedActiveQuestions;
+      
       res.json({
         success: true,
         questionSetId,
         questionSetTitle: questionSet.title,
         includeArchived,
-        totalQuestions: questionsWithVersions.length,
-        questions: questionsWithVersions
+        totalQuestions: sortedQuestions.length,
+        questions: sortedQuestions
       });
     } catch (error: any) {
       console.error("Error fetching questions with versions:", error);
