@@ -1680,6 +1680,15 @@ export class DatabaseStorage implements IStorage {
     // Use transaction to ensure atomic operation
     await db.transaction(async (tx) => {
       try {
+        // Get the current max displayOrder for this question set
+        const [maxOrder] = await tx.select({
+          max: sql<number>`COALESCE(MAX(${questions.displayOrder}), -1)`
+        })
+        .from(questions)
+        .where(eq(questions.questionSetId, questionSetId));
+        
+        let currentOrder = maxOrder.max + 1;
+        
         for (const questionData of questionsData) {
           // Check if question already exists within transaction
           const existingQuestions = await tx.select()
@@ -1697,6 +1706,7 @@ export class DatabaseStorage implements IStorage {
               questionSetId,
               originalQuestionNumber: questionData.question_number,
               loid: questionData.loid,
+              displayOrder: currentOrder++, // Set displayOrder incrementally
             }).returning();
             question = newQuestion;
           }
@@ -2038,10 +2048,18 @@ export class DatabaseStorage implements IStorage {
             // Create new question
             console.log(`\n[NEW] Creating question at position ${result.incoming.question_number}`);
             
+            // Get the max display order for proper ordering
+            const [maxOrder] = await tx.select({
+              max: sql<number>`COALESCE(MAX(${questions.displayOrder}), -1)`
+            })
+            .from(questions)
+            .where(eq(questions.questionSetId, questionSetId));
+            
             const [newQuestion] = await tx.insert(questions).values({
               questionSetId,
               originalQuestionNumber: result.incoming.question_number,
               loid: result.incoming.loid,
+              displayOrder: (maxOrder?.max || -1) + 1, // Set proper displayOrder
               contentFingerprint: null,
               lastMatchedAt: new Date(),
               matchConfidence: 'new' // Set to 'new' for new questions (text field)

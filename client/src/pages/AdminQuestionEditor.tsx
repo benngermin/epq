@@ -1034,8 +1034,9 @@ export default function AdminQuestionEditor() {
                   const isExpanded = expandedQuestions.has(question.id);
                   const hasEdits = editedQuestions.has(question.id);
                   const currentMode = getCurrentValue(question.id, version, "isStaticAnswer") ? "static" : "ai";
-                  // Use the question's fixed displayOrder for consistent numbering
-                  const displayNumber = question.displayOrder + 1;
+                  // Use the index in the filtered list for display numbering
+                  // This ensures consistent sequential numbering when filtering
+                  const displayNumber = index + 1;
 
                   return (
                     <div key={question.id} className="relative">
