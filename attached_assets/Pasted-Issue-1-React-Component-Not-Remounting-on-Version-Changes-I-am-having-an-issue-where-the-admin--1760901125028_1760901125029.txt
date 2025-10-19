@@ -1,0 +1,52 @@
+Issue #1: React Component Not Remounting on Version Changes
+
+  I am having an issue where the admin question editor cards don't remount when a question's active version changes, causing stale data to
+   persist in the component.
+
+  Location: client/src/pages/AdminQuestionEditor.tsx line 1041
+
+  Current problem: The Card component uses key={question.id} which only includes the question ID. When a question's version changes (even
+  though we update in-place, the version ID could theoretically change), React doesn't know it needs to remount the component.
+
+  Please fix it by: Changing the Card's key prop from key={question.id} to key={${question.id}-${version?.id ?? 0}} to include both the
+  question ID and version ID. This ensures React remounts the component whenever either the question or its version changes.
+
+  ---
+  Issue #2: TanStack Query Cache Not Invalidating on Version Changes
+
+  I am having an issue where the questions query in the admin editor may serve stale data from the TanStack Query cache when question
+  versions are updated.
+
+  Location: client/src/pages/AdminQuestionEditor.tsx lines 162-167
+
+  Current problem: The query that fetches questions with versions doesn't specify cache invalidation parameters (staleTime or gcTime), so
+  TanStack Query uses default caching behavior. This means when a version is updated, the UI might show cached old data instead of
+  fetching fresh data.
+
+  Please fix it by: Adding staleTime: 0 and gcTime: 0 to the query options object. These settings will force the query to always fetch
+  fresh data and never serve from cache, matching the behavior of the other query at line 100 which already has these settings.
+
+  ---
+  Issue #3: Missing Database Constraint for Single Active Version
+
+  I am having an issue where the database schema allows multiple active versions per question, even though the application code assumes
+  there's only ever one active version per question. This mismatch means bugs or race conditions could create multiple active versions,
+  breaking the application's assumptions.
+
+  Location: Database schema (PostgreSQL/Neon database)
+
+  Current problem: The question_versions table has an is_active boolean column but no unique constraint enforcing that only one version
+  per question can have is_active = true. Evidence of this problem exists in server/utils/batch-queries.ts lines 63-68, where the code
+  logs warnings about finding multiple active versions. The application code updates versions in-place (single-version behavior) but the
+  database doesn't enforce this constraint.
+
+  Please fix it by: Creating a partial unique index on the question_versions table that enforces one active version per question. The SQL
+  statement should be:
+
+  CREATE UNIQUE INDEX unique_active_version_per_question
+  ON question_versions (question_id)
+  WHERE is_active = true;
+
+  This is a partial index that only applies when is_active is true, allowing multiple inactive versions but only one active version per
+  question. After creating this index, run a data cleanup query first to identify and fix any existing questions with multiple active
+  versions (keep the highest version_number as active, set others to inactive).
