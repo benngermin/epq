@@ -209,7 +209,7 @@ export default function AdminQuestionEditor() {
       );
     }
     
-    return filtered.sort((a, b) => a.question.displayOrder - b.question.displayOrder);
+    return [...filtered].sort((a, b) => a.question.displayOrder - b.question.displayOrder);
   }, [questionsData, activeTab, filterExplanationType, filterQuestionType, editedQuestions]);
 
   // Check for unsaved changes
