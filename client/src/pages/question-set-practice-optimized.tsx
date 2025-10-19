@@ -993,12 +993,12 @@ export default function QuestionSetPractice() {
                               <XCircle className="h-4 w-4" />
                             )
                           ) : (
-                            index + 1
+                            (question.displayOrder ?? 0) + 1
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            Question {index + 1}
+                            Question {(question.displayOrder ?? 0) + 1}
                           </p>
                         </div>
                         {isCurrent && (
@@ -1020,6 +1020,7 @@ export default function QuestionSetPractice() {
             <div className="w-full max-w-4xl mx-auto flex-1 min-h-0 flex flex-col">
               {currentQuestion ? (
                 <QuestionCard
+                  key={`${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}`}
                   question={{
                     ...currentQuestion,
                     questionIndex: currentQuestionIndex,

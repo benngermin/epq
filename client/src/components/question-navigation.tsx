@@ -56,8 +56,8 @@ export function QuestionNavigation({
     }
     
     // Extract a meaningful summary from question text
-    if (question.questionText && question.questionText.trim() !== "") {
-      const cleanText = question.questionText.replace(/\s+/g, ' ').trim();
+    if (question.latestVersion?.questionText && question.latestVersion.questionText.trim() !== "") {
+      const cleanText = question.latestVersion.questionText.replace(/\s+/g, ' ').trim();
       
       // Look for key patterns in insurance questions
       if (cleanText.includes('benefits of') || cleanText.includes('advantages of')) {
