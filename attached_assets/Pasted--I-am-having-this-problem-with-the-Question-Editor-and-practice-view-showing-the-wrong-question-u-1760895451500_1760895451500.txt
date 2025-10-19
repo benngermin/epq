@@ -1,0 +1,78 @@
+> I am having this problem with the Question Editor and practice view showing the “wrong” question under a given slot because the UI derives numbering from the **filtered array index** and, in a few places, reads text from **non‑canonical fields**. Do the following to fix the reindexing and stale-text mismatches so every surface uses the canonical order and active version:
+>
+> 1. **Admin editor — stop renumbering on filter**
+>
+> • **File:** `client/src/pages/AdminQuestionEditor.tsx`
+> • **Location:** around the list render where we do `filteredQuestions.map(...)`.
+> • **Change:** Replace the index‑based label with the canonical display order.
+>
+> ```tsx
+> // BEFORE (current, causes renumbering when filtered)
+> const displayNumber = index + 1;
+>
+> // AFTER (stable numbering; Q1 is always the same question)
+> const displayNumber = (question.displayOrder ?? 0) + 1;
+> ```
+>
+> Also keep the existing sort:
+>
+> ```tsx
+> return filtered.sort((a, b) => a.question.displayOrder - b.question.displayOrder);
+> ```
+>
+> and keep `key={question.id}` for each row (already correct).
+>
+> 2. **Learner practice view — never label by array index; force remount on question switch**
+>
+> • **File:** `client/src/pages/question-set-practice-optimized.tsx`
+>
+> a) In the left “question list” sidebar (the `questions?.map((question, index) => ...)` block), replace **both** uses of `index + 1` with the canonical order:
+>
+> ```tsx
+> // BEFORE
+> {index + 1}
+> // AFTER
+> {(question.displayOrder ?? 0) + 1}
+> ```
+>
+> ```tsx
+> // BEFORE
+> Question {index + 1}
+> // AFTER
+> Question {(question.displayOrder ?? 0) + 1}
+> ```
+>
+> b) In the main render where we mount `<QuestionCard ... />` (the block that uses `currentQuestion`), **force a remount when the question or its active version changes** to eliminate any stale child state showing the prior question’s text:
+>
+> ```tsx
+> // BEFORE
+> <QuestionCard
+>   question={{ ...currentQuestion, /* ... */ }}
+>   ...
+> />
+>
+> // AFTER
+> <QuestionCard
+>   key={`${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}`}
+>   question={{ ...currentQuestion, /* ... */ }}
+>   ...
+> />
+> ```
+>
+> 3. **Canonical text source in shared components**
+>
+> If any component still reads `question.questionText`, swap it to the canonical active version field:
+>
+> ```tsx
+> // BEFORE
+> question.questionText
+> // AFTER
+> question.latestVersion?.questionText
+> ```
+>
+> (For example, if `client/src/components/question-navigation.tsx` is used anywhere in practice flows, update its `getQuestionTitle()` to read from `latestVersion?.questionText`.)
+>
+> **Why this fixes it:**
+> • Numbering becomes **stable** because it’s anchored to `questions.displayOrder`, not whatever subset you’re viewing.
+> • The practice view no longer “sticks” old content in a slot because the card remounts when the **question or its active version** changes.
+> • All surfaces consistently render the **single active version** of each question’s text.
