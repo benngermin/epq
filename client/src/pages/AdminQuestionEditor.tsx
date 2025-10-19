@@ -163,7 +163,9 @@ export default function AdminQuestionEditor() {
     questions: QuestionWithVersion[];
   }>({
     queryKey: [`/api/admin/questions-with-versions/${setId}?includeArchived=true`],
-    enabled: !!setId
+    enabled: !!setId,
+    staleTime: 0, // Force fresh fetch
+    gcTime: 0, // Don't cache
   });
 
   // Get all unique question types for filter dropdown
