@@ -1038,7 +1038,7 @@ export default function AdminQuestionEditor() {
                   const displayNumber = (question.displayOrder ?? 0) + 1;
 
                   return (
-                    <div key={question.id} className="relative">
+                    <div key={`${question.id}-${version?.id ?? 0}`} className="relative">
                       {/* Enhanced drop zone indicators with smooth animations */}
                       {dragOverQuestion === question.id && dropPosition === "before" && (
                         <div className="absolute -top-2 left-0 right-0 h-2 z-20">
