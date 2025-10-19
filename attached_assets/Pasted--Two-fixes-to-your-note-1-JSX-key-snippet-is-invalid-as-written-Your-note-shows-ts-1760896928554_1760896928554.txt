@@ -1,0 +1,95 @@
+## Two fixes to your note
+
+1. **JSX `key` snippet is invalid as written**
+   Your note shows:
+
+```tsx
+key={${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}}
+```
+
+That’s not valid JSX. It should be a template string inside the braces:
+
+```tsx
+key={`${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}`}
+```
+
+2. **Be explicit about sorting & non‑mutating order**
+   Make sure every list view sorts by the canonical field and does **not** mutate state in place:
+
+```tsx
+const ordered = useMemo(
+  () => [...questions].sort((a, b) => a.displayOrder - b.displayOrder),
+  [questions]
+);
+const visible = filter === 'all' ? ordered
+  : ordered.filter(q => /* ai | static predicate */);
+```
+
+(Using `[...questions]` avoids mutating React state with an in‑place `.sort()`.)
+
+---
+
+## Suggested tightened message to your agent
+
+> I am having this problem where some question slots show the **wrong text** and filtering **renumbers** items, because (a) several UIs label questions using the **filtered array index** and (b) some components render **non‑canonical** text fields. Do (1) derive labels from `questions.displayOrder` and (2) render `latestVersion.questionText` everywhere, and (3) remount the card by `question.id + latestVersion.id` to fix stale state.
+>
+> **Make these exact changes:**
+>
+> 1. **AdminQuestionEditor.tsx**
+>
+>    * Ensure we **sort** by `displayOrder` before filtering and label with:
+>
+>      ```tsx
+>      const displayNumber = (question.displayOrder ?? 0) + 1;
+>      ```
+>    * Keep row keys as `key={question.id}` (never the index).
+> 2. **question-set-practice-optimized.tsx**
+>
+>    * Replace both sidebar labels `index + 1` with:
+>
+>      ```tsx
+>      (question.displayOrder ?? 0) + 1
+>      ```
+>    * Force remount on question/version change:
+>
+>      ```tsx
+>      <QuestionCard
+>        key={`${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}`}
+>        question={currentQuestion}
+>      />
+>      ```
+> 3. **question-navigation.tsx** (and any shared renderers)
+>
+>    * Use the canonical field:
+>
+>      ```tsx
+>      const text = question.latestVersion?.questionText;
+>      ```
+> 4. **Server/API**
+>
+>    * All list endpoints must include `ORDER BY questions.display_order ASC` so clients receive a stable order.
+>
+> **Acceptance criteria:**
+>
+> * Toggling **AI/Static/All** shows a subset in the **same canonical order**; visible items keep their original “Q#”.
+> * Creating a new active version immediately updates text in Admin **and** Practice views.
+> * Reorder/Archive operations keep slot → question → **active version** mapping stable.
+> * No component derives numbering from an array index.
+
+---
+
+## Optional hardening
+
+* Add a UI assertion (jest/RTL or Cypress) that snapshots the **id → Q#** mapping, applies a filter, and verifies the mapping for the visible subset is unchanged.
+* Log a warning if a rendered question lacks `latestVersion` to catch data drift.
+
+---
+
+## On the 401s you mentioned
+
+If those appeared in your workflow logs while testing, they’re orthogonal to the numbering/text fixes. Quick triage checklist:
+
+* Confirm the front‑end is calling the same base URL as the API (no mixed origins).
+* If cookie auth: verify cookies are sent (`withCredentials: true`) and CORS allows credentials.
+* If token auth: check token freshness and `Authorization` header on the failing requests.
+* Hit the list endpoint manually; expect **200 + ordered results**.
