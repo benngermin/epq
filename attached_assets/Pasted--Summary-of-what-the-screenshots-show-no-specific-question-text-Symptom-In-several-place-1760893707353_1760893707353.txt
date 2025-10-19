@@ -1,0 +1,122 @@
+## Summary of what the screenshots show (no specific question text)
+
+* **Symptom:** In several places, a *question slot* (e.g., “#62 in Set A”) renders the *wrong question text*—often text that belongs to a different slot number (e.g., “#18” or “#42”).
+* **Pattern:** Mismatches appear in both (a) the **Admin question‑set editor** and (b) the **learner-facing question set view**.
+* **Nature of mismatch:** The *position/identifier* being edited/viewed does not match the *question text* shown; the text is frequently an **older** or **other** question’s text.
+* **Implication:** At least one surface is **not reading the canonical “single source of truth”** for the question text (or is mapping the slot to the wrong record), leading to stale or incorrect content in production.
+
+---
+
+## Issue statement (DB‑agnostic)
+
+> **Problem:** Some question-set positions render **incorrect or stale question text**. A given slot/index (e.g., “#N in Set X”) should display the **single active version** of the question assigned to that slot. Instead, the UI sometimes shows a different question’s (or older version’s) text.
+
+> **Expected:**
+>
+> * There is **one canonical question text** per question **version**, and **one active version per question**.
+> * Every surface that shows questions (Admin editor, learner UI, APIs) must **read from the same canonical active version** and must **map the slot to the correct question**.
+
+> **Observed:**
+>
+> * Slot → question mapping can be wrong, and/or a non‑active/older text is displayed.
+
+---
+
+## What to verify in code (single source of truth & slot mapping)
+
+Use the attached codebase only (no prod data).
+
+### Canonical data model (from code)
+
+* Canonical text lives in **`question_versions.question_text`**, with a **single active version** per `question_id` (`is_active = true`).
+* Enforced by a partial **unique index**: one active version per question (`uq_active_question_version` on `question_versions(question_id) WHERE is_active = TRUE`).
+* Questions belong to a set via `questions.question_set_id`, and ordering uses **`questions.display_order`** (not the original imported number).
+
+**Key files/paths to review**
+
+* **Schema:** `shared/schema.ts`
+* **Batch fetch used by both Admin & learner:** `server/utils/batch-queries.ts` → `batchFetchQuestionsWithVersions(...)` (selects `is_active = true`, returns `latestVersion`)
+* **Admin API:** `server/routes.ts` →
+
+  * `GET /api/admin/questions-with-versions/:questionSetId` (normalizes active-question `display_order`)
+  * `POST /api/admin/questions/reorder`
+* **Learner APIs:** `server/routes.ts` →
+
+  * `GET /api/question-sets/:id/optimized`
+  * `GET /api/questions/:questionSetId`
+  * Test-run flow persists **version IDs** in `user_test_runs.question_order`
+* **Admin UI:** `client/src/pages/AdminQuestionEditor.tsx` (reads `/api/admin/questions-with-versions/:setId?...`)
+* **Learner UI:**
+
+  * `client/src/pages/question-set-practice-optimized.tsx` (expects `latestVersion`)
+  * `client/src/components/question-card.tsx` (renders `question.latestVersion.questionText`)
+
+### What to confirm (acceptance criteria)
+
+1. **All surfaces pull from the same canonical source**
+
+   * Admin editor **and** learner UI must ultimately read **`question_versions` where `is_active = true`** (via `batchFetchQuestionsWithVersions` or equivalent).
+   * No surface should read question text from any snapshot, cache, or denormalized field.
+
+2. **Slot (position) mapping is correct and stable**
+
+   * Slot order is defined solely by **`questions.display_order`** (0..N‑1 for **non‑archived** questions).
+   * Admin normalization only updates **active (non‑archived)** questions and the UI labels/indices must reflect *display* order, not `original_question_number`.
+   * When reordering or archiving, the mapping **slot → question.id → active version.id** stays consistent.
+
+3. **No stale layers**
+
+   * If any cache/index/snapshot exists between DB and UI, document its **invalidation path** and ensure it keys by **question version id** or **question.id + updated_at** so new text cannot serve stale.
+
+4. **Invariants enforced**
+
+   * Keep the **unique partial index** for one active version per question.
+   * On “activate new version”, ensure the previous version is auto‑deactivated in the same transaction.
+
+---
+
+## Suggested local checks (no prod DB required)
+
+* **Audit for anti‑patterns:** Grep for any code that renders **question text** without going through `batchFetchQuestionsWithVersions` or `storage.getActiveQuestionVersion`. There should be none for production surfaces.
+* **Ordering vs. labeling:** Verify UI labels (e.g., “Q7”) are **derived from `display_order`** (index + 1), **not** `original_question_number`.
+* **Archive behavior:** With a local seed, create a set of 5+ questions, archive one, reorder, and ensure the editor and learner UI show the same questions in the same order.
+* **Version flip:** Create a new version for a question, mark it active; confirm both Admin and learner UIs immediately show the new text.
+
+---
+
+## Proposed fixes/hardening (if any check fails)
+
+* **Enforce path consistency:** Make Admin & learner APIs use **only** `batchFetchQuestionsWithVersions` for listing.
+* **UI labeling fix:** If any UI shows “Q#” from `original_question_number`, switch to `display_order + 1`.
+* **Cache hygiene:** If a cache exists, key on **`question_version.id`**; purge on version change.
+* **DB guardrails:** Keep the unique partial index; add a DB trigger or transactional code path that (a) deactivates old version and (b) activates the new one atomically.
+* **Telemetry:** Log a warning when the UI receives a slot where `question.latestVersion` is `null` or when duplicate active versions are detected (already partially in place).
+
+---
+
+## Tight request you can send to the agent
+
+**Subject:** Ensure all question surfaces use a single canonical source (active version) and correct slot mapping
+
+**Ask:**
+
+1. **Confirm** that the Admin editor and learner UI both read question text from **`question_versions` with `is_active = true`**, via the shared batch path:
+
+   * `server/utils/batch-queries.ts::batchFetchQuestionsWithVersions`
+   * Admin: `GET /api/admin/questions-with-versions/:setId`
+   * Learner: `GET /api/question-sets/:id/optimized` or `GET /api/questions/:questionSetId`
+
+2. **Verify** slot mapping and labels use **`questions.display_order`** (active questions only), not `original_question_number`.
+
+3. **Document** any cache/denormalized layer between DB and UI and its **invalidation** on version changes.
+
+4. **Prove** with a local test (no prod DB):
+
+   * Create a set, reorder, archive one, flip a question’s active version.
+   * Show Admin and learner UIs render the **same** text for each slot before and after each change.
+
+5. **Report back** with:
+
+   * The exact code paths used by each surface,
+   * Any discrepancies fixed (PR(s)),
+   * Any remaining risks and the proposed mitigation.
