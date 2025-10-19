@@ -892,7 +892,7 @@ export class DatabaseStorage implements IStorage {
       eq(questionVersions.isActive, true)
     ))
     .where(eq(questions.questionSetId, questionSetId))
-    .orderBy(asc(questions.originalQuestionNumber));
+    .orderBy(asc(questions.displayOrder));
     
     // Return unique questions (in case there are multiple active versions, though there shouldn't be)
     const uniqueQuestions = new Map<number, Question>();
