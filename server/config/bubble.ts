@@ -11,7 +11,9 @@ export const BUBBLE_PAGE_SIZE = parseInt(process.env.BUBBLE_PAGE_SIZE ?? '100', 
 export const BUBBLE_API_KEY = process.env.BUBBLE_API_KEY;
 
 // Sunset configuration  
+// FINAL_REFRESH_SUNSET_ENABLED should be set to true ONLY in production
 export const FINAL_REFRESH_SUNSET_ENABLED = process.env.FINAL_REFRESH_SUNSET_ENABLED === 'true';
+// FINAL_REFRESH_AUTO_SUNSET is false by default everywhere - sunset must be manual
 export const FINAL_REFRESH_AUTO_SUNSET = process.env.FINAL_REFRESH_AUTO_SUNSET === 'true';
 
 // Advisory lock ID for Final Refresh (using a unique number)

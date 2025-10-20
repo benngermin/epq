@@ -21,11 +21,13 @@ async function testFinalRefresh() {
     const settings = await db.select().from(schema.appSettings);
     console.log(`  ✓ app_settings table exists with ${settings.length} records`);
     
-    const finalRefreshCompleted = settings.find(s => s.key === 'finalRefreshCompleted');
-    const finalRefreshInProgress = settings.find(s => s.key === 'finalRefreshInProgress');
+    const finalRefreshCompleted = settings.find(s => s.key === 'final_refresh_completed_at');
+    const finalRefreshInProgress = settings.find(s => s.key === 'final_refresh_in_progress_at');
+    const finalRefreshAudit = settings.find(s => s.key === 'final_refresh_audit');
     
-    console.log(`  ✓ finalRefreshCompleted: ${finalRefreshCompleted?.value ?? 'not set'}`);
-    console.log(`  ✓ finalRefreshInProgress: ${finalRefreshInProgress?.value ?? 'not set'}`);
+    console.log(`  ✓ final_refresh_completed_at: ${finalRefreshCompleted?.value ?? 'not set'}`);
+    console.log(`  ✓ final_refresh_in_progress_at: ${finalRefreshInProgress?.value ?? 'not set'}`);
+    console.log(`  ✓ final_refresh_audit: ${finalRefreshAudit ? 'set' : 'not set'}`);
 
     // Test 2: Check unique index on question_versions
     console.log('\nTest 2: Checking unique index on question_versions...');
@@ -67,11 +69,11 @@ async function testFinalRefresh() {
     console.log('\nTest 5: Simulating final refresh state checks...');
     
     // Check if we can acquire a lock (simulate)
-    const canAcquireLock = !finalRefreshInProgress || finalRefreshInProgress.value !== 'true';
+    const canAcquireLock = !finalRefreshInProgress || !finalRefreshInProgress.value;
     console.log(`  ✓ Can acquire lock: ${canAcquireLock}`);
     
     // Check if already completed (simulate)
-    const isAlreadyCompleted = finalRefreshCompleted?.value === 'true';
+    const isAlreadyCompleted = !!finalRefreshCompleted?.value;
     console.log(`  ✓ Is already completed: ${isAlreadyCompleted}`);
     
     if (isAlreadyCompleted) {

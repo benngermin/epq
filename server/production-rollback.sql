@@ -7,12 +7,16 @@
 
 -- Step 2: Reset final refresh flags
 UPDATE app_settings 
-SET value = 'false', updated_at = NOW() 
-WHERE key = 'finalRefreshCompleted';
+SET value = NULL, updated_at = NOW() 
+WHERE key = 'final_refresh_completed_at';
 
 UPDATE app_settings 
-SET value = 'false', updated_at = NOW() 
-WHERE key = 'finalRefreshInProgress';
+SET value = NULL, updated_at = NOW() 
+WHERE key = 'final_refresh_in_progress_at';
+
+UPDATE app_settings 
+SET value = NULL, updated_at = NOW() 
+WHERE key = 'final_refresh_audit';
 
 -- Step 3: If question versions were corrupted, revert to previous active versions
 -- This query identifies questions with potential issues
@@ -50,7 +54,7 @@ WHERE id = [PREVIOUS_VERSION_ID];
 -- Step 5: Clear any locks or temporary data
 DELETE FROM app_settings 
 WHERE key LIKE 'refresh_%' 
-AND key NOT IN ('finalRefreshCompleted', 'finalRefreshInProgress');
+AND key NOT IN ('final_refresh_completed_at', 'final_refresh_in_progress_at', 'final_refresh_audit');
 
 -- Step 6: Verify rollback
 SELECT 
@@ -58,7 +62,7 @@ SELECT
   value,
   updated_at
 FROM app_settings
-WHERE key IN ('finalRefreshCompleted', 'finalRefreshInProgress');
+WHERE key IN ('final_refresh_completed_at', 'final_refresh_in_progress_at', 'final_refresh_audit');
 
 -- Step 7: Check data consistency after rollback
 SELECT 
