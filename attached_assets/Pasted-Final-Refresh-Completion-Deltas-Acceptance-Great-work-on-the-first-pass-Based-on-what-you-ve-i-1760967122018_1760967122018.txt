@@ -1,0 +1,120 @@
+Final Refresh — Completion Deltas & Acceptance
+
+Great work on the first pass. Based on what you’ve implemented, I need the following completion items to guarantee correctness, safety, and a clean sunset.
+
+1) Data Integrity & Versioning (must-have)
+
+Enforce one active version per question
+
+Add a partial unique index:
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_version_per_question
+ON question_versions (question_id)
+WHERE is_active = true;
+
+
+Before creating the index, add a short fix-up to deactivate duplicates, keeping the row with the highest version number active.
+
+Use existing versioning semantics (no in-place overwrites)
+
+Confirm the final refresh creates a new active version when content differs and deactivates the prior active. Do not mutate the prior active row.
+
+Text hash / normalization
+
+Recompute or backfill any normalizedTextHash (or equivalent) for rows the refresh modified so downstream matching remains consistent.
+
+2) Job Safety: Locking, Idempotency, Audit (must-have)
+
+Single-runner lock
+
+Use app_settings to implement an atomic in-progress guard (e.g., final_refresh_in_progress_at).
+
+If a second call arrives while running, return 423 Locked (or 409) with a clear message.
+
+Ensure the lock is cleared on error.
+
+Idempotency
+
+A retry should be safe: reprocessing must not create duplicate active versions (the index above will help).
+
+Audit
+
+Log who triggered the run (admin id/email), start/end timestamps, and the final summary counts (created/updated/deactivated/unchanged/errors).
+
+3) Metrics & SSE (tighten up)
+
+Expand the live and final summary to include all of these:
+
+setsProcessed, questionsCreated, questionsUpdated, questionsDeactivated, questionsUnchanged, warnings, errors, completedAt.
+
+Emit SSE events for updated, created, deactivated, unchanged, warning, error, and a final summary.
+
+4) Cache Correctness (must-have)
+
+Client invalidation after success
+
+When the run completes, invalidate cached queries for:
+
+/api/question-sets/:id/optimized
+
+/api/practice-data
+
+/api/mobile-view/practice-data (if present)
+
+No-cache headers on practice endpoints
+
+Add:
+
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+
+5) Edits During the Run (pick one)
+
+Preferred: Temporarily disable Admin question edits while final_refresh_in_progress_at is set (UI guard + server check returns 423).
+
+Alternative: Allow edits but document that Final Refresh wins; show a pre-run banner warning editors.
+
+6) Rollback Snapshot (pre-prod safety)
+
+Provide a quick SQL step for me to run just before prod:
+
+CREATE TABLE IF NOT EXISTS snapshot_question_versions_yyyymmdd AS
+SELECT * FROM question_versions;
+
+CREATE TABLE IF NOT EXISTS snapshot_questions_yyyymmdd AS
+SELECT * FROM questions;
+
+7) Sunset Completeness
+
+You already 410’d the legacy endpoints after completion—good. Also:
+
+Hide/remove all refresh/import UI across the Admin once final_refresh_completed_at is set.
+
+Keep 410s for a grace period; we’ll delete the codepaths and BUBBLE_* envs in a later cleanup PR.
+
+Acceptance Checklist (staging, then prod)
+
+ Index enforces single active version; duplicates auto-resolved during migration.
+
+ Final Refresh creates new versions, deactivates old; no in-place mutations.
+
+ Text hashes updated for changed rows.
+
+ Lock prevents concurrent runs; retries are safe; lock clears on error.
+
+ Audit entry recorded with user + summary.
+
+ SSE + final summary include created/updated/deactivated/unchanged/warnings/errors.
+
+ Client caches invalidated; practice endpoints send no-cache headers.
+
+ Edits during run handled per choice above.
+
+ Staging run: verify a known changed Bubble question results in a new active version and is visible immediately in practice views.
+
+ Second attempt returns 410 Gone with the stored completion timestamp.
+
+ Pre-prod snapshots created; prod run completes with reasonable counts; legacy UI hidden and endpoints return 410.
+
+If anything in the codebase differs from these assumptions, keep the user-visible behavior identical and adjust internals accordingly.

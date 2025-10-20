@@ -1324,6 +1324,13 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/question-sets/:id/optimized", requireAuth, async (req, res) => {
     const questionSetId = parseInt(req.params.id);
     
+    // Set no-cache headers to ensure fresh data after Final Refresh
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     try {
       // Get the data using the same logic as the practice-data endpoint
       const [questionSet, questions, courses] = await Promise.all([
@@ -4110,8 +4117,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
   app.get("/api/admin/refresh/status", requireAdmin, async (req, res) => {
     try {
       const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
+      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+      const auditData = await storage.getAppSetting('final_refresh_audit');
+      
       res.json({
-        finalRefreshCompletedAt: finalRefreshTimestamp || null
+        finalRefreshCompletedAt: finalRefreshTimestamp || null,
+        finalRefreshInProgressAt: inProgressTimestamp || null,
+        audit: auditData || null
       });
     } catch (error) {
       console.error("Error checking final refresh status:", error);
@@ -4124,6 +4136,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     console.log("🚀 Starting FINAL REFRESH process...");
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
+    const adminUser = (req as any).user;
     
     try {
       // Check if final refresh was already completed
@@ -4134,6 +4147,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
           message: `Final refresh was completed at ${finalRefreshTimestamp}`
         });
       }
+      
+      // Check if refresh is already in progress (atomic lock)
+      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+      if (inProgressTimestamp) {
+        // Check if the lock is stale (older than 30 minutes)
+        const lockAge = Date.now() - new Date(inProgressTimestamp).getTime();
+        if (lockAge < 30 * 60 * 1000) { // 30 minutes
+          return res.status(423).json({
+            error: "refresh_in_progress",
+            message: "Final refresh is already in progress. Please wait for it to complete.",
+            startedAt: inProgressTimestamp
+          });
+        }
+        console.log("Clearing stale lock from", inProgressTimestamp);
+      }
+      
+      // Set the in-progress lock
+      await storage.setAppSetting('final_refresh_in_progress_at', new Date().toISOString());
       
       // Set up SSE headers
       const origin = req.headers.origin || '*';
@@ -4176,10 +4207,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       const finalRefreshResults = {
         setsProcessed: 0,
-        questionsUpdated: 0,
         questionsCreated: 0,
+        questionsUpdated: 0,
         questionsDeactivated: 0,
         questionsUnchanged: 0,
+        warnings: [] as Array<{ message: string; details?: string }>,
         errors: [] as Array<{ 
           questionSetId: string; 
           title: string; 
@@ -4382,34 +4414,73 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Step 3: Mark finalization
       const completedAt = new Date().toISOString();
       await storage.setAppSetting('final_refresh_completed_at', completedAt);
+      
+      // Clear the in-progress lock
+      await storage.setAppSetting('final_refresh_in_progress_at', null);
 
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      // Store audit information
+      const auditData = {
+        triggeredBy: adminUser ? { id: adminUser.id, email: adminUser.email } : 'system',
+        startedAt: new Date(startTime).toISOString(),
+        completedAt,
+        duration,
+        results: {
+          setsProcessed: finalRefreshResults.setsProcessed,
+          questionsCreated: finalRefreshResults.questionsCreated,
+          questionsUpdated: finalRefreshResults.questionsUpdated,
+          questionsDeactivated: finalRefreshResults.questionsDeactivated,
+          questionsUnchanged: finalRefreshResults.questionsUnchanged,
+          warnings: finalRefreshResults.warnings.length,
+          errors: finalRefreshResults.errors.length
+        }
+      };
+      await storage.setAppSetting('final_refresh_audit', auditData);
       
       // Send final results via SSE
       res.write('data: ' + JSON.stringify({
         type: 'complete',
         setsProcessed: finalRefreshResults.setsProcessed,
-        questionsUpdated: finalRefreshResults.questionsUpdated,
         questionsCreated: finalRefreshResults.questionsCreated,
+        questionsUpdated: finalRefreshResults.questionsUpdated,
         questionsDeactivated: finalRefreshResults.questionsDeactivated,
         questionsUnchanged: finalRefreshResults.questionsUnchanged,
+        warnings: finalRefreshResults.warnings,
+        errors: finalRefreshResults.errors,
         completedAt,
-        duration,
-        errors: finalRefreshResults.errors
+        duration
       }) + '\n\n');
       
       res.end();
       
-      console.log(`✅ FINAL REFRESH COMPLETED in ${duration}s. Sets: ${finalRefreshResults.setsProcessed}, Errors: ${finalRefreshResults.errors.length}`);
+      console.log(`✅ FINAL REFRESH COMPLETED in ${duration}s. Sets: ${finalRefreshResults.setsProcessed}, Created: ${finalRefreshResults.questionsCreated}, Updated: ${finalRefreshResults.questionsUpdated}, Deactivated: ${finalRefreshResults.questionsDeactivated}, Unchanged: ${finalRefreshResults.questionsUnchanged}, Errors: ${finalRefreshResults.errors.length}`);
       
     } catch (error) {
       console.error("❌ Critical error in final refresh:", error);
-      res.write('data: ' + JSON.stringify({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Unknown error occurred' 
-      }) + '\n\n');
-      res.end();
+      
+      // Clear the in-progress lock on error
+      try {
+        await storage.setAppSetting('final_refresh_in_progress_at', null);
+      } catch (lockError) {
+        console.error("Failed to clear lock:", lockError);
+      }
+      
+      // If headers haven't been sent yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: "final_refresh_failed",
+          message: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      } else {
+        // If we're already streaming, send error via SSE
+        res.write('data: ' + JSON.stringify({ 
+          type: 'error', 
+          message: error instanceof Error ? error.message : 'Unknown error occurred' 
+        }) + '\n\n');
+        res.end();
+      }
     }
   });
 
@@ -6251,6 +6322,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   // Mobile-view practice data endpoint - combines multiple data fetches
   app.get("/api/mobile-view/practice-data/:questionSetId", async (req, res) => {
+    // Set no-cache headers to ensure fresh data after Final Refresh
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     try {
       const questionSetId = parseInt(req.params.questionSetId);
       const mobileViewUserId = -2; // Special user ID for mobile-view
