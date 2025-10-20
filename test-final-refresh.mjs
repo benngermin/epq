@@ -58,8 +58,8 @@ async function runTests() {
     return;
   }
   if (status.data) {
-    console.log(`   Completed: ${status.data.finalRefreshCompletedAt || 'Not completed'}`);
-    console.log(`   In Progress: ${status.data.finalRefreshInProgressAt || 'None'}`);
+    console.log(`   Completed: ${status.data.final_refresh_completed_at || 'Not completed'}`);
+    console.log(`   In Progress: ${status.data.final_refresh_in_progress_at || 'None'}`);
   }
   
   // 2. Try to run final refresh again (should return 410)

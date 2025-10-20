@@ -4130,9 +4130,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const auditData = await storage.getAppSetting('final_refresh_audit');
       
       res.json({
-        finalRefreshCompletedAt: finalRefreshTimestamp || null,
-        finalRefreshInProgressAt: inProgressTimestamp || null,
-        audit: auditData || null
+        final_refresh_completed_at: finalRefreshTimestamp || null,
+        final_refresh_in_progress_at: inProgressTimestamp || null,
+        final_refresh_audit: auditData || null
       });
     } catch (error) {
       console.error("Error checking final refresh status:", error);
