@@ -604,8 +604,16 @@ function OpenRouterSettingsSection() {
   );
 }
 
-// Bubble Import Section Component
+// DEPRECATED: Bubble Import Section Component
+// This component is no longer used after the final refresh has been completed.
+// The final refresh permanently disabled all Bubble.io integration functionality.
+// DO NOT render or use this component anywhere in the application.
 function BubbleImportSection() {
+  // Component is deprecated and should not be used
+  return null;
+  
+  // Original implementation preserved for historical reference only
+  /*
   const [courseNumber, setCourseNumber] = useState("");
   const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [selectedSets, setSelectedSets] = useState<string[]>([]);
@@ -851,6 +859,7 @@ function BubbleImportSection() {
       ) : null}
     </div>
   );
+  */
 }
 
 export default function AdminPanel() {
