@@ -1,0 +1,78 @@
+**Context you need:**
+You implemented the **Final Refresh**:
+
+* DB: `app_settings` for completion status.
+* Backend: `POST /api/admin/refresh/run-final` (SSE), `GET /api/admin/refresh/status`; legacy refresh/import endpoints return **410** after completion.
+* Admin UI: red “Run Final Refresh” with confirmation + live progress; shows completion badge and disables after success.
+
+**What I’m doing now (dev):**
+I’m going to run **POST `/api/admin/refresh/run-final`** in **dev**. When it finishes I’ll message you the timestamp.
+
+**What I need you to verify in dev (must be green before prod):**
+
+1. **Sunset behavior**
+
+* `GET /api/admin/refresh/status` → shows **completed** with the same timestamp I send.
+* A second `POST /api/admin/refresh/run-final` → returns **410 Gone**.
+* All legacy refresh/import endpoints → **410 Gone** with the sunset message.
+
+2. **Data integrity (no regressions)**
+
+* Confirm we have exactly **one active version per question** and the active row is the **latest** version:
+
+  ```sql
+  -- duplicates (should return 0 rows)
+  SELECT question_id, COUNT(*) FROM question_versions
+  WHERE is_active = true GROUP BY question_id HAVING COUNT(*) > 1;
+
+  -- active is latest (should return 0 rows)
+  SELECT qv.question_id FROM question_versions qv
+  WHERE qv.is_active = true
+    AND qv.version_number < (SELECT MAX(v.version_number)
+                             FROM question_versions v
+                             WHERE v.question_id = qv.question_id);
+  ```
+* Spot‑check 3–5 questions that changed in Bubble pre‑run: new active version created, old version deactivated, timestamps make sense.
+* Active rows have normalized text hashes (count should be 0):
+
+  ```sql
+  SELECT COUNT(*) FROM question_versions
+  WHERE is_active = true AND (normalized_text_hash IS NULL OR normalized_text_hash = '');
+  ```
+
+3. **Locks & audit**
+
+* Verify we prevented concurrent runs (if a second trigger was attempted during the run, it returned 423/409).
+* `app_settings`: `final_refresh_in_progress_at` cleared; `final_refresh_completed_at` set.
+* Audit/log entry exists: who ran, start/end, and summary counts.
+
+4. **SSE summary & errors**
+
+* SSE stream emitted progress and a final **summary** with: `setsProcessed, questionsCreated, questionsUpdated, questionsDeactivated, questionsUnchanged, warnings, errors, completedAt`.
+* **errors = 0**; explain any **warnings**.
+
+5. **API caching + UI**
+
+* Practice data endpoints send:
+
+  ```
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  ```
+* Client cache invalidated on completion; practice pages show latest text.
+* The left nav numbers render **1..N** (not all “1”).
+
+6. **DB constraint present**
+
+* Confirm the **partial unique index** exists (needed for prod hard‑safety):
+
+  ```sql
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_version_per_question
+  ON question_versions (question_id) WHERE is_active = true;
+  ```
+
+**Deliverable from you:**
+Reply with **GREEN** (ready for prod) or **HOLD** + a short punch list (file/line + fix). If HOLD, include whether each item is a **blocker for prod** or can ship with a follow‑up.
+
+If GREEN, I’ll deploy to prod, take snapshots, and run the Final Refresh there
