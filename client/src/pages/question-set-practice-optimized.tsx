@@ -315,16 +315,6 @@ export default function QuestionSetPractice() {
           console.log(`[Demo] Total static questions: ${staticQuestions.length}/${questions.length}`);
         }
         
-        // Debug log to check ordinal field presence
-        if (questions && questions.length > 0) {
-          console.log('[Practice] First 3 questions ordinal check:', questions.slice(0, 3).map((q: any) => ({
-            id: q.id,
-            ordinal: q.ordinal,
-            displayOrder: q.displayOrder,
-            originalQuestionNumber: q.originalQuestionNumber
-          })));
-        }
-        
         // Check for any issues with questions around #36
         const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
         if (questionAround36) {
