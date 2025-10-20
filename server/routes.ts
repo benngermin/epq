@@ -3727,7 +3727,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Bubble API integration routes
-  app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
+  app.get("/api/admin/bubble/question-sets", requireAdmin, requireNotSunset, async (req, res) => {
     try {
       const courseNumber = req.query.courseNumber as string | undefined;
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
@@ -5031,7 +5031,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // New endpoint to update a single question set from Bubble
-  app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, async (req, res) => {
+  app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, requireNotSunset, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.id);
       
