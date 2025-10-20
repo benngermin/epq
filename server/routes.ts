@@ -4243,22 +4243,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
       }
       
-      // Check if refresh is already in progress (atomic lock)
-      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
-      if (inProgressTimestamp) {
-        // Check if the lock is stale (older than 30 minutes)
-        const lockAge = Date.now() - new Date(inProgressTimestamp).getTime();
-        if (lockAge < 30 * 60 * 1000) { // 30 minutes
-          return res.status(423).json({
-            error: "refresh_in_progress",
-            message: "Final refresh is already in progress. Please wait for it to complete.",
-            startedAt: inProgressTimestamp
-          });
-        }
-        console.log("Clearing stale lock from", inProgressTimestamp);
+      // Try to acquire advisory lock for Final Refresh
+      const lockResult = await db.execute(
+        sql`SELECT pg_try_advisory_lock(${FINAL_REFRESH_LOCK_ID}) AS locked`
+      );
+      
+      if (!lockResult.rows?.[0]?.locked) {
+        // Could not acquire lock - another refresh is running
+        const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+        return res.status(409).json({
+          error: "final_refresh_already_running",
+          message: "Final refresh is already running. Only one refresh can run at a time.",
+          startedAt: inProgressTimestamp
+        });
       }
       
-      // Set the in-progress lock
+      // Lock acquired - set the in-progress timestamp (informational only)
       await storage.setAppSetting('final_refresh_in_progress_at', new Date().toISOString());
       
       // Set up SSE headers
@@ -4576,13 +4576,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     } catch (error) {
       console.error("❌ Critical error in final refresh:", error);
       
-      // Clear the in-progress lock on error
-      try {
-        await storage.setAppSetting('final_refresh_in_progress_at', null);
-      } catch (lockError) {
-        console.error("Failed to clear lock:", lockError);
-      }
-      
       // If headers haven't been sent yet, send error response
       if (!res.headersSent) {
         res.status(500).json({
@@ -4596,6 +4589,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
           message: error instanceof Error ? error.message : 'Unknown error occurred' 
         }) + '\n\n');
         res.end();
+      }
+    } finally {
+      // Always release the advisory lock and clear in-progress timestamp
+      try {
+        await db.execute(sql`SELECT pg_advisory_unlock(${FINAL_REFRESH_LOCK_ID})`);
+        await storage.setAppSetting('final_refresh_in_progress_at', null);
+      } catch (unlockError) {
+        console.error("Failed to release advisory lock:", unlockError);
       }
     }
   });
