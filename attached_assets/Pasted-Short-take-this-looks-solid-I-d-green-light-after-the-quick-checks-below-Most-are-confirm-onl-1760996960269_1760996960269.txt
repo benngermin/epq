@@ -1,0 +1,23 @@
+Short take: this looks solid. I’d green-light **after** the quick checks below. Most are confirm-only; a few are small hardening tweaks.
+
+# Final verifications (do these before prod)
+
+* **Admin auth on new endpoints:** Confirm `requireAdmin` (or equivalent) wraps `/api/admin/refresh/final`, `/sunset`, and `/reset-dev` (and logs caller identity).
+* **Sunset guard coverage:** You said “All Bubble import endpoints.” Also guard any **list/fetch** endpoints that would repull Bubble data (question sets, learning objects, courses). In prod, those should 410 after sunset.
+* **Prod URL fail-fast:** On boot in `production`, assert `BUBBLE_BASE_URL` **does not** contain `version-test`; abort startup if it does.
+* **Pagination parity:** You added pagination for **question sets**. Ensure the same cursor loop exists anywhere else you fetch Bubble objects in Final Refresh (e.g., learning objects, courses) so you don’t silently truncate.
+* **Advisory lock correctness:** Advisory locks are **session-scoped**. Acquire the lock using a **single pinned connection** (e.g., `pool.connect()` / `db.task(tx => …)`), run the whole job on that connection, then `pg_advisory_unlock` in `finally`. If the job hops connections, the lock can drop.
+* **SSE hardening:**
+
+  * Send `Cache-Control: no-transform`, `X-Accel-Buffering: no`, and a heartbeat every ~15s (`:\n\n`).
+  * CORS: don’t use `*` with credentials; add `Vary: Origin`.
+  * Verify your proxy/CDN allows **GET** streaming end-to-end.
+* **Manual sunset safety:** Require an explicit confirmation on `/sunset` (e.g., body `{"confirm":"SUNSET"}`) and enforce `NODE_ENV==='production'` to run; otherwise 400.
+* **Reset-dev safety:** In non-dev, return **404** (not just no-op) and log a warning.
+* **Structured audit + one line:** Emit a final structured log and store in `final_refresh_audit` with a **run_id (UUID)**, timings, and counts `{fetched, created, updated, deactivated, unchanged, errors}`. Print one terminal “final_refresh_completed” line with that JSON.
+
+# Nice-to-have (small, high-value)
+
+* **Dry-run mode:** `GET /api/admin/refresh/final?dryRun=1` computes and streams counts but **doesn’t** write. Great for staging sanity checks.
+* **Backoff & retry:** If Bubble returns 429/5xx, retry with exponential backoff; surface retry counts in SSE.
+* **Host allowlist:** Validate `BUBBLE_BASE_URL` matches an allow-listed host (live vs version-test) per env to prevent misconfig.
