@@ -7338,6 +7338,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // 3. PUT /api/admin/questions/:id - Update question metadata
   app.put("/api/admin/questions/:id", requireAdmin, async (req, res) => {
     try {
+      // Check if final refresh is in progress
+      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+      if (inProgressTimestamp) {
+        const lockAge = Date.now() - new Date(inProgressTimestamp).getTime();
+        if (lockAge < 30 * 60 * 1000) { // 30 minutes
+          return res.status(423).json({
+            error: "refresh_in_progress",
+            message: "Question editing is disabled while Final Refresh is running. Please wait for it to complete.",
+            startedAt: inProgressTimestamp
+          });
+        }
+      }
+      
       const questionId = parseInt(req.params.id);
       
       if (isNaN(questionId)) {
@@ -7389,6 +7402,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // 4. PUT /api/admin/question-versions/:id - Update question version content
   app.put("/api/admin/question-versions/:id", requireAdmin, async (req, res) => {
     try {
+      // Check if final refresh is in progress
+      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+      if (inProgressTimestamp) {
+        const lockAge = Date.now() - new Date(inProgressTimestamp).getTime();
+        if (lockAge < 30 * 60 * 1000) { // 30 minutes
+          return res.status(423).json({
+            error: "refresh_in_progress", 
+            message: "Question editing is disabled while Final Refresh is running. Please wait for it to complete.",
+            startedAt: inProgressTimestamp
+          });
+        }
+      }
+      
       const versionId = parseInt(req.params.id);
       
       if (isNaN(versionId)) {

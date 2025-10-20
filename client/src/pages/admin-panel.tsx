@@ -1182,8 +1182,11 @@ export default function AdminPanel() {
     current: number;
     total: number;
     setsProcessed: number;
-    questionsUpdated: number;
     questionsCreated: number;
+    questionsUpdated: number;
+    questionsDeactivated: number;
+    questionsUnchanged: number;
+    warnings?: Array<{ message: string; details?: string }>;
     errors: Array<{ questionSetId: string; title: string; error: string; details?: string }>;
     completedAt?: string;
   } | null>(null);
@@ -1197,6 +1200,22 @@ export default function AdminPanel() {
           const data = await response.json();
           if (data.finalRefreshCompletedAt) {
             setFinalRefreshCompleted(true);
+            if (data.audit) {
+              setFinalRefreshProgress({
+                current: data.audit.results.setsProcessed,
+                total: data.audit.results.setsProcessed,
+                setsProcessed: data.audit.results.setsProcessed,
+                questionsCreated: data.audit.results.questionsCreated,
+                questionsUpdated: data.audit.results.questionsUpdated,
+                questionsDeactivated: data.audit.results.questionsDeactivated,
+                questionsUnchanged: data.audit.results.questionsUnchanged,
+                errors: [],
+                completedAt: data.audit.completedAt
+              });
+            }
+          }
+          if (data.finalRefreshInProgressAt) {
+            setFinalRefreshInProgress(true);
           }
         }
       } catch (error) {
@@ -1214,8 +1233,11 @@ export default function AdminPanel() {
       current: 0, 
       total: 0, 
       setsProcessed: 0,
-      questionsUpdated: 0,
       questionsCreated: 0,
+      questionsUpdated: 0,
+      questionsDeactivated: 0,
+      questionsUnchanged: 0,
+      warnings: [],
       errors: [] 
     });
     

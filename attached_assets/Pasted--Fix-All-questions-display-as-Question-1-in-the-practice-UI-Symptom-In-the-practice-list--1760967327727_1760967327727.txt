@@ -1,0 +1,76 @@
+# Fix: All questions display as “Question 1” in the practice UI
+
+**Symptom:** In the practice list, every item shows “1” (badge + title “Question 1”).
+
+**Root cause (likely):** The list item label is derived from a **global** state (e.g., `currentQuestionIndex`) or a **fallback constant** instead of each item’s own index/order. In some codepaths, `displayOrder/position` is missing from the payload, so a fallback like `q.number ?? 1` forces “1”.
+
+## What I need you to do
+
+### 1) Frontend: derive the number per-item, not from global state
+
+* In the component that renders the left nav/list (e.g., `QuestionNav`/`QuestionList`/`QuestionSetPractice*`), change the render to pass a **per-item ordinal**:
+
+  ```tsx
+  {questionsSorted.map((q, idx) => (
+    <QuestionRow
+      key={q.id}
+      ordinal={q.ordinal ?? q.displayOrder ?? (idx + 1)}
+      title={`Question ${q.ordinal ?? q.displayOrder ?? (idx + 1)}`}
+      // ...other props
+    />
+  ))}
+  ```
+
+* Inside `QuestionRow`, **use the `ordinal` prop** directly for both the badge and the “Question N” label.
+  **Do not** compute from selected index, router params, or any global state.
+
+* Audit for any of these anti-patterns and remove them:
+
+  * `const n = currentQuestionIndex + 1;`
+  * `const n = 1;`
+  * `const n = q.number ?? 1;` (when `q.number` isn’t guaranteed)
+  * Using `Array.fill(1)` or similar to prebuild labels
+
+### 2) Backend/API: guarantee an ordinal in the payload
+
+* In `GET /api/question-sets/:id/optimized` (and any practice data endpoint), after sorting by `displayOrder` (or `position`), **include a 1-based ordinal** for each item.
+
+  * SQL approach:
+
+    ```sql
+    ROW_NUMBER() OVER (PARTITION BY question_set_id ORDER BY display_order) AS ordinal
+    ```
+  * Or compute in server code after sorting:
+
+    ```ts
+    questionsSorted = questionsSorted.map((q, i) => ({ ...q, ordinal: i + 1 }));
+    ```
+* Ensure each item also includes `displayOrder` (if that’s our canonical field). If the canonical field name recently changed (e.g., `position` vs `displayOrder`), **normalize** to one field in the API.
+
+### 3) Sorting guarantees
+
+* Make sure the client sorts once using the same key the server promises (prefer **server-side sort** + `ordinal` to avoid drift).
+* If both `displayOrder` and `ordinal` exist, render with `ordinal` and only **fallback** to `displayOrder` or `idx + 1`.
+
+### 4) Types & UI consistency
+
+* Update the TypeScript types for the practice payload to include `ordinal: number`.
+* Confirm the small round badge and the “Question N” text both use the same `ordinal` prop.
+
+### 5) Quick diagnostics to verify
+
+* Temporarily log in the list render:
+
+  ```ts
+  console.debug('q id/order/ordinal', q.id, q.displayOrder, q.ordinal, idx + 1);
+  ```
+
+  You should see `1,2,3,…` increment across items.
+* Open the practice page on a set with >10 items; verify labels show `Question 1, Question 2, …` and badges 1..N.
+
+## Acceptance criteria
+
+* Practice list shows sequential numbers 1..N per set (both badge and text).
+* No reference to `currentQuestionIndex` (or equivalent global) is used to render list item labels.
+* Payload includes `ordinal` (or client computes `idx + 1` after receiving a **sorted** array).
+* Reordering a set updates numbering correctly after refresh (no duplicates or stuck “1”s).
