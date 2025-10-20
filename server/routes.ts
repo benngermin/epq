@@ -4188,7 +4188,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return;
       }
 
-      // Step 1: Fetch all question sets from Bubble
+      // Step 1: Fetch all question sets from Bubble with pagination
       res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
       
       const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
@@ -4197,14 +4197,36 @@ Remember, your goal is to support student comprehension through meaningful feedb
         "Content-Type": "application/json"
       };
 
-      const response = await fetch(baseUrl, { headers });
+      // Paginate through all question sets
+      let cursor = 0;
+      const bubbleQuestionSets: any[] = [];
+      let pageNumber = 1;
       
-      if (!response.ok) {
-        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
-      }
+      while (true) {
+        const url = `${baseUrl}?cursor=${cursor}&limit=${BUBBLE_PAGE_SIZE}`;
+        const response = await fetch(url, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+        }
 
-      const data = await response.json();
-      const bubbleQuestionSets = data.response?.results || [];
+        const data = await response.json();
+        const page = data?.response?.results ?? [];
+        bubbleQuestionSets.push(...page);
+        
+        res.write('data: ' + JSON.stringify({ 
+          type: 'pagination_status', 
+          message: `Fetched page ${pageNumber} - ${page.length} question sets (total so far: ${bubbleQuestionSets.length})` 
+        }) + '\n\n');
+        
+        // Break if we got less than page size (no more pages)
+        if (page.length < BUBBLE_PAGE_SIZE) {
+          break;
+        }
+        
+        cursor += page.length;
+        pageNumber++;
+      }
 
       const finalRefreshResults = {
         setsProcessed: 0,
