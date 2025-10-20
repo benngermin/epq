@@ -4227,7 +4227,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Final Refresh - One-time refresh before sunset (GET for SSE best practice)
-  app.get("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
+  app.get("/api/admin/refresh/final", requireAdmin, async (req, res) => {
     console.log("🚀 Starting FINAL REFRESH process...");
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
