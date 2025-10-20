@@ -248,18 +248,12 @@ export default function QuestionSetPractice() {
           courseQuestionSets = mobileData.courseQuestionSets || [];
           
         } else {
-          // Demo and authenticated modes: Use separate endpoints
+          // Demo and authenticated modes: Use the optimized endpoint that includes ordinal field
           const apiPrefix = isDemo ? '/api/demo' : '/api';
-          const [questionSetRes, questionsRes] = await Promise.all([
-            fetch(`${apiPrefix}/question-sets/${questionSetId}`, { 
-              credentials: "include",
-              signal: abortControllerRef.current.signal 
-            }),
-            fetch(`${apiPrefix}/questions/${questionSetId}`, { 
-              credentials: "include",
-              signal: abortControllerRef.current.signal 
-            })
-          ]).catch(error => {
+          const optimizedRes = await fetch(`${apiPrefix}/question-sets/${questionSetId}/optimized`, { 
+            credentials: "include",
+            signal: abortControllerRef.current.signal 
+          }).catch(error => {
             if (error.name === 'AbortError') {
               debugLog('Fetch aborted due to component unmount');
               throw error;
@@ -268,36 +262,25 @@ export default function QuestionSetPractice() {
             throw error;
           });
 
-          // Check if responses are JSON before parsing
-          const contentType1 = questionSetRes.headers.get("content-type");
-          const contentType2 = questionsRes.headers.get("content-type");
+          // Check if response is JSON before parsing
+          const contentType = optimizedRes.headers.get("content-type");
           
-          if (!contentType1?.includes("application/json") || !contentType2?.includes("application/json")) {
+          if (!contentType?.includes("application/json")) {
             throw new Error("Server returned non-JSON response. Please refresh the page.");
           }
 
-          if (!questionSetRes.ok || !questionsRes.ok) {
-            if (questionSetRes.status === 401 || questionsRes.status === 401) {
+          if (!optimizedRes.ok) {
+            if (optimizedRes.status === 401) {
               throw new Error('Authentication required');
             }
             throw new Error(`Failed to load practice data`);
           }
 
-          questionSet = await questionSetRes.json();
-          questions = await questionsRes.json();
-
-          // Fetch course and question sets info
-          const courseRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}` : `/api/courses/${questionSet.courseId}`, { 
-            credentials: "include",
-            signal: abortControllerRef.current.signal 
-          });
-          const questionSetsRes = await fetch(isDemo ? `/api/demo/courses/${questionSet.courseId}/question-sets` : `/api/courses/${questionSet.courseId}/question-sets`, { 
-            credentials: "include",
-            signal: abortControllerRef.current.signal 
-          });
-
-          course = courseRes.ok ? await courseRes.json() : null;
-          courseQuestionSets = questionSetsRes.ok ? await questionSetsRes.json() : [];
+          const optimizedData = await optimizedRes.json();
+          questionSet = optimizedData.questionSet;
+          questions = optimizedData.questions;
+          course = optimizedData.course;
+          courseQuestionSets = optimizedData.courseQuestionSets || [];
         }
 
         debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
@@ -439,9 +422,20 @@ export default function QuestionSetPractice() {
     if (!isMountedRef.current) return;
     
     debugLog(`handleSubmitAnswer called with answer: ${answer}`);
+    console.log('[Progress Debug] Current question:', {
+      id: currentQuestion?.id,
+      ordinal: currentQuestion?.ordinal,
+      hasLatestVersion: !!currentQuestion?.latestVersion,
+      versionId: currentQuestion?.latestVersion?.id
+    });
+    
     if (!currentQuestion?.latestVersion?.id) {
       debugError(`Cannot submit answer - no question version id`, { currentQuestion });
       return;
+    }
+    
+    if (!currentQuestion?.id) {
+      console.error('[Progress Debug] Current question has no ID!', currentQuestion);
     }
     
     debugLog(`Calling submitAnswerMutation with:`, {
@@ -948,6 +942,8 @@ export default function QuestionSetPractice() {
                   <span>Questions Answered</span>
                   <span>{Object.keys(userAnswers).length} / {questions?.length || 0}</span>
                 </div>
+                {/* Debug output */}
+                {console.log('[Progress Debug] Current userAnswers:', userAnswers, 'Total:', Object.keys(userAnswers).length)}
               </div>
                 
               {/* Question list - with proper scrolling */}
