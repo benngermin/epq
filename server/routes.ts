@@ -4088,6 +4088,300 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Final Refresh - One-time refresh before sunset
+  app.post("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
+    console.log("🚀 Starting FINAL REFRESH process...");
+    const startTime = Date.now();
+    const BATCH_SIZE = 5; // Process 5 question sets at a time
+    
+    try {
+      // Check if final refresh was already completed
+      const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
+      if (finalRefreshTimestamp) {
+        return res.status(410).json({
+          error: "final_refresh_completed",
+          message: `Final refresh was completed at ${finalRefreshTimestamp}`
+        });
+      }
+      
+      // Set up SSE headers
+      const origin = req.headers.origin || '*';
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true'
+      });
+      
+      // Send initial event
+      res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting final refresh...' }) + '\n\n');
+      
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        res.write('data: ' + JSON.stringify({ type: 'error', message: 'Bubble API key not configured' }) + '\n\n');
+        res.end();
+        return;
+      }
+
+      // Step 1: Fetch all question sets from Bubble
+      res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
+      
+      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      const response = await fetch(baseUrl, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const bubbleQuestionSets = data.response?.results || [];
+
+      const finalRefreshResults = {
+        setsProcessed: 0,
+        questionsUpdated: 0,
+        questionsCreated: 0,
+        questionsDeactivated: 0,
+        questionsUnchanged: 0,
+        errors: [] as Array<{ 
+          questionSetId: string; 
+          title: string; 
+          error: string;
+          courseName?: string;
+          details?: string;
+        }>
+      };
+      
+      // Send total count
+      res.write('data: ' + JSON.stringify({ 
+        type: 'total', 
+        total: bubbleQuestionSets.length 
+      }) + '\n\n');
+
+      // Import blank normalizer once
+      const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
+
+      // Step 2: Process all question sets
+      for (let i = 0; i < bubbleQuestionSets.length; i += BATCH_SIZE) {
+        const batch = bubbleQuestionSets.slice(i, Math.min(i + BATCH_SIZE, bubbleQuestionSets.length));
+        
+        // Process batch in parallel
+        await Promise.all(batch.map(async (bubbleQuestionSet: any) => {
+          try {
+            const bubbleId = bubbleQuestionSet._id;
+            const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
+            
+            // Skip if no course association
+            if (!courseBubbleId) {
+              finalRefreshResults.errors.push({
+                questionSetId: bubbleId,
+                title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
+                error: "No course association found",
+                details: "This question set is not linked to any course in Bubble"
+              });
+              return;
+            }
+            
+            // Find course by Bubble ID
+            let course = await storage.getCourseByBubbleId(courseBubbleId);
+            if (!course) {
+              // Try to import the course if it doesn't exist
+              // For final refresh, we want to import everything
+              const courseResponse = await fetch(
+                `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course/${courseBubbleId}`, 
+                { headers }
+              );
+              
+              if (courseResponse.ok) {
+                const courseData = await courseResponse.json();
+                if (courseData.response) {
+                  const c = courseData.response;
+                  course = await storage.createCourse({
+                    courseNumber: c.course_number || "Unknown",
+                    courseTitle: c.course_title || "Unknown Course",
+                    bubbleUniqueId: courseBubbleId,
+                    externalId: c.external_id || null,
+                    isAi: c.is_ai !== false,
+                    baseCourseNumber: c.course_number?.replace(/\s*\(AI\)\s*$/i, "").replace(/\s*\(Non-AI\)\s*$/i, "").trim()
+                  });
+                }
+              }
+              
+              if (!course) {
+                finalRefreshResults.errors.push({
+                  questionSetId: bubbleId,
+                  title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
+                  error: "Course not found and could not be imported",
+                  details: `Course with Bubble ID ${courseBubbleId} could not be imported`
+                });
+                return;
+              }
+            }
+            
+            // Parse content field to get questions
+            let parsedQuestions: any[] = [];
+            if (bubbleQuestionSet.content) {
+              try {
+                const contentJson = JSON.parse(bubbleQuestionSet.content);
+                if (contentJson.questions && Array.isArray(contentJson.questions)) {
+                  parsedQuestions = contentJson.questions;
+                }
+              } catch (parseError) {
+                console.error(`Error parsing content for ${bubbleId}:`, parseError);
+              }
+            }
+
+            // Get or create question set
+            let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
+            
+            if (!questionSet) {
+              // Create new question set for final refresh
+              questionSet = await storage.createQuestionSet({
+                title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+                description: bubbleQuestionSet.description || null,
+                externalId: bubbleId
+              });
+              finalRefreshResults.questionsCreated++;
+            } else {
+              // Update existing question set
+              await storage.updateQuestionSet(questionSet.id, {
+                title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+                description: bubbleQuestionSet.description || null,
+              });
+              finalRefreshResults.questionsUpdated++;
+            }
+            
+            // Ensure course-questionset mapping exists
+            try {
+              await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
+            } catch (err) {
+              // Mapping likely already exists, which is fine
+            }
+            
+            // Process and update questions using existing refresh logic
+            if (parsedQuestions.length > 0) {
+              const questionImports = parsedQuestions.map((q: any, index: number) => {
+                const questionType = q.question_type || "multiple_choice";
+                
+                // Normalize blanks in question text
+                let normalizedQuestionText = q.question_text || "";
+                if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+                  const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+                  normalizedQuestionText = normalizedText;
+                }
+                
+                const versionData: any = {
+                  version_number: 1,
+                  topic_focus: bubbleQuestionSet.title || "General",
+                  question_text: normalizedQuestionText,
+                  question_type: questionType,
+                  answer_choices: q.answer_choices || [],
+                  correct_answer: q.correct_answer || "",
+                  acceptable_answers: q.acceptable_answers,
+                  case_sensitive: q.case_sensitive || false,
+                  allow_multiple: q.allow_multiple || false,
+                  matching_pairs: q.matching_pairs || null,
+                  correct_order: q.correct_order || null,
+                };
+                
+                // Add question type specific fields
+                if (questionType === "select_from_list" && q.blanks) {
+                  versionData.blanks = q.blanks;
+                }
+                
+                if (questionType === "drag_and_drop") {
+                  if (q.drop_zones) {
+                    versionData.drop_zones = q.drop_zones;
+                  }
+                  if (typeof q.correct_answer === 'object' && !Array.isArray(q.correct_answer)) {
+                    versionData.correct_answer = JSON.stringify(q.correct_answer);
+                  }
+                }
+                
+                if (questionType === "multiple_response" && Array.isArray(q.correct_answer)) {
+                  versionData.correct_answer = JSON.stringify(q.correct_answer);
+                }
+                
+                return {
+                  question_number: q.question_number || (index + 1),
+                  type: questionType,
+                  loid: q.loid || "unknown",
+                  versions: [versionData]
+                };
+              });
+
+              await storage.updateQuestionsForRefresh(questionSet.id, questionImports);
+              await storage.updateQuestionSetCount(questionSet.id);
+            }
+
+            finalRefreshResults.setsProcessed++;
+            
+          } catch (error) {
+            finalRefreshResults.errors.push({
+              questionSetId: bubbleQuestionSet._id,
+              title: bubbleQuestionSet.title || `Question Set (${bubbleQuestionSet._id.substring(0, 8)}...)`,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              details: error instanceof Error ? error.stack?.split('\n')[0] : undefined
+            });
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
+            }
+          }
+        }));
+        
+        // Send progress update via SSE
+        const processed = Math.min(i + BATCH_SIZE, bubbleQuestionSets.length);
+        
+        res.write('data: ' + JSON.stringify({
+          type: 'progress',
+          current: processed,
+          total: bubbleQuestionSets.length,
+          setsProcessed: finalRefreshResults.setsProcessed,
+          questionsUpdated: finalRefreshResults.questionsUpdated,
+          questionsCreated: finalRefreshResults.questionsCreated
+        }) + '\n\n');
+      }
+
+      // Step 3: Mark finalization
+      const completedAt = new Date().toISOString();
+      await storage.setAppSetting('final_refresh_completed_at', completedAt);
+
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      // Send final results via SSE
+      res.write('data: ' + JSON.stringify({
+        type: 'complete',
+        setsProcessed: finalRefreshResults.setsProcessed,
+        questionsUpdated: finalRefreshResults.questionsUpdated,
+        questionsCreated: finalRefreshResults.questionsCreated,
+        questionsDeactivated: finalRefreshResults.questionsDeactivated,
+        questionsUnchanged: finalRefreshResults.questionsUnchanged,
+        completedAt,
+        duration,
+        errors: finalRefreshResults.errors
+      }) + '\n\n');
+      
+      res.end();
+      
+      console.log(`✅ FINAL REFRESH COMPLETED in ${duration}s. Sets: ${finalRefreshResults.setsProcessed}, Errors: ${finalRefreshResults.errors.length}`);
+      
+    } catch (error) {
+      console.error("❌ Critical error in final refresh:", error);
+      res.write('data: ' + JSON.stringify({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Unknown error occurred' 
+      }) + '\n\n');
+      res.end();
+    }
+  });
+
   // Bulk refresh all question sets with SSE for real-time progress tracking
   app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
     console.log("🔄 Starting bulk refresh of all question sets with SSE...");

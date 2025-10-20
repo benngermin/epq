@@ -1,7 +1,7 @@
 import {
   users, courses, courseExternalMappings, courseQuestionSets, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
-  chatbotFeedback, userCourseProgress, dailyActivitySummary, openRouterConfig,
+  chatbotFeedback, userCourseProgress, dailyActivitySummary, openRouterConfig, appSettings,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
   type CourseQuestionSet, type InsertCourseQuestionSet,
@@ -13,6 +13,7 @@ import {
   type UserCourseProgress, type InsertUserCourseProgress,
   type DailyActivitySummary, type InsertDailyActivitySummary,
   type OpenRouterConfig, type InsertOpenRouterConfig,
+  type AppSettings, type InsertAppSettings,
   type QuestionImport
 } from "@shared/schema";
 import { db } from "./db";
@@ -421,6 +422,11 @@ export interface IStorage {
   // OpenRouter config methods
   getOpenRouterConfig(): Promise<OpenRouterConfig | undefined>;
   updateOpenRouterConfig(config: Partial<InsertOpenRouterConfig>): Promise<OpenRouterConfig>;
+  
+  // App settings methods
+  getAppSetting(key: string): Promise<any | undefined>;
+  setAppSetting(key: string, value: any): Promise<void>;
+  getAllQuestionSets(): Promise<QuestionSet[]>;
   
   sessionStore: any;
 }
@@ -1623,6 +1629,28 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+  
+  // App settings methods
+  async getAppSetting(key: string): Promise<any | undefined> {
+    const [setting] = await db.select()
+      .from(appSettings)
+      .where(eq(appSettings.key, key))
+      .limit(1);
+    return setting?.value;
+  }
+  
+  async setAppSetting(key: string, value: any): Promise<void> {
+    await db.insert(appSettings)
+      .values({ key, value, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value, updatedAt: new Date() }
+      });
+  }
+  
+  async getAllQuestionSets(): Promise<QuestionSet[]> {
+    return await db.select().from(questionSets);
   }
 
   async getQuestionVersionById(questionVersionId: number): Promise<QuestionVersion | undefined> {
