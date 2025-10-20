@@ -4293,7 +4293,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
       
       const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
-      const headers = {
+      const authHeaders = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
       };
@@ -4305,7 +4305,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       while (true) {
         const url = `${baseUrl}?cursor=${cursor}&limit=${BUBBLE_PAGE_SIZE}`;
-        const response = await fetch(url, { headers });
+        const response = await fetch(url, { headers: authHeaders });
         
         if (!response.ok) {
           throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
@@ -4382,7 +4382,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               // For final refresh, we want to import everything
               const courseResponse = await fetch(
                 `${BUBBLE_BASE_URL}/course/${courseBubbleId}`, 
-                { headers }
+                { headers: authHeaders }
               );
               
               if (courseResponse.ok) {
