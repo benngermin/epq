@@ -11,6 +11,8 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - Resolved progress tracking issue that prevented updates when completing questions
 - Centralized ordinal field assignment in backend (batchFetchQuestionsWithVersions) for consistent numbering
 - Updated all frontend components to use backend-provided ordinal instead of local state indices
+- Added optimized endpoints for demo (/api/demo/question-sets/:id/optimized) and mobile-view (/api/mobile-view/question-sets/:id/optimized) paths to ensure ordinal field consistency
+- Unified frontend data fetching to use optimized endpoints across all authentication modes (authenticated, demo, mobile-view)
 
 ## System Architecture
 The application follows a client-server architecture.
