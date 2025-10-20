@@ -4132,6 +4132,92 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Manual sunset endpoint - admin-only, production-ready
+  app.post("/api/admin/refresh/sunset", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = (req as any).user;
+      
+      // Check if already sunset
+      const existingCompletedAt = await storage.getAppSetting('final_refresh_completed_at');
+      if (existingCompletedAt) {
+        return res.json({
+          message: "Final refresh already sunset",
+          completedAt: existingCompletedAt,
+          audit: await storage.getAppSetting('final_refresh_audit')
+        });
+      }
+      
+      // Check if refresh is in progress
+      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
+      if (inProgressTimestamp) {
+        return res.status(423).json({
+          error: "refresh_in_progress",
+          message: "Cannot sunset while refresh is in progress",
+          inProgressAt: inProgressTimestamp
+        });
+      }
+      
+      // Set sunset timestamp
+      const completedAt = new Date().toISOString();
+      await storage.setAppSetting('final_refresh_completed_at', completedAt);
+      
+      // Store audit information for manual sunset
+      const auditData = {
+        triggeredBy: adminUser ? { id: adminUser.id, email: adminUser.email } : 'system',
+        action: 'manual_sunset',
+        completedAt,
+        note: 'Final refresh manually sunset by administrator'
+      };
+      await storage.setAppSetting('final_refresh_audit', auditData);
+      
+      console.log(`🌅 Final refresh manually sunset by ${adminUser?.email || 'system'} at ${completedAt}`);
+      
+      res.json({
+        message: "Final refresh successfully sunset",
+        completedAt,
+        audit: auditData
+      });
+    } catch (error) {
+      console.error("Error setting final refresh sunset:", error);
+      res.status(500).json({ error: "Failed to set final refresh sunset" });
+    }
+  });
+
+  // Reset dev endpoint - for testing only, no-op in production
+  app.post("/api/admin/refresh/reset-dev", requireAdmin, async (req, res) => {
+    try {
+      // No-op in production
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({
+          error: "forbidden",
+          message: "This endpoint is disabled in production"
+        });
+      }
+      
+      const adminUser = (req as any).user;
+      
+      // Clear all final refresh settings
+      await storage.setAppSetting('final_refresh_in_progress_at', null);
+      await storage.setAppSetting('final_refresh_completed_at', null);
+      await storage.setAppSetting('final_refresh_audit', null);
+      
+      console.log(`🔧 Final refresh state reset for development by ${adminUser?.email || 'system'}`);
+      
+      res.json({
+        message: "Final refresh state reset for development",
+        clearedSettings: [
+          'final_refresh_in_progress_at',
+          'final_refresh_completed_at', 
+          'final_refresh_audit'
+        ],
+        resetBy: adminUser?.email || 'system'
+      });
+    } catch (error) {
+      console.error("Error resetting final refresh state:", error);
+      res.status(500).json({ error: "Failed to reset final refresh state" });
+    }
+  });
+
   // Final Refresh - One-time refresh before sunset
   app.post("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
     console.log("🚀 Starting FINAL REFRESH process...");
@@ -4434,11 +4520,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
         }) + '\n\n');
       }
 
-      // Step 3: Mark finalization
+      // Step 3: Complete processing - DO NOT auto-sunset
       const completedAt = new Date().toISOString();
-      await storage.setAppSetting('final_refresh_completed_at', completedAt);
       
-      // Clear the in-progress lock
+      // Clear the in-progress lock only
       await storage.setAppSetting('final_refresh_in_progress_at', null);
 
       const endTime = Date.now();
