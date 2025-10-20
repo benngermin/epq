@@ -1872,8 +1872,17 @@ export class DatabaseStorage implements IStorage {
           console.log(`  Evaluating ${candidates.length} total candidates...`);
           
           for (const candidate of candidates) {
+            // Handle questions without active versions - treat them as needing update
             if (!candidate.activeVersion) {
-              console.log(`    Skipping candidate ${candidate.question.id} - no active version`);
+              console.log(`    WARNING: Question ${candidate.question.id} has no active version - treating as match candidate`);
+              // Create a minimal match result to ensure this question gets updated
+              matchResults.push({
+                incoming: incomingQuestion,
+                existing: candidate,
+                score: 50, // Medium score to allow proper matching
+                matchType: 'no_active_version',
+                contentSimilarity: 0
+              });
               continue;
             }
             
