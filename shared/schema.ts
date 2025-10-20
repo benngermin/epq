@@ -216,6 +216,13 @@ export const openRouterConfig = pgTable("openrouter_config", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// App settings for system-wide configuration
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   testRuns: many(userTestRuns),
@@ -330,6 +337,7 @@ export const insertChatbotFeedbackSchema = createInsertSchema(chatbotFeedback);
 export const insertUserCourseProgressSchema = createInsertSchema(userCourseProgress);
 export const insertDailyActivitySummarySchema = createInsertSchema(dailyActivitySummary);
 export const insertOpenRouterConfigSchema = createInsertSchema(openRouterConfig);
+export const insertAppSettingsSchema = createInsertSchema(appSettings);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -365,6 +373,8 @@ export type DailyActivitySummary = typeof dailyActivitySummary.$inferSelect;
 export type InsertDailyActivitySummary = z.infer<typeof insertDailyActivitySummarySchema>;
 export type OpenRouterConfig = typeof openRouterConfig.$inferSelect;
 export type InsertOpenRouterConfig = z.infer<typeof insertOpenRouterConfigSchema>;
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
 
 // Question import schema - matches the attached JSON format
 export const questionImportSchema = z.object({
