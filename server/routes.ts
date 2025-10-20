@@ -23,6 +23,7 @@ import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/cs
 import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
 import { validateCognitoToken, extractUserInfo } from "./cognito-jwt-validator";
 import validator from "validator";
+import { BUBBLE_BASE_URL, BUBBLE_PAGE_SIZE, BUBBLE_API_KEY, FINAL_REFRESH_LOCK_ID, FINAL_REFRESH_SUNSET_ENABLED, FINAL_REFRESH_AUTO_SUNSET } from "./config/bubble";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -3711,7 +3712,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return res.status(500).json({ message: "Bubble API key not configured" });
       }
 
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -3905,7 +3906,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
 
       // Fetch all question sets from Bubble
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -4190,7 +4191,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Step 1: Fetch all question sets from Bubble
       res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
       
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -4257,7 +4258,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               // Try to import the course if it doesn't exist
               // For final refresh, we want to import everything
               const courseResponse = await fetch(
-                `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course/${courseBubbleId}`, 
+                `${BUBBLE_BASE_URL}/course/${courseBubbleId}`, 
                 { headers }
               );
               
@@ -4522,7 +4523,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
 
       // Fetch all question sets from Bubble
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set";
+      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -4808,7 +4809,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      const url = `${BUBBLE_BASE_URL}/question_set/${questionSet.externalId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -4932,7 +4933,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
       
       // Fetch the specific question set from Bubble using its ID
-      const url = `https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/question_set/${questionSet.externalId}`;
+      const url = `${BUBBLE_BASE_URL}/question_set/${questionSet.externalId}`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -5115,7 +5116,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       }
 
       
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/learning_object";
+      const baseUrl = `${BUBBLE_BASE_URL}/learning_object`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -5165,7 +5166,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Fetch course mapping from Bubble
 
       const courseMap = new Map();
-      const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
+      const courseUrl = `${BUBBLE_BASE_URL}/course`;
       const courseResponse = await fetch(courseUrl, { headers });
       
       if (courseResponse.ok) {
@@ -5222,7 +5223,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const startTime = Date.now();
       
       // First fetch all learning objects
-      const baseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/learning_object";
+      const baseUrl = `${BUBBLE_BASE_URL}/learning_object`;
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
@@ -5269,7 +5270,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Fetch course mapping from Bubble
 
       const courseMap = new Map();
-      const courseUrl = "https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj/course";
+      const courseUrl = `${BUBBLE_BASE_URL}/course`;
       const courseResponse = await fetch(courseUrl, { headers });
       
       if (courseResponse.ok) {
