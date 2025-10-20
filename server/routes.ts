@@ -4226,8 +4226,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Final Refresh - One-time refresh before sunset
-  app.post("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
+  // Final Refresh - One-time refresh before sunset (GET for SSE best practice)
+  app.get("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
     console.log("🚀 Starting FINAL REFRESH process...");
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
@@ -4261,15 +4261,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Lock acquired - set the in-progress timestamp (informational only)
       await storage.setAppSetting('final_refresh_in_progress_at', new Date().toISOString());
       
-      // Set up SSE headers
-      const origin = req.headers.origin || '*';
-      res.writeHead(200, {
+      // Set up SSE headers with proper CORS handling
+      const origin = req.headers.origin;
+      const headers: any = {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true'
-      });
+        'Vary': 'Origin'
+      };
+      
+      // Only set CORS headers if origin is present
+      if (origin) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Credentials'] = 'true';
+      }
+      
+      res.writeHead(200, headers);
       
       // Send initial event
       res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting final refresh...' }) + '\n\n');
@@ -4608,15 +4615,22 @@ Remember, your goal is to support student comprehension through meaningful feedb
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
     
-    // Set up SSE headers
-    const origin = req.headers.origin || '*';
-    res.writeHead(200, {
+    // Set up SSE headers with proper CORS handling
+    const origin = req.headers.origin;
+    const headers: any = {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Credentials': 'true'
-    });
+      'Vary': 'Origin'
+    };
+    
+    // Only set CORS headers if origin is present
+    if (origin) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
+    res.writeHead(200, headers);
     
     // Send initial event
     res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting bulk refresh...' }) + '\n\n');
