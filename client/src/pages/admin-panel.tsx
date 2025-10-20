@@ -1174,6 +1174,178 @@ export default function AdminPanel() {
     },
   });
 
+  // State for Final Refresh
+  const [showFinalRefreshDialog, setShowFinalRefreshDialog] = useState(false);
+  const [finalRefreshInProgress, setFinalRefreshInProgress] = useState(false);
+  const [finalRefreshCompleted, setFinalRefreshCompleted] = useState(false);
+  const [finalRefreshProgress, setFinalRefreshProgress] = useState<{
+    current: number;
+    total: number;
+    setsProcessed: number;
+    questionsUpdated: number;
+    questionsCreated: number;
+    errors: Array<{ questionSetId: string; title: string; error: string; details?: string }>;
+    completedAt?: string;
+  } | null>(null);
+  
+  // Check if final refresh was already completed
+  useEffect(() => {
+    const checkFinalRefreshStatus = async () => {
+      try {
+        const response = await apiRequest("GET", "/api/admin/refresh/status");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.finalRefreshCompletedAt) {
+            setFinalRefreshCompleted(true);
+          }
+        }
+      } catch (error) {
+        // Ignore error - endpoint might not exist yet
+      }
+    };
+    checkFinalRefreshStatus();
+  }, []);
+  
+  // Handle Final Refresh execution
+  const handleFinalRefresh = useCallback(() => {
+    setShowFinalRefreshDialog(false);
+    setFinalRefreshInProgress(true);
+    setFinalRefreshProgress({ 
+      current: 0, 
+      total: 0, 
+      setsProcessed: 0,
+      questionsUpdated: 0,
+      questionsCreated: 0,
+      errors: [] 
+    });
+    
+    // Use fetch with SSE directly
+    fetch('/api/admin/refresh/run-final', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Accept': 'text/event-stream',
+      }
+    }).then(response => {
+      if (!response.ok) {
+        if (response.status === 410) {
+          // Final refresh was already completed
+          response.json().then(data => {
+            toast({
+              title: "Final Refresh Already Completed",
+              description: data.message,
+              variant: "default"
+            });
+            setFinalRefreshCompleted(true);
+            setFinalRefreshInProgress(false);
+          });
+          return;
+        }
+        throw new Error('Failed to start final refresh');
+      }
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      const processStream = async () => {
+        if (!reader) return;
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  switch (data.type) {
+                    case 'start':
+                      console.log('Final refresh started:', data.message);
+                      break;
+                      
+                    case 'status':
+                      console.log('Status:', data.message);
+                      break;
+                      
+                    case 'total':
+                      setFinalRefreshProgress(prev => ({ ...prev!, total: data.total }));
+                      break;
+                      
+                    case 'progress':
+                      setFinalRefreshProgress(prev => ({
+                        ...prev!,
+                        current: data.current,
+                        total: data.total,
+                        setsProcessed: data.setsProcessed,
+                        questionsUpdated: data.questionsUpdated,
+                        questionsCreated: data.questionsCreated
+                      }));
+                      break;
+                      
+                    case 'complete':
+                      setFinalRefreshInProgress(false);
+                      setFinalRefreshCompleted(true);
+                      setFinalRefreshProgress(prev => ({
+                        ...prev!,
+                        setsProcessed: data.setsProcessed,
+                        questionsUpdated: data.questionsUpdated,
+                        questionsCreated: data.questionsCreated,
+                        errors: data.errors || [],
+                        completedAt: data.completedAt
+                      }));
+                      
+                      const errorCount = data.errors?.length || 0;
+                      const successMessage = `Final refresh completed in ${data.duration}s. Sets: ${data.setsProcessed}, Updated: ${data.questionsUpdated}, Created: ${data.questionsCreated}${errorCount > 0 ? `, Errors: ${errorCount}` : ''}`;
+                      
+                      toast({
+                        title: "Final Refresh Complete",
+                        description: successMessage,
+                        variant: errorCount > 0 ? "default" : "default"
+                      });
+                      
+                      // Invalidate queries to refresh UI
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+                      break;
+                      
+                    case 'error':
+                      console.error('Final refresh error:', data.message);
+                      toast({
+                        title: "Final Refresh Error",
+                        description: data.message,
+                        variant: "destructive"
+                      });
+                      setFinalRefreshInProgress(false);
+                      break;
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE data:', e);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Stream processing error:', error);
+        }
+      };
+      
+      processStream();
+    }).catch(error => {
+      console.error('Final refresh error:', error);
+      toast({
+        title: "Failed to start final refresh",
+        description: error.message,
+        variant: "destructive"
+      });
+      setFinalRefreshInProgress(false);
+    });
+  }, [toast, queryClient]);
+
   // Handle bulk refresh with SSE for real-time updates
   const handleBulkRefresh = useCallback(() => {
     setShowRefreshConfirm(false);
@@ -1445,7 +1617,7 @@ export default function AdminPanel() {
                   <Button 
                     variant="secondary"
                     onClick={() => setShowRefreshConfirm(true)}
-                    disabled={isRefreshing}
+                    disabled={isRefreshing || finalRefreshCompleted}
                   >
                     {isRefreshing ? (
                       <>
@@ -1455,10 +1627,39 @@ export default function AdminPanel() {
                     ) : (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Refresh All
+                        Refresh All {finalRefreshCompleted && "(Disabled)"}
                       </>
                     )}
                   </Button>
+                  
+                  {/* Final Refresh Button - Only show if not completed */}
+                  {!finalRefreshCompleted && (
+                    <Button 
+                      onClick={() => setShowFinalRefreshDialog(true)}
+                      disabled={finalRefreshInProgress}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {finalRefreshInProgress ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Final Refresh Running...
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          Run Final Refresh
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {/* Final Refresh Completed Badge */}
+                  {finalRefreshCompleted && (
+                    <div className="ml-2 px-3 py-1 bg-gray-100 text-gray-600 rounded-md text-sm font-medium">
+                      <CheckCircle className="h-4 w-4 inline mr-1" />
+                      Final Refresh Completed
+                    </div>
+                  )}
                   
                   </div>
                   </div>
@@ -1532,6 +1733,97 @@ export default function AdminPanel() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                
+                {/* Final Refresh Confirmation Dialog */}
+                <AlertDialog open={showFinalRefreshDialog} onOpenChange={setShowFinalRefreshDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-red-600">⚠️ Final Refresh - One-Time Operation</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        <div className="space-y-3">
+                          <p className="font-semibold">This is a ONE-TIME migration that will:</p>
+                          <ol className="list-decimal list-inside space-y-2 ml-4">
+                            <li>Pull ALL question sets from Bubble.io</li>
+                            <li>Update every question to the latest version</li>
+                            <li>Create new question sets if they don't exist</li>
+                            <li>PERMANENTLY disable all future refresh and import functionality</li>
+                          </ol>
+                          
+                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <p className="font-semibold text-yellow-800">⚠️ WARNING:</p>
+                            <p className="text-yellow-700">After this operation completes, you will NO LONGER be able to:</p>
+                            <ul className="list-disc list-inside mt-2 text-yellow-700">
+                              <li>Import new question sets from Bubble</li>
+                              <li>Update existing question sets from Bubble</li>
+                              <li>Refresh question data from Bubble</li>
+                            </ul>
+                          </div>
+                          
+                          <p className="font-medium text-red-600">
+                            This operation CANNOT be undone. Are you absolutely sure you want to proceed?
+                          </p>
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleFinalRefresh}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Yes, Run Final Refresh
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                {/* Final Refresh Progress Display */}
+                {finalRefreshInProgress && finalRefreshProgress && (
+                  <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-red-800">
+                        Running Final Refresh...
+                      </span>
+                      <span className="text-sm text-red-600">
+                        {finalRefreshProgress.current} / {finalRefreshProgress.total} question sets
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(finalRefreshProgress.current / Math.max(finalRefreshProgress.total, 1)) * 100}
+                      className="mb-2"
+                    />
+                    <div className="text-xs text-red-600 space-y-1">
+                      <div>Sets Processed: {finalRefreshProgress.setsProcessed}</div>
+                      <div>Questions Updated: {finalRefreshProgress.questionsUpdated}</div>
+                      <div>Questions Created: {finalRefreshProgress.questionsCreated}</div>
+                      {finalRefreshProgress.errors.length > 0 && (
+                        <div className="text-red-700">Errors: {finalRefreshProgress.errors.length}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Final Refresh Completion Summary */}
+                {finalRefreshCompleted && finalRefreshProgress?.completedAt && (
+                  <Alert className="mb-4 border-gray-300">
+                    <CheckCircle className="h-4 w-4 text-gray-600" />
+                    <AlertDescription>
+                      <div className="font-medium text-gray-700">Final Refresh Completed</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        <div>Completed at: {new Date(finalRefreshProgress.completedAt).toLocaleString()}</div>
+                        <div>Total Sets: {finalRefreshProgress.setsProcessed}</div>
+                        <div>Questions Updated: {finalRefreshProgress.questionsUpdated}</div>
+                        <div>Questions Created: {finalRefreshProgress.questionsCreated}</div>
+                        {finalRefreshProgress.errors.length > 0 && (
+                          <div className="text-red-600">Errors: {finalRefreshProgress.errors.length}</div>
+                        )}
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-gray-600">
+                        All refresh and import features have been permanently disabled.
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="space-y-4">
                   {coursesLoading ? (
