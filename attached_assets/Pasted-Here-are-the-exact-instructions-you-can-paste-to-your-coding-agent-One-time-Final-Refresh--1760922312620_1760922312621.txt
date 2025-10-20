@@ -1,0 +1,265 @@
+Here are the exact instructions you can paste to your coding agent.
+
+---
+
+# One-time “Final Refresh” + Sunset Plan
+
+I need you to implement a **single-use “Final Refresh”** button in the Admin that:
+
+1. Pulls **all question sets** from Bubble,
+2. Refreshes/replaces **every question** to the **most recent version** using our existing refresh logic, and
+3. **Permanently sunsets** all refresh/import functionality once it completes successfully.
+
+Going forward, **all edits happen only via the in-app question editor**. No more Bubble refresh.
+
+---
+
+## Deliverables (overview)
+
+1. **Admin UI**
+
+   * Add a visible, admin-only button: **“Run Final Refresh”**.
+   * Clicking opens a confirmation modal that clearly states this is **one-time and irreversible**. Require typing `FINALIZE` to proceed.
+   * On confirm, call a new backend endpoint (see below), stream progress, and show a live log/progress bar.
+   * After success, disable/hide all Bubble refresh/import UI and show a badge like **“Refresh sunset on <date>”**.
+
+2. **Backend**
+
+   * New endpoint: **`POST /api/admin/refresh/run-final`** (idempotent, admin-only).
+   * It should:
+
+     * **Abort** if a “final refresh already completed” flag is set (return **410 Gone** with a clear message).
+     * Execute the **existing** import + refresh pipeline across **all sets**:
+
+       1. Import/update all sets from Bubble (whatever we already use today).
+       2. For each set, run our **existing** “create new version if content changed; deactivate old version” logic.
+       3. Recompute any dependent hashes/fields required by downstream logic (e.g., normalized text hash if applicable).
+     * Enforce **exactly one active version per question** (see migration below).
+     * On success, **persist a flag** so the endpoint cannot be run again, then respond with final stats.
+   * Add **410 Gone** responses on all legacy refresh/import endpoints after the flag is set.
+
+3. **Persistence / Feature gate**
+
+   * Add an **app setting** to record sunset status:
+
+     * `key = 'final_refresh_completed_at'`, `value = ISO timestamp`.
+   * Server checks this before allowing any refresh/import calls.
+
+4. **Data integrity guarantees**
+
+   * Add a partial unique index to enforce **one active version per question**.
+   * After the run, provide a **summary**: sets processed, questions updated/created/deactivated/unchanged, any integrity warnings.
+
+5. **Cache correctness**
+
+   * After success, **invalidate** client caches so all surfaces read the latest text.
+   * Add `Cache-Control: no-cache, no-store, must-revalidate` on practice endpoints if not already set.
+
+6. **Sunset**
+
+   * Hide/disable all refresh UI and return **410** from all Bubble refresh/import endpoints.
+   * Remove reliance on `BUBBLE_*` envs after this is confirmed in prod.
+
+---
+
+## Technical details & acceptance criteria
+
+### A) DB migration(s)
+
+1. **App settings store** (if one doesn’t already exist):
+
+```sql
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+2. **One active version per question**:
+
+```sql
+-- Prevent multiple active versions for the same question
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_version_per_question
+ON question_versions (question_id)
+WHERE is_active = true;
+```
+
+**Acceptance:** Migration applies cleanly; index enforces uniqueness in staging.
+
+---
+
+### B) Backend endpoint
+
+Create **`POST /api/admin/refresh/run-final`** (admin-only). Behavior:
+
+* **Guard:** If `app_settings.final_refresh_completed_at` exists → return **410 Gone** JSON:
+
+  ```json
+  { "error": "final_refresh_completed", "message": "Final refresh was completed at 2025-10-19T21:00:00Z." }
+  ```
+
+* **Run sequence** (pseudocode; call our **existing** functions, do not rewrite the algorithm):
+
+  ```ts
+  // 1) Import/update latest sets from Bubble (existing implementation)
+  await importOrUpdateAllQuestionSetsFromBubble(); // uses our current logic
+
+  // 2) Refresh all sets using the existing versioning logic
+  const results = await runBulkRefreshAcrossAllSets({
+    // must create a new version when content differs,
+    // must deactivate old version,
+    // must preserve intended fields (e.g., staticExplanation) as today
+  });
+
+  // 3) Optional: recompute normalized text hash for any updated question text
+  await backfillNormalizedTextHashes({ onlyIfMissingOrChanged: true });
+
+  // 4) Integrity check: ensure 1 active version per question (the index will enforce)
+  //    Gather counts: updated, created, deactivated, unchanged, failures.
+
+  // 5) Mark finalization
+  await upsertAppSetting('final_refresh_completed_at', new Date().toISOString());
+  ```
+
+* **Response:** 200 JSON with summary:
+
+  ```json
+  {
+    "setsProcessed": 123,
+    "questionsUpdated": 456,
+    "questionsCreated": 78,
+    "questionsDeactivated": 456,
+    "questionsUnchanged": 890,
+    "completedAt": "2025-10-19T21:05:00Z"
+  }
+  ```
+
+* **After success:** subsequent calls must return **410** as above.
+
+* **Sunset other endpoints:** All of these must return **410** once finalized (don’t delete immediately; return a helpful message):
+
+  * `/api/admin/bubble/import-question-sets`
+  * `/api/admin/bubble/update-all-question-sets`
+  * `/api/admin/bubble/bulk-refresh-question-sets`
+  * `/api/admin/bubble/question-sets`
+
+**Acceptance:**
+
+* First run on staging completes with 200 and expected counts.
+* Second attempt on staging returns 410.
+* All legacy refresh/import endpoints return 410 after finalization.
+
+---
+
+### C) Admin UI
+
+* Add a new admin-only action: **“Run Final Refresh”** (e.g., in “Data Maintenance”).
+* On click, show a modal:
+
+  * Title: **“Run Final Refresh (One-Time)”**
+  * Body (concise):
+    “This will pull all question sets from Bubble and update every question to the latest version. After it completes, **all refresh/import actions will be permanently disabled.** Type `FINALIZE` to proceed.”
+  * Input: require exact `FINALIZE`.
+  * Buttons: **Cancel** | **Run Final Refresh**
+* On confirm:
+
+  * Disable button; call `POST /api/admin/refresh/run-final`.
+  * Display incremental logs/progress if available; otherwise a simple spinner and finally the returned summary.
+  * On 200: show success toast with counts; **hide/disable** all refresh/import UI immediately and replace with a read-only label:
+    **“Refresh sunset on <timestamp>.”**
+  * On 410: show informative message with the stored timestamp; keep UI disabled.
+* Add a read-only indicator in the Admin header or maintenance page that shows the finalized timestamp if set.
+
+**Acceptance:**
+
+* Button is visible only to admins.
+* Requires `FINALIZE`.
+* Correctly handles 200 vs 410 responses.
+* Refresh/import UI disappears after success (and stays hidden on reload).
+
+---
+
+### D) Cache correctness
+
+* After a **successful** final refresh, perform a **client-side cache invalidation** for all practice/question data queries:
+
+  * In Admin app, upon success:
+
+    ```ts
+    queryClient.invalidateQueries({
+      predicate: (q) => {
+        const key = Array.isArray(q.queryKey) ? q.queryKey[0] : q.queryKey;
+        return typeof key === 'string' && (
+          key.startsWith('/api/question-sets/') ||
+          key === '/api/practice-data' ||
+          key === '/api/mobile-view/practice-data'
+        );
+      },
+    });
+    ```
+* Ensure practice endpoints send:
+
+  ```
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  ```
+
+**Acceptance:** After final refresh, navigating to any practice view shows updated question text without stale caching.
+
+---
+
+### E) Security & audit
+
+* Protect `POST /api/admin/refresh/run-final` with existing admin auth.
+* Log an audit record:
+
+  * who triggered it (admin user id/email),
+  * when it started/finished,
+  * the returned summary counts.
+
+**Acceptance:** Audit record is written; visible in server logs and/or audit table.
+
+---
+
+### F) Rollback plan (safety)
+
+Before running in prod, create a light snapshot so we can roll back if needed:
+
+* Dump `questions` and `question_versions` to CSV or a shadow table:
+
+  ```sql
+  CREATE TABLE IF NOT EXISTS snapshot_question_versions_yyyymmdd AS
+  SELECT * FROM question_versions;
+
+  CREATE TABLE IF NOT EXISTS snapshot_questions_yyyymmdd AS
+  SELECT * FROM questions;
+  ```
+* If we ever need to revert, we can restore from these snapshots.
+
+**Acceptance:** Snapshot tables exist in staging rehearsal; row counts match pre-refresh totals.
+
+---
+
+## Assumptions
+
+* We will **reuse the existing** Bubble import/update and refresh/versioning functions; do **not** reimplement the algorithm.
+* The normalized text-hash backfill function exists; if not, add a simple implementation consistent with our current normalizer.
+* There is no long-running job system requirement; synchronous request is acceptable if it completes under our infra limits. If not, you can reuse our existing SSE approach; the contract remains the same.
+
+---
+
+## Definition of Done (DoD)
+
+* Migrations applied; index prevents multiple active versions per question.
+* New endpoint runs to completion once, returns 200 + summary; subsequent calls return 410.
+* Admin UI button works end-to-end with confirmation and progress.
+* After success, all refresh/import UI is hidden/disabled; all legacy refresh endpoints return 410.
+* Practice/admin surfaces reflect latest data (no stale cache).
+* Audit log written.
+* Staging rehearsal completed with a test Bubble change and verified in practice view.
+
+---
+
+If any of the assumptions above don’t hold in the codebase you’re seeing, keep the user-facing behavior identical and adjust internals accordingly, but **preserve**: one-time execution, reuse of existing refresh logic, enforced single active version, and full sunset after success.
