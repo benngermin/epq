@@ -574,6 +574,30 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
+  // Sunset guard middleware - blocks Bubble import/refresh endpoints after final refresh completion
+  const requireNotSunset = async (req: Request, res: Response, next: NextFunction) => {
+    const isProd = process.env.NODE_ENV === 'production';
+    
+    // Only check in production when sunset is enabled
+    if (isProd && FINAL_REFRESH_SUNSET_ENABLED) {
+      try {
+        const finalRefreshCompletedAt = await storage.getAppSetting('final_refresh_completed_at');
+        if (finalRefreshCompletedAt) {
+          return res.status(410).json({
+            error: 'final_refresh_sunset',
+            message: 'This feature has been permanently disabled after the final refresh was completed.',
+            completedAt: finalRefreshCompletedAt
+          });
+        }
+      } catch (error) {
+        console.error('Error checking sunset status:', error);
+        // Continue if we can't check the status
+      }
+    }
+    
+    next();
+  };
+
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
       // Only log errors for non-user endpoint requests to reduce noise
@@ -3767,16 +3791,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.post("/api/admin/bubble/import-question-sets", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bubble/import-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
     try {
-      // Check if final refresh was completed - sunset protection
-      const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
-      if (finalRefreshTimestamp) {
-        return res.status(410).json({
-          error: "sunset",
-          message: "This feature has been permanently disabled after the final refresh was completed."
-        });
-      }
       
       const { questionSets } = req.body;
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
@@ -3874,15 +3890,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // New endpoint to update all question sets from Bubble
-  app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
-    // Check if final refresh was completed - sunset protection
-    const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
-    if (finalRefreshTimestamp) {
-      return res.status(410).json({
-        error: "sunset",
-        message: "This feature has been permanently disabled after the final refresh was completed."
-      });
-    }
+  app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
     
     if (process.env.NODE_ENV === 'development') {
       console.log("🔄 Starting update-all-question-sets process...");
@@ -4593,15 +4601,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Bulk refresh all question sets with SSE for real-time progress tracking
-  app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
-    // Check if final refresh was completed - sunset protection
-    const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
-    if (finalRefreshTimestamp) {
-      return res.status(410).json({
-        error: "sunset",
-        message: "This feature has been permanently disabled after the final refresh was completed."
-      });
-    }
+  app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
     
     console.log("🔄 Starting bulk refresh of all question sets with SSE...");
     const startTime = Date.now();
@@ -5214,7 +5214,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Admin route to fetch all learning objects from Bubble.io
-  app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
+  app.get("/api/admin/bubble/learning-objects", requireAdmin, requireNotSunset, async (req, res) => {
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
@@ -5319,7 +5319,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Admin route to import all learning objects from Bubble.io
-  app.post("/api/admin/bubble/import-all-learning-objects", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bubble/import-all-learning-objects", requireAdmin, requireNotSunset, async (req, res) => {
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
