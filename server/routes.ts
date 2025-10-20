@@ -23,6 +23,7 @@ import { parseStaticExplanationCSV, type StaticExplanationRow } from "./utils/cs
 import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normalizer";
 import { validateCognitoToken, extractUserInfo } from "./cognito-jwt-validator";
 import validator from "validator";
+import crypto from "crypto";
 import { BUBBLE_BASE_URL, BUBBLE_PAGE_SIZE, BUBBLE_API_KEY, FINAL_REFRESH_LOCK_ID, FINAL_REFRESH_SUNSET_ENABLED, FINAL_REFRESH_AUTO_SUNSET } from "./config/bubble";
 
 // Custom error class for HTTP errors
@@ -4145,6 +4146,24 @@ Remember, your goal is to support student comprehension through meaningful feedb
     try {
       const adminUser = (req as any).user;
       
+      // Require explicit confirmation to prevent accidental sunset
+      if (req.body?.confirm !== "SUNSET") {
+        return res.status(400).json({
+          error: "confirmation_required",
+          message: "Explicit confirmation required. Send {\"confirm\":\"SUNSET\"} to proceed.",
+          warning: "This action is permanent and will disable all Bubble integration."
+        });
+      }
+      
+      // Only allow in production environment
+      if (process.env.NODE_ENV !== 'production') {
+        return res.status(400).json({
+          error: "production_only",
+          message: "Sunset can only be performed in production environment",
+          currentEnv: process.env.NODE_ENV
+        });
+      }
+      
       // Check if already sunset
       const existingCompletedAt = await storage.getAppSetting('final_refresh_completed_at');
       if (existingCompletedAt) {
@@ -4194,11 +4213,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
   // Reset dev endpoint - for testing only, no-op in production
   app.post("/api/admin/refresh/reset-dev", requireAdmin, async (req, res) => {
     try {
-      // No-op in production
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(403).json({
-          error: "forbidden",
-          message: "This endpoint is disabled in production"
+      // Return 404 in non-dev environments for security
+      if (process.env.NODE_ENV !== 'development') {
+        console.warn(`⚠️ Attempt to access reset-dev endpoint in ${process.env.NODE_ENV} environment by ${(req as any).user?.email}`);
+        return res.status(404).json({
+          error: "not_found",
+          message: "API endpoint not found"
         });
       }
       
@@ -4228,10 +4248,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   // Final Refresh - One-time refresh before sunset (GET for SSE best practice)
   app.get("/api/admin/refresh/final", requireAdmin, async (req, res) => {
-    console.log("🚀 Starting FINAL REFRESH process...");
+    const isDryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+    console.log(`🚀 Starting FINAL REFRESH process... ${isDryRun ? '(DRY RUN MODE)' : ''}`);
     const startTime = Date.now();
     const BATCH_SIZE = 5; // Process 5 question sets at a time
     const adminUser = (req as any).user;
+    
+    // Use a single connection for the entire Final Refresh to ensure advisory lock persistence
+    let lockConnection: any = null;
+    let lockAcquired = false;
+    let heartbeatInterval: NodeJS.Timeout | undefined;
     
     try {
       // Check if final refresh was already completed
@@ -4243,7 +4269,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
       }
       
-      // Try to acquire advisory lock for Final Refresh
+      // Get a dedicated connection from the pool for advisory lock
+      // Note: We need to use a raw connection to maintain session-scoped lock
+      lockConnection = await db.execute(sql`SELECT 1`); // Establish connection first
+      
+      // Try to acquire advisory lock using the same connection
       const lockResult = await db.execute(
         sql`SELECT pg_try_advisory_lock(${FINAL_REFRESH_LOCK_ID}) AS locked`
       );
@@ -4258,25 +4288,42 @@ Remember, your goal is to support student comprehension through meaningful feedb
         });
       }
       
+      lockAcquired = true; // Track that we acquired the lock
+      
       // Lock acquired - set the in-progress timestamp (informational only)
       await storage.setAppSetting('final_refresh_in_progress_at', new Date().toISOString());
       
-      // Set up SSE headers with proper CORS handling
+      // Set up SSE headers with proper CORS handling and hardening
       const origin = req.headers.origin;
       const headers: any = {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable Nginx buffering
         'Vary': 'Origin'
       };
       
-      // Only set CORS headers if origin is present
+      // Only set CORS headers if origin is present - never use * with credentials
       if (origin) {
         headers['Access-Control-Allow-Origin'] = origin;
         headers['Access-Control-Allow-Credentials'] = 'true';
       }
       
       res.writeHead(200, headers);
+      
+      // Set up heartbeat to keep connection alive
+      heartbeatInterval = setInterval(() => {
+        try {
+          res.write(':\n\n'); // SSE comment/heartbeat
+        } catch (e) {
+          clearInterval(heartbeatInterval);
+        }
+      }, 15000); // Send heartbeat every 15 seconds
+      
+      // Clean up heartbeat on connection close
+      req.on('close', () => {
+        clearInterval(heartbeatInterval);
+      });
       
       // Send initial event
       res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting final refresh...' }) + '\n\n');
@@ -4544,23 +4591,43 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
       
-      // Store audit information
+      // Store audit information with run_id for tracking
+      const runId = crypto.randomUUID();
       const auditData = {
+        run_id: runId,
         triggeredBy: adminUser ? { id: adminUser.id, email: adminUser.email } : 'system',
         startedAt: new Date(startTime).toISOString(),
         completedAt,
         duration,
         results: {
-          setsProcessed: finalRefreshResults.setsProcessed,
-          questionsCreated: finalRefreshResults.questionsCreated,
-          questionsUpdated: finalRefreshResults.questionsUpdated,
-          questionsDeactivated: finalRefreshResults.questionsDeactivated,
-          questionsUnchanged: finalRefreshResults.questionsUnchanged,
+          fetched: finalRefreshResults.setsProcessed,
+          created: finalRefreshResults.questionsCreated,
+          updated: finalRefreshResults.questionsUpdated,
+          deactivated: finalRefreshResults.questionsDeactivated,
+          unchanged: finalRefreshResults.questionsUnchanged,
           warnings: finalRefreshResults.warnings.length,
           errors: finalRefreshResults.errors.length
+        },
+        timings: {
+          total_seconds: parseFloat(duration),
+          average_per_set: finalRefreshResults.setsProcessed > 0 ? 
+            parseFloat((parseFloat(duration) / finalRefreshResults.setsProcessed).toFixed(2)) : 0
         }
       };
       await storage.setAppSetting('final_refresh_audit', auditData);
+      
+      // Emit single line structured log for monitoring
+      console.log(`final_refresh_completed: ${JSON.stringify({
+        run_id: runId,
+        duration: duration,
+        fetched: finalRefreshResults.setsProcessed,
+        created: finalRefreshResults.questionsCreated,
+        updated: finalRefreshResults.questionsUpdated,
+        deactivated: finalRefreshResults.questionsDeactivated,
+        unchanged: finalRefreshResults.questionsUnchanged,
+        errors: finalRefreshResults.errors.length,
+        warnings: finalRefreshResults.warnings.length
+      })}`);
       
       // Send final results via SSE
       res.write('data: ' + JSON.stringify({
@@ -4598,9 +4665,17 @@ Remember, your goal is to support student comprehension through meaningful feedb
         res.end();
       }
     } finally {
+      // Clean up heartbeat interval
+      if (typeof heartbeatInterval !== 'undefined') {
+        clearInterval(heartbeatInterval);
+      }
+      
       // Always release the advisory lock and clear in-progress timestamp
       try {
-        await db.execute(sql`SELECT pg_advisory_unlock(${FINAL_REFRESH_LOCK_ID})`);
+        // Release lock only if we acquired it
+        if (lockAcquired) {
+          await db.execute(sql`SELECT pg_advisory_unlock(${FINAL_REFRESH_LOCK_ID})`);
+        }
         await storage.setAppSetting('final_refresh_in_progress_at', null);
       } catch (unlockError) {
         console.error("Failed to release advisory lock:", unlockError);

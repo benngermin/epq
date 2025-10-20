@@ -9,6 +9,18 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
+// Production startup validation
+if (process.env.NODE_ENV === 'production') {
+  const bubbleBaseUrl = process.env.BUBBLE_BASE_URL;
+  if (bubbleBaseUrl && bubbleBaseUrl.includes('version-test')) {
+    console.error('🚨 FATAL ERROR: Production environment cannot use version-test Bubble URL!');
+    console.error(`Current BUBBLE_BASE_URL: ${bubbleBaseUrl}`);
+    console.error('Please set BUBBLE_BASE_URL to the production Bubble API endpoint.');
+    process.exit(1);
+  }
+  console.log('✅ Production environment validation passed');
+}
+
 const app = express();
 
 // Security headers middleware - Enhanced security configuration
