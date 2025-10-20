@@ -1,0 +1,112 @@
+**I need you to make these final adjustments to the “Final Refresh” so it’s production-ready and testable repeatedly in dev without auto-sunsetting. Ship as one PR with clear commits per item.**
+
+1. **Environment + URLs**
+
+   * Replace all hard-coded Bubble `version-test` URLs with an env-driven base.
+   * Add:
+
+     * `BUBBLE_BASE_URL` (prod → live API, dev → version-test by default)
+     * `BUBBLE_PAGE_SIZE=100`
+   * Create a small `config/bubble.ts` and import it where used.
+
+   ```ts
+   // config/bubble.ts
+   export const BUBBLE_BASE_URL =
+     process.env.BUBBLE_BASE_URL ??
+     (process.env.NODE_ENV === 'production'
+       ? 'https://ti-content-repository.bubbleapps.io/api/1.1/obj'
+       : 'https://ti-content-repository.bubbleapps.io/version-test/api/1.1/obj');
+   export const BUBBLE_PAGE_SIZE = parseInt(process.env.BUBBLE_PAGE_SIZE ?? '100', 10);
+   ```
+
+   * Use `${BUBBLE_BASE_URL}/question_set`, `/course`, `/learning_object`, etc.
+
+2. **Pagination (Final Refresh + any bulk imports missing it)**
+
+   * In the Final Refresh fetch for **question sets**, implement a cursor/limit loop and accumulate **all** pages (mirror the working pattern you already use for learning objects).
+
+   ```ts
+   let cursor = 0; const all: any[] = [];
+   while (true) {
+     const url = `${BUBBLE_BASE_URL}/question_set?cursor=${cursor}&limit=${BUBBLE_PAGE_SIZE}`;
+     const r = await fetch(url, { headers });
+     if (!r.ok) throw new Error(`Bubble fetch failed: ${r.status}`);
+     const body = await r.json();
+     const page = body?.response?.results ?? [];
+     all.push(...page);
+     if (page.length < BUBBLE_PAGE_SIZE) break;
+     cursor += page.length;
+   }
+   // use `all`
+   ```
+
+3. **App settings keys — standardize**
+
+   * Use **only** these keys everywhere (reads/writes, checks, test scripts, rollback):
+
+     * `final_refresh_in_progress_at` (timestamp/ISO string or null)
+     * `final_refresh_completed_at` (timestamp/ISO string or null)
+     * `final_refresh_audit` (JSON)
+   * Update `server/test-final-refresh.ts` and `server/production-rollback.sql` to these exact snake_case names and semantics.
+
+4. **Sunset behavior — manual, prod-only**
+
+   * **Remove any automatic “completed” set** at the end of a run.
+   * Add env flags:
+
+     * `FINAL_REFRESH_SUNSET_ENABLED=true` (set **only** in prod)
+     * `FINAL_REFRESH_AUTO_SUNSET=false` (default everywhere)
+   * Create a **manual** admin-only route:
+
+     * `POST /api/admin/refresh/sunset` → sets `final_refresh_completed_at=now()`, writes `final_refresh_audit`, returns state.
+   * Add a non-prod utility route for testing:
+
+     * `POST /api/admin/refresh/reset-dev` (no-op in prod) → clears `final_refresh_in_progress_at`, `final_refresh_completed_at`, and `final_refresh_audit`.
+
+5. **Sunset guard coverage**
+
+   * Add a shared middleware `requireNotSunset`:
+
+     ```ts
+     const isProd = process.env.NODE_ENV === 'production';
+     const isSunset = async () => !!(await getSetting('final_refresh_completed_at'));
+     async function requireNotSunset(req,res,next){
+       if (isProd && await isSunset()) return res.status(410).json({error:'final refresh sunset'});
+       next();
+     }
+     ```
+   * Apply this to **all** Bubble import/refresh/list endpoints (question sets, learning objects, etc.). In dev, guard is effectively off.
+
+6. **Locking — no TTL; hard lock**
+
+   * Replace the 30-minute stale-lock heuristic with a single-owner lock using **Postgres advisory locks** (simple and schema-less):
+
+     ```ts
+     // acquire
+     const got = await db.one('SELECT pg_try_advisory_lock($1) AS locked', [821402]);
+     if (!got.locked) return res.status(409).json({error:'final refresh already running'});
+     try {
+       // ... run the refresh job
+     } finally {
+       await db.none('SELECT pg_advisory_unlock($1)', [821402]);
+     }
+     ```
+   * Keep your existing “in_progress” timestamp purely informational; do **not** use it for concurrency control.
+
+7. **SSE endpoint + CORS**
+
+   * Serve the streaming progress over **GET** (SSE best practice): `GET /api/admin/refresh/run-final` with `text/event-stream`.
+   * CORS fix: only set `Access-Control-Allow-Origin` to the actual `Origin` and include `Vary: Origin`; if no Origin, don’t send `Allow-Credentials: true`.
+
+8. **Do not change** the matching logic, the transaction wrapper, or the unique “one active version” constraint — those are correct.
+
+**Acceptance (consider this done when):**
+
+* In **dev**, I can run Final Refresh multiple times back-to-back without touching DB flags, and the guard never blocks. `reset-dev` clears state.
+* In **prod-like**, Final Refresh fetches from **live** Bubble (not version-test), paginates fully, and rejects concurrent runs with 409.
+* After I call `/api/admin/refresh/sunset` in prod-like, **all** Bubble import/refresh endpoints return 410 Gone.
+* SSE progress streams cleanly over GET through our proxy; CORS preflight/cred rules are correct.
+* `server/test-final-refresh.ts` and `server/production-rollback.sql` use the snake_case keys and work against current state.
+* `.env.development` has `BUBBLE_BASE_URL` pointing to version-test; `.env.production` points to live; `BUBBLE_PAGE_SIZE=100`; `FINAL_REFRESH_SUNSET_ENABLED=true` only in prod.
+
+Open a single PR with: (1) config/env changes, (2) pagination diff, (3) locking change, (4) sunset guard + routes, (5) SSE+CORS tweak, (6) tests/rollback updates. Include short release notes and a test log from a full dev run showing page counts >1 and a clean re-run.
