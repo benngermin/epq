@@ -6335,6 +6335,53 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Mobile-view optimized endpoint - returns all data in one response with ordinal field
+  app.get("/api/mobile-view/question-sets/:id/optimized", async (req, res) => {
+    const questionSetId = parseInt(req.params.id);
+    
+    try {
+      // Get the data using the same logic as the authenticated optimized endpoint
+      const [questionSet, questions] = await Promise.all([
+        withCircuitBreaker(() => storage.getQuestionSet(questionSetId)),
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId))
+      ]);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // For mobile-view, shuffle the questions but preserve ordinal
+      const shuffled = [...questions].sort(() => Math.random() - 0.5);
+      
+      // Re-assign ordinal after shuffling
+      const questionsWithOrdinal = shuffled.map((question, index) => ({
+        ...question,
+        ordinal: index + 1
+      }));
+      
+      // Get course info if available
+      const courses = await withCircuitBreaker(() => storage.getCoursesForQuestionSet(questionSetId));
+      const course = courses.length > 0 ? courses[0] : null;
+      
+      const courseQuestionSets = course 
+        ? await withCircuitBreaker(() => storage.getQuestionSetsByCourse(course.id))
+        : [];
+      
+      // Return combined data matching the expected format
+      res.json({ 
+        questionSet, 
+        questions: questionsWithOrdinal, 
+        course, 
+        courseQuestionSets 
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in mobile-view optimized endpoint:", error);
+      }
+      res.status(500).json({ message: "Failed to load practice data" });
+    }
+  });
+
   // Mobile-view answer submission - validates answer without storing it
   app.post("/api/mobile-view/question-sets/:questionSetId/answer", async (req, res) => {
     try {

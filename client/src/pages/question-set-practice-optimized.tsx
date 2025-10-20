@@ -211,46 +211,14 @@ export default function QuestionSetPractice() {
           }
         }
 
-        // Mobile-view uses a single combined endpoint, while demo and authenticated use separate endpoints
+        // All modes now use the optimized endpoint that includes ordinal field
         let questionSet, questions, course, courseQuestionSets;
         
-        if (isMobileView) {
-          // Mobile-view: Use the single practice-data endpoint that returns everything
-          const practiceDataRes = await fetch(`/api/mobile-view/practice-data/${questionSetId}`, { 
-            credentials: "include",
-            signal: abortControllerRef.current.signal 
-          }).catch(error => {
-            if (error.name === 'AbortError') {
-              debugLog('Fetch aborted due to component unmount');
-              throw error;
-            }
-            debugError('Failed to fetch mobile-view practice data', error);
-            throw error;
-          });
-
-          // Check if response is JSON before parsing
-          const contentType = practiceDataRes.headers.get("content-type");
-          if (!contentType?.includes("application/json")) {
-            throw new Error("Server returned non-JSON response. Please refresh the page.");
-          }
-
-          if (!practiceDataRes.ok) {
-            if (practiceDataRes.status === 401) {
-              throw new Error('Authentication required');
-            }
-            throw new Error(`Failed to load practice data`);
-          }
-
-          const mobileData = await practiceDataRes.json();
-          questionSet = mobileData.questionSet;
-          questions = mobileData.questions;
-          course = mobileData.course;
-          courseQuestionSets = mobileData.courseQuestionSets || [];
-          
-        } else {
-          // Demo and authenticated modes: Use the optimized endpoint that includes ordinal field
-          const apiPrefix = isDemo ? '/api/demo' : '/api';
-          const optimizedRes = await fetch(`${apiPrefix}/question-sets/${questionSetId}/optimized`, { 
+        // Determine the API prefix based on the mode
+        const apiPrefix = isMobileView ? '/api/mobile-view' : (isDemo ? '/api/demo' : '/api');
+        
+        // Use the optimized endpoint for all modes
+        const optimizedRes = await fetch(`${apiPrefix}/question-sets/${questionSetId}/optimized`, { 
             credentials: "include",
             signal: abortControllerRef.current.signal 
           }).catch(error => {
@@ -262,26 +230,25 @@ export default function QuestionSetPractice() {
             throw error;
           });
 
-          // Check if response is JSON before parsing
-          const contentType = optimizedRes.headers.get("content-type");
-          
-          if (!contentType?.includes("application/json")) {
-            throw new Error("Server returned non-JSON response. Please refresh the page.");
-          }
-
-          if (!optimizedRes.ok) {
-            if (optimizedRes.status === 401) {
-              throw new Error('Authentication required');
-            }
-            throw new Error(`Failed to load practice data`);
-          }
-
-          const optimizedData = await optimizedRes.json();
-          questionSet = optimizedData.questionSet;
-          questions = optimizedData.questions;
-          course = optimizedData.course;
-          courseQuestionSets = optimizedData.courseQuestionSets || [];
+        // Check if response is JSON before parsing
+        const contentType = optimizedRes.headers.get("content-type");
+        
+        if (!contentType?.includes("application/json")) {
+          throw new Error("Server returned non-JSON response. Please refresh the page.");
         }
+
+        if (!optimizedRes.ok) {
+          if (optimizedRes.status === 401) {
+            throw new Error('Authentication required');
+          }
+          throw new Error(`Failed to load practice data`);
+        }
+
+        const optimizedData = await optimizedRes.json();
+        questionSet = optimizedData.questionSet;
+        questions = optimizedData.questions;
+        course = optimizedData.course;
+        courseQuestionSets = optimizedData.courseQuestionSets || [];
 
         debugLog(`Loaded ${questions.length} questions for question set ${questionSetId}`);
         
