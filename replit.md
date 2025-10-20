@@ -6,6 +6,12 @@ A comprehensive web application designed for insurance exam preparation. It feat
 ## User Preferences
 I prefer iterative development with regular, small commits. I value clear, concise explanations and prefer to be asked before major architectural changes are made. Do not make changes to the folder `shared/`.
 
+## Recent Changes (October 2025)
+- Fixed question numbering display bug where all questions showed as "Question 1" in the practice UI  
+- Resolved progress tracking issue that prevented updates when completing questions
+- Centralized ordinal field assignment in backend (batchFetchQuestionsWithVersions) for consistent numbering
+- Updated all frontend components to use backend-provided ordinal instead of local state indices
+
 ## System Architecture
 The application follows a client-server architecture.
 - **Frontend**: Built with React, TypeScript, Vite, Tailwind CSS, and shadcn/ui for a modern, responsive user interface. UI/UX emphasizes a clean, intuitive design suitable for both desktop and mobile views, including specific considerations for webview environments.
