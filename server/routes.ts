@@ -4106,6 +4106,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Check Final Refresh status
+  app.get("/api/admin/refresh/status", requireAdmin, async (req, res) => {
+    try {
+      const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
+      res.json({
+        finalRefreshCompletedAt: finalRefreshTimestamp || null
+      });
+    } catch (error) {
+      console.error("Error checking final refresh status:", error);
+      res.status(500).json({ error: "Failed to check final refresh status" });
+    }
+  });
+
   // Final Refresh - One-time refresh before sunset
   app.post("/api/admin/refresh/run-final", requireAdmin, async (req, res) => {
     console.log("🚀 Starting FINAL REFRESH process...");
