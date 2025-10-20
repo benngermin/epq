@@ -299,7 +299,7 @@ export function QuestionCard({
                     {questionTypeConfig[questionType]?.label || "Question"}
                   </Badge>
                   <span className="text-sm font-medium text-muted-foreground">
-                    Question {(question.questionIndex || 0) + 1}
+                    Question {question.ordinal}
                   </span>
                 </div>
 

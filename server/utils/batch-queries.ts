@@ -149,5 +149,11 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
     return aOrder - bOrder;
   });
   
-  return questionsWithActiveVersions;
+  // Add ordinal field (1-based index) after sorting
+  const questionsWithOrdinal = questionsWithActiveVersions.map((question, index) => ({
+    ...question,
+    ordinal: index + 1
+  }));
+  
+  return questionsWithOrdinal;
 }

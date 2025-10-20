@@ -315,6 +315,16 @@ export default function QuestionSetPractice() {
           console.log(`[Demo] Total static questions: ${staticQuestions.length}/${questions.length}`);
         }
         
+        // Debug log to check ordinal field presence
+        if (questions && questions.length > 0) {
+          console.log('[Practice] First 3 questions ordinal check:', questions.slice(0, 3).map((q: any) => ({
+            id: q.id,
+            ordinal: q.ordinal,
+            displayOrder: q.displayOrder,
+            originalQuestionNumber: q.originalQuestionNumber
+          })));
+        }
+        
         // Check for any issues with questions around #36
         const questionAround36 = questions.find((q: any) => q.originalQuestionNumber === 36);
         if (questionAround36) {
@@ -993,12 +1003,12 @@ export default function QuestionSetPractice() {
                               <XCircle className="h-4 w-4" />
                             )
                           ) : (
-                            (question.displayOrder ?? 0) + 1
+                            question.ordinal
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            Question {(question.displayOrder ?? 0) + 1}
+                            Question {question.ordinal}
                           </p>
                         </div>
                         {isCurrent && (
@@ -1023,7 +1033,7 @@ export default function QuestionSetPractice() {
                   key={`${currentQuestion.id}-${currentQuestion.latestVersion?.id ?? 0}`}
                   question={{
                     ...currentQuestion,
-                    questionIndex: currentQuestionIndex,
+                    ordinal: currentQuestion.ordinal,
                     userAnswer: userAnswers[currentQuestion?.id] ? {
                       chosenAnswer: userAnswers[currentQuestion.id].answer,
                       isCorrect: userAnswers[currentQuestion.id].isCorrect
