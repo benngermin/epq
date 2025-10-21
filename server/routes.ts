@@ -3727,9 +3727,10 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Test endpoint for Bubble API authentication
+  // Comprehensive diagnostic endpoint for Bubble API authentication
   app.get("/api/admin/bubble/test-auth", requireAdmin, async (req, res) => {
     try {
+      const crypto = await import('crypto');
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
       if (!bubbleApiKey) {
@@ -3738,20 +3739,51 @@ Remember, your goal is to support student comprehension through meaningful feedb
           message: "Bubble API key not configured",
           debug: {
             keyExists: false,
-            envVarsLoaded: !!process.env.NODE_ENV
+            envVarsLoaded: !!process.env.NODE_ENV,
+            bubbleBaseUrl: BUBBLE_BASE_URL,
+            environment: process.env.NODE_ENV || 'not set'
           }
         });
       }
 
+      // Compute SHA-256 hash of the key for comparison between environments
+      const keyHash = crypto.createHash('sha256').update(bubbleApiKey).digest('hex');
+      
+      // Get server's outbound IP (for checking IP restrictions)
+      let outboundIp = 'unknown';
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        outboundIp = ipData.ip;
+      } catch (ipError) {
+        console.error('Could not fetch outbound IP:', ipError);
+      }
+
       // Debug info about the key (masked for security)
       const debugInfo = {
+        // Environment info
+        environment: process.env.NODE_ENV || 'not set',
+        nodeVersion: process.version,
+        bubbleBaseUrl: BUBBLE_BASE_URL,
+        isVersionTest: BUBBLE_BASE_URL.includes('version-test'),
+        outboundIp: outboundIp,
+        
+        // Key analysis (without exposing the actual key)
+        keyHash: keyHash.substring(0, 8) + '...' + keyHash.substring(keyHash.length - 8),
         keyLength: bubbleApiKey.length,
         firstChars: bubbleApiKey.substring(0, 4) + '...',
         lastChars: '...' + bubbleApiKey.substring(bubbleApiKey.length - 4),
+        firstCharCodes: bubbleApiKey.substring(0, 4).split('').map(c => c.charCodeAt(0)),
+        lastCharCodes: bubbleApiKey.substring(bubbleApiKey.length - 4).split('').map(c => c.charCodeAt(0)),
         hasWhitespace: bubbleApiKey !== bubbleApiKey.trim(),
         startsWithBearer: bubbleApiKey.toLowerCase().startsWith('bearer'),
         hasQuotes: bubbleApiKey.includes('"') || bubbleApiKey.includes("'"),
-        environment: process.env.NODE_ENV || 'not set'
+        hasNewlines: bubbleApiKey.includes('\n') || bubbleApiKey.includes('\r'),
+        
+        // HTTP Proxy check
+        httpProxy: process.env.HTTP_PROXY || process.env.http_proxy || 'none',
+        httpsProxy: process.env.HTTPS_PROXY || process.env.https_proxy || 'none',
+        noProxy: process.env.NO_PROXY || process.env.no_proxy || 'none'
       };
 
       // Try a simple API call to test authentication
@@ -3762,25 +3794,35 @@ Remember, your goal is to support student comprehension through meaningful feedb
       };
 
       console.log('[Test Auth] Making request to:', testUrl);
-      console.log('[Test Auth] Key debug info:', debugInfo);
+      console.log('[Test Auth] Environment:', process.env.NODE_ENV);
+      console.log('[Test Auth] Key hash (first/last 8):', debugInfo.keyHash);
+      console.log('[Test Auth] Outbound IP:', outboundIp);
 
       const response = await fetch(testUrl, { headers });
+      
+      // Capture response headers for debugging
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
       
       if (!response.ok) {
         const responseText = await response.text();
         console.error('[Test Auth] Failed:', {
           status: response.status,
           statusText: response.statusText,
-          responseBody: responseText.substring(0, 500)
+          responseBody: responseText.substring(0, 500),
+          responseHeaders: responseHeaders
         });
         
-        return res.status(response.status).json({ 
+        return res.json({ 
           success: false,
           message: `Bubble API authentication failed: ${response.status} ${response.statusText}`,
           debug: {
             ...debugInfo,
-            bubbleResponse: responseText.substring(0, 200),
-            bubbleStatus: response.status
+            bubbleResponse: responseText.substring(0, 300),
+            bubbleStatus: response.status,
+            responseHeaders: Object.keys(responseHeaders).join(', ')
           }
         });
       }
@@ -3792,7 +3834,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
         debug: {
           ...debugInfo,
           dataReceived: !!data,
-          hasResults: !!(data?.response?.results)
+          hasResults: !!(data?.response?.results),
+          resultCount: data?.response?.results?.length || 0
         }
       });
 
@@ -3801,7 +3844,11 @@ Remember, your goal is to support student comprehension through meaningful feedb
       return res.status(500).json({ 
         success: false,
         message: "Failed to test Bubble API authentication",
-        error: error.message
+        error: error.message,
+        debug: {
+          environment: process.env.NODE_ENV || 'not set',
+          bubbleBaseUrl: BUBBLE_BASE_URL
+        }
       });
     }
   });
