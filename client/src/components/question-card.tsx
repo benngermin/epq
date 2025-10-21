@@ -27,7 +27,7 @@ import { FillInBlank } from "./question-types/fill-in-blank"; // Used by numeric
 import { PickFromList } from "./question-types/pick-from-list"; // Used by multiple_response and select_from_list fallback
 import { Ordering } from "./question-types/ordering"; // Used as fallback for drag_and_drop
 import { SelectFromListBlank } from "./question-types/select-from-list-blank";
-import { DragDropZones } from "./question-types/drag-drop-zones";
+import { DragDropZonesTouch } from "./question-types/drag-drop-zones-touch";
 import { EitherOr } from "./question-types/either-or";
 
 // Question type configurations with diverse color palette
@@ -318,7 +318,7 @@ export function QuestionCard({
                                 </p>
                               </div>
                               <div className="flex-1">
-                                <DragDropZones
+                                <DragDropZonesTouch
                                   answerChoices={question.latestVersion.answerChoices || []}
                                   dropZones={question.latestVersion.dropZones}
                                   value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
