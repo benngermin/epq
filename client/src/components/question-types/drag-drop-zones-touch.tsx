@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
+  Modifier,
 } from "@dnd-kit/core";
 import {
   useDraggable,
@@ -156,6 +157,21 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
+  // Add this ref to measure container position
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Add this modifier to align ghost with cursor
+  const alignToContainer: Modifier = ({ transform }) => {
+    if (!containerRef.current) return transform;
+
+    const rect = containerRef.current.getBoundingClientRect();
+
+    return {
+      ...transform,
+      x: transform.x - rect.left,
+      y: transform.y - rect.top,
+    };
+  };
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
@@ -326,7 +342,8 @@ export function DragDropZonesTouch({
   const draggedItem = getDraggedItem();
 
   return (
-    <DndContext
+    <div ref={containerRef}>
+      <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
@@ -372,7 +389,10 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay
+        modifiers={[alignToContainer]}
+        dropAnimation={null}
+      >
         {draggedItem ? (
           <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -381,5 +401,6 @@ export function DragDropZonesTouch({
         ) : null}
       </DragOverlay>
     </DndContext>
+    </div>
   );
 }
