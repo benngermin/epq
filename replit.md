@@ -15,6 +15,7 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - Unified frontend data fetching to use optimized endpoints across all authentication modes (authenticated, demo, mobile-view)
 - **Fixed Bubble API 401 error in production**: Corrected BUBBLE_BASE_URL configuration to always use version-test endpoint (the Content Repository only has version-test, not live)
 - Added comprehensive diagnostic endpoint `/api/admin/bubble/test-auth` to help debug environment-specific issues
+- **Fixed mobile-view progress tracking**: Demo and mobile-view endpoints now persist user answers to the database using session-based identification. Progress is maintained across page reloads and sessions
 
 ## System Architecture
 The application follows a client-server architecture.
