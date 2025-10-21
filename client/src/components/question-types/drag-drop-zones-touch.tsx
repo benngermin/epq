@@ -45,7 +45,6 @@ function DraggableItem({
     attributes,
     listeners,
     setNodeRef,
-    transform,
     isDragging,
   } = useDraggable({
     id,
@@ -53,8 +52,7 @@ function DraggableItem({
   });
 
   const style = {
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
     touchAction: "none" as const,
     userSelect: "none" as const,
     WebkitUserSelect: "none" as const,
