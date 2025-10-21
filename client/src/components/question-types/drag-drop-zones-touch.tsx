@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
@@ -157,8 +157,20 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
-  // Removed containerRef and alignToContainer modifier as they were causing positioning issues
-  // @dnd-kit already handles viewport coordinates correctly
+  // Simple modifier to center the ghost on the cursor
+  const centerOnCursor: Modifier = ({ transform, activatorEvent }) => {
+    if (activatorEvent) {
+      const offsetX = -40; // Half the approximate width of the draggable item
+      const offsetY = -20; // Half the approximate height of the draggable item
+      
+      return {
+        ...transform,
+        x: transform.x + offsetX,
+        y: transform.y + offsetY,
+      };
+    }
+    return transform;
+  };
   
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
@@ -375,7 +387,10 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay 
+        modifiers={[centerOnCursor]}
+        dropAnimation={null}
+      >
         {draggedItem ? (
           <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
