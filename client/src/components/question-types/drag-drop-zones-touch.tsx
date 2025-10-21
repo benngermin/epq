@@ -13,6 +13,7 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import {
   useDraggable,
   useDroppable,
@@ -391,6 +392,7 @@ export function DragDropZonesTouch({
 
       {/* Drag overlay for visual feedback */}
       <DragOverlay 
+        modifiers={[snapCenterToCursor]}
         dropAnimation={null}
       >
         {draggedItem ? (
