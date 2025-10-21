@@ -13,6 +13,8 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - Updated all frontend components to use backend-provided ordinal instead of local state indices
 - Added optimized endpoints for demo (/api/demo/question-sets/:id/optimized) and mobile-view (/api/mobile-view/question-sets/:id/optimized) paths to ensure ordinal field consistency
 - Unified frontend data fetching to use optimized endpoints across all authentication modes (authenticated, demo, mobile-view)
+- **Fixed Bubble API 401 error in production**: Corrected BUBBLE_BASE_URL configuration to always use version-test endpoint (the Content Repository only has version-test, not live)
+- Added comprehensive diagnostic endpoint `/api/admin/bubble/test-auth` to help debug environment-specific issues
 
 ## System Architecture
 The application follows a client-server architecture.
