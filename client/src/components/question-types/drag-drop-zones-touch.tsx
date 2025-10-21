@@ -152,8 +152,8 @@ function AvailableItemsArea({
 const adjustPosition: Modifier = ({ transform }) => {
   return {
     ...transform,
-    x: transform.x - 100, // Adjust left to compensate for rightward offset
-    y: transform.y - 10, // Small vertical adjustment to align with cursor
+    x: transform.x - 250, // Significant left adjustment to center on cursor
+    y: transform.y - 20, // Vertical adjustment to align with cursor
   };
 };
 
