@@ -28,7 +28,9 @@ import { PickFromList } from "./question-types/pick-from-list"; // Used by multi
 import { Ordering } from "./question-types/ordering"; // Used as fallback for drag_and_drop
 import { SelectFromListBlank } from "./question-types/select-from-list-blank";
 import { DragDropZones } from "./question-types/drag-drop-zones";
+import { DragDropZonesTouch } from "./question-types/drag-drop-zones-touch";
 import { EitherOr } from "./question-types/either-or";
+import { useLocation } from "wouter";
 
 // Question type configurations with diverse color palette
 // Multiple choice uses primary app blue, others use distinct colors
@@ -66,6 +68,8 @@ export function QuestionCard({
   chatResetTimestamp
 }: QuestionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
+  const isMobileRoute = location.startsWith('/mobile-view');
   // Log question details in development mode only
   useEffect(() => {
     if (import.meta.env.DEV && question) {
@@ -318,14 +322,25 @@ export function QuestionCard({
                                 </p>
                               </div>
                               <div className="flex-1">
-                                <DragDropZones
-                                  answerChoices={question.latestVersion.answerChoices || []}
-                                  dropZones={question.latestVersion.dropZones}
-                                  value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
-                                  onChange={setSelectedAnswerState}
-                                  disabled={hasAnswer || isSubmitting}
-                                  correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
-                                />
+                                {isMobileRoute ? (
+                                  <DragDropZonesTouch
+                                    answerChoices={question.latestVersion.answerChoices || []}
+                                    dropZones={question.latestVersion.dropZones}
+                                    value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                    onChange={setSelectedAnswerState}
+                                    disabled={hasAnswer || isSubmitting}
+                                    correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                  />
+                                ) : (
+                                  <DragDropZones
+                                    answerChoices={question.latestVersion.answerChoices || []}
+                                    dropZones={question.latestVersion.dropZones}
+                                    value={hasAnswer && question.userAnswer ? question.userAnswer.chosenAnswer : selectedAnswerState}
+                                    onChange={setSelectedAnswerState}
+                                    disabled={hasAnswer || isSubmitting}
+                                    correctAnswer={hasAnswer ? question.latestVersion?.correctAnswer : undefined}
+                                  />
+                                )}
                               </div>
                             </div>
                           );
