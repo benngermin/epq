@@ -4336,6 +4336,16 @@ Remember, your goal is to support student comprehension through meaningful feedb
         return;
       }
 
+      // Debug logging for API key (masked for security)
+      console.log('[Final Refresh Debug] API key info:', {
+        length: bubbleApiKey.length,
+        firstChars: bubbleApiKey.substring(0, 4) + '...',
+        lastChars: '...' + bubbleApiKey.substring(bubbleApiKey.length - 4),
+        hasWhitespace: bubbleApiKey !== bubbleApiKey.trim(),
+        startsWithBearer: bubbleApiKey.toLowerCase().startsWith('bearer'),
+        hasQuotes: bubbleApiKey.includes('"') || bubbleApiKey.includes("'")
+      });
+
       // Step 1: Fetch all question sets from Bubble with pagination
       res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
       
@@ -4355,6 +4365,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
         const response = await fetch(url, { headers: authHeaders });
         
         if (!response.ok) {
+          const responseText = await response.text();
+          console.error('[Final Refresh Debug] Bubble API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            responseBody: responseText.substring(0, 500), // First 500 chars of response
+            url: url,
+            authHeaderLength: authHeaders.Authorization.length
+          });
           throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
         }
 
