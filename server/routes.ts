@@ -3727,6 +3727,85 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Test endpoint for Bubble API authentication
+  app.get("/api/admin/bubble/test-auth", requireAdmin, async (req, res) => {
+    try {
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      
+      if (!bubbleApiKey) {
+        return res.status(500).json({ 
+          success: false,
+          message: "Bubble API key not configured",
+          debug: {
+            keyExists: false,
+            envVarsLoaded: !!process.env.NODE_ENV
+          }
+        });
+      }
+
+      // Debug info about the key (masked for security)
+      const debugInfo = {
+        keyLength: bubbleApiKey.length,
+        firstChars: bubbleApiKey.substring(0, 4) + '...',
+        lastChars: '...' + bubbleApiKey.substring(bubbleApiKey.length - 4),
+        hasWhitespace: bubbleApiKey !== bubbleApiKey.trim(),
+        startsWithBearer: bubbleApiKey.toLowerCase().startsWith('bearer'),
+        hasQuotes: bubbleApiKey.includes('"') || bubbleApiKey.includes("'"),
+        environment: process.env.NODE_ENV || 'not set'
+      };
+
+      // Try a simple API call to test authentication
+      const testUrl = `${BUBBLE_BASE_URL}/question_set?limit=1`;
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      console.log('[Test Auth] Making request to:', testUrl);
+      console.log('[Test Auth] Key debug info:', debugInfo);
+
+      const response = await fetch(testUrl, { headers });
+      
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error('[Test Auth] Failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: responseText.substring(0, 500)
+        });
+        
+        return res.status(response.status).json({ 
+          success: false,
+          message: `Bubble API authentication failed: ${response.status} ${response.statusText}`,
+          debug: {
+            ...debugInfo,
+            bubbleResponse: responseText.substring(0, 200),
+            bubbleStatus: response.status
+          }
+        });
+      }
+
+      const data = await response.json();
+      return res.json({ 
+        success: true,
+        message: "Bubble API authentication successful",
+        debug: {
+          ...debugInfo,
+          dataReceived: !!data,
+          hasResults: !!(data?.response?.results)
+        }
+      });
+
+    } catch (error: any) {
+      console.error("[Test Auth] Error:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to test Bubble API authentication",
+        error: error.message
+      });
+    }
+  });
+
   // Bubble API integration routes
   app.get("/api/admin/bubble/question-sets", requireAdmin, requireNotSunset, async (req, res) => {
     try {
