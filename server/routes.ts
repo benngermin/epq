@@ -24,7 +24,7 @@ import { normalizeQuestionText, questionTextsMatch } from "./utils/text-normaliz
 import { validateCognitoToken, extractUserInfo } from "./cognito-jwt-validator";
 import validator from "validator";
 import crypto from "crypto";
-import { BUBBLE_BASE_URL, BUBBLE_PAGE_SIZE, BUBBLE_API_KEY, FINAL_REFRESH_LOCK_ID, FINAL_REFRESH_SUNSET_ENABLED, FINAL_REFRESH_AUTO_SUNSET } from "./config/bubble";
+import { BUBBLE_BASE_URL, BUBBLE_PAGE_SIZE, BUBBLE_API_KEY } from "./config/bubble";
 
 // Custom error class for HTTP errors
 class HttpError extends Error {
@@ -575,29 +575,6 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
-  // Sunset guard middleware - blocks Bubble import/refresh endpoints after final refresh completion
-  const requireNotSunset = async (req: Request, res: Response, next: NextFunction) => {
-    const isProd = process.env.NODE_ENV === 'production';
-    
-    // Only check in production when sunset is enabled
-    if (isProd && FINAL_REFRESH_SUNSET_ENABLED) {
-      try {
-        const finalRefreshCompletedAt = await storage.getAppSetting('final_refresh_completed_at');
-        if (finalRefreshCompletedAt) {
-          return res.status(410).json({
-            error: 'final_refresh_sunset',
-            message: 'This feature has been permanently disabled after the final refresh was completed.',
-            completedAt: finalRefreshCompletedAt
-          });
-        }
-      } catch (error) {
-        console.error('Error checking sunset status:', error);
-        // Continue if we can't check the status
-      }
-    }
-    
-    next();
-  };
 
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -4315,7 +4292,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Bubble API integration routes
-  app.get("/api/admin/bubble/question-sets", requireAdmin, requireNotSunset, async (req, res) => {
+  app.get("/api/admin/bubble/question-sets", requireAdmin, async (req, res) => {
     try {
       const courseNumber = req.query.courseNumber as string | undefined;
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
@@ -4379,7 +4356,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.post("/api/admin/bubble/import-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
+  app.post("/api/admin/bubble/import-question-sets", requireAdmin, async (req, res) => {
     try {
       
       const { questionSets } = req.body;
@@ -4478,7 +4455,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // New endpoint to update all question sets from Bubble
-  app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
+  app.post("/api/admin/bubble/update-all-question-sets", requireAdmin, async (req, res) => {
     
     if (process.env.NODE_ENV === 'development') {
       console.log("🔄 Starting update-all-question-sets process...");
@@ -4709,587 +4686,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.status(500).json({ message: "Failed to update question sets from Bubble repository" });
     }
   });
-
-  // Check Final Refresh status
-  app.get("/api/admin/refresh/status", requireAdmin, async (req, res) => {
-    try {
-      const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
-      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
-      const auditData = await storage.getAppSetting('final_refresh_audit');
-      
-      res.json({
-        final_refresh_completed_at: finalRefreshTimestamp || null,
-        final_refresh_in_progress_at: inProgressTimestamp || null,
-        final_refresh_audit: auditData || null
-      });
-    } catch (error) {
-      console.error("Error checking final refresh status:", error);
-      res.status(500).json({ error: "Failed to check final refresh status" });
-    }
-  });
-
-  // Manual sunset endpoint - admin-only, production-ready
-  app.post("/api/admin/refresh/sunset", requireAdmin, async (req, res) => {
-    try {
-      const adminUser = (req as any).user;
-      
-      // Require explicit confirmation to prevent accidental sunset
-      if (req.body?.confirm !== "SUNSET") {
-        return res.status(400).json({
-          error: "confirmation_required",
-          message: "Explicit confirmation required. Send {\"confirm\":\"SUNSET\"} to proceed.",
-          warning: "This action is permanent and will disable all Bubble integration."
-        });
-      }
-      
-      // Only allow in production environment
-      if (process.env.NODE_ENV !== 'production') {
-        return res.status(400).json({
-          error: "production_only",
-          message: "Sunset can only be performed in production environment",
-          currentEnv: process.env.NODE_ENV
-        });
-      }
-      
-      // Check if already sunset
-      const existingCompletedAt = await storage.getAppSetting('final_refresh_completed_at');
-      if (existingCompletedAt) {
-        return res.json({
-          message: "Final refresh already sunset",
-          completedAt: existingCompletedAt,
-          audit: await storage.getAppSetting('final_refresh_audit')
-        });
-      }
-      
-      // Check if refresh is in progress
-      const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
-      if (inProgressTimestamp) {
-        return res.status(423).json({
-          error: "refresh_in_progress",
-          message: "Cannot sunset while refresh is in progress",
-          inProgressAt: inProgressTimestamp
-        });
-      }
-      
-      // Set sunset timestamp
-      const completedAt = new Date().toISOString();
-      await storage.setAppSetting('final_refresh_completed_at', completedAt);
-      
-      // Store audit information for manual sunset
-      const auditData = {
-        triggeredBy: adminUser ? { id: adminUser.id, email: adminUser.email } : 'system',
-        action: 'manual_sunset',
-        completedAt,
-        note: 'Final refresh manually sunset by administrator'
-      };
-      await storage.setAppSetting('final_refresh_audit', auditData);
-      
-      console.log(`🌅 Final refresh manually sunset by ${adminUser?.email || 'system'} at ${completedAt}`);
-      
-      res.json({
-        message: "Final refresh successfully sunset",
-        completedAt,
-        audit: auditData
-      });
-    } catch (error) {
-      console.error("Error setting final refresh sunset:", error);
-      res.status(500).json({ error: "Failed to set final refresh sunset" });
-    }
-  });
-
-  // Reset dev endpoint - for testing only, no-op in production
-  app.post("/api/admin/refresh/reset-dev", requireAdmin, async (req, res) => {
-    try {
-      // Return 404 in non-dev environments for security
-      if (process.env.NODE_ENV !== 'development') {
-        console.warn(`⚠️ Attempt to access reset-dev endpoint in ${process.env.NODE_ENV} environment by ${(req as any).user?.email}`);
-        return res.status(404).json({
-          error: "not_found",
-          message: "API endpoint not found"
-        });
-      }
-      
-      const adminUser = (req as any).user;
-      
-      // Clear all final refresh settings
-      await storage.setAppSetting('final_refresh_in_progress_at', null);
-      await storage.setAppSetting('final_refresh_completed_at', null);
-      await storage.setAppSetting('final_refresh_audit', null);
-      
-      console.log(`🔧 Final refresh state reset for development by ${adminUser?.email || 'system'}`);
-      
-      res.json({
-        message: "Final refresh state reset for development",
-        clearedSettings: [
-          'final_refresh_in_progress_at',
-          'final_refresh_completed_at', 
-          'final_refresh_audit'
-        ],
-        resetBy: adminUser?.email || 'system'
-      });
-    } catch (error) {
-      console.error("Error resetting final refresh state:", error);
-      res.status(500).json({ error: "Failed to reset final refresh state" });
-    }
-  });
-
-  // Final Refresh - One-time refresh before sunset (GET for SSE best practice)
-  app.get("/api/admin/refresh/final", requireAdmin, async (req, res) => {
-    const isDryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
-    console.log(`🚀 Starting FINAL REFRESH process... ${isDryRun ? '(DRY RUN MODE)' : ''}`);
-    const startTime = Date.now();
-    const BATCH_SIZE = 5; // Process 5 question sets at a time
-    const adminUser = (req as any).user;
-    
-    // Use a single connection for the entire Final Refresh to ensure advisory lock persistence
-    let lockConnection: any = null;
-    let lockAcquired = false;
-    let heartbeatInterval: NodeJS.Timeout | undefined;
     
     try {
       // Check if final refresh was already completed
-      const finalRefreshTimestamp = await storage.getAppSetting('final_refresh_completed_at');
-      if (finalRefreshTimestamp) {
-        return res.status(410).json({
-          error: "final_refresh_completed",
-          message: `Final refresh was completed at ${finalRefreshTimestamp}`
-        });
-      }
-      
-      // Get a dedicated connection from the pool for advisory lock
-      // Note: We need to use a raw connection to maintain session-scoped lock
-      lockConnection = await db.execute(sql`SELECT 1`); // Establish connection first
-      
-      // Try to acquire advisory lock using the same connection
-      const lockResult = await db.execute(
-        sql`SELECT pg_try_advisory_lock(${FINAL_REFRESH_LOCK_ID}) AS locked`
-      );
-      
-      if (!lockResult.rows?.[0]?.locked) {
-        // Could not acquire lock - another refresh is running
-        const inProgressTimestamp = await storage.getAppSetting('final_refresh_in_progress_at');
-        return res.status(409).json({
-          error: "final_refresh_already_running",
-          message: "Final refresh is already running. Only one refresh can run at a time.",
-          startedAt: inProgressTimestamp
-        });
-      }
-      
-      lockAcquired = true; // Track that we acquired the lock
-      
-      // Lock acquired - set the in-progress timestamp (informational only)
-      await storage.setAppSetting('final_refresh_in_progress_at', new Date().toISOString());
-      
-      // Set up SSE headers with proper CORS handling and hardening
-      const origin = req.headers.origin;
-      const headers: any = {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no', // Disable Nginx buffering
-        'Vary': 'Origin'
-      };
-      
-      // Only set CORS headers if origin is present - never use * with credentials
-      if (origin) {
-        headers['Access-Control-Allow-Origin'] = origin;
-        headers['Access-Control-Allow-Credentials'] = 'true';
-      }
-      
-      res.writeHead(200, headers);
-      
-      // Set up heartbeat to keep connection alive
-      heartbeatInterval = setInterval(() => {
-        try {
-          res.write(':\n\n'); // SSE comment/heartbeat
-        } catch (e) {
-          clearInterval(heartbeatInterval);
-        }
-      }, 15000); // Send heartbeat every 15 seconds
-      
-      // Clean up heartbeat on connection close
-      req.on('close', () => {
-        clearInterval(heartbeatInterval);
-      });
-      
-      // Send initial event
-      res.write('data: ' + JSON.stringify({ type: 'start', message: 'Starting final refresh...' }) + '\n\n');
-      
-      const bubbleApiKey = process.env.BUBBLE_API_KEY;
-      
-      if (!bubbleApiKey) {
-        res.write('data: ' + JSON.stringify({ type: 'error', message: 'Bubble API key not configured' }) + '\n\n');
-        res.end();
-        return;
-      }
-
-      // Debug logging for API key (masked for security)
-      console.log('[Final Refresh Debug] API key info:', {
-        length: bubbleApiKey.length,
-        firstChars: bubbleApiKey.substring(0, 4) + '...',
-        lastChars: '...' + bubbleApiKey.substring(bubbleApiKey.length - 4),
-        hasWhitespace: bubbleApiKey !== bubbleApiKey.trim(),
-        startsWithBearer: bubbleApiKey.toLowerCase().startsWith('bearer'),
-        hasQuotes: bubbleApiKey.includes('"') || bubbleApiKey.includes("'")
-      });
-
-      // Step 1: Fetch all question sets from Bubble with pagination
-      res.write('data: ' + JSON.stringify({ type: 'status', message: 'Fetching all question sets from Bubble...' }) + '\n\n');
-      
-      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
-      const authHeaders = {
-        "Authorization": `Bearer ${bubbleApiKey}`,
-        "Content-Type": "application/json"
-      };
-
-      // Paginate through all question sets
-      let cursor = 0;
-      const bubbleQuestionSets: any[] = [];
-      let pageNumber = 1;
-      
-      while (true) {
-        const url = `${baseUrl}?cursor=${cursor}&limit=${BUBBLE_PAGE_SIZE}`;
-        const response = await fetch(url, { headers: authHeaders });
-        
-        if (!response.ok) {
-          const responseText = await response.text();
-          console.error('[Final Refresh Debug] Bubble API error:', {
-            status: response.status,
-            statusText: response.statusText,
-            responseBody: responseText.substring(0, 500), // First 500 chars of response
-            url: url,
-            authHeaderLength: authHeaders.Authorization.length
-          });
-          throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const page = data?.response?.results ?? [];
-        bubbleQuestionSets.push(...page);
-        
-        res.write('data: ' + JSON.stringify({ 
-          type: 'pagination_status', 
-          message: `Fetched page ${pageNumber} - ${page.length} question sets (total so far: ${bubbleQuestionSets.length})` 
-        }) + '\n\n');
-        
-        // Break if we got less than page size (no more pages)
-        if (page.length < BUBBLE_PAGE_SIZE) {
-          break;
-        }
-        
-        cursor += page.length;
-        pageNumber++;
-      }
-
-      const finalRefreshResults = {
-        setsProcessed: 0,
-        questionsCreated: 0,
-        questionsUpdated: 0,
-        questionsDeactivated: 0,
-        questionsUnchanged: 0,
-        warnings: [] as Array<{ message: string; details?: string }>,
-        errors: [] as Array<{ 
-          questionSetId: string; 
-          title: string; 
-          error: string;
-          courseName?: string;
-          details?: string;
-        }>
-      };
-      
-      // Send total count
-      res.write('data: ' + JSON.stringify({ 
-        type: 'total', 
-        total: bubbleQuestionSets.length 
-      }) + '\n\n');
-
-      // Import blank normalizer once
-      const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
-
-      // Step 2: Process all question sets
-      for (let i = 0; i < bubbleQuestionSets.length; i += BATCH_SIZE) {
-        const batch = bubbleQuestionSets.slice(i, Math.min(i + BATCH_SIZE, bubbleQuestionSets.length));
-        
-        // Process batch in parallel
-        await Promise.all(batch.map(async (bubbleQuestionSet: any) => {
-          try {
-            const bubbleId = bubbleQuestionSet._id;
-            const courseBubbleId = bubbleQuestionSet.course || bubbleQuestionSet.course_custom_course;
-            
-            // Skip if no course association
-            if (!courseBubbleId) {
-              finalRefreshResults.errors.push({
-                questionSetId: bubbleId,
-                title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
-                error: "No course association found",
-                details: "This question set is not linked to any course in Bubble"
-              });
-              return;
-            }
-            
-            // Find course by Bubble ID
-            let course = await storage.getCourseByBubbleId(courseBubbleId);
-            if (!course) {
-              // Try to import the course if it doesn't exist
-              // For final refresh, we want to import everything
-              const courseResponse = await fetch(
-                `${BUBBLE_BASE_URL}/course/${courseBubbleId}`, 
-                { headers: authHeaders }
-              );
-              
-              if (courseResponse.ok) {
-                const courseData = await courseResponse.json();
-                if (courseData.response) {
-                  const c = courseData.response;
-                  course = await storage.createCourse({
-                    courseNumber: c.course_number || "Unknown",
-                    courseTitle: c.course_title || "Unknown Course",
-                    bubbleUniqueId: courseBubbleId,
-                    externalId: c.external_id || null,
-                    isAi: c.is_ai !== false,
-                    baseCourseNumber: c.course_number?.replace(/\s*\(AI\)\s*$/i, "").replace(/\s*\(Non-AI\)\s*$/i, "").trim()
-                  });
-                }
-              }
-              
-              if (!course) {
-                finalRefreshResults.errors.push({
-                  questionSetId: bubbleId,
-                  title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
-                  error: "Course not found and could not be imported",
-                  details: `Course with Bubble ID ${courseBubbleId} could not be imported`
-                });
-                return;
-              }
-            }
-            
-            // Parse content field to get questions
-            let parsedQuestions: any[] = [];
-            if (bubbleQuestionSet.content) {
-              try {
-                const contentJson = JSON.parse(bubbleQuestionSet.content);
-                if (contentJson.questions && Array.isArray(contentJson.questions)) {
-                  parsedQuestions = contentJson.questions;
-                }
-              } catch (parseError) {
-                console.error(`Error parsing content for ${bubbleId}:`, parseError);
-              }
-            }
-
-            // Get or create question set
-            let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
-            
-            if (!questionSet) {
-              // Create new question set for final refresh
-              questionSet = await storage.createQuestionSet({
-                title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
-                description: bubbleQuestionSet.description || null,
-                externalId: bubbleId
-              });
-              finalRefreshResults.questionsCreated++;
-            } else {
-              // Update existing question set
-              await storage.updateQuestionSet(questionSet.id, {
-                title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
-                description: bubbleQuestionSet.description || null,
-              });
-              finalRefreshResults.questionsUpdated++;
-            }
-            
-            // Ensure course-questionset mapping exists
-            try {
-              await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
-            } catch (err) {
-              // Mapping likely already exists, which is fine
-            }
-            
-            // Process and update questions using existing refresh logic
-            if (parsedQuestions.length > 0) {
-              const questionImports = parsedQuestions.map((q: any, index: number) => {
-                const questionType = q.question_type || "multiple_choice";
-                
-                // Normalize blanks in question text
-                let normalizedQuestionText = q.question_text || "";
-                if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
-                  const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
-                  normalizedQuestionText = normalizedText;
-                }
-                
-                const versionData: any = {
-                  version_number: 1,
-                  topic_focus: bubbleQuestionSet.title || "General",
-                  question_text: normalizedQuestionText,
-                  question_type: questionType,
-                  answer_choices: q.answer_choices || [],
-                  correct_answer: q.correct_answer || "",
-                  acceptable_answers: q.acceptable_answers,
-                  case_sensitive: q.case_sensitive || false,
-                  allow_multiple: q.allow_multiple || false,
-                  matching_pairs: q.matching_pairs || null,
-                  correct_order: q.correct_order || null,
-                };
-                
-                // Add question type specific fields
-                if (questionType === "select_from_list" && q.blanks) {
-                  versionData.blanks = q.blanks;
-                }
-                
-                if (questionType === "drag_and_drop") {
-                  if (q.drop_zones) {
-                    versionData.drop_zones = q.drop_zones;
-                  }
-                  if (typeof q.correct_answer === 'object' && !Array.isArray(q.correct_answer)) {
-                    versionData.correct_answer = JSON.stringify(q.correct_answer);
-                  }
-                }
-                
-                if (questionType === "multiple_response" && Array.isArray(q.correct_answer)) {
-                  versionData.correct_answer = JSON.stringify(q.correct_answer);
-                }
-                
-                return {
-                  question_number: q.question_number || (index + 1),
-                  type: questionType,
-                  loid: q.loid || "unknown",
-                  versions: [versionData]
-                };
-              });
-
-              await storage.updateQuestionsForRefresh(questionSet.id, questionImports);
-              await storage.updateQuestionSetCount(questionSet.id);
-            }
-
-            finalRefreshResults.setsProcessed++;
-            
-          } catch (error) {
-            finalRefreshResults.errors.push({
-              questionSetId: bubbleQuestionSet._id,
-              title: bubbleQuestionSet.title || `Question Set (${bubbleQuestionSet._id.substring(0, 8)}...)`,
-              error: error instanceof Error ? error.message : 'Unknown error',
-              details: error instanceof Error ? error.stack?.split('\n')[0] : undefined
-            });
-            if (process.env.NODE_ENV === 'development') {
-              console.error(`Failed to refresh ${bubbleQuestionSet.title}:`, error);
-            }
-          }
-        }));
-        
-        // Send progress update via SSE
-        const processed = Math.min(i + BATCH_SIZE, bubbleQuestionSets.length);
-        
-        res.write('data: ' + JSON.stringify({
-          type: 'progress',
-          current: processed,
-          total: bubbleQuestionSets.length,
-          setsProcessed: finalRefreshResults.setsProcessed,
-          questionsUpdated: finalRefreshResults.questionsUpdated,
-          questionsCreated: finalRefreshResults.questionsCreated
-        }) + '\n\n');
-      }
-
-      // Step 3: Complete processing - DO NOT auto-sunset
-      const completedAt = new Date().toISOString();
-      
-      // Clear the in-progress lock only
-      await storage.setAppSetting('final_refresh_in_progress_at', null);
-
-      const endTime = Date.now();
-      const duration = ((endTime - startTime) / 1000).toFixed(2);
-      
-      // Store audit information with run_id for tracking
-      const runId = crypto.randomUUID();
-      const auditData = {
-        run_id: runId,
-        triggeredBy: adminUser ? { id: adminUser.id, email: adminUser.email } : 'system',
-        startedAt: new Date(startTime).toISOString(),
-        completedAt,
-        duration,
-        results: {
-          fetched: finalRefreshResults.setsProcessed,
-          created: finalRefreshResults.questionsCreated,
-          updated: finalRefreshResults.questionsUpdated,
-          deactivated: finalRefreshResults.questionsDeactivated,
-          unchanged: finalRefreshResults.questionsUnchanged,
-          warnings: finalRefreshResults.warnings.length,
-          errors: finalRefreshResults.errors.length
-        },
-        timings: {
-          total_seconds: parseFloat(duration),
-          average_per_set: finalRefreshResults.setsProcessed > 0 ? 
-            parseFloat((parseFloat(duration) / finalRefreshResults.setsProcessed).toFixed(2)) : 0
-        }
-      };
-      await storage.setAppSetting('final_refresh_audit', auditData);
-      
-      // Emit single line structured log for monitoring
-      console.log(`final_refresh_completed: ${JSON.stringify({
-        run_id: runId,
-        duration: duration,
-        fetched: finalRefreshResults.setsProcessed,
-        created: finalRefreshResults.questionsCreated,
-        updated: finalRefreshResults.questionsUpdated,
-        deactivated: finalRefreshResults.questionsDeactivated,
-        unchanged: finalRefreshResults.questionsUnchanged,
-        errors: finalRefreshResults.errors.length,
-        warnings: finalRefreshResults.warnings.length
-      })}`);
-      
-      // Send final results via SSE
-      res.write('data: ' + JSON.stringify({
-        type: 'complete',
-        setsProcessed: finalRefreshResults.setsProcessed,
-        questionsCreated: finalRefreshResults.questionsCreated,
-        questionsUpdated: finalRefreshResults.questionsUpdated,
-        questionsDeactivated: finalRefreshResults.questionsDeactivated,
-        questionsUnchanged: finalRefreshResults.questionsUnchanged,
-        warnings: finalRefreshResults.warnings,
-        errors: finalRefreshResults.errors,
-        completedAt,
-        duration
-      }) + '\n\n');
-      
-      res.end();
-      
-      console.log(`✅ FINAL REFRESH COMPLETED in ${duration}s. Sets: ${finalRefreshResults.setsProcessed}, Created: ${finalRefreshResults.questionsCreated}, Updated: ${finalRefreshResults.questionsUpdated}, Deactivated: ${finalRefreshResults.questionsDeactivated}, Unchanged: ${finalRefreshResults.questionsUnchanged}, Errors: ${finalRefreshResults.errors.length}`);
-      
-    } catch (error) {
-      console.error("❌ Critical error in final refresh:", error);
-      
-      // If headers haven't been sent yet, send error response
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: "final_refresh_failed",
-          message: error instanceof Error ? error.message : 'Unknown error occurred'
-        });
-      } else {
-        // If we're already streaming, send error via SSE
-        res.write('data: ' + JSON.stringify({ 
-          type: 'error', 
-          message: error instanceof Error ? error.message : 'Unknown error occurred' 
-        }) + '\n\n');
-        res.end();
-      }
-    } finally {
-      // Clean up heartbeat interval
-      if (typeof heartbeatInterval !== 'undefined') {
-        clearInterval(heartbeatInterval);
-      }
-      
-      // Always release the advisory lock and clear in-progress timestamp
-      try {
-        // Release lock only if we acquired it
-        if (lockAcquired) {
-          await db.execute(sql`SELECT pg_advisory_unlock(${FINAL_REFRESH_LOCK_ID})`);
-        }
-        await storage.setAppSetting('final_refresh_in_progress_at', null);
-      } catch (unlockError) {
-        console.error("Failed to release advisory lock:", unlockError);
-      }
-    }
-  });
 
   // Bulk refresh all question sets with SSE for real-time progress tracking
-  app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, requireNotSunset, async (req, res) => {
+  app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
     
     console.log("🔄 Starting bulk refresh of all question sets with SSE...");
     const startTime = Date.now();
@@ -5711,7 +5113,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // New endpoint to update a single question set from Bubble
-  app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, requireNotSunset, async (req, res) => {
+  app.post("/api/admin/question-sets/:id/update-from-bubble", requireAdmin, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.id);
       
@@ -5909,7 +5311,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Admin route to fetch all learning objects from Bubble.io
-  app.get("/api/admin/bubble/learning-objects", requireAdmin, requireNotSunset, async (req, res) => {
+  app.get("/api/admin/bubble/learning-objects", requireAdmin, async (req, res) => {
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
@@ -6014,7 +5416,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Admin route to import all learning objects from Bubble.io
-  app.post("/api/admin/bubble/import-all-learning-objects", requireAdmin, requireNotSunset, async (req, res) => {
+  app.post("/api/admin/bubble/import-all-learning-objects", requireAdmin, async (req, res) => {
     try {
       const bubbleApiKey = process.env.BUBBLE_API_KEY;
       
