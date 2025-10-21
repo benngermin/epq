@@ -18,8 +18,6 @@ import {
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState } from "react";
 import { DragDropZones } from "@/components/question-types/drag-drop-zones";
-import { DragDropZonesTouch } from "@/components/question-types/drag-drop-zones-touch";
-import { useLocation } from "wouter";
 
 interface QuestionTypeEditorProps {
   questionType: string;
@@ -28,9 +26,6 @@ interface QuestionTypeEditorProps {
 }
 
 export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTypeEditorProps) {
-  const [location] = useLocation();
-  const isMobileRoute = location.startsWith('/mobile-view');
-  
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [deleteChoiceIndex, setDeleteChoiceIndex] = useState<number | null>(null);
   const [deleteIsCorrectAnswer, setDeleteIsCorrectAnswer] = useState<boolean>(false);
@@ -707,37 +702,20 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
           <div>
             <Label>Correct Answer Mapping</Label>
-            {isMobileRoute ? (
-              <DragDropZonesTouch
-                answerChoices={value.answerChoices || []}
-                dropZones={value.dropZones || []}
-                value={value.correctAnswer}
-                onChange={(newValue) => {
-                  try {
-                    const parsed = typeof newValue === 'string' ? JSON.parse(newValue) : newValue;
-                    handleFieldChange("correctAnswer", parsed);
-                  } catch (e) {
-                    handleFieldChange("correctAnswer", newValue);
-                  }
-                }}
-                disabled={false}
-              />
-            ) : (
-              <DragDropZones
-                answerChoices={value.answerChoices || []}
-                dropZones={value.dropZones || []}
-                value={value.correctAnswer}
-                onChange={(newValue) => {
-                  try {
-                    const parsed = typeof newValue === 'string' ? JSON.parse(newValue) : newValue;
-                    handleFieldChange("correctAnswer", parsed);
-                  } catch (e) {
-                    handleFieldChange("correctAnswer", newValue);
-                  }
-                }}
-                disabled={false}
-              />
-            )}
+            <DragDropZones
+              answerChoices={value.answerChoices || []}
+              dropZones={value.dropZones || []}
+              value={value.correctAnswer}
+              onChange={(newValue) => {
+                try {
+                  const parsed = typeof newValue === 'string' ? JSON.parse(newValue) : newValue;
+                  handleFieldChange("correctAnswer", parsed);
+                } catch (e) {
+                  handleFieldChange("correctAnswer", newValue);
+                }
+              }}
+              disabled={false}
+            />
             <p className="text-xs text-muted-foreground mt-1">
               Drag items to the correct zones to set the answer
             </p>
