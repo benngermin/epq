@@ -6,6 +6,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragOverlay,
@@ -217,6 +218,12 @@ export function DragDropZonesTouch({
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // Minimum drag distance to activate
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
