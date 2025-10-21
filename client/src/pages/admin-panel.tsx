@@ -1664,6 +1664,33 @@ export default function AdminPanel() {
                   </Button>
                   
                   {/* Final Refresh Button - Only show if not completed */}
+                  {/* Test Bubble Auth Button */}
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/admin/bubble/test-auth');
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                          console.error('Authentication test failed:', data);
+                          const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• First chars: ${data.debug.firstChars}\n• Last chars: ${data.debug.lastChars}\n• Has whitespace: ${data.debug.hasWhitespace}\n• Has quotes: ${data.debug.hasQuotes}\n• Environment: ${data.debug.environment}` : '';
+                          alert(`Bubble API Auth Test Failed!\n\nStatus: ${response.status}\nMessage: ${data.message}${debugInfo}`);
+                        } else {
+                          console.log('Authentication test successful:', data);
+                          const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• Data received: ${data.debug.dataReceived}\n• Has results: ${data.debug.hasResults}` : '';
+                          alert(`Bubble API Auth Test Successful!${debugInfo}`);
+                        }
+                      } catch (error) {
+                        console.error('Error testing authentication:', error);
+                        alert(`Error testing authentication: ${error}`);
+                      }
+                    }}
+                    variant="outline"
+                    className="mr-2"
+                  >
+                    Test Bubble Auth
+                  </Button>
+
                   {!finalRefreshCompleted && (
                     <Button 
                       onClick={() => setShowFinalRefreshDialog(true)}
