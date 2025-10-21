@@ -11,7 +11,6 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
-  Modifier,
 } from "@dnd-kit/core";
 import {
   useDraggable,
@@ -35,12 +34,14 @@ function DraggableItem({
   id, 
   item, 
   disabled, 
-  isInZone = false 
+  isInZone = false,
+  isOverlay = false 
 }: { 
   id: string; 
   item: string; 
   disabled?: boolean; 
   isInZone?: boolean;
+  isOverlay?: boolean;
 }) {
   const {
     attributes,
@@ -49,31 +50,41 @@ function DraggableItem({
     isDragging,
   } = useDraggable({
     id,
-    disabled,
+    disabled: disabled || isOverlay,
   });
 
-  const style = {
-    opacity: isDragging ? 0 : 1,
-    touchAction: "none" as const,
-    userSelect: "none" as const,
-    WebkitUserSelect: "none" as const,
-  };
+  const style = isOverlay 
+    ? {
+        margin: 0,
+        transform: "none",
+        pointerEvents: "none" as const,
+      }
+    : {
+        opacity: isDragging ? 0 : 1,
+        touchAction: "none" as const,
+        userSelect: "none" as const,
+        WebkitUserSelect: "none" as const,
+      };
 
   return (
     <div
-      ref={setNodeRef}
+      ref={!isOverlay ? setNodeRef : undefined}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(!isOverlay ? listeners : {})}
+      {...(!isOverlay ? attributes : {})}
       className={cn(
-        "flex items-center gap-2 px-3 py-2 rounded-md cursor-move",
+        "flex items-center gap-2 px-3 py-2 rounded-md",
+        !isOverlay && "cursor-move",
         "border border-border",
-        "transition-all duration-200 ease-in-out",
+        !isOverlay && "transition-all duration-200 ease-in-out",
         isInZone 
-          ? "bg-background hover:bg-accent hover:shadow-md hover:-translate-y-0.5"
-          : "bg-primary/10 hover:bg-primary/20 hover:shadow-md hover:-translate-y-0.5",
-        disabled && "cursor-not-allowed opacity-50",
-        isDragging && "z-50"
+          ? "bg-background"
+          : "bg-primary/10",
+        !isOverlay && isInZone && "hover:bg-accent hover:shadow-md hover:-translate-y-0.5",
+        !isOverlay && !isInZone && "hover:bg-primary/20 hover:shadow-md hover:-translate-y-0.5",
+        disabled && !isOverlay && "cursor-not-allowed opacity-50",
+        isDragging && !isOverlay && "z-50",
+        isOverlay && "drag-overlay-item shadow-lg"
       )}
     >
       <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -157,21 +168,6 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
-  // Simple modifier to center the ghost on the cursor
-  const centerOnCursor: Modifier = ({ transform, activatorEvent }) => {
-    if (activatorEvent) {
-      const offsetX = -40; // Half the approximate width of the draggable item
-      const offsetY = -20; // Half the approximate height of the draggable item
-      
-      return {
-        ...transform,
-        x: transform.x + offsetX,
-        y: transform.y + offsetY,
-      };
-    }
-    return transform;
-  };
-  
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
     if (typeof value === 'string' && value) {
@@ -388,14 +384,19 @@ export function DragDropZonesTouch({
 
       {/* Drag overlay for visual feedback */}
       <DragOverlay 
-        modifiers={[centerOnCursor]}
+        container={document.body}
+        modifiers={[]}
+        wrapperClassName="drag-overlay"
         dropAnimation={null}
       >
         {draggedItem ? (
-          <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
-            <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span>{draggedItem}</span>
-          </div>
+          <DraggableItem
+            id={draggedItem}
+            item={draggedItem}
+            disabled={disabled}
+            isInZone={false}
+            isOverlay={true}
+          />
         ) : null}
       </DragOverlay>
     </DndContext>
