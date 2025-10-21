@@ -368,9 +368,3 @@
 [data-testid^="card-question-"] {
   scroll-margin-top: var(--editor-sticky-offset);
 }
-
-/* Drag and Drop overlay resets */
-.drag-overlay-item {
-  margin: 0 !important;
-  pointer-events: none !important;
-}

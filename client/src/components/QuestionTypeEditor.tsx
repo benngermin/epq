@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState } from "react";
-import { DragDropZonesTouch } from "@/components/question-types/drag-drop-zones-touch";
+import { DragDropZones } from "@/components/question-types/drag-drop-zones";
 
 interface QuestionTypeEditorProps {
   questionType: string;
@@ -702,7 +702,7 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
 
           <div>
             <Label>Correct Answer Mapping</Label>
-            <DragDropZonesTouch
+            <DragDropZones
               answerChoices={value.answerChoices || []}
               dropZones={value.dropZones || []}
               value={value.correctAnswer}

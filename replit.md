@@ -19,7 +19,6 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - **Removed Final Refresh functionality**: Completely removed the one-time migration feature that disabled Bubble.io integration after completion. The regular "Refresh All" bulk refresh operation continues to work normally and is not restricted
 - **Fixed mobile-view answer submission**: Resolved issue where duplicate route definitions prevented proper progress tracking in the sidebar. Removed conflicting endpoint that returned incorrect response format, ensuring the correct endpoint returns `isCorrect`, `chosenAnswer`, and `questionId` fields
 - **Updated mobile-view API path**: Fixed submitAnswerMutation to use the correct `/api/mobile-view/` prefix when in mobile-view mode, ensuring answers are properly persisted and progress is tracked
-- **Added touch support for drag-and-drop questions**: Implemented @dnd-kit library to enable finger-based drag and drop functionality in mobile webviews. The new implementation uses pointer events instead of HTML5 drag API, making drag-and-drop questions fully functional on touch devices
 
 ## System Architecture
 The application follows a client-server architecture.
