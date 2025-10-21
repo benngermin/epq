@@ -4686,9 +4686,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
       res.status(500).json({ message: "Failed to update question sets from Bubble repository" });
     }
   });
-    
-    try {
-      // Check if final refresh was already completed
 
   // Bulk refresh all question sets with SSE for real-time progress tracking
   app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {

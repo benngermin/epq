@@ -16,6 +16,7 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - **Fixed Bubble API 401 error in production**: Corrected BUBBLE_BASE_URL configuration to always use version-test endpoint (the Content Repository only has version-test, not live)
 - Added comprehensive diagnostic endpoint `/api/admin/bubble/test-auth` to help debug environment-specific issues
 - **Fixed mobile-view progress tracking**: Demo and mobile-view endpoints now persist user answers to the database using session-based identification. Progress is maintained across page reloads and sessions
+- **Removed Final Refresh functionality**: Completely removed the one-time migration feature that disabled Bubble.io integration after completion. The regular "Refresh All" bulk refresh operation continues to work normally and is not restricted
 
 ## System Architecture
 The application follows a client-server architecture.
