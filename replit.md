@@ -17,6 +17,8 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - Added comprehensive diagnostic endpoint `/api/admin/bubble/test-auth` to help debug environment-specific issues
 - **Fixed mobile-view progress tracking**: Demo and mobile-view endpoints now persist user answers to the database using session-based identification. Progress is maintained across page reloads and sessions
 - **Removed Final Refresh functionality**: Completely removed the one-time migration feature that disabled Bubble.io integration after completion. The regular "Refresh All" bulk refresh operation continues to work normally and is not restricted
+- **Fixed mobile-view answer submission**: Resolved issue where duplicate route definitions prevented proper progress tracking in the sidebar. Removed conflicting endpoint that returned incorrect response format, ensuring the correct endpoint returns `isCorrect`, `chosenAnswer`, and `questionId` fields
+- **Updated mobile-view API path**: Fixed submitAnswerMutation to use the correct `/api/mobile-view/` prefix when in mobile-view mode, ensuring answers are properly persisted and progress is tracked
 
 ## System Architecture
 The application follows a client-server architecture.
