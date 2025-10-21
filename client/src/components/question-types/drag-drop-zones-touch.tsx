@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
@@ -148,14 +148,6 @@ function AvailableItemsArea({
   );
 }
 
-// Custom modifier to center the drag overlay on the cursor
-const adjustPosition: Modifier = ({ transform }) => {
-  return {
-    ...transform,
-    x: transform.x - 250, // Significant left adjustment to center on cursor
-    y: transform.y - 20, // Vertical adjustment to align with cursor
-  };
-};
 
 export function DragDropZonesTouch({
   answerChoices,
@@ -165,6 +157,19 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
+  const overlayContainerRef = useRef<HTMLDivElement | null>(null);
+  
+  const offsetToContainer: Modifier = ({ transform }) => {
+    const rect = overlayContainerRef.current?.getBoundingClientRect();
+    const left = rect?.left ?? 0;
+    const top = rect?.top ?? 0;
+    return {
+      ...transform,
+      x: transform.x - left,
+      y: transform.y - top,
+    };
+  };
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
     if (typeof value === 'string' && value) {
@@ -334,13 +339,14 @@ export function DragDropZonesTouch({
   const draggedItem = getDraggedItem();
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="space-y-4">
+    <div ref={overlayContainerRef} id="dnd-root">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="space-y-4">
         {/* Available items */}
         <AvailableItemsArea id="available-items" isDragging={!!activeId}>
           {availableItems.map((item) => (
@@ -380,19 +386,18 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay modifiers={[adjustPosition]}>
+      <DragOverlay 
+        modifiers={[offsetToContainer]}
+        dropAnimation={null}
+      >
         {draggedItem ? (
-          <div
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md cursor-move",
-              "border border-border bg-background shadow-lg",
-            )}
-          >
+          <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span>{draggedItem}</span>
           </div>
         ) : null}
       </DragOverlay>
     </DndContext>
+    </div>
   );
 }
