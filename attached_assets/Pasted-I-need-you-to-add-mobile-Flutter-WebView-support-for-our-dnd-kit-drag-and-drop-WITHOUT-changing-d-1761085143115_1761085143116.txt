@@ -1,0 +1,72 @@
+I need you to add mobile (Flutter WebView) support for our @dnd-kit drag-and-drop WITHOUT changing desktop behavior.
+
+WHERE TO LOOK
+- The component that renders <DndContext> (likely client/src/components/question-types/drag-drop-zones-touch.tsx or our DnD provider/wrapper).
+- The sortable/draggable item component where we attach listeners/attributes (look for useSortable/useDraggable).
+- Global styles (client/src/index.css or globals.css).
+
+WHAT TO IMPLEMENT
+1) Cross-platform sensors (pointer-first with smart activation; touch fallback only if PointerEvent is unavailable):
+   - In the DnD component, create sensors like this and pass them to <DndContext sensors={sensors}>:
+
+     ```ts
+     import {DndContext, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors} from '@dnd-kit/core';
+
+     const supportsPointer = typeof window !== 'undefined' && 'PointerEvent' in window;
+     const isTouchEnv = typeof window !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
+
+     const sensors = useSensors(
+       // Use PointerSensor everywhere it’s supported.
+       useSensor(supportsPointer ? PointerSensor : TouchSensor, {
+         // On touch-capable envs (e.g., Flutter WebView), use a brief press delay to avoid scroll/tap conflicts.
+         activationConstraint: isTouchEnv
+           ? { delay: 180, tolerance: 6 }   // mobile-friendly
+           : { distance: 6 },               // desktop-friendly
+       }),
+       // Fallback mouse sensor only if PointerEvent is not supported.
+       ...(supportsPointer ? [] : [useSensor(MouseSensor, { activationConstraint: { distance: 6 } })]),
+     );
+     ```
+
+   - DO NOT change DragOverlay positioning or add any overlay offset modifiers. Keep DragOverlay “clean” (no x/y math).
+
+2) Use a drag handle so mobile can start drags without hijacking scroll:
+   - In the sortable/draggable item, spread dnd-kit `attributes` and `listeners` onto a small handle element (e.g., a button or icon).
+   - Example:
+
+     ```tsx
+     const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({id});
+
+     return (
+       <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
+         <button className="drag-handle" aria-label="Drag" {...attributes} {...listeners}>
+           {/* icon */}
+         </button>
+         {/* rest of item */}
+       </div>
+     );
+     ```
+
+3) Add minimal CSS to make touch drags reliable in a WebView without affecting desktop:
+   - In globals:
+
+     ```css
+     .drag-handle {
+       touch-action: none;             /* prevent browser gestures from stealing the drag */
+       -webkit-user-select: none;
+       user-select: none;
+       -webkit-tap-highlight-color: transparent;
+     }
+     /* Optional: reduce scroll-overscroll interference in lists that contain draggables */
+     .dnd-scroll-container {
+       overscroll-behavior: contain;
+     }
+     ```
+
+ACCEPTANCE CRITERIA
+- On iOS/Android inside a Flutter WebView: press-and-drag on the handle starts a drag within ~180ms; scrolling a list still works when dragging is not initiated.
+- On desktop web: drag starts after ~6px movement (no press delay); behavior is unchanged from current.
+- No overlay drift or double-offset is introduced; we did not add any custom overlay modifiers or x/y math.
+- Works in Chrome desktop, Safari iOS (WebView), and Android WebView.
+
+Make ONLY the changes above (sensors + handle + CSS). Do not modify existing DragOverlay positioning or introduce container-relative offset code.
