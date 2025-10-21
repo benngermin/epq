@@ -1,0 +1,84 @@
+I need you to fix the drag-and-drop ghost (DragOverlay) misalignment. The overlay is being double-offset. @dnd-kit's DragOverlay already positions itself in viewport coords via a portal to <body>, so any extra offset/transform logic in our code or overlay child must be removed.
+
+WHERE TO LOOK
+1) React DnD code:
+   - client/src/components/question-types/drag-drop-zones-touch.tsx
+   - client/src/components/question-types/**/drag*.tsx
+   - client/src/components/**/dnd/** (any DndContext/DragOverlay wrappers)
+2) Overlay child component used inside <DragOverlay> (the “Item”/card clone).
+3) Global/layout styles:
+   - client/src/index.css, globals.css, tailwind.css
+   - App/root wrappers (e.g., client/src/App.tsx, client/src/main.tsx, #root container)
+
+WHAT TO CHANGE (do all)
+A) Remove overlay offset modifiers
+   - Delete any custom Modifier that adjusts x/y for the overlay (e.g., adjustPosition or “offset by container” logic).
+   - Ensure <DragOverlay modifiers={[]}>. Do NOT pass restrictToParentElement, snap/grid, or other offsetting modifiers to the overlay.
+
+B) Normalize the overlay child (no extra transforms)
+   - The component rendered inside <DragOverlay> must not add margins or transforms that shift it.
+   - Add an isOverlay prop to the item clone and strip layout effects:
+     • margin: 0
+     • transform: none
+     • pointer-events: none
+     • If using Framer Motion: layout={!isOverlay} and no x/y style on overlay.
+     • If list virtualization adds style.transform for positioning, bypass that when isOverlay is true.
+   - Add CSS reset for the overlay variant (e.g., .item--overlay { margin:0 !important; transform:none !important; pointer-events:none; }).
+
+C) Verify the overlay container & root transforms
+   - Use <DragOverlay container={document.body} wrapperClassName="drag-overlay" dropAnimation={null} /> unless we intentionally portal elsewhere.
+   - Ensure no CSS transform/filter/perspective/backdrop-filter on html, body, or #root. If we MUST scale the app, either:
+     • Portal DragOverlay into that same scaled element AND set adjustScale, or
+     • Remove the scaling from ancestors during drag.
+   - Add .drag-overlay { pointer-events: none; } in CSS.
+
+D) Keep constraints in DndContext, not in DragOverlay
+   - If we need restrictTo* modifiers, attach them to <DndContext> for the dragging element, not the overlay.
+
+CONCRETE EDITS (apply or equivalent)
+1) In the file that renders DragOverlay (likely client/src/components/question-types/drag-drop-zones-touch.tsx):
+   - Replace the current overlay with:
+
+     <DragOverlay
+       container={document.body}
+       modifiers={[]}
+       wrapperClassName="drag-overlay"
+       dropAnimation={null}
+     >
+       {activeId ? <Item id={activeId} isOverlay /> : null}
+     </DragOverlay>
+
+   - Remove any custom overlay modifiers (e.g., adjustPosition).
+
+2) In the Item component rendered in both the list and overlay:
+   - Accept isOverlay and conditionally remove transforms/margins:
+
+     function Item({ isOverlay, ...props }) {
+       return (
+         <div className={cn("item", isOverlay && "item--overlay")} style={isOverlay ? { margin:0, transform:"none", pointerEvents:"none" } : undefined}>
+           {/* content */}
+         </div>
+       );
+     }
+
+   - If using Framer Motion: layout={!isOverlay}; do not apply animate x/y when isOverlay.
+   - If using virtualization: do not apply style.transform when isOverlay.
+
+3) In global CSS:
+   .drag-overlay { pointer-events: none; }
+   .item--overlay { margin: 0 !important; transform: none !important; pointer-events: none; }
+
+4) In globals/index.css and root layout components:
+   - Confirm getComputedStyle(document.documentElement).transform and getComputedStyle(document.body).transform are "none".
+   - If not removable and we intentionally scale a container, set DragOverlay’s container to that element and enable adjustScale.
+
+ACCEPTANCE CRITERIA
+- During drag, the overlay’s fixed wrapper shows transform: translate3d(pointerX, pointerY, 0) that matches the cursor/touch point with no extra drift.
+- The ghost perfectly tracks the pointer on desktop Chrome and iOS Safari.
+- No overlay-level modifiers other than the empty array; no margins/transforms applied by the overlay child.
+- If an app-wide scale is required, the overlay is portaled into the same scaled container and adjustScale is enabled.
+
+Deliver a PR that:
+- Removes the overlay offset modifier(s) and normalizes the overlay child.
+- Adds the overlay CSS resets.
+- Documents any remaining, intentional transforms at the root and how the overlay container/adjustScale addresses them.

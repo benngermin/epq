@@ -1,0 +1,168 @@
+You’re right about the root cause: **you ended up double‑offsetting the DragOverlay**. `DragOverlay` is already positioned in *viewport* coordinates (it’s portaled to `<body>` and uses `position: fixed` + a transform), so any modifier or in‑component math that re-bases it to a container will misalign the ghost.
+
+In practice, when the overlay is still offset after removing that custom modifier, it nearly always comes down to one (or more) of these:
+
+---
+
+## The 3 common culprits (and fixes)
+
+### 1) The overlay child carries its own transform/margins
+
+If the component you render **inside** `<DragOverlay>` (often the same “Card/Item” you render in the list) has layout transforms or margins (e.g., `transform: translate(...)` for list layout/virtualization/Framer Motion, or `margin: 12px` for spacing), those apply **on top of** the overlay’s transform and visually shift the ghost.
+
+**Fix:** render a “neutral” version of the item in the overlay: no margin, no internal transform, no motion layout transitions.
+
+```tsx
+<DragOverlay
+  // Keep the overlay clean: no offsetting modifiers here
+  modifiers={[]}
+  wrapperClassName="drag-overlay"
+  zIndex={1000}
+>
+  {activeId ? <Item id={activeId} isOverlay /> : null}
+</DragOverlay>
+```
+
+```tsx
+function Item({ isOverlay, ...props }: { isOverlay?: boolean }) {
+  return (
+    <div
+      className={clsx("item", isOverlay && "item--overlay")}
+      style={isOverlay ? { margin: 0, transform: "none", pointerEvents: "none" } : undefined}
+    >
+      {/* content */}
+    </div>
+  );
+}
+```
+
+If you use **Framer Motion** or similar:
+
+```tsx
+<motion.div
+  // Disable layout transforms while in the overlay
+  layout={!isOverlay}
+  style={isOverlay ? { x: 0, y: 0 } : undefined}
+>
+  ...
+</motion.div>
+```
+
+If your list uses **virtualization** that positions rows with `transform: translateY(...)`, pass a prop to disable that transform for the overlay item, or render a simple static clone.
+
+---
+
+### 2) A transformed/zoomed ancestor changes the fixed-position containing block
+
+Any `transform`/`filter`/`perspective`/`backdrop-filter` (or `contain: paint`) on `html`/`body` (or the element you portal into) creates a new containing block for `position: fixed`. Then the overlay’s “viewport” is effectively that ancestor—causing offsets.
+
+**Quick check in DevTools console:**
+
+```js
+getComputedStyle(document.documentElement).transform; // should be "none"
+getComputedStyle(document.body).transform;            // should be "none"
+```
+
+**Fix options:**
+
+* Remove those transforms from `html`/`body`/`#root`.
+* **Or**, if you must scale the app (e.g., zoom canvas), portal the overlay **into the same scaled element** so it’s in the same coordinate space:
+
+```tsx
+<DragOverlay container={document.getElementById("app-root")} />
+```
+
+If you’re scaling with `transform: scale(...)`, experiment with `adjustScale` on the overlay:
+
+```tsx
+<DragOverlay container={...} adjustScale>
+  ...
+</DragOverlay>
+```
+
+(Use this only when you truly have CSS scaling on the active element/ancestors.)
+
+---
+
+### 3) Modifiers restricting/offsetting the overlay
+
+Passing things like `restrictToParentElement`, `snapToGrid`, or any custom “offset by container” modifier **to the overlay** reintroduces the drift.
+
+**Fix:**
+
+* Put movement constraints in the **`DndContext`** (for the dragging element), not on `DragOverlay`, and keep `DragOverlay.modifiers={[]}` unless you *specifically* need a visual constraint there.
+* Remove any overlay-level offset math.
+
+---
+
+## Minimal “known-good” baseline (use this to isolate the issue)
+
+Drop this in and test; it should track your cursor perfectly. If it does, the misalignment is in your overlay child/CSS.
+
+```tsx
+<DragOverlay
+  container={document.body}
+  modifiers={[]}
+  wrapperClassName="drag-overlay"
+  dropAnimation={null}
+>
+  <div style={{ width: 16, height: 16, pointerEvents: "none" }} />
+</DragOverlay>
+```
+
+```css
+.drag-overlay { pointer-events: none; } /* avoid accidental hover effects */
+```
+
+* If the tiny square **aligns**, reintroduce your real overlay content, but ensure `margin: 0` and `transform: none` on the overlay variant.
+* If the tiny square is **still offset**, you have a containing‑block issue (culprit #2 above).
+
+---
+
+## A pragmatic checklist to fix fast
+
+1. **Remove** your custom offset modifier (everywhere).
+2. Ensure `<DragOverlay modifiers={[]}>` and that you didn’t pass restriction modifiers to it.
+3. Render a **neutral overlay clone** (`margin: 0`, `transform: none`, no motion/virtualization transforms).
+4. Verify no transforms on `html`/`body`/`#root`. If present, either remove them or set `container` to the same transformed element (and consider `adjustScale` if scaling).
+5. In Elements panel, inspect the overlay wrapper during drag:
+
+   * It should be `position: fixed`, `top: 0`, `left: 0`, and a `transform: translate3d(x, y, 0)` that updates with the pointer.
+   * If any global CSS overrides `position`/`top`/`left`, remove those overrides.
+
+---
+
+### Example final wiring
+
+```tsx
+<DndContext
+  modifiers={[/* put only real constraints here (e.g., restrictToWindowEdges) */]}
+  onDragStart={({active}) => setActiveId(active.id)}
+  onDragEnd={() => setActiveId(null)}
+  onDragCancel={() => setActiveId(null)}
+>
+  {/* ... your list ... */}
+
+  <DragOverlay
+    container={document.body}
+    modifiers={[]}         // keep clean
+    wrapperClassName="drag-overlay"
+    zIndex={1000}
+  >
+    {activeId ? <Item id={activeId} isOverlay /> : null}
+  </DragOverlay>
+</DndContext>
+```
+
+```css
+/* Overlay-specific style reset */
+.item--overlay {
+  margin: 0 !important;
+  transform: none !important;
+  pointer-events: none;
+}
+```
+
+---
+
+If you paste your `<DragOverlay>` block and the CSS for the dragged item, I’ll point to the precise line(s) causing the drift. But in most codebases, fixing **(1) overlay child transforms/margins** or **(2) a root‑level transform** resolves it immediately.
