@@ -4742,6 +4742,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const refreshResults = {
         refreshed: 0,
         failed: 0,
+        skippedNoCourse: 0,
+        skippedCourseNotFound: 0,
+        skippedNewQuestionSet: 0,
         errors: [] as Array<{ 
           questionSetId: string; 
           title: string; 
@@ -4749,6 +4752,12 @@ Remember, your goal is to support student comprehension through meaningful feedb
           courseName?: string;
           error: string;
           details?: string;
+        }>,
+        skippedQuestionSets: [] as Array<{
+          questionSetId: string;
+          title: string;
+          reason: string;
+          courseBubbleId?: string;
         }>,
         totalSets: bubbleQuestionSets.length
       };
@@ -4774,26 +4783,27 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             // Skip if no course association
             if (!courseBubbleId) {
-              refreshResults.failed++;
-              refreshResults.errors.push({
+              refreshResults.skippedNoCourse++;
+              refreshResults.skippedQuestionSets.push({
                 questionSetId: bubbleId,
                 title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
-                error: "No course association found",
-                details: "This question set is not linked to any course in Bubble"
+                reason: "No course association found in Bubble"
               });
+              console.log(`⏭️ Skipping: ${bubbleQuestionSet.title} - No course association`);
               return;
             }
             
             // Find course by Bubble ID
             let course = await storage.getCourseByBubbleId(courseBubbleId);
             if (!course) {
-              refreshResults.failed++;
-              refreshResults.errors.push({
+              refreshResults.skippedCourseNotFound++;
+              refreshResults.skippedQuestionSets.push({
                 questionSetId: bubbleId,
                 title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
-                error: "Course not found in database",
-                details: `Course with Bubble ID ${courseBubbleId} needs to be imported first`
+                reason: "Course not found in application database",
+                courseBubbleId: courseBubbleId
               });
+              console.log(`⏭️ Skipping: ${bubbleQuestionSet.title} - Course ${courseBubbleId} not in database`);
               return;
             }
             
@@ -4815,15 +4825,14 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             if (!questionSet) {
               // Skip creation of new question sets in bulk refresh
-              refreshResults.failed++;
-              refreshResults.errors.push({
+              refreshResults.skippedNewQuestionSet++;
+              refreshResults.skippedQuestionSets.push({
                 questionSetId: bubbleId,
                 title: bubbleQuestionSet.title || `Question Set (${bubbleId.substring(0, 8)}...)`,
-                courseId: course.id,
-                courseName: course.courseTitle,
-                error: "Question set does not exist",
-                details: "Bulk refresh only updates existing question sets. Use 'Update All' to import new sets."
+                reason: "New question set - use 'Update All' to import",
+                courseBubbleId: courseBubbleId
               });
+              console.log(`⏭️ Skipping: ${bubbleQuestionSet.title} - New question set (not yet imported)`);
               return;
             }
             
@@ -4848,7 +4857,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
             
             // Process and update questions
             if (parsedQuestions.length > 0) {
+              console.log(`📝 Processing ${parsedQuestions.length} questions for ${bubbleQuestionSet.title}`);
+              
               const questionImports = parsedQuestions.map((q: any, index: number) => {
+                // CRITICAL: Validate and parse question_number field
+                let questionNumber: number;
+                if (q.question_number !== undefined && q.question_number !== null) {
+                  // Parse as integer if it's a string
+                  questionNumber = typeof q.question_number === 'string' 
+                    ? parseInt(q.question_number, 10)
+                    : q.question_number;
+                  
+                  // Validate it's a valid positive integer
+                  if (isNaN(questionNumber) || questionNumber <= 0) {
+                    console.warn(`⚠️ Invalid question_number: ${q.question_number} - using index ${index + 1}`);
+                    questionNumber = index + 1;
+                  }
+                } else {
+                  // Fallback to index if no question_number provided
+                  questionNumber = index + 1;
+                  console.warn(`⚠️ Missing question_number for question at index ${index} - using ${questionNumber}`);
+                }
+                
                 const questionType = q.question_type || "multiple_choice";
                 
                 // Normalize blanks in question text
@@ -4891,9 +4921,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
                 }
                 
                 return {
-                  question_number: q.question_number || (index + 1),
+                  question_number: questionNumber, // Use validated question number
                   type: questionType,
-                  loid: q.loid || "unknown",
+                  loid: q.loid || `generated_${bubbleId}_${questionNumber}`, // Better LOID fallback
                   versions: [versionData]
                 };
               });
@@ -4958,14 +4988,67 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
       
-      const message = `Bulk refresh completed in ${duration}s. Refreshed: ${refreshResults.refreshed}, Failed: ${refreshResults.failed}`;
+      // Generate detailed summary message
+      const totalSkipped = refreshResults.skippedNoCourse + refreshResults.skippedCourseNotFound + refreshResults.skippedNewQuestionSet;
+      
+      console.log('\n╔════════════════════════════════════════════════════════════════════════════╗');
+      console.log('║                     BULK REFRESH COMPLETED                                 ║');
+      console.log('╠════════════════════════════════════════════════════════════════════════════╣');
+      console.log(`║ Duration: ${duration}s                                                             ║`);
+      console.log(`║ Total Question Sets in Bubble: ${String(refreshResults.totalSets).padEnd(43)}║`);
+      console.log(`║ Successfully Refreshed: ${String(refreshResults.refreshed).padEnd(51)}║`);
+      console.log(`║ Failed: ${String(refreshResults.failed).padEnd(67)}║`);
+      console.log(`║ Skipped (Total): ${String(totalSkipped).padEnd(58)}║`);
+      console.log(`║   - No course association: ${String(refreshResults.skippedNoCourse).padEnd(47)}║`);
+      console.log(`║   - Course not in database: ${String(refreshResults.skippedCourseNotFound).padEnd(46)}║`);
+      console.log(`║   - New question sets: ${String(refreshResults.skippedNewQuestionSet).padEnd(52)}║`);
+      console.log('╚════════════════════════════════════════════════════════════════════════════╝\n');
+      
+      if (refreshResults.skippedQuestionSets.length > 0) {
+        console.log('📋 SKIPPED QUESTION SETS DETAILS:');
+        console.log('─'.repeat(70));
+        
+        // Group by reason
+        const byReason = refreshResults.skippedQuestionSets.reduce((acc, item) => {
+          if (!acc[item.reason]) acc[item.reason] = [];
+          acc[item.reason].push(item);
+          return acc;
+        }, {} as Record<string, typeof refreshResults.skippedQuestionSets>);
+        
+        Object.entries(byReason).forEach(([reason, items]) => {
+          console.log(`\n  ${reason} (${items.length} question sets):`);
+          items.slice(0, 5).forEach(item => {
+            console.log(`    • ${item.title}`);
+            if (item.courseBubbleId) {
+              console.log(`      Course ID: ${item.courseBubbleId}`);
+            }
+          });
+          if (items.length > 5) {
+            console.log(`    ... and ${items.length - 5} more`);
+          }
+        });
+        console.log();
+      }
+      
+      const message = `Bulk refresh completed in ${duration}s. Refreshed: ${refreshResults.refreshed}, Skipped: ${totalSkipped}, Failed: ${refreshResults.failed}`;
       
       // Send final results via SSE
       res.write('data: ' + JSON.stringify({
         type: 'complete',
         message,
         results: refreshResults,
-        duration
+        duration,
+        summary: {
+          totalSets: refreshResults.totalSets,
+          refreshed: refreshResults.refreshed,
+          failed: refreshResults.failed,
+          skipped: {
+            total: totalSkipped,
+            noCourse: refreshResults.skippedNoCourse,
+            courseNotFound: refreshResults.skippedCourseNotFound,
+            newQuestionSet: refreshResults.skippedNewQuestionSet
+          }
+        }
       }) + '\n\n');
       
       res.end();
