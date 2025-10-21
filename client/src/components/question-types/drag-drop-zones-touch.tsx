@@ -11,6 +11,7 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
+  Modifier,
 } from "@dnd-kit/core";
 import {
   useDraggable,
@@ -146,6 +147,15 @@ function AvailableItemsArea({
     </Card>
   );
 }
+
+// Custom modifier to center the drag overlay on the cursor
+const adjustPosition: Modifier = ({ transform }) => {
+  return {
+    ...transform,
+    x: transform.x - 100, // Adjust left to compensate for rightward offset
+    y: transform.y - 10, // Small vertical adjustment to align with cursor
+  };
+};
 
 export function DragDropZonesTouch({
   answerChoices,
@@ -370,7 +380,7 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay>
+      <DragOverlay modifiers={[adjustPosition]}>
         {draggedItem ? (
           <div
             className={cn(
