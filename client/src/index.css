@@ -74,19 +74,6 @@
     @apply shadow-sm border;
   }
 
-  /* Touch-friendly drag handle CSS for mobile WebView support */
-  .drag-handle {
-    touch-action: none;             /* prevent browser gestures from stealing the drag */
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Reduce scroll-overscroll interference in lists that contain draggables */
-  .dnd-scroll-container {
-    overscroll-behavior: contain;
-  }
-
   /* Improved button styling */
   .btn-primary {
     @apply bg-primary hover:bg-primary text-primary-foreground;
