@@ -6621,38 +6621,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Mobile-view answer submission - validates answer without storing it
-  app.post("/api/mobile-view/question-sets/:questionSetId/answer", async (req, res) => {
-    try {
-      const { questionVersionId, answer } = req.body;
-      
-      if (!questionVersionId || answer === undefined) {
-        return res.status(400).json({ message: "Question version ID and answer are required" });
-      }
-      
-      // Get question version to validate answer
-      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
-      
-      if (!questionVersion) {
-        return res.status(404).json({ message: "Question version not found" });
-      }
-      
-      // Simple validation - check if answer matches correct answer
-      const isCorrect = questionVersion.correctAnswer === answer;
-      
-      res.json({
-        correct: isCorrect,
-        correctAnswer: questionVersion.correctAnswer,
-        staticExplanation: questionVersion.staticExplanation || null
-      });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error validating answer for mobile-view:", error);
-      }
-      res.status(500).json({ message: "Failed to validate answer" });
-    }
-  });
-
   // Mobile-view practice data endpoint - combines multiple data fetches
   app.get("/api/mobile-view/practice-data/:questionSetId", async (req, res) => {
     // Set no-cache headers to ensure fresh data after Final Refresh
