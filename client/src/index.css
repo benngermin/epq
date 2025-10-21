@@ -370,21 +370,7 @@
 }
 
 /* Drag and Drop overlay resets */
-.drag-overlay {
-  pointer-events: none !important;
-}
-
 .drag-overlay-item {
   margin: 0 !important;
-  transform: none !important;
   pointer-events: none !important;
-}
-
-/* Ensure no transforms on root elements that might affect DragOverlay */
-html, body, #root {
-  transform: none !important;
-  filter: none !important;
-  perspective: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
 }

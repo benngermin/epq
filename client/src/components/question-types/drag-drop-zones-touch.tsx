@@ -212,7 +212,7 @@ export function DragDropZonesTouch({
     return answerChoices.filter(item => !used.has(item));
   });
 
-  // Configure sensors with activation constraint to prevent accidental drags
+  // Configure sensors for better cursor tracking
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -384,9 +384,6 @@ export function DragDropZonesTouch({
 
       {/* Drag overlay for visual feedback */}
       <DragOverlay 
-        container={document.body}
-        modifiers={[]}
-        wrapperClassName="drag-overlay"
         dropAnimation={null}
       >
         {draggedItem ? (
