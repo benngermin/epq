@@ -1400,6 +1400,174 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Demo version of optimized endpoint for practice mode
+  app.get("/api/demo/question-sets/:id/optimized", async (req, res) => {
+    const questionSetId = parseInt(req.params.id);
+    
+    // Set no-cache headers to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    try {
+      // Get the data using the same logic as authenticated endpoint
+      const [questionSet, questions, courses] = await Promise.all([
+        withCircuitBreaker(() => storage.getQuestionSet(questionSetId)),
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId)),
+        withCircuitBreaker(() => storage.getCoursesForQuestionSet(questionSetId))
+      ]);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Get the first course associated with this question set
+      const course = courses.length > 0 ? courses[0] : null;
+      
+      // Get course and question sets info
+      const courseQuestionSets = course 
+        ? await withCircuitBreaker(() => storage.getQuestionSetsByCourse(course.id))
+        : [];
+      
+      // Sort question sets
+      courseQuestionSets.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      // Get demo user's answers if they exist
+      let userAnswers: any[] = [];
+      const sessionId = req.session?.id;
+      if (sessionId) {
+        const demoUser = await storage.getUserByEmail(`demo-${sessionId}@demo.local`);
+        if (demoUser) {
+          const testRun = await storage.getActiveUserTestRunForQuestionSet(demoUser.id, questionSetId);
+          if (testRun) {
+            userAnswers = await storage.getUserAnswersByTestRun(testRun.id);
+          }
+        }
+      }
+      
+      // Add user answers to questions data
+      const questionsWithAnswers = questions.map((q: any) => {
+        const userAnswer = userAnswers.find((a: any) => 
+          q.latestVersion && a.questionVersionId === q.latestVersion.id
+        );
+        if (userAnswer) {
+          return {
+            ...q,
+            userAnswer: {
+              chosenAnswer: userAnswer.chosenAnswer,
+              isCorrect: userAnswer.isCorrect
+            }
+          };
+        }
+        return q;
+      });
+      
+      // Return combined data matching the expected format
+      res.json({ questionSet, questions: questionsWithAnswers, course, courseQuestionSets });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in demo optimized endpoint:", error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to load practice data" });
+      }
+    }
+  });
+
+  // Mobile-view version of optimized endpoint for practice mode
+  app.get("/api/mobile-view/question-sets/:id/optimized", async (req, res) => {
+    const questionSetId = parseInt(req.params.id);
+    
+    // Set no-cache headers to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    try {
+      // Get the data using the same logic as authenticated endpoint
+      const [questionSet, questions, courses] = await Promise.all([
+        withCircuitBreaker(() => storage.getQuestionSet(questionSetId)),
+        withCircuitBreaker(() => batchFetchQuestionsWithVersions(questionSetId)),
+        withCircuitBreaker(() => storage.getCoursesForQuestionSet(questionSetId))
+      ]);
+      
+      if (!questionSet) {
+        return res.status(404).json({ message: "Question set not found" });
+      }
+      
+      // Get the first course associated with this question set
+      const course = courses.length > 0 ? courses[0] : null;
+      
+      // Get course and question sets info
+      const courseQuestionSets = course 
+        ? await withCircuitBreaker(() => storage.getQuestionSetsByCourse(course.id))
+        : [];
+      
+      // Sort question sets
+      courseQuestionSets.sort((a, b) => {
+        const aNum = parseInt(a.title.match(/\d+/)?.[0] || '0');
+        const bNum = parseInt(b.title.match(/\d+/)?.[0] || '0');
+        return aNum - bNum;
+      });
+      
+      // Get mobile user's answers if they exist
+      let userAnswers: any[] = [];
+      const sessionId = req.session?.id;
+      if (sessionId) {
+        const mobileUser = await storage.getUserByEmail(`mobile-${sessionId}@mobile.local`);
+        if (mobileUser) {
+          const testRun = await storage.getActiveUserTestRunForQuestionSet(mobileUser.id, questionSetId);
+          if (testRun) {
+            userAnswers = await storage.getUserAnswersByTestRun(testRun.id);
+          }
+        }
+      }
+      
+      // Add user answers to questions data
+      const questionsWithAnswers = questions.map((q: any) => {
+        const userAnswer = userAnswers.find((a: any) => 
+          q.latestVersion && a.questionVersionId === q.latestVersion.id
+        );
+        if (userAnswer) {
+          return {
+            ...q,
+            userAnswer: {
+              chosenAnswer: userAnswer.chosenAnswer,
+              isCorrect: userAnswer.isCorrect
+            }
+          };
+        }
+        return q;
+      });
+      
+      // Return combined data matching the expected format
+      res.json({ questionSet, questions: questionsWithAnswers, course, courseQuestionSets });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in mobile-view optimized endpoint:", error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to load practice data" });
+      }
+    }
+  });
+
   app.get("/api/questions/:questionSetId", requireAuth, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
@@ -1758,6 +1926,299 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error submitting answer:", error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to submit answer" });
+      }
+    }
+  });
+
+  // Demo endpoint for mobile-view - persists answers for unauthenticated users
+  app.post("/api/demo/question-sets/:questionSetId/answer", async (req, res) => {
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      const { questionVersionId, answer } = req.body;
+
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+
+      if (!questionVersionId || !answer) {
+        return res.status(400).json({ message: "Question version ID and answer are required" });
+      }
+
+      // Get the question version to validate the answer
+      const questionVersion = await withCircuitBreaker(() => storage.getQuestionVersion(questionVersionId));
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      // Use centralized validation system
+      const { validateAnswer, validateSelectFromListWithReport } = await import('./utils/answer-validation');
+      
+      const validationOptions = {
+        caseSensitive: questionVersion.caseSensitive || false,
+        acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+        blanks: questionVersion.blanks as any[] || undefined,
+        dropZones: questionVersion.dropZones as any[] || undefined
+      };
+      
+      let isCorrect = validateAnswer(
+        answer,
+        questionVersion.correctAnswer,
+        questionVersion.questionType,
+        validationOptions
+      );
+      
+      // Enhanced debugging for SELECT_FROM_LIST questions
+      let validationReport = null;
+      if (process.env.DEBUG_VALIDATION === 'true' && questionVersion.questionType === 'select_from_list') {
+        validationReport = validateSelectFromListWithReport(
+          answer,
+          questionVersion.correctAnswer,
+          validationOptions
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VALIDATION_REPORT] Demo Practice', {
+            questionSetId,
+            questionVersionId,
+            questionType: questionVersion.questionType,
+            report: validationReport
+          });
+        }
+        // Use the report's result for consistency
+        isCorrect = validationReport.isCorrect;
+      }
+
+      // Create or get a demo user based on session ID
+      // Use session ID as a unique identifier for demo users
+      const sessionId = req.session?.id || `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create or retrieve a demo user for this session
+      let demoUser = await storage.getUserByEmail(`demo-${sessionId}@demo.local`);
+      if (!demoUser) {
+        demoUser = await storage.createUser({
+          email: `demo-${sessionId}@demo.local`,
+          name: 'Demo User',
+        });
+      }
+
+      const userId = demoUser.id;
+
+      // Log this practice answer for analytics
+      // First, find or create a practice test run for this demo user and question set
+      let testRun = await storage.getActiveUserTestRunForQuestionSet(userId, questionSetId);
+      
+      if (!testRun) {
+        // Create a new test run for this practice session
+        
+        // Use the optimized batch query to get all question versions at once
+        const questionsWithVersions = await withCircuitBreaker(() => 
+          batchFetchQuestionsWithVersions(questionSetId)
+        );
+        
+        const questionVersionIds = questionsWithVersions
+          .filter(q => q.latestVersion)
+          .map(q => q.latestVersion!.id);
+        
+        testRun = await storage.createUserTestRun({
+          userId,
+          questionSetId,
+          questionOrder: questionVersionIds,
+          startedAt: new Date(),
+        });
+      }
+
+      // Check if user already answered this question in this test run
+      const existingAnswer = await storage.getUserAnswer(testRun.id, questionVersionId);
+      
+      if (!existingAnswer) {
+        // Create the answer record
+        await storage.createUserAnswer({
+          userTestRunId: testRun.id,
+          questionVersionId,
+          chosenAnswer: answer,
+          isCorrect,
+          answeredAt: new Date(),
+        });
+        
+
+        // Update daily activity summary
+        const today = getTodayEST();
+        
+        await storage.updateDailyActivitySummary(today, {
+          questionsAnswered: await storage.getDailyQuestionCount(today) + 1,
+        });
+      }
+
+      // For demo practice, we return the answer validation result (same as authenticated)
+      const answerData: any = {
+        questionVersionId,
+        chosenAnswer: answer,
+        isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+      };
+      
+      // Include validation report in debug mode
+      if (process.env.DEBUG_VALIDATION === 'true' && validationReport) {
+        answerData.validationReport = validationReport;
+      }
+
+      res.json(answerData);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error submitting demo answer:", error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        res.status(503).json({ message: "Database temporarily unavailable. Please try again in a moment." });
+      } else {
+        res.status(500).json({ message: "Failed to submit answer" });
+      }
+    }
+  });
+
+  // Mobile-view endpoint for answer submission - same as demo but for mobile-view URL path
+  app.post("/api/mobile-view/question-sets/:questionSetId/answer", async (req, res) => {
+    // Use the same logic as demo endpoint since both are for unauthenticated users
+    try {
+      const questionSetId = parseInt(req.params.questionSetId);
+      const { questionVersionId, answer } = req.body;
+
+      if (isNaN(questionSetId)) {
+        return res.status(400).json({ message: "Invalid question set ID" });
+      }
+
+      if (!questionVersionId || !answer) {
+        return res.status(400).json({ message: "Question version ID and answer are required" });
+      }
+
+      // Get the question version to validate the answer
+      const questionVersion = await withCircuitBreaker(() => storage.getQuestionVersion(questionVersionId));
+      if (!questionVersion) {
+        return res.status(404).json({ message: "Question version not found" });
+      }
+
+      // Use centralized validation system
+      const { validateAnswer, validateSelectFromListWithReport } = await import('./utils/answer-validation');
+      
+      const validationOptions = {
+        caseSensitive: questionVersion.caseSensitive || false,
+        acceptableAnswers: questionVersion.acceptableAnswers as string[] || undefined,
+        blanks: questionVersion.blanks as any[] || undefined,
+        dropZones: questionVersion.dropZones as any[] || undefined
+      };
+      
+      let isCorrect = validateAnswer(
+        answer,
+        questionVersion.correctAnswer,
+        questionVersion.questionType,
+        validationOptions
+      );
+      
+      // Enhanced debugging for SELECT_FROM_LIST questions
+      let validationReport = null;
+      if (process.env.DEBUG_VALIDATION === 'true' && questionVersion.questionType === 'select_from_list') {
+        validationReport = validateSelectFromListWithReport(
+          answer,
+          questionVersion.correctAnswer,
+          validationOptions
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VALIDATION_REPORT] Mobile-view Practice', {
+            questionSetId,
+            questionVersionId,
+            questionType: questionVersion.questionType,
+            report: validationReport
+          });
+        }
+        // Use the report's result for consistency
+        isCorrect = validationReport.isCorrect;
+      }
+
+      // Create or get a mobile-view user based on session ID
+      // Use session ID as a unique identifier for mobile-view users
+      const sessionId = req.session?.id || `mobile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create or retrieve a mobile-view user for this session
+      let mobileUser = await storage.getUserByEmail(`mobile-${sessionId}@mobile.local`);
+      if (!mobileUser) {
+        mobileUser = await storage.createUser({
+          email: `mobile-${sessionId}@mobile.local`,
+          name: 'Mobile User',
+        });
+      }
+
+      const userId = mobileUser.id;
+
+      // Log this practice answer for analytics
+      // First, find or create a practice test run for this mobile user and question set
+      let testRun = await storage.getActiveUserTestRunForQuestionSet(userId, questionSetId);
+      
+      if (!testRun) {
+        // Create a new test run for this practice session
+        
+        // Use the optimized batch query to get all question versions at once
+        const questionsWithVersions = await withCircuitBreaker(() => 
+          batchFetchQuestionsWithVersions(questionSetId)
+        );
+        
+        const questionVersionIds = questionsWithVersions
+          .filter(q => q.latestVersion)
+          .map(q => q.latestVersion!.id);
+        
+        testRun = await storage.createUserTestRun({
+          userId,
+          questionSetId,
+          questionOrder: questionVersionIds,
+          startedAt: new Date(),
+        });
+      }
+
+      // Check if user already answered this question in this test run
+      const existingAnswer = await storage.getUserAnswer(testRun.id, questionVersionId);
+      
+      if (!existingAnswer) {
+        // Create the answer record
+        await storage.createUserAnswer({
+          userTestRunId: testRun.id,
+          questionVersionId,
+          chosenAnswer: answer,
+          isCorrect,
+          answeredAt: new Date(),
+        });
+        
+
+        // Update daily activity summary
+        const today = getTodayEST();
+        
+        await storage.updateDailyActivitySummary(today, {
+          questionsAnswered: await storage.getDailyQuestionCount(today) + 1,
+        });
+      }
+
+      // For mobile-view practice, we return the answer validation result (same as authenticated)
+      const answerData: any = {
+        questionVersionId,
+        chosenAnswer: answer,
+        isCorrect,
+        correctAnswer: questionVersion.correctAnswer,
+      };
+      
+      // Include validation report in debug mode
+      if (process.env.DEBUG_VALIDATION === 'true' && validationReport) {
+        answerData.validationReport = validationReport;
+      }
+
+      res.json(answerData);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error submitting mobile-view answer:", error);
       }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
@@ -6052,52 +6513,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
         console.error("Error in demo optimized endpoint:", error);
       }
       res.status(500).json({ message: "Failed to load practice data" });
-    }
-  });
-
-  // Demo answer submission - validates answer without storing it
-  app.post("/api/demo/question-sets/:questionSetId/answer", async (req, res) => {
-    try {
-      const { questionVersionId, answer } = req.body;
-      
-      // Validate input parameters
-      if (!questionVersionId || !answer) {
-        return res.status(400).json({ message: "Question version ID and answer are required" });
-      }
-      
-      // Get the question version to validate the answer
-      const questionVersion = await withCircuitBreaker(() => storage.getQuestionVersion(questionVersionId));
-      if (!questionVersion) {
-        return res.status(404).json({ message: "Question version not found" });
-      }
-      
-      // Use centralized validation system for deterministic evaluation
-      const { validateAnswer } = await import('./utils/answer-validation');
-      
-      const isCorrect = validateAnswer(
-        answer,
-        questionVersion.correctAnswer,
-        questionVersion.questionType,
-        {
-          caseSensitive: questionVersion.caseSensitive || false,
-          acceptableAnswers: questionVersion.acceptableAnswers || [],
-          blanks: questionVersion.blanks || undefined,
-          dropZones: questionVersion.dropZones || undefined
-        }
-      );
-      
-      // Return real validation result (without storing)
-      res.json({
-        success: true,
-        isCorrect: isCorrect,
-        chosenAnswer: answer,
-        message: "Demo mode - answers are not saved"
-      });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error in demo answer submission:", error);
-      }
-      res.status(500).json({ message: "Failed to process answer" });
     }
   });
 
