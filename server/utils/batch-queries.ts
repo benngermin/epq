@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { questions, questionVersions } from '@shared/schema';
-import { inArray, eq, and, desc } from 'drizzle-orm';
+import { inArray, eq, and, desc, or, isNull } from 'drizzle-orm';
 
 // Batch fetch question versions to reduce N+1 queries
 export async function batchFetchQuestionVersions(questionIds: number[]) {
@@ -25,11 +25,22 @@ export async function batchFetchQuestionVersions(questionIds: number[]) {
 
 // Batch fetch questions with their latest versions
 export async function batchFetchQuestionsWithVersions(questionSetId: number, includeArchived: boolean = false) {
-  // Fetch all questions for the set
+  // Fetch questions for the set, excluding archived ones if not requested
+  // Handle NULL values by treating them as not archived (false)
+  const queryConditions = includeArchived 
+    ? eq(questions.questionSetId, questionSetId)
+    : and(
+        eq(questions.questionSetId, questionSetId),
+        or(
+          eq(questions.isArchived, false),
+          isNull(questions.isArchived)
+        )
+      );
+  
   const allQuestions = await db
     .select()
     .from(questions)
-    .where(eq(questions.questionSetId, questionSetId));
+    .where(queryConditions);
   
   if (allQuestions.length === 0) return [];
   
@@ -122,13 +133,8 @@ export async function batchFetchQuestionsWithVersions(questionSetId: number, inc
     };
   });
   
-  // Filter based on includeArchived flag and questions without active versions
+  // Filter based on questions without active versions
   const questionsWithActiveVersions = questionsWithVersions.filter(q => {
-    // Filter out archived questions only if includeArchived is false
-    if (!includeArchived && q.isArchived) {
-      console.log(`Question ID ${q.id} in set ${questionSetId} is archived - excluding from results`);
-      return false;
-    }
     // Filter out questions without active versions ONLY if we're not including archived
     // (archived questions often have no active versions, but admin still needs to see them)
     if (!q.latestVersion && !includeArchived) {
