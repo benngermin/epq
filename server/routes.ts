@@ -1499,6 +1499,29 @@ export function registerRoutes(app: Express): Server {
         return aNum - bNum;
       });
       
+      // Filter out drag_and_drop questions for mobile view
+      const filteredQuestions = questions.filter((q: any) => {
+        const questionType = q.latestVersion?.questionType;
+        const isDragAndDrop = questionType === 'drag_and_drop';
+        
+        if (isDragAndDrop && process.env.NODE_ENV === 'development') {
+          console.log(`[Mobile-View] Filtering out drag_and_drop question: Original ordinal ${q.ordinal}, ID ${q.id}`);
+        }
+        
+        return !isDragAndDrop;
+      });
+      
+      // Recalculate ordinal numbers after filtering
+      const questionsWithNewOrdinals = filteredQuestions.map((q: any, index: number) => ({
+        ...q,
+        ordinal: index + 1 // Sequential 1, 2, 3, etc.
+      }));
+      
+      // Log the filtering results for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Mobile-View] Question set ${questionSetId}: Filtered ${questions.length - filteredQuestions.length} drag_and_drop questions. Remaining: ${filteredQuestions.length} questions`);
+      }
+      
       // Get mobile user's answers if they exist
       let userAnswers: any[] = [];
       const sessionId = req.session?.id;
@@ -1512,8 +1535,8 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Add user answers to questions data
-      const questionsWithAnswers = questions.map((q: any) => {
+      // Add user answers to questions data (using filtered questions)
+      const questionsWithAnswers = questionsWithNewOrdinals.map((q: any) => {
         const userAnswer = userAnswers.find((a: any) => 
           q.latestVersion && a.questionVersionId === q.latestVersion.id
         );
