@@ -165,8 +165,8 @@ export function DragDropZonesTouch({
     const top = rect?.top ?? 0;
     return {
       ...transform,
-      x: transform.x - left,
-      y: transform.y - top,
+      x: transform.x - left,     // No horizontal adjustment needed
+      y: transform.y - top + 30,  // Move down to align with cursor
     };
   };
 
