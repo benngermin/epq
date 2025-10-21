@@ -313,7 +313,13 @@ export default function QuestionSetPractice() {
       debugLog(`Submitting answer: questionVersionId=${questionVersionId}, answer=${answer}, questionSetId=${questionSetId}`);
       
       try {
-        const res = await apiRequest("POST", isDemo ? `/api/demo/question-sets/${questionSetId}/answer` : `/api/question-sets/${questionSetId}/answer`, {
+        const apiPath = isMobileView 
+          ? `/api/mobile-view/question-sets/${questionSetId}/answer`
+          : isDemo 
+            ? `/api/demo/question-sets/${questionSetId}/answer` 
+            : `/api/question-sets/${questionSetId}/answer`;
+        
+        const res = await apiRequest("POST", apiPath, {
           questionVersionId,
           answer,
         });
