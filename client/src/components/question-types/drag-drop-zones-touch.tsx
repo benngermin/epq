@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
@@ -11,7 +11,6 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
-  Modifier,
 } from "@dnd-kit/core";
 import {
   useDraggable,
@@ -157,18 +156,6 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
-  const overlayContainerRef = useRef<HTMLDivElement | null>(null);
-  
-  const offsetToContainer: Modifier = ({ transform }) => {
-    const rect = overlayContainerRef.current?.getBoundingClientRect();
-    const left = rect?.left ?? 0;
-    const top = rect?.top ?? 0;
-    return {
-      ...transform,
-      x: transform.x - left,     // No horizontal adjustment needed
-      y: transform.y - top + 30,  // Move down to align with cursor
-    };
-  };
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
@@ -339,8 +326,7 @@ export function DragDropZonesTouch({
   const draggedItem = getDraggedItem();
 
   return (
-    <div ref={overlayContainerRef} id="dnd-root">
-      <DndContext
+    <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
@@ -386,10 +372,7 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay 
-        modifiers={[offsetToContainer]}
-        dropAnimation={null}
-      >
+      <DragOverlay dropAnimation={null}>
         {draggedItem ? (
           <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -398,6 +381,5 @@ export function DragDropZonesTouch({
         ) : null}
       </DragOverlay>
     </DndContext>
-    </div>
   );
 }
