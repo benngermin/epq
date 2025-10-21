@@ -1,0 +1,51 @@
+I need you to add a **route-gated** mobile drag-and-drop fix that ONLY applies on the `/mobile-view` path (Flutter WebView) and leaves the rest of the web app unchanged.
+
+WHERE TO LOOK
+- DnD provider/component that renders `<DndContext>` (likely `client/src/components/question-types/drag-drop-zones-touch.tsx`).
+- The draggable/sortable item component where we spread dnd-kit `attributes`/`listeners`.
+- Global CSS (`client/src/index.css` or `globals.css`).
+
+HARD RULES
+- Apply the mobile-specific changes **only** when the URL path starts with `/mobile-view`.
+- Do **not** change `DragOverlay` math/positioning or add overlay modifiers.
+- Do **not** register multiple sensors at once. Use **exactly one** sensor based on the route.
+
+CHANGES TO MAKE (exact)
+1) **Route gate in the DnD provider**  
+   Use React Router’s `useLocation()` if available; otherwise fall back to `window.location.pathname`.
+
+   ```tsx
+   // drag-drop-zones-touch.tsx (or our DnD wrapper)
+   import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+   import { CSS } from '@dnd-kit/utilities';
+   // If we have react-router:
+   // import { useLocation } from 'react-router-dom';
+
+   export function DragDropZonesTouch(props) {
+     // If this component is under a Router:
+     // const { pathname } = useLocation();
+     // const isMobileRoute = pathname.startsWith('/mobile-view');
+
+     // Fallback if not under a Router:
+     const isMobileRoute =
+       typeof window !== 'undefined' &&
+       (window.location?.pathname || '').startsWith('/mobile-view');
+
+     const sensors = useSensors(
+       useSensor(isMobileRoute ? TouchSensor : PointerSensor, isMobileRoute
+         ? { activationConstraint: { delay: 160, tolerance: 8 } } // mobile/WebView
+         : { activationConstraint: { distance: 4 } }              // desktop/web
+       )
+     );
+
+     return (
+       <DndContext sensors={sensors} /* keep existing collision detection, modifiers on DndContext only */>
+         {props.children}
+
+         {/* Keep overlay “clean” */}
+         <DragOverlay container={document.body} modifiers={[]} /* dropAnimation as-is */>
+           {props.activeId ? <Item id={props.activeId} isOverlay /> : null}
+         </DragOverlay>
+       </DndContext>
+     );
+   }
