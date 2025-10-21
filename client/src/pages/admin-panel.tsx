@@ -1251,8 +1251,8 @@ export default function AdminPanel() {
     });
     
     // Use fetch with SSE directly
-    fetch('/api/admin/refresh/run-final', {
-      method: 'POST',
+    fetch('/api/admin/refresh/final', {
+      method: 'GET',
       credentials: 'include',
       headers: {
         'Accept': 'text/event-stream',
