@@ -1,0 +1,62 @@
+I need you to REMOVE the modifier completely from the DragOverlay in client/src/components/question-types/drag-drop-zones-touch.tsx. The 
+  @dnd-kit library already handles viewport coordinates correctly, and our custom modifier is causing incorrect positioning.
+
+  Specific changes:
+
+  1. Keep the imports as they are - useRef and Modifier are fine to keep imported for now
+
+  2. REMOVE or comment out the entire alignToContainer modifier and containerRef - They're causing the positioning problem:
+  // DELETE these lines (around line 160-175):
+  // const containerRef = useRef<HTMLDivElement>(null);
+  // 
+  // const alignToContainer: Modifier = ({ transform }) => {
+  //   if (!containerRef.current) return transform;
+  //   const rect = containerRef.current.getBoundingClientRect();
+  //   return {
+  //     ...transform,
+  //     x: transform.x - rect.left,
+  //     y: transform.y - rect.top,
+  //   };
+  // };
+
+  3. REMOVE the wrapper div with containerRef around DndContext:
+  // Change from:
+  // <div ref={containerRef}>
+  //   <DndContext ...>
+  //   </DndContext>
+  // </div>
+
+  // Back to:
+  <DndContext
+    sensors={sensors}
+    collisionDetection={closestCenter}
+    onDragStart={handleDragStart}
+    onDragEnd={handleDragEnd}
+  >
+    {/* content */}
+  </DndContext>
+
+  4. REMOVE the modifiers prop from DragOverlay:
+  // Change line 375 from:
+  // <DragOverlay modifiers={[alignToContainer]} dropAnimation={null}>
+
+  // Back to:
+  <DragOverlay dropAnimation={null}>
+
+  5. ADD this one CSS rule to ensure DragOverlay renders correctly - check if there's any CSS affecting fixed positioning, and add this to
+  your global CSS:
+  /* Ensure drag overlay is not affected by container transforms */
+  body > div[style*="position: fixed"][style*="pointer-events: none"] {
+    transform: none !important;
+  }
+
+  ---
+  Why this is the correct fix:
+
+  1. @dnd-kit handles coordinates internally - The DragOverlay already receives viewport-relative coordinates from the PointerSensor
+  2. The portal renders at document.body - It's NOT affected by your container's position, so adjusting for container offset is wrong
+  3. PointerSensor tracks the actual cursor/finger position - It's already giving correct viewport coordinates
+  4. The offset you're seeing is likely from CSS transforms or layout quirks, not coordinate system issues
+
+  If removing the modifier still shows positioning issues, the problem is NOT in the JavaScript but in CSS - potentially from the sidebar
+  transforms, body margins, or other global styles affecting the fixed-position overlay portal.

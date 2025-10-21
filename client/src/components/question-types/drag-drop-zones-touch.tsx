@@ -157,22 +157,9 @@ export function DragDropZonesTouch({
   disabled,
   correctAnswer,
 }: DragDropZonesProps) {
-  // Add this ref to measure container position
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Add this modifier to align ghost with cursor
-  const alignToContainer: Modifier = ({ transform }) => {
-    if (!containerRef.current) return transform;
-
-    const rect = containerRef.current.getBoundingClientRect();
-
-    return {
-      ...transform,
-      x: transform.x - rect.left,
-      y: transform.y - rect.top,
-    };
-  };
-
+  // Removed containerRef and alignToContainer modifier as they were causing positioning issues
+  // @dnd-kit already handles viewport coordinates correctly
+  
   const [activeId, setActiveId] = useState<string | null>(null);
   const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
     if (typeof value === 'string' && value) {
@@ -342,14 +329,13 @@ export function DragDropZonesTouch({
   const draggedItem = getDraggedItem();
 
   return (
-    <div ref={containerRef}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-4">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-4">
         {/* Available items */}
         <AvailableItemsArea id="available-items" isDragging={!!activeId}>
           {availableItems.map((item) => (
@@ -389,10 +375,7 @@ export function DragDropZonesTouch({
       </div>
 
       {/* Drag overlay for visual feedback */}
-      <DragOverlay
-        modifiers={[alignToContainer]}
-        dropAnimation={null}
-      >
+      <DragOverlay dropAnimation={null}>
         {draggedItem ? (
           <div className="pointer-events-none flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background shadow-lg">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -401,6 +384,5 @@ export function DragDropZonesTouch({
         ) : null}
       </DragOverlay>
     </DndContext>
-    </div>
   );
 }

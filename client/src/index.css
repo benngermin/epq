@@ -69,6 +69,11 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
+  /* Ensure drag overlay is not affected by container transforms */
+  body > div[style*="position: fixed"][style*="pointer-events: none"] {
+    transform: none !important;
+  }
+
   /* Enhanced card styling for cleaner look */
   .card {
     @apply shadow-sm border;
