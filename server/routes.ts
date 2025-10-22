@@ -4710,6 +4710,265 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
+  // Course-specific refresh from Bubble using bubble_unique_id
+  app.post("/api/admin/courses/:courseId/refresh-from-bubble", requireAdmin, async (req, res) => {
+    const courseId = parseInt(req.params.courseId);
+    const startTime = Date.now();
+    
+    console.log(`🔄 Starting course-specific refresh for course ID: ${courseId}`);
+    
+    try {
+      // Get the course with bubble_unique_id
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      if (!course.bubbleUniqueId) {
+        return res.status(400).json({ 
+          message: "This course does not have a bubble_unique_id. Only new courses (AU60, AU61, ARM402, etc.) can be refreshed from Bubble." 
+        });
+      }
+      
+      const bubbleApiKey = process.env.BUBBLE_API_KEY;
+      if (!bubbleApiKey) {
+        return res.status(500).json({ message: "Bubble API key not configured" });
+      }
+      
+      console.log(`📊 Course: ${course.courseNumber} - ${course.courseTitle}`);
+      console.log(`🔑 Bubble Unique ID: ${course.bubbleUniqueId}`);
+      
+      // Fetch question sets from Bubble with constraint on course field
+      const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
+      
+      // Build constraints to filter by course bubble_unique_id
+      const constraints = [{
+        key: "course",
+        constraint_type: "equals",
+        value: course.bubbleUniqueId
+      }];
+      
+      // First, try with the course field constraint
+      let url = `${baseUrl}?constraints=${encodeURIComponent(JSON.stringify(constraints))}`;
+      
+      const headers = {
+        "Authorization": `Bearer ${bubbleApiKey}`,
+        "Content-Type": "application/json"
+      };
+      
+      console.log(`🌐 Fetching question sets from Bubble for course: ${course.bubbleUniqueId}`);
+      
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`❌ Bubble API error: ${response.status} - ${responseText}`);
+        
+        // If constraint query fails, try fetching all and filtering
+        console.log(`🔄 Retrying without constraints...`);
+        const fallbackResponse = await fetch(baseUrl, { headers });
+        
+        if (!fallbackResponse.ok) {
+          throw new Error(`Bubble API error: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
+        }
+        
+        const fallbackData = await fallbackResponse.json();
+        const allQuestionSets = fallbackData.response?.results || [];
+        
+        // Filter manually by course field
+        const filteredQuestionSets = allQuestionSets.filter((qs: any) => 
+          qs.course === course.bubbleUniqueId || 
+          qs.course_custom_course === course.bubbleUniqueId
+        );
+        
+        console.log(`✅ Found ${filteredQuestionSets.length} question sets for this course (via fallback)`);
+        
+        // Process the filtered question sets
+        return await processQuestionSets(filteredQuestionSets, course, storage, res, startTime);
+      }
+      
+      const data = await response.json();
+      const bubbleQuestionSets = data.response?.results || [];
+      
+      console.log(`✅ Found ${bubbleQuestionSets.length} question sets for this course`);
+      
+      // Process the question sets
+      return await processQuestionSets(bubbleQuestionSets, course, storage, res, startTime);
+      
+    } catch (error) {
+      console.error(`❌ Error refreshing course ${courseId} from Bubble:`, error);
+      res.status(500).json({ 
+        message: "Failed to refresh course from Bubble", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
+  // Helper function to process question sets for course refresh
+  async function processQuestionSets(bubbleQuestionSets: any[], course: any, storage: any, res: any, startTime: number) {
+    const results = {
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as string[],
+      questionSetsProcessed: [] as any[]
+    };
+    
+    // Import blank normalizer
+    const { normalizeQuestionBlanks } = await import('./utils/blank-normalizer');
+    
+    for (const bubbleQuestionSet of bubbleQuestionSets) {
+      try {
+        const bubbleId = bubbleQuestionSet._id;
+        
+        console.log(`\n📝 Processing question set: ${bubbleQuestionSet.title || bubbleId}`);
+        
+        // Parse content field to get questions
+        let parsedQuestions: any[] = [];
+        if (bubbleQuestionSet.content) {
+          try {
+            const contentJson = JSON.parse(bubbleQuestionSet.content);
+            if (contentJson.questions && Array.isArray(contentJson.questions)) {
+              parsedQuestions = contentJson.questions;
+              console.log(`   Found ${parsedQuestions.length} questions`);
+            }
+          } catch (parseError) {
+            console.error(`   ⚠️ Failed to parse content for question set ${bubbleId}`);
+          }
+        }
+        
+        // Check if question set already exists
+        let questionSet = await storage.getQuestionSetByExternalId(bubbleId);
+        let isExisting = false;
+        
+        if (questionSet) {
+          // Update existing question set
+          console.log(`   📝 Updating existing question set (ID: ${questionSet.id})`);
+          await storage.updateQuestionSet(questionSet.id, {
+            title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+            description: bubbleQuestionSet.description || null,
+          });
+          
+          // Ensure course-questionset mapping exists
+          try {
+            await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
+          } catch (err) {
+            // Mapping likely already exists
+          }
+          
+          isExisting = true;
+          results.updated++;
+        } else {
+          // Create new question set
+          console.log(`   ✨ Creating new question set`);
+          questionSet = await storage.createQuestionSet({
+            title: bubbleQuestionSet.title || `Question Set ${bubbleId}`,
+            description: bubbleQuestionSet.description || null,
+            externalId: bubbleId
+          });
+          
+          // Create course mapping
+          await storage.createCourseQuestionSetMapping(course.id, questionSet.id);
+          results.created++;
+        }
+        
+        // Import questions if found
+        if (parsedQuestions.length > 0) {
+          const questionImports = parsedQuestions.map((q: any, index: number) => {
+            const questionType = q.question_type || "multiple_choice";
+            
+            // Normalize blanks in question text
+            let normalizedQuestionText = q.question_text || "";
+            if (normalizedQuestionText && typeof normalizedQuestionText === 'string') {
+              const { normalizedText } = normalizeQuestionBlanks(normalizedQuestionText);
+              normalizedQuestionText = normalizedText;
+            }
+            
+            // Build version data
+            const versionData: any = {
+              version_number: 1,
+              topic_focus: bubbleQuestionSet.title || "General",
+              question_text: normalizedQuestionText,
+              question_type: questionType,
+              answer_choices: q.answer_choices || [],
+              correct_answer: q.correct_answer || "",
+              acceptable_answers: q.acceptable_answers,
+              case_sensitive: q.case_sensitive || false,
+              allow_multiple: q.allow_multiple || false,
+              matching_pairs: q.matching_pairs || null,
+              correct_order: q.correct_order || null,
+            };
+            
+            // Handle question type specific fields
+            if (questionType === "select_from_list" && q.blanks) {
+              versionData.blanks = q.blanks;
+            }
+            
+            if (questionType === "drag_and_drop") {
+              if (q.drop_zones) {
+                versionData.drop_zones = q.drop_zones;
+              }
+              if (typeof q.correct_answer === 'object' && !Array.isArray(q.correct_answer)) {
+                versionData.correct_answer = JSON.stringify(q.correct_answer);
+              }
+            }
+            
+            if (questionType === "multiple_response" && Array.isArray(q.correct_answer)) {
+              versionData.correct_answer = JSON.stringify(q.correct_answer);
+            }
+            
+            return {
+              question_number: q.question_number || (index + 1),
+              type: questionType,
+              loid: q.loid || "unknown",
+              versions: [versionData]
+            };
+          });
+          
+          // Import or update questions
+          if (isExisting) {
+            await storage.updateQuestionsForRefresh(questionSet.id, questionImports);
+          } else {
+            await storage.importQuestions(questionSet.id, questionImports);
+          }
+          
+          await storage.updateQuestionSetCount(questionSet.id);
+          console.log(`   ✅ Successfully imported ${questionImports.length} questions`);
+        }
+        
+        results.questionSetsProcessed.push({
+          id: questionSet.id,
+          title: questionSet.title,
+          questionCount: parsedQuestions.length,
+          status: isExisting ? 'updated' : 'created'
+        });
+        
+      } catch (error) {
+        results.failed++;
+        const errorMsg = `Failed to process ${bubbleQuestionSet.title}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        results.errors.push(errorMsg);
+        console.error(`   ❌ ${errorMsg}`);
+      }
+    }
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(2);
+    
+    const message = `Course refresh completed in ${duration}s. Created: ${results.created}, Updated: ${results.updated}, Failed: ${results.failed}`;
+    console.log(`\n✨ ${message}`);
+    
+    res.json({
+      message,
+      results,
+      course: {
+        id: course.id,
+        courseNumber: course.courseNumber,
+        courseTitle: course.courseTitle,
+        bubbleUniqueId: course.bubbleUniqueId
+      }
+    });
+  }
+
   // Bulk refresh all question sets with SSE for real-time progress tracking
   app.get("/api/admin/bubble/bulk-refresh-question-sets", requireAdmin, async (req, res) => {
     

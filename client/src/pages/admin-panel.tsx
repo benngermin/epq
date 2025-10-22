@@ -908,6 +908,7 @@ export default function AdminPanel() {
     }>;
   } | null>(null);
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
+  const [refreshingCourseId, setRefreshingCourseId] = useState<number | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1311,6 +1312,56 @@ export default function AdminPanel() {
     }
   }, []);
 
+  // Handler for course-specific refresh from Bubble
+  const handleCourseRefreshFromBubble = async (course: any) => {
+    if (!course.bubbleUniqueId) {
+      toast({
+        title: "Cannot refresh",
+        description: "This course does not have a Bubble unique ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRefreshingCourseId(course.id);
+    
+    try {
+      const response = await fetch(`/api/admin/courses/${course.id}/refresh-from-bubble`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to refresh course from Bubble');
+      }
+
+      toast({
+        title: "Course refreshed successfully",
+        description: data.message || `Refreshed ${data.results?.created || 0} new and ${data.results?.updated || 0} existing question sets`,
+      });
+
+      // Refresh the courses and question sets list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/question-sets", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-question-sets"] });
+      
+    } catch (error) {
+      console.error('Error refreshing course from Bubble:', error);
+      toast({
+        title: "Failed to refresh course",
+        description: error instanceof Error ? error.message : "An error occurred while refreshing from Bubble",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingCourseId(null);
+    }
+  };
+
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -1612,16 +1663,35 @@ export default function AdminPanel() {
                                 )}
                               </CardDescription>
                             </div>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            <div className="flex gap-2">
+                              {/* Refresh from Bubble button - only show for courses with bubble_unique_id */}
+                              {course.bubbleUniqueId && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleCourseRefreshFromBubble(course)}
+                                  disabled={refreshingCourseId === course.id}
+                                  className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="Refresh question sets from Bubble"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  {refreshingCourseId === course.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  <span className="ml-1 text-xs">Refresh</span>
                                 </Button>
-                              </AlertDialogTrigger>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Course</AlertDialogTitle>
