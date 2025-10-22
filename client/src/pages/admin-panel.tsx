@@ -1692,26 +1692,27 @@ export default function AdminPanel() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Course</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{course.courseNumber}: {course.courseTitle}"? 
-                                    This will also delete all associated question sets and questions. 
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => deleteCourseMutation.mutate(course.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{course.courseNumber}: {course.courseTitle}"? 
+                                      This will also delete all associated question sets and questions. 
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => deleteCourseMutation.mutate(course.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
