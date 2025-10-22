@@ -89,7 +89,7 @@ export default function AdminUploadCourses() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   
-  // Preview mutation
+  // Preview mutation - Fixed parameter order for apiRequest
   const previewMutation = useMutation<PreviewResponse, Error, string>({
     mutationFn: async (csvData: string) => {
       const response = await apiRequest("POST", "/api/admin/preview-courses", {

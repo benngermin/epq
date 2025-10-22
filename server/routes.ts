@@ -8418,6 +8418,7 @@ ${learningContent}
   });
 
   // Admin routes for course CSV upload
+  console.log("Registering course CSV upload routes...");
   app.post("/api/admin/preview-courses", requireAdmin, async (req, res) => {
     try {
       const { csvData } = req.body;
