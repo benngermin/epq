@@ -35,6 +35,7 @@ const Dashboard = lazyWithRetry(() => import("@/pages/dashboard"));
 
 const AdminPanel = lazyWithRetry(() => import("@/pages/admin-panel"));
 const AdminUploadExplanations = lazyWithRetry(() => import("@/pages/AdminUploadExplanations"));
+const AdminUploadCourses = lazyWithRetry(() => import("@/pages/AdminUploadCourses"));
 const AdminQuestionEditor = lazyWithRetry(() => import("@/pages/AdminQuestionEditor"));
 const QuestionSetPractice = lazyWithRetry(() => import("@/pages/question-set-practice-optimized"));
 const Debug = lazyWithRetry(() => import("@/pages/Debug"));
@@ -59,6 +60,7 @@ function Router() {
         <ProtectedRoute path="/question-set/:id" component={() => <DashboardErrorBoundary><QuestionSetPractice /></DashboardErrorBoundary>} />
         <AdminProtectedRoute path="/admin" component={() => <DashboardErrorBoundary><AdminPanel /></DashboardErrorBoundary>} />
         <AdminProtectedRoute path="/admin/upload-explanations" component={() => <DashboardErrorBoundary><AdminUploadExplanations /></DashboardErrorBoundary>} />
+        <AdminProtectedRoute path="/admin/upload-courses" component={() => <DashboardErrorBoundary><AdminUploadCourses /></DashboardErrorBoundary>} />
         <AdminProtectedRoute path="/admin/questions/:courseId/:setId" component={() => <DashboardErrorBoundary><AdminQuestionEditor /></DashboardErrorBoundary>} />
         <ProtectedRoute path="/debug" component={() => <DashboardErrorBoundary><Debug /></DashboardErrorBoundary>} />
         <Route path="/markdown-test" component={() => <DashboardErrorBoundary><MarkdownTest /></DashboardErrorBoundary>} />

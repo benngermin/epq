@@ -1734,7 +1734,52 @@ export default function AdminPanel() {
 
                   {/* Static Explanations Sub-tab */}
                   <TabsContent value="static-explanations">
-                    <div className="mt-6">
+                    <div className="mt-6 space-y-6">
+                      {/* Upload Links Section */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Upload Tools</CardTitle>
+                          <CardDescription>
+                            Bulk upload courses and static explanations from CSV files
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Link href="/admin/upload-courses">
+                              <Card className="hover:bg-accent cursor-pointer transition-colors">
+                                <CardContent className="p-6">
+                                  <div className="flex items-center gap-4">
+                                    <Upload className="h-10 w-10 text-primary" />
+                                    <div>
+                                      <h3 className="font-semibold">Upload Courses</h3>
+                                      <p className="text-sm text-muted-foreground">
+                                        Import courses from CSV file
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </Link>
+                            
+                            <Link href="/admin/upload-explanations">
+                              <Card className="hover:bg-accent cursor-pointer transition-colors">
+                                <CardContent className="p-6">
+                                  <div className="flex items-center gap-4">
+                                    <Upload className="h-10 w-10 text-primary" />
+                                    <div>
+                                      <h3 className="font-semibold">Upload Explanations</h3>
+                                      <p className="text-sm text-muted-foreground">
+                                        Import static explanations from CSV file
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
                       <OpenRouterSettingsSection />
                     </div>
                   </TabsContent>
