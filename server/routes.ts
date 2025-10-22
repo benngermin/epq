@@ -8417,6 +8417,219 @@ ${learningContent}
     }
   });
 
+  // Admin routes for course CSV upload
+  app.post("/api/admin/preview-courses", requireAdmin, async (req, res) => {
+    try {
+      const { csvData } = req.body;
+      
+      if (!csvData) {
+        return res.status(400).json({ 
+          error: "CSV data is required",
+          message: "Please provide CSV data in the request body"
+        });
+      }
+
+      // Parse CSV
+      const lines = csvData.trim().split('\n');
+      if (lines.length < 2) {
+        return res.status(400).json({ 
+          error: "Invalid CSV",
+          message: "CSV must contain headers and at least one data row"
+        });
+      }
+
+      const headers = lines[0].split(',').map((h: string) => h.trim());
+      const requiredHeaders = ['external_id', 'course_number', 'course_title', 'bubble_unique_id'];
+      
+      // Validate headers
+      const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
+      if (missingHeaders.length > 0) {
+        return res.status(400).json({
+          error: "Missing required headers",
+          message: `CSV must include: ${missingHeaders.join(', ')}`
+        });
+      }
+
+      const headerIndices: Record<string, number> = {};
+      requiredHeaders.forEach(header => {
+        headerIndices[header] = headers.indexOf(header);
+      });
+
+      // Process each row
+      const previewResults = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map((v: string) => v.trim());
+        
+        if (values.length < 4 || values.every(v => !v)) {
+          continue; // Skip empty rows
+        }
+
+        const row = {
+          externalId: values[headerIndices.external_id],
+          courseNumber: values[headerIndices.course_number],
+          courseTitle: values[headerIndices.course_title],
+          bubbleUniqueId: values[headerIndices.bubble_unique_id]
+        };
+
+        // Check if course exists
+        let existingCourse = null;
+        let status: 'new' | 'exists' | 'updated' = 'new';
+        let changes: string[] = [];
+
+        // First check by bubble unique ID
+        if (row.bubbleUniqueId) {
+          existingCourse = await storage.getCourseByBubbleId(row.bubbleUniqueId);
+        }
+        
+        // If not found by bubble ID, check by external ID
+        if (!existingCourse && row.externalId) {
+          existingCourse = await storage.getCourseByExternalId(row.externalId);
+        }
+
+        if (existingCourse) {
+          // Check what would be updated
+          if (existingCourse.courseNumber !== row.courseNumber) {
+            changes.push(`Course number: ${existingCourse.courseNumber} → ${row.courseNumber}`);
+          }
+          if (existingCourse.courseTitle !== row.courseTitle) {
+            changes.push(`Title: ${existingCourse.courseTitle} → ${row.courseTitle}`);
+          }
+          if (existingCourse.externalId !== row.externalId) {
+            changes.push(`External ID: ${existingCourse.externalId || 'none'} → ${row.externalId}`);
+          }
+          if (existingCourse.bubbleUniqueId !== row.bubbleUniqueId) {
+            changes.push(`Bubble ID: ${existingCourse.bubbleUniqueId || 'none'} → ${row.bubbleUniqueId}`);
+          }
+          
+          status = changes.length > 0 ? 'updated' : 'exists';
+        }
+
+        previewResults.push({
+          row,
+          found: !!existingCourse,
+          status,
+          courseId: existingCourse?.id,
+          currentCourse: existingCourse ? {
+            courseNumber: existingCourse.courseNumber,
+            courseTitle: existingCourse.courseTitle,
+            externalId: existingCourse.externalId,
+            bubbleUniqueId: existingCourse.bubbleUniqueId
+          } : undefined,
+          changes: changes.length > 0 ? changes : undefined
+        });
+      }
+
+      // Calculate statistics
+      const totalRows = previewResults.length;
+      const newCourses = previewResults.filter(r => r.status === 'new').length;
+      const existingCourses = previewResults.filter(r => r.status === 'exists').length;
+      const updatedCourses = previewResults.filter(r => r.status === 'updated').length;
+
+      res.json({
+        success: true,
+        preview: true,
+        statistics: {
+          totalRows,
+          newCourses,
+          existingCourses,
+          updatedCourses
+        },
+        results: previewResults
+      });
+
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in preview-courses:", error);
+      }
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to preview courses"
+      });
+    }
+  });
+
+  app.post("/api/admin/upload-courses", requireAdmin, async (req, res) => {
+    try {
+      const { courses } = req.body;
+      
+      if (!courses || !Array.isArray(courses)) {
+        return res.status(400).json({
+          error: "Invalid request",
+          message: "Please provide an array of courses"
+        });
+      }
+
+      let created = 0;
+      let updated = 0;
+      let failed = 0;
+      const errors: Array<{ row: number; message: string }> = [];
+
+      for (let i = 0; i < courses.length; i++) {
+        const course = courses[i];
+        
+        try {
+          // Check if course exists
+          let existingCourse = null;
+          
+          // First check by bubble unique ID
+          if (course.bubbleUniqueId) {
+            existingCourse = await storage.getCourseByBubbleId(course.bubbleUniqueId);
+          }
+          
+          // If not found by bubble ID, check by external ID
+          if (!existingCourse && course.externalId) {
+            existingCourse = await storage.getCourseByExternalId(course.externalId);
+          }
+
+          if (existingCourse) {
+            // Update existing course
+            await storage.updateCourse(existingCourse.id, {
+              courseNumber: course.courseNumber,
+              courseTitle: course.courseTitle,
+              externalId: course.externalId,
+              bubbleUniqueId: course.bubbleUniqueId
+            });
+            updated++;
+          } else {
+            // Create new course
+            await storage.createCourse({
+              courseNumber: course.courseNumber,
+              courseTitle: course.courseTitle,
+              externalId: course.externalId,
+              bubbleUniqueId: course.bubbleUniqueId,
+              isAi: true // Default to AI-enabled
+            });
+            created++;
+          }
+        } catch (error: any) {
+          failed++;
+          errors.push({
+            row: i + 1,
+            message: error.message || 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        created,
+        updated,
+        failed,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Successfully processed ${created + updated} courses`
+      });
+
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error in upload-courses:", error);
+      }
+      res.status(500).json({ 
+        error: "Server error",
+        message: error.message || "Failed to upload courses"
+      });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ 
