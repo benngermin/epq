@@ -92,7 +92,7 @@ export default function AdminUploadCourses() {
   // Preview mutation
   const previewMutation = useMutation<PreviewResponse, Error, string>({
     mutationFn: async (csvData: string) => {
-      const response = await apiRequest("/api/admin/preview-courses", "POST", {
+      const response = await apiRequest("POST", "/api/admin/preview-courses", {
         csvData,
       });
       return response as unknown as PreviewResponse;
@@ -130,7 +130,7 @@ export default function AdminUploadCourses() {
         .filter(r => r.status === 'new' || r.status === 'updated')
         .map(r => r.row);
       
-      const response = await apiRequest("/api/admin/upload-courses", "POST", {
+      const response = await apiRequest("POST", "/api/admin/upload-courses", {
         courses: coursesToUpload,
       });
       return response as unknown as UploadResponse;
