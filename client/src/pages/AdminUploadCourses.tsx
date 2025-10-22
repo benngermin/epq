@@ -90,11 +90,12 @@ export default function AdminUploadCourses() {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   
   // Preview mutation
-  const previewMutation = useMutation({
+  const previewMutation = useMutation<PreviewResponse, Error, string>({
     mutationFn: async (csvData: string) => {
-      return apiRequest("/api/admin/preview-courses", "POST", {
+      const response = await apiRequest("/api/admin/preview-courses", "POST", {
         csvData,
       });
+      return response as unknown as PreviewResponse;
     },
     onSuccess: (data) => {
       setPreviewData(data);
@@ -123,15 +124,16 @@ export default function AdminUploadCourses() {
   });
   
   // Upload mutation
-  const uploadMutation = useMutation({
+  const uploadMutation = useMutation<UploadResponse, Error, PreviewResult[]>({
     mutationFn: async (results: PreviewResult[]) => {
       const coursesToUpload = results
         .filter(r => r.status === 'new' || r.status === 'updated')
         .map(r => r.row);
       
-      return apiRequest("/api/admin/upload-courses", "POST", {
+      const response = await apiRequest("/api/admin/upload-courses", "POST", {
         courses: coursesToUpload,
       });
+      return response as unknown as UploadResponse;
     },
     onSuccess: (data) => {
       setUploadResult(data);
@@ -487,11 +489,11 @@ export default function AdminUploadCourses() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {result.status === 'new' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" title="New course" />
+                              <CheckCircle className="h-5 w-5 text-green-600" />
                             ) : result.status === 'updated' ? (
-                              <AlertTriangle className="h-5 w-5 text-blue-600" title="Will update existing" />
+                              <AlertTriangle className="h-5 w-5 text-blue-600" />
                             ) : (
-                              <XCircle className="h-5 w-5 text-gray-400" title="Already exists" />
+                              <XCircle className="h-5 w-5 text-gray-400" />
                             )}
                             <span className="text-xs text-muted-foreground">
                               {result.status === 'new' ? 'New' : 
