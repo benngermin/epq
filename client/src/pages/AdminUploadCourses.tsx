@@ -95,7 +95,8 @@ export default function AdminUploadCourses() {
       const response = await apiRequest("POST", "/api/admin/preview-courses", {
         csvData,
       });
-      return response as unknown as PreviewResponse;
+      const data = await response.json();
+      return data as PreviewResponse;
     },
     onSuccess: (data) => {
       setPreviewData(data);
@@ -133,7 +134,8 @@ export default function AdminUploadCourses() {
       const response = await apiRequest("POST", "/api/admin/upload-courses", {
         courses: coursesToUpload,
       });
-      return response as unknown as UploadResponse;
+      const data = await response.json();
+      return data as UploadResponse;
     },
     onSuccess: (data) => {
       setUploadResult(data);
@@ -473,7 +475,7 @@ export default function AdminUploadCourses() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewData.results.map((result, index) => (
+                    {previewData.results && previewData.results.map((result, index) => (
                       <TableRow 
                         key={index}
                         className={result.status === 'exists' ? 'opacity-50' : ''}
