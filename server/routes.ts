@@ -4807,7 +4807,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
         console.log(`   course_text: ${firstQS.course_text}`);
         
         // Check if there are any question sets that might belong to AIDA 401
-        let foundAIDAsets = [];
+        let foundAIDAsets: Array<{_id: string; title: string; course: string; course_custom_course: string}> = [];
         allQuestionSets.forEach((qs: any) => {
           // Check the title or any field for AIDA references
           const title = qs.title || '';
@@ -4845,7 +4845,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
           if (qs.course) uniqueCourseIds.add(qs.course);
           if (qs.course_custom_course) uniqueCourseIds.add(qs.course_custom_course);
         });
-        console.log(`\n📋 Unique course IDs found in question sets: ${Array.from(uniqueCourseIds).size} different courses`);
+        console.log(`\n📋 Unique course IDs found in question sets: ${Array.from(uniqueCourseIds).length} different courses`);
         console.log(`   Looking for: ${course.bubbleUniqueId}`);
         console.log(`   Found in question sets: ${uniqueCourseIds.has(course.bubbleUniqueId) ? 'YES' : 'NO'}`);
       }
@@ -8911,7 +8911,7 @@ ${learningContent}
             await storage.createCourse({
               courseNumber: course.courseNumber,
               courseTitle: `${course.courseNumber} Course`, // Default title based on course number
-              externalId: null, // No external ID provided
+              externalId: undefined, // No external ID provided
               bubbleUniqueId: course.bubbleUniqueId,
               isAi: true // Default to AI-enabled
             });
