@@ -4763,6 +4763,28 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       console.log(`📚 Retrieved ${allQuestionSets.length} total question sets from Bubble`);
       
+      // Log the first question set to understand the structure
+      if (allQuestionSets.length > 0) {
+        console.log(`\n🔍 Sample question set structure (first item):`);
+        console.log(JSON.stringify(allQuestionSets[0], null, 2));
+        
+        // Log all unique course-related fields found across all question sets
+        const courseFields = new Set<string>();
+        allQuestionSets.forEach((qs: any) => {
+          Object.keys(qs).forEach(key => {
+            if (key.toLowerCase().includes('course') || key === '_id') {
+              courseFields.add(key);
+              // Log the value if it's related to AIDA
+              if (qs[key] && typeof qs[key] === 'string' && 
+                  (qs[key].includes('1759850342926') || qs[key].includes('AIDA'))) {
+                console.log(`   Found potential match in field '${key}': ${qs[key]}`);
+              }
+            }
+          });
+        });
+        console.log(`\n📋 Course-related fields found in question sets: ${Array.from(courseFields).join(', ')}\n`);
+      }
+      
       // Filter question sets that belong to this course
       // Check both 'course' and 'course_custom_course' fields as Bubble may use either
       const filteredQuestionSets = allQuestionSets.filter((qs: any) => {
