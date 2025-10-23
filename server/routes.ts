@@ -8907,13 +8907,15 @@ ${learningContent}
             });
             updated++;
           } else {
-            // Course not found - skip it (we're only updating existing courses)
-            // Log it as an error
-            errors.push({
-              row: i + 1,
-              message: `Course not found: ${course.courseNumber}`
+            // Course not found - create it with the provided data
+            await storage.createCourse({
+              courseNumber: course.courseNumber,
+              courseTitle: `${course.courseNumber} Course`, // Default title based on course number
+              externalId: null, // No external ID provided
+              bubbleUniqueId: course.bubbleUniqueId,
+              isAi: true // Default to AI-enabled
             });
-            failed++;
+            created++;
           }
         } catch (error: any) {
           failed++;

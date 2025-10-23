@@ -318,7 +318,7 @@ export default function AdminUploadCourses() {
             Update Course Bubble IDs from CSV
           </CardTitle>
           <CardDescription>
-            Upload a CSV file to update bubble_unique_id for existing courses (matches by course_number)
+            Upload a CSV file to update bubble_unique_id for existing courses or create new courses if not found
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -326,16 +326,17 @@ export default function AdminUploadCourses() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="space-y-2">
-              <p className="font-semibold">Required CSV Format (only updates bubble_unique_id):</p>
+              <p className="font-semibold">Required CSV Format:</p>
               <div className="bg-muted p-2 rounded font-mono text-sm">
                 course_number,bubble_unique_id
               </div>
               <p className="text-sm mt-2">
-                • <strong>course_number:</strong> Course code (e.g., CPCU 500, AIDA 401)<br />
-                • <strong>bubble_unique_id:</strong> New Bubble unique identifier to set<br />
+                • <strong>course_number:</strong> Course code (e.g., CPCU 500, AIDA 401, AINS 101)<br />
+                • <strong>bubble_unique_id:</strong> Bubble unique identifier<br />
               </p>
-              <p className="text-sm mt-2 text-amber-600 font-medium">
-                ⚠️ This will ONLY update the bubble_unique_id field for courses that match the course_number
+              <p className="text-sm mt-2 text-blue-600 font-medium">
+                ℹ️ For existing courses: Updates only the bubble_unique_id field<br />
+                ℹ️ For new courses: Creates the course with the provided bubble_unique_id
               </p>
             </AlertDescription>
           </Alert>
@@ -489,14 +490,14 @@ export default function AdminUploadCourses() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {result.status === 'new' ? (
-                              <AlertTriangle className="h-5 w-5 text-amber-600" />
-                            ) : result.status === 'updated' ? (
                               <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : result.status === 'updated' ? (
+                              <AlertCircle className="h-5 w-5 text-blue-600" />
                             ) : (
                               <XCircle className="h-5 w-5 text-gray-400" />
                             )}
                             <span className="text-xs text-muted-foreground">
-                              {result.status === 'new' ? 'Not Found' : 
+                              {result.status === 'new' ? 'New Course' : 
                                result.status === 'updated' ? 'Update' : 'No Change'}
                             </span>
                           </div>
@@ -523,7 +524,7 @@ export default function AdminUploadCourses() {
                             </ul>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              {result.status === 'exists' ? 'No changes' : result.status === 'new' ? 'Course not found' : '-'}
+                              {result.status === 'exists' ? 'No changes' : result.status === 'new' ? 'Will be created' : '-'}
                             </span>
                           )}
                         </TableCell>
