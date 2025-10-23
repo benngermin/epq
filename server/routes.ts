@@ -8780,7 +8780,7 @@ ${learningContent}
       }
 
       const headers = lines[0].split(',').map((h: string) => h.trim());
-      const requiredHeaders = ['external_id', 'course_number', 'course_title', 'bubble_unique_id'];
+      const requiredHeaders = ['course_number', 'external_id', 'bubble_unique_id'];
       
       // Validate headers
       const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
@@ -8801,43 +8801,30 @@ ${learningContent}
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map((v: string) => v.trim());
         
-        if (values.length < 4 || values.every((v: string) => !v)) {
+        if (values.length < 3 || values.every((v: string) => !v)) {
           continue; // Skip empty rows
         }
 
         const row = {
-          externalId: values[headerIndices.external_id],
           courseNumber: values[headerIndices.course_number],
-          courseTitle: values[headerIndices.course_title],
+          externalId: values[headerIndices.external_id],
           bubbleUniqueId: values[headerIndices.bubble_unique_id]
         };
 
-        // Check if course exists
+        // Check if course exists by matching BOTH course_number AND external_id
         let existingCourse = null;
         let status: 'new' | 'exists' | 'updated' = 'new';
         let changes: string[] = [];
 
-        // First check by bubble unique ID
-        if (row.bubbleUniqueId) {
-          existingCourse = await storage.getCourseByBubbleId(row.bubbleUniqueId);
-        }
-        
-        // If not found by bubble ID, check by external ID
-        if (!existingCourse && row.externalId) {
-          existingCourse = await storage.getCourseByExternalId(row.externalId);
-        }
+        // Find course by course number and external ID
+        const courses = await storage.getAllCourses();
+        existingCourse = courses.find((c: any) => 
+          c.courseNumber === row.courseNumber && 
+          c.externalId === row.externalId
+        );
 
         if (existingCourse) {
-          // Check what would be updated
-          if (existingCourse.courseNumber !== row.courseNumber) {
-            changes.push(`Course number: ${existingCourse.courseNumber} → ${row.courseNumber}`);
-          }
-          if (existingCourse.courseTitle !== row.courseTitle) {
-            changes.push(`Title: ${existingCourse.courseTitle} → ${row.courseTitle}`);
-          }
-          if (existingCourse.externalId !== row.externalId) {
-            changes.push(`External ID: ${existingCourse.externalId || 'none'} → ${row.externalId}`);
-          }
+          // Only check if bubble_unique_id would be updated
           if (existingCourse.bubbleUniqueId !== row.bubbleUniqueId) {
             changes.push(`Bubble ID: ${existingCourse.bubbleUniqueId || 'none'} → ${row.bubbleUniqueId}`);
           }
@@ -8909,38 +8896,27 @@ ${learningContent}
         const course = courses[i];
         
         try {
-          // Check if course exists
-          let existingCourse = null;
-          
-          // First check by bubble unique ID
-          if (course.bubbleUniqueId) {
-            existingCourse = await storage.getCourseByBubbleId(course.bubbleUniqueId);
-          }
-          
-          // If not found by bubble ID, check by external ID
-          if (!existingCourse && course.externalId) {
-            existingCourse = await storage.getCourseByExternalId(course.externalId);
-          }
+          // Find course by matching BOTH course_number AND external_id
+          const allCourses = await storage.getAllCourses();
+          const existingCourse = allCourses.find((c: any) => 
+            c.courseNumber === course.courseNumber && 
+            c.externalId === course.externalId
+          );
 
           if (existingCourse) {
-            // Update existing course
+            // ONLY update the bubble_unique_id field
             await storage.updateCourse(existingCourse.id, {
-              courseNumber: course.courseNumber,
-              courseTitle: course.courseTitle,
-              externalId: course.externalId,
               bubbleUniqueId: course.bubbleUniqueId
             });
             updated++;
           } else {
-            // Create new course
-            await storage.createCourse({
-              courseNumber: course.courseNumber,
-              courseTitle: course.courseTitle,
-              externalId: course.externalId,
-              bubbleUniqueId: course.bubbleUniqueId,
-              isAi: true // Default to AI-enabled
+            // Course not found - skip it (we're only updating existing courses)
+            // Log it as an error
+            errors.push({
+              row: i + 1,
+              message: `Course not found: ${course.courseNumber} with external_id ${course.externalId}`
             });
-            created++;
+            failed++;
           }
         } catch (error: any) {
           failed++;

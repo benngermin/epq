@@ -33,9 +33,8 @@ import {
 
 // TypeScript types
 interface CSVPreviewRow {
-  externalId: string;
   courseNumber: string;
-  courseTitle: string;
+  externalId: string;
   bubbleUniqueId: string;
 }
 
@@ -317,10 +316,10 @@ export default function AdminUploadCourses() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-6 w-6" />
-            Upload Courses from CSV
+            Update Course Bubble IDs from CSV
           </CardTitle>
           <CardDescription>
-            Upload a CSV file containing course information to add or update courses in the database
+            Upload a CSV file to update bubble_unique_id for existing courses (matches by course_number AND external_id)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -328,15 +327,17 @@ export default function AdminUploadCourses() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="space-y-2">
-              <p className="font-semibold">Required CSV Format:</p>
+              <p className="font-semibold">Required CSV Format (only updates bubble_unique_id):</p>
               <div className="bg-muted p-2 rounded font-mono text-sm">
-                external_id,course_number,course_title,bubble_unique_id
+                course_number,external_id,bubble_unique_id
               </div>
               <p className="text-sm mt-2">
-                • <strong>external_id:</strong> External course identifier<br />
-                • <strong>course_number:</strong> Course code (e.g., ARM 400)<br />
-                • <strong>course_title:</strong> Full course name<br />
-                • <strong>bubble_unique_id:</strong> Unique identifier from Bubble system
+                • <strong>course_number:</strong> Course code (e.g., CPCU 500, AIDA 401)<br />
+                • <strong>external_id:</strong> External course identifier for matching<br />
+                • <strong>bubble_unique_id:</strong> New Bubble unique identifier to set<br />
+              </p>
+              <p className="text-sm mt-2 text-amber-600 font-medium">
+                ⚠️ This will ONLY update the bubble_unique_id field for courses that match both course_number AND external_id
               </p>
             </AlertDescription>
           </Alert>
@@ -468,9 +469,9 @@ export default function AdminUploadCourses() {
                       <TableHead className="w-[50px]">Select</TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Course Number</TableHead>
-                      <TableHead>Course Title</TableHead>
                       <TableHead>External ID</TableHead>
-                      <TableHead>Bubble ID</TableHead>
+                      <TableHead>New Bubble ID</TableHead>
+                      <TableHead>Current Bubble ID</TableHead>
                       <TableHead>Changes</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -491,28 +492,32 @@ export default function AdminUploadCourses() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {result.status === 'new' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <AlertTriangle className="h-5 w-5 text-amber-600" />
                             ) : result.status === 'updated' ? (
-                              <AlertTriangle className="h-5 w-5 text-blue-600" />
+                              <CheckCircle className="h-5 w-5 text-green-600" />
                             ) : (
                               <XCircle className="h-5 w-5 text-gray-400" />
                             )}
                             <span className="text-xs text-muted-foreground">
-                              {result.status === 'new' ? 'New' : 
-                               result.status === 'updated' ? 'Update' : 'Exists'}
+                              {result.status === 'new' ? 'Not Found' : 
+                               result.status === 'updated' ? 'Update' : 'No Change'}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
                           {result.row.courseNumber}
                         </TableCell>
-                        <TableCell>{result.row.courseTitle}</TableCell>
                         <TableCell className="font-mono text-xs">
                           {result.row.externalId}
                         </TableCell>
                         <TableCell className="font-mono text-xs max-w-[200px]">
                           <div className="truncate" title={result.row.bubbleUniqueId}>
-                            {result.row.bubbleUniqueId}
+                            {result.row.bubbleUniqueId || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs max-w-[200px]">
+                          <div className="truncate" title={result.currentCourse?.bubbleUniqueId || ''}>
+                            {result.currentCourse?.bubbleUniqueId || '-'}
                           </div>
                         </TableCell>
                         <TableCell className="max-w-[250px]">
@@ -524,7 +529,7 @@ export default function AdminUploadCourses() {
                             </ul>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              {result.status === 'exists' ? 'No changes' : '-'}
+                              {result.status === 'exists' ? 'No changes' : result.status === 'new' ? 'Course not found' : '-'}
                             </span>
                           )}
                         </TableCell>
