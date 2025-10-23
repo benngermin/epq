@@ -4766,23 +4766,55 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Log the first question set to understand the structure
       if (allQuestionSets.length > 0) {
         console.log(`\n🔍 Sample question set structure (first item):`);
-        console.log(JSON.stringify(allQuestionSets[0], null, 2));
+        const firstQS = allQuestionSets[0];
+        console.log(`   _id: ${firstQS._id}`);
+        console.log(`   title: ${firstQS.title}`);
+        console.log(`   course: ${firstQS.course}`);
+        console.log(`   course_custom_course: ${firstQS.course_custom_course}`);
+        console.log(`   course_text: ${firstQS.course_text}`);
         
-        // Log all unique course-related fields found across all question sets
-        const courseFields = new Set<string>();
+        // Check if there are any question sets that might belong to AIDA 401
+        let foundAIDAsets = [];
         allQuestionSets.forEach((qs: any) => {
-          Object.keys(qs).forEach(key => {
-            if (key.toLowerCase().includes('course') || key === '_id') {
-              courseFields.add(key);
-              // Log the value if it's related to AIDA
-              if (qs[key] && typeof qs[key] === 'string' && 
-                  (qs[key].includes('1759850342926') || qs[key].includes('AIDA'))) {
-                console.log(`   Found potential match in field '${key}': ${qs[key]}`);
-              }
-            }
-          });
+          // Check the title or any field for AIDA references
+          const title = qs.title || '';
+          const content = JSON.stringify(qs);
+          
+          if (title.includes('AIDA') || title.includes('401') || 
+              content.includes('AIDA') || content.includes('Data Analytics')) {
+            foundAIDAsets.push({
+              _id: qs._id,
+              title: qs.title,
+              course: qs.course,
+              course_custom_course: qs.course_custom_course
+            });
+          }
+          
+          // Also check if the course field matches
+          if (qs.course === course.bubbleUniqueId) {
+            console.log(`   ✓✓✓ Found exact match! Question set ${qs._id} has course: ${qs.course}`);
+          }
         });
-        console.log(`\n📋 Course-related fields found in question sets: ${Array.from(courseFields).join(', ')}\n`);
+        
+        if (foundAIDAsets.length > 0) {
+          console.log(`\n🔍 Found ${foundAIDAsets.length} question sets that might be for AIDA 401:`);
+          foundAIDAsets.forEach(qs => {
+            console.log(`   - ${qs.title} (_id: ${qs._id}, course: ${qs.course})`);
+          });
+          console.log(`   AIDA 401 Course Bubble ID we're looking for: ${course.bubbleUniqueId}`);
+        } else {
+          console.log(`\n⚠️ No question sets found with AIDA or 401 in title/content`);
+        }
+        
+        // Log all unique course IDs found
+        const uniqueCourseIds = new Set<string>();
+        allQuestionSets.forEach((qs: any) => {
+          if (qs.course) uniqueCourseIds.add(qs.course);
+          if (qs.course_custom_course) uniqueCourseIds.add(qs.course_custom_course);
+        });
+        console.log(`\n📋 Unique course IDs found in question sets: ${Array.from(uniqueCourseIds).size} different courses`);
+        console.log(`   Looking for: ${course.bubbleUniqueId}`);
+        console.log(`   Found in question sets: ${uniqueCourseIds.has(course.bubbleUniqueId) ? 'YES' : 'NO'}`);
       }
       
       // Filter question sets that belong to this course
