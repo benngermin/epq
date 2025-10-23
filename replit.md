@@ -20,6 +20,11 @@ I prefer iterative development with regular, small commits. I value clear, conci
 - **Fixed mobile-view answer submission**: Resolved issue where duplicate route definitions prevented proper progress tracking in the sidebar. Removed conflicting endpoint that returned incorrect response format, ensuring the correct endpoint returns `isCorrect`, `chosenAnswer`, and `questionId` fields
 - **Updated mobile-view API path**: Fixed submitAnswerMutation to use the correct `/api/mobile-view/` prefix when in mobile-view mode, ensuring answers are properly persisted and progress is tracked
 - **Mobile-view drag-and-drop filtering**: Implemented automatic filtering of drag-and-drop questions when `/mobile-view` is in the URL path. The mobile-view endpoint filters out all drag-and-drop questions and recalculates ordinal numbers to maintain sequential numbering (1, 2, 3...) without gaps. This ensures a smoother experience for mobile/webview users who may have difficulty with drag-and-drop interactions
+- **Fixed chatbot message ordering issue**: Resolved a critical bug in the SimpleStreamingChat component where AI responses were appearing out of chronological order. The issue affected both mobile and desktop views, causing follow-up AI responses to appear at the top of the chat instead of at the bottom. Fixed by:
+  - Changing message insertion from prepend to append for proper chronological flow
+  - Improving message ID tracking for follow-up responses to ensure correct message updates
+  - Adding safeguards to prevent duplicate initial AI responses
+  - Implementing proper cleanup and state management when switching between questions
 
 ## System Architecture
 The application follows a client-server architecture.

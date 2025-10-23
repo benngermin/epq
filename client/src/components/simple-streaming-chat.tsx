@@ -38,11 +38,22 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     onChunk: (content) => {
       // Update message with ID matching currentMessageIdRef
       // content is already full accumulated response
-      setMessages(prev => prev.map(msg =>
-        msg.id === currentMessageIdRef.current && msg.role === "assistant"
-          ? { ...msg, content: content }
-          : msg
-      ));
+      setMessages(prev => {
+        const updatedMessages = prev.map(msg =>
+          msg.id === currentMessageIdRef.current && msg.role === "assistant"
+            ? { ...msg, content: content }
+            : msg
+        );
+        
+        // Debug: Check if we found and updated the message
+        const foundMessage = updatedMessages.find(msg => msg.id === currentMessageIdRef.current);
+        if (!foundMessage) {
+          console.error('Could not find message to update with ID:', currentMessageIdRef.current);
+          console.log('Current messages:', prev.map(m => ({ id: m.id, role: m.role })));
+        }
+        
+        return updatedMessages;
+      });
       
       // Auto-scroll to bottom when new content arrives (disabled on mobile view)
       if (!isMobileView) {
@@ -107,15 +118,28 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const messageId = existingMessageId || (Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9));
     currentMessageIdRef.current = messageId;
     
+    console.log('LoadAiResponse called:', {
+      userMessage,
+      existingMessageId,
+      messageId,
+      currentMessagesCount: messages.length,
+      isFollowUp: !!existingMessageId
+    });
+    
     // Only add placeholder message if we don't have an existing one (initial response)
     if (!existingMessageId) {
       // Append message to the end for proper chronological order
-      setMessages(prev => [...prev, {
-        id: messageId,
-        role: "assistant",
-        content: "",
-        questionVersionId
-      }]);
+      setMessages(prev => {
+        console.log('Adding new assistant placeholder, current messages:', prev.length);
+        return [...prev, {
+          id: messageId,
+          role: "assistant",
+          content: "",
+          questionVersionId
+        }];
+      });
+    } else {
+      console.log('Using existing message ID, not adding new placeholder');
     }
     
     // Use server conversation history if available (for follow-ups), otherwise undefined (for initial)
@@ -145,33 +169,38 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     const isNewQuestion = questionVersionId !== prevQuestionIdRef.current;
     const hasAnswer = chosenAnswer && chosenAnswer.trim() !== "";
     
-    // Check if this is initial mount with an answer
-    const isInitialMount = prevQuestionIdRef.current === undefined && hasAnswer;
+    // Skip if we're already streaming or have an initial response for this question
+    if (isStreaming || (hasInitialResponse && !isNewQuestion)) {
+      return;
+    }
     
-    if (isNewQuestion || isInitialMount) {
-      // If question changed, clear previous state
-      if (isNewQuestion && prevQuestionIdRef.current !== undefined) {
-        setMessages([]);
-        setHasInitialResponse(false);
-        setUserInput("");
-        setServerConversationHistory(null);
-        stopStream();
-      }
+    // If question changed, clear previous state
+    if (isNewQuestion && prevQuestionIdRef.current !== undefined) {
+      console.log('Question changed, clearing previous state');
+      setMessages([]);
+      setHasInitialResponse(false);
+      setUserInput("");
+      setServerConversationHistory(null);
+      stopStream();
+    }
+    
+    // Update the previous question ID
+    prevQuestionIdRef.current = questionVersionId;
+    
+    // Start loading AI response if we have an answer and haven't requested it yet
+    if (hasAnswer && !hasInitialResponse && messages.length === 0) {
+      console.log('Triggering initial AI response for question', questionVersionId);
+      // Add a small delay to prevent race conditions
+      const timer = setTimeout(() => {
+        if (!isStreaming && !hasInitialResponse) {
+          loadAiResponse();
+        }
+      }, 100);
       
-      prevQuestionIdRef.current = questionVersionId;
-      
-      // Start loading AI response if we have an answer
-      if (hasAnswer) {
-        // Load AI response immediately - it will create the placeholder message
-        loadAiResponse();
-      }
-    } else if (hasAnswer && messages.length === 0 && !isStreaming && !hasInitialResponse) {
-      // Edge case: If we have an answer but haven't started streaming yet
-      // This handles the case where the component mounts with chosenAnswer already set
-      loadAiResponse();
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionVersionId, chosenAnswer]);
+  }, [questionVersionId, chosenAnswer, isStreaming, hasInitialResponse]);
 
   // Cleanup on unmount
   useEffect(() => {
