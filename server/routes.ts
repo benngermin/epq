@@ -8780,7 +8780,7 @@ ${learningContent}
       }
 
       const headers = lines[0].split(',').map((h: string) => h.trim());
-      const requiredHeaders = ['course_number', 'external_id', 'bubble_unique_id'];
+      const requiredHeaders = ['course_number', 'bubble_unique_id'];
       
       // Validate headers
       const missingHeaders = requiredHeaders.filter(rh => !headers.includes(rh));
@@ -8801,26 +8801,24 @@ ${learningContent}
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map((v: string) => v.trim());
         
-        if (values.length < 3 || values.every((v: string) => !v)) {
+        if (values.length < 2 || values.every((v: string) => !v)) {
           continue; // Skip empty rows
         }
 
         const row = {
           courseNumber: values[headerIndices.course_number],
-          externalId: values[headerIndices.external_id],
           bubbleUniqueId: values[headerIndices.bubble_unique_id]
         };
 
-        // Check if course exists by matching BOTH course_number AND external_id
+        // Check if course exists by matching course_number only
         let existingCourse = null;
         let status: 'new' | 'exists' | 'updated' = 'new';
         let changes: string[] = [];
 
-        // Find course by course number and external ID
+        // Find course by course number
         const courses = await storage.getAllCourses();
         existingCourse = courses.find((c: any) => 
-          c.courseNumber === row.courseNumber && 
-          c.externalId === row.externalId
+          c.courseNumber === row.courseNumber
         );
 
         if (existingCourse) {
@@ -8896,11 +8894,10 @@ ${learningContent}
         const course = courses[i];
         
         try {
-          // Find course by matching BOTH course_number AND external_id
+          // Find course by matching course_number only
           const allCourses = await storage.getAllCourses();
           const existingCourse = allCourses.find((c: any) => 
-            c.courseNumber === course.courseNumber && 
-            c.externalId === course.externalId
+            c.courseNumber === course.courseNumber
           );
 
           if (existingCourse) {
@@ -8914,7 +8911,7 @@ ${learningContent}
             // Log it as an error
             errors.push({
               row: i + 1,
-              message: `Course not found: ${course.courseNumber} with external_id ${course.externalId}`
+              message: `Course not found: ${course.courseNumber}`
             });
             failed++;
           }

@@ -34,7 +34,6 @@ import {
 // TypeScript types
 interface CSVPreviewRow {
   courseNumber: string;
-  externalId: string;
   bubbleUniqueId: string;
 }
 
@@ -319,7 +318,7 @@ export default function AdminUploadCourses() {
             Update Course Bubble IDs from CSV
           </CardTitle>
           <CardDescription>
-            Upload a CSV file to update bubble_unique_id for existing courses (matches by course_number AND external_id)
+            Upload a CSV file to update bubble_unique_id for existing courses (matches by course_number)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -329,15 +328,14 @@ export default function AdminUploadCourses() {
             <AlertDescription className="space-y-2">
               <p className="font-semibold">Required CSV Format (only updates bubble_unique_id):</p>
               <div className="bg-muted p-2 rounded font-mono text-sm">
-                course_number,external_id,bubble_unique_id
+                course_number,bubble_unique_id
               </div>
               <p className="text-sm mt-2">
                 • <strong>course_number:</strong> Course code (e.g., CPCU 500, AIDA 401)<br />
-                • <strong>external_id:</strong> External course identifier for matching<br />
                 • <strong>bubble_unique_id:</strong> New Bubble unique identifier to set<br />
               </p>
               <p className="text-sm mt-2 text-amber-600 font-medium">
-                ⚠️ This will ONLY update the bubble_unique_id field for courses that match both course_number AND external_id
+                ⚠️ This will ONLY update the bubble_unique_id field for courses that match the course_number
               </p>
             </AlertDescription>
           </Alert>
@@ -469,7 +467,6 @@ export default function AdminUploadCourses() {
                       <TableHead className="w-[50px]">Select</TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Course Number</TableHead>
-                      <TableHead>External ID</TableHead>
                       <TableHead>New Bubble ID</TableHead>
                       <TableHead>Current Bubble ID</TableHead>
                       <TableHead>Changes</TableHead>
@@ -506,9 +503,6 @@ export default function AdminUploadCourses() {
                         </TableCell>
                         <TableCell className="font-medium">
                           {result.row.courseNumber}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {result.row.externalId}
                         </TableCell>
                         <TableCell className="font-mono text-xs max-w-[200px]">
                           <div className="truncate" title={result.row.bubbleUniqueId}>
