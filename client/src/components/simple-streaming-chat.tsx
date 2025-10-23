@@ -88,7 +88,7 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     }
   }, [messages, isMobileView]);
 
-  const loadAiResponse = async (userMessage?: string) => {
+  const loadAiResponse = async (userMessage?: string, existingMessageId?: string) => {
     // Prevent concurrent requests
     if (isStreaming) {
       console.log('Request already in progress, skipping');
@@ -103,17 +103,20 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       return;
     }
     
-    // Generate unique ID for this streaming message
-    const messageId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9);
+    // Use existing message ID if provided (for follow-ups), otherwise generate new one
+    const messageId = existingMessageId || (Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9));
     currentMessageIdRef.current = messageId;
     
-    // Add placeholder message to state with ID
-    setMessages(prev => [{
-      id: messageId,
-      role: "assistant",
-      content: "",
-      questionVersionId
-    }, ...prev]);
+    // Only add placeholder message if we don't have an existing one (initial response)
+    if (!existingMessageId) {
+      // Append message to the end for proper chronological order
+      setMessages(prev => [...prev, {
+        id: messageId,
+        role: "assistant",
+        content: "",
+        questionVersionId
+      }]);
+    }
     
     // Use server conversation history if available (for follow-ups), otherwise undefined (for initial)
     const conversationToSend = userMessage && serverConversationHistory ? serverConversationHistory : undefined;
@@ -190,24 +193,29 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
     
     setUserInput("");
 
+    // Generate IDs for both messages
+    const userMessageId = Date.now().toString();
+    const assistantMessageId = (Date.now() + 1).toString() + '_' + Math.random().toString(36).substring(2, 9);
+
     // Add user message and AI placeholder in sequence
     setMessages(prev => [
       ...prev,
       {
-        id: Date.now().toString(),
+        id: userMessageId,
         content: msg,
         role: "user",
         questionVersionId: questionVersionId
       },
       {
-        id: (Date.now() + 1).toString(),
-        content: "Loading response...",
+        id: assistantMessageId,
+        content: "",
         role: "assistant",
         questionVersionId: questionVersionId
       }
     ]);
     
-    loadAiResponse(msg);  // stream the assistant's reply
+    // Pass the assistant message ID to loadAiResponse so it updates the correct message
+    loadAiResponse(msg, assistantMessageId);  // stream the assistant's reply
     
     // Auto-scroll after adding user message (disabled on mobile view)
     if (!isMobileView) {
