@@ -4738,62 +4738,56 @@ Remember, your goal is to support student comprehension through meaningful feedb
       console.log(`📊 Course: ${course.courseNumber} - ${course.courseTitle}`);
       console.log(`🔑 Bubble Unique ID: ${course.bubbleUniqueId}`);
       
-      // Fetch question sets from Bubble with constraint on course field
+      // Fetch ALL question sets from Bubble and filter client-side
+      // This is necessary because Bubble doesn't support querying by the course relationship field directly
       const baseUrl = `${BUBBLE_BASE_URL}/question_set`;
-      
-      // Build constraints to filter by course bubble_unique_id
-      const constraints = [{
-        key: "course",
-        constraint_type: "equals",
-        value: course.bubbleUniqueId
-      }];
-      
-      // First, try with the course field constraint
-      let url = `${baseUrl}?constraints=${encodeURIComponent(JSON.stringify(constraints))}`;
       
       const headers = {
         "Authorization": `Bearer ${bubbleApiKey}`,
         "Content-Type": "application/json"
       };
       
-      console.log(`🌐 Fetching question sets from Bubble for course: ${course.bubbleUniqueId}`);
+      console.log(`🌐 Fetching all question sets from Bubble to filter for course: ${course.bubbleUniqueId}`);
       
-      const response = await fetch(url, { headers });
+      // Fetch all question sets without constraints
+      const response = await fetch(baseUrl, { headers });
       
       if (!response.ok) {
         const responseText = await response.text();
         console.error(`❌ Bubble API error: ${response.status} - ${responseText}`);
-        
-        // If constraint query fails, try fetching all and filtering
-        console.log(`🔄 Retrying without constraints...`);
-        const fallbackResponse = await fetch(baseUrl, { headers });
-        
-        if (!fallbackResponse.ok) {
-          throw new Error(`Bubble API error: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
-        }
-        
-        const fallbackData = await fallbackResponse.json();
-        const allQuestionSets = fallbackData.response?.results || [];
-        
-        // Filter manually by course field
-        const filteredQuestionSets = allQuestionSets.filter((qs: any) => 
-          qs.course === course.bubbleUniqueId || 
-          qs.course_custom_course === course.bubbleUniqueId
-        );
-        
-        console.log(`✅ Found ${filteredQuestionSets.length} question sets for this course (via fallback)`);
-        
-        // Process the filtered question sets
-        return await processQuestionSets(filteredQuestionSets, course, storage, res, startTime);
+        throw new Error(`Bubble API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      const bubbleQuestionSets = data.response?.results || [];
+      const allQuestionSets = data.response?.results || [];
       
-      console.log(`✅ Found ${bubbleQuestionSets.length} question sets for this course`);
+      console.log(`📚 Retrieved ${allQuestionSets.length} total question sets from Bubble`);
       
-      // Process the question sets
-      return await processQuestionSets(bubbleQuestionSets, course, storage, res, startTime);
+      // Filter question sets that belong to this course
+      // Check both 'course' and 'course_custom_course' fields as Bubble may use either
+      const filteredQuestionSets = allQuestionSets.filter((qs: any) => {
+        const belongsToCourse = qs.course === course.bubbleUniqueId || 
+                               qs.course_custom_course === course.bubbleUniqueId ||
+                               qs.course_text === course.bubbleUniqueId;
+        
+        if (belongsToCourse) {
+          console.log(`   ✓ Found question set: ${qs.title || qs._id}`);
+        }
+        
+        return belongsToCourse;
+      });
+      
+      console.log(`✅ Found ${filteredQuestionSets.length} question sets for this course`);
+      
+      if (filteredQuestionSets.length === 0) {
+        console.log(`⚠️ No question sets found for course with Bubble ID: ${course.bubbleUniqueId}`);
+        console.log(`   Possible reasons:`);
+        console.log(`   - The Bubble unique ID might be incorrect`);
+        console.log(`   - The question sets might not be properly linked to this course in Bubble`);
+      }
+      
+      // Process the filtered question sets
+      return await processQuestionSets(filteredQuestionSets, course, storage, res, startTime);
       
     } catch (error) {
       console.error(`❌ Error refreshing course ${courseId} from Bubble:`, error);
