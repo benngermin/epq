@@ -884,6 +884,39 @@ export function registerRoutes(app: Express): Server {
       res.status(400).json({ message: "Invalid course data" });
     }
   });
+  
+  // Update course bubble unique ID - special endpoint for fixing bubble ID mismatches
+  app.put("/api/admin/courses/:id/bubble-id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { bubbleUniqueId } = req.body;
+      
+      if (!bubbleUniqueId || typeof bubbleUniqueId !== 'string') {
+        return res.status(400).json({ message: "Valid bubbleUniqueId is required" });
+      }
+      
+      const course = await storage.updateCourse(id, { bubbleUniqueId });
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      console.log(`✅ Updated course ${course.courseNumber} bubble ID to: ${bubbleUniqueId}`);
+      
+      res.json({ 
+        message: "Bubble unique ID updated successfully", 
+        course: {
+          id: course.id,
+          courseNumber: course.courseNumber,
+          courseTitle: course.courseTitle,
+          bubbleUniqueId: course.bubbleUniqueId
+        }
+      });
+    } catch (error) {
+      console.error("Error updating course bubble ID:", error);
+      res.status(500).json({ message: "Failed to update bubble unique ID" });
+    }
+  });
 
   app.delete("/api/courses/:id", requireAdmin, async (req, res) => {
     try {
