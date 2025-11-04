@@ -72,6 +72,59 @@ export function DragDropZones({
     return answerChoices.filter(item => !used.has(item));
   });
 
+  // Update available items and zone contents when answerChoices or value prop changes
+  useEffect(() => {
+    // Parse the current value to get zone contents
+    let currentZones: Record<number, string[]> = {};
+    
+    if (typeof value === 'string' && value) {
+      try {
+        const parsed = JSON.parse(value);
+        for (const key in parsed) {
+          let zoneId: number;
+          if (key.startsWith('zone_')) {
+            zoneId = parseInt(key.replace('zone_', ''));
+          } else {
+            zoneId = parseInt(key);
+          }
+          if (!isNaN(zoneId)) {
+            currentZones[zoneId] = Array.isArray(parsed[key]) ? parsed[key] : [];
+          }
+        }
+      } catch {
+        currentZones = {};
+      }
+    } else if (typeof value === 'object' && value) {
+      for (const key in value) {
+        let zoneId: number;
+        if (key.startsWith('zone_')) {
+          zoneId = parseInt(key.replace('zone_', ''));
+        } else {
+          zoneId = parseInt(key);
+        }
+        if (!isNaN(zoneId)) {
+          currentZones[zoneId] = Array.isArray(value[key]) ? value[key] : [];
+        }
+      }
+    }
+    
+    // Filter out items that are no longer in answerChoices
+    const validChoices = new Set(answerChoices);
+    const cleanedZones: Record<number, string[]> = {};
+    
+    for (const [zoneId, items] of Object.entries(currentZones)) {
+      cleanedZones[parseInt(zoneId)] = items.filter(item => validChoices.has(item));
+    }
+    
+    // Update zone contents
+    setZoneContents(cleanedZones);
+    
+    // Calculate available items
+    const usedItems = new Set(Object.values(cleanedZones).flat());
+    const available = answerChoices.filter(item => !usedItems.has(item));
+    setAvailableItems(available);
+  }, [answerChoices, value]);
+
   useEffect(() => {
     // Ensure all zone contents are arrays before stringifying
     // Convert numeric zone IDs to string format "zone_1", "zone_2" for database compatibility
