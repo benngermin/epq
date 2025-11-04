@@ -620,9 +620,40 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                 <Input
                   value={choice}
                   onChange={(e) => {
+                    const oldChoice = (value.answerChoices || [])[index];
+                    const newChoice = e.target.value;
                     const newChoices = [...(value.answerChoices || [])];
-                    newChoices[index] = e.target.value;
+                    newChoices[index] = newChoice;
+                    
+                    // Update answerChoices
                     handleArrayChange("answerChoices", newChoices);
+                    
+                    // Also update correctAnswer if the old choice exists in zones
+                    if (value.correctAnswer && oldChoice && oldChoice !== newChoice) {
+                      try {
+                        // Parse existing correctAnswer
+                        const currentAnswer = typeof value.correctAnswer === 'string' 
+                          ? JSON.parse(value.correctAnswer) 
+                          : value.correctAnswer;
+                        
+                        // Update all zone mappings to replace old text with new text
+                        const updatedAnswer: Record<string, string[]> = {};
+                        for (const [zoneKey, items] of Object.entries(currentAnswer)) {
+                          if (Array.isArray(items)) {
+                            updatedAnswer[zoneKey] = items.map(item => 
+                              item === oldChoice ? newChoice : item
+                            );
+                          } else {
+                            updatedAnswer[zoneKey] = items as string[];
+                          }
+                        }
+                        
+                        // Update the correctAnswer field
+                        handleFieldChange("correctAnswer", updatedAnswer);
+                      } catch (e) {
+                        console.error("Error updating correctAnswer after choice edit:", e);
+                      }
+                    }
                   }}
                   placeholder={`Item ${index + 1}`}
                   data-testid={`input-choice-${index}`}
@@ -632,8 +663,32 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                   variant="ghost"
                   type="button"
                   onClick={() => {
+                    const choiceToRemove = (value.answerChoices || [])[index];
                     const newChoices = (value.answerChoices || []).filter((_: any, i: number) => i !== index);
                     handleArrayChange("answerChoices", newChoices);
+                    
+                    // Also remove from correctAnswer if it exists in zones
+                    if (value.correctAnswer && choiceToRemove) {
+                      try {
+                        const currentAnswer = typeof value.correctAnswer === 'string' 
+                          ? JSON.parse(value.correctAnswer) 
+                          : value.correctAnswer;
+                        
+                        // Remove the item from all zones
+                        const updatedAnswer: Record<string, string[]> = {};
+                        for (const [zoneKey, items] of Object.entries(currentAnswer)) {
+                          if (Array.isArray(items)) {
+                            updatedAnswer[zoneKey] = items.filter(item => item !== choiceToRemove);
+                          } else {
+                            updatedAnswer[zoneKey] = items as string[];
+                          }
+                        }
+                        
+                        handleFieldChange("correctAnswer", updatedAnswer);
+                      } catch (e) {
+                        console.error("Error updating correctAnswer after choice removal:", e);
+                      }
+                    }
                   }}
                   data-testid={`button-remove-choice-${index}`}
                 >
