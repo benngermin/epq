@@ -25,14 +25,14 @@ export function DragDropZones({
 }: DragDropZonesProps) {
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [dragOverZone, setDragOverZone] = useState<number | null>(null);
-  const [zoneContents, setZoneContents] = useState<Record<number, string[]>>(() => {
+  
+  // Parse the value prop to get current zone contents
+  const zoneContents = (() => {
     if (typeof value === 'string' && value) {
       try {
         const parsed = JSON.parse(value);
-        // Ensure all values are arrays
         const sanitized: Record<number, string[]> = {};
         for (const key in parsed) {
-          // Handle both "zone_1" format (from DB) and numeric "1" format
           let zoneId: number;
           if (key.startsWith('zone_')) {
             zoneId = parseInt(key.replace('zone_', ''));
@@ -40,7 +40,9 @@ export function DragDropZones({
             zoneId = parseInt(key);
           }
           if (!isNaN(zoneId)) {
-            sanitized[zoneId] = Array.isArray(parsed[key]) ? parsed[key] : [];
+            // Filter to only include items that exist in answerChoices
+            const items = Array.isArray(parsed[key]) ? parsed[key] : [];
+            sanitized[zoneId] = items.filter(item => answerChoices.includes(item));
           }
         }
         return sanitized;
@@ -48,10 +50,8 @@ export function DragDropZones({
         return {};
       }
     } else if (typeof value === 'object' && value) {
-      // If value is already an object, ensure all values are arrays
       const sanitized: Record<number, string[]> = {};
       for (const key in value) {
-        // Handle both "zone_1" format (from DB) and numeric "1" format
         let zoneId: number;
         if (key.startsWith('zone_')) {
           zoneId = parseInt(key.replace('zone_', ''));
@@ -59,85 +59,21 @@ export function DragDropZones({
           zoneId = parseInt(key);
         }
         if (!isNaN(zoneId)) {
-          sanitized[zoneId] = Array.isArray(value[key]) ? value[key] : [];
+          // Filter to only include items that exist in answerChoices
+          const items = Array.isArray(value[key]) ? value[key] : [];
+          sanitized[zoneId] = items.filter(item => answerChoices.includes(item));
         }
       }
       return sanitized;
     }
     return {};
-  });
+  })();
 
-  const [availableItems, setAvailableItems] = useState<string[]>(() => {
+  // Calculate available items (items not in any zone)
+  const availableItems = (() => {
     const used = new Set(Object.values(zoneContents).flat());
     return answerChoices.filter(item => !used.has(item));
-  });
-
-  // Update available items and zone contents when answerChoices or value prop changes
-  useEffect(() => {
-    // Parse the current value to get zone contents
-    let currentZones: Record<number, string[]> = {};
-    
-    if (typeof value === 'string' && value) {
-      try {
-        const parsed = JSON.parse(value);
-        for (const key in parsed) {
-          let zoneId: number;
-          if (key.startsWith('zone_')) {
-            zoneId = parseInt(key.replace('zone_', ''));
-          } else {
-            zoneId = parseInt(key);
-          }
-          if (!isNaN(zoneId)) {
-            currentZones[zoneId] = Array.isArray(parsed[key]) ? parsed[key] : [];
-          }
-        }
-      } catch {
-        currentZones = {};
-      }
-    } else if (typeof value === 'object' && value) {
-      for (const key in value) {
-        let zoneId: number;
-        if (key.startsWith('zone_')) {
-          zoneId = parseInt(key.replace('zone_', ''));
-        } else {
-          zoneId = parseInt(key);
-        }
-        if (!isNaN(zoneId)) {
-          currentZones[zoneId] = Array.isArray(value[key]) ? value[key] : [];
-        }
-      }
-    }
-    
-    // Filter out items that are no longer in answerChoices
-    const validChoices = new Set(answerChoices);
-    const cleanedZones: Record<number, string[]> = {};
-    
-    for (const [zoneId, items] of Object.entries(currentZones)) {
-      cleanedZones[parseInt(zoneId)] = items.filter(item => validChoices.has(item));
-    }
-    
-    // Update zone contents
-    setZoneContents(cleanedZones);
-    
-    // Calculate available items
-    const usedItems = new Set(Object.values(cleanedZones).flat());
-    const available = answerChoices.filter(item => !usedItems.has(item));
-    setAvailableItems(available);
-  }, [answerChoices, value]);
-
-  useEffect(() => {
-    // Ensure all zone contents are arrays before stringifying
-    // Convert numeric zone IDs to string format "zone_1", "zone_2" for database compatibility
-    const sanitizedContents: Record<string, string[]> = {};
-    for (const key in zoneContents) {
-      const zoneId = parseInt(key);
-      if (!isNaN(zoneId) && Array.isArray(zoneContents[zoneId])) {
-        // Use string key format "zone_1", "zone_2" etc. for database compatibility
-        sanitizedContents[`zone_${zoneId}`] = zoneContents[zoneId];
-      }
-    }
-    onChange(JSON.stringify(sanitizedContents));
-  }, [zoneContents, onChange]);
+  })();
 
   const handleDragStart = (item: string) => {
     if (!disabled) {
@@ -178,17 +114,22 @@ export function DragDropZones({
       );
     });
 
-    // Remove from available items
-    const newAvailable = availableItems.filter(item => item !== draggingItem);
-
     // Add to new zone
     if (!newZoneContents[zoneId]) {
       newZoneContents[zoneId] = [];
     }
     newZoneContents[zoneId].push(draggingItem);
 
-    setZoneContents(newZoneContents);
-    setAvailableItems(newAvailable);
+    // Convert to database format and update parent
+    const sanitizedContents: Record<string, string[]> = {};
+    for (const key in newZoneContents) {
+      const zId = parseInt(key);
+      if (!isNaN(zId) && Array.isArray(newZoneContents[zId])) {
+        sanitizedContents[`zone_${zId}`] = newZoneContents[zId];
+      }
+    }
+    onChange(JSON.stringify(sanitizedContents));
+    
     setDraggingItem(null);
     setDragOverZone(null);
   };
@@ -207,12 +148,16 @@ export function DragDropZones({
       );
     });
 
-    // Add back to available
-    if (!availableItems.includes(draggingItem)) {
-      setAvailableItems([...availableItems, draggingItem]);
+    // Convert to database format and update parent
+    const sanitizedContents: Record<string, string[]> = {};
+    for (const key in newZoneContents) {
+      const zId = parseInt(key);
+      if (!isNaN(zId) && Array.isArray(newZoneContents[zId])) {
+        sanitizedContents[`zone_${zId}`] = newZoneContents[zId];
+      }
     }
-
-    setZoneContents(newZoneContents);
+    onChange(JSON.stringify(sanitizedContents));
+    
     setDraggingItem(null);
     setDragOverZone(null);
   };
