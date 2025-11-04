@@ -1501,52 +1501,55 @@ export default function AdminPanel() {
                     </DialogContent>
                   </Dialog>
                   
-                  {/* Bulk Refresh Button */}
-                  <Button 
-                    variant="secondary"
-                    onClick={() => setShowRefreshConfirm(true)}
-                    disabled={isRefreshing}
-                  >
-                    {isRefreshing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Refreshing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Refresh All
-                      </>
-                    )}
-                  </Button>
+                  {/* Bulk Refresh Button - Only visible for benn@modia.ai */}
+                  {user?.email === 'benn@modia.ai' && (
+                    <Button 
+                      variant="secondary"
+                      onClick={() => setShowRefreshConfirm(true)}
+                      disabled={isRefreshing}
+                    >
+                      {isRefreshing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Refreshing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Refresh All
+                        </>
+                      )}
+                    </Button>
+                  )}
                   
-                  {/* Final Refresh Button - Only show if not completed */}
-                  {/* Test Bubble Auth Button */}
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/admin/bubble/test-auth');
-                        const data = await response.json();
-                        
-                        if (!response.ok) {
-                          console.error('Authentication test failed:', data);
-                          const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• First chars: ${data.debug.firstChars}\n• Last chars: ${data.debug.lastChars}\n• Has whitespace: ${data.debug.hasWhitespace}\n• Has quotes: ${data.debug.hasQuotes}\n• Environment: ${data.debug.environment}` : '';
-                          alert(`Bubble API Auth Test Failed!\n\nStatus: ${response.status}\nMessage: ${data.message}${debugInfo}`);
-                        } else {
-                          console.log('Authentication test successful:', data);
-                          const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• Data received: ${data.debug.dataReceived}\n• Has results: ${data.debug.hasResults}` : '';
-                          alert(`Bubble API Auth Test Successful!${debugInfo}`);
+                  {/* Test Bubble Auth Button - Only visible for benn@modia.ai */}
+                  {user?.email === 'benn@modia.ai' && (
+                    <Button 
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/admin/bubble/test-auth');
+                          const data = await response.json();
+                          
+                          if (!response.ok) {
+                            console.error('Authentication test failed:', data);
+                            const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• First chars: ${data.debug.firstChars}\n• Last chars: ${data.debug.lastChars}\n• Has whitespace: ${data.debug.hasWhitespace}\n• Has quotes: ${data.debug.hasQuotes}\n• Environment: ${data.debug.environment}` : '';
+                            alert(`Bubble API Auth Test Failed!\n\nStatus: ${response.status}\nMessage: ${data.message}${debugInfo}`);
+                          } else {
+                            console.log('Authentication test successful:', data);
+                            const debugInfo = data.debug ? `\n\nDebug Info:\n• Key Length: ${data.debug.keyLength}\n• Data received: ${data.debug.dataReceived}\n• Has results: ${data.debug.hasResults}` : '';
+                            alert(`Bubble API Auth Test Successful!${debugInfo}`);
+                          }
+                        } catch (error) {
+                          console.error('Error testing authentication:', error);
+                          alert(`Error testing authentication: ${error}`);
                         }
-                      } catch (error) {
-                        console.error('Error testing authentication:', error);
-                        alert(`Error testing authentication: ${error}`);
-                      }
-                    }}
-                    variant="outline"
-                    className="mr-2"
-                  >
-                    Test Bubble Auth
-                  </Button>
+                      }}
+                      variant="outline"
+                      className="mr-2"
+                    >
+                      Test Bubble Auth
+                    </Button>
+                  )}
                   
                   </div>
                   </div>
@@ -1664,8 +1667,8 @@ export default function AdminPanel() {
                               </CardDescription>
                             </div>
                             <div className="flex gap-2">
-                              {/* Refresh from Bubble button - only show for courses with bubble_unique_id */}
-                              {course.bubbleUniqueId && (
+                              {/* Refresh from Bubble button - only show for courses with bubble_unique_id and benn@modia.ai */}
+                              {course.bubbleUniqueId && user?.email === 'benn@modia.ai' && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
