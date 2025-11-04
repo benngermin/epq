@@ -625,8 +625,8 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                     const newChoices = [...(value.answerChoices || [])];
                     newChoices[index] = newChoice;
                     
-                    // Update answerChoices
-                    handleArrayChange("answerChoices", newChoices);
+                    // Prepare the updated value object with both answerChoices and correctAnswer
+                    let updatedValue = { ...value, answerChoices: newChoices };
                     
                     // Also update correctAnswer if the old choice exists in zones
                     if (value.correctAnswer && oldChoice && oldChoice !== newChoice) {
@@ -648,12 +648,15 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                           }
                         }
                         
-                        // Update the correctAnswer field
-                        handleFieldChange("correctAnswer", updatedAnswer);
+                        // Add the updated correctAnswer to the value object
+                        updatedValue = { ...updatedValue, correctAnswer: updatedAnswer };
                       } catch (e) {
                         console.error("Error updating correctAnswer after choice edit:", e);
                       }
                     }
+                    
+                    // Single state update with all changes
+                    onChange(updatedValue);
                   }}
                   placeholder={`Item ${index + 1}`}
                   data-testid={`input-choice-${index}`}
@@ -665,7 +668,9 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                   onClick={() => {
                     const choiceToRemove = (value.answerChoices || [])[index];
                     const newChoices = (value.answerChoices || []).filter((_: any, i: number) => i !== index);
-                    handleArrayChange("answerChoices", newChoices);
+                    
+                    // Prepare the updated value object
+                    let updatedValue = { ...value, answerChoices: newChoices };
                     
                     // Also remove from correctAnswer if it exists in zones
                     if (value.correctAnswer && choiceToRemove) {
@@ -684,11 +689,15 @@ export function QuestionTypeEditor({ questionType, value, onChange }: QuestionTy
                           }
                         }
                         
-                        handleFieldChange("correctAnswer", updatedAnswer);
+                        // Add the updated correctAnswer to the value object
+                        updatedValue = { ...updatedValue, correctAnswer: updatedAnswer };
                       } catch (e) {
                         console.error("Error updating correctAnswer after choice removal:", e);
                       }
                     }
+                    
+                    // Single state update with all changes
+                    onChange(updatedValue);
                   }}
                   data-testid={`button-remove-choice-${index}`}
                 >
