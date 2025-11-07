@@ -2315,12 +2315,19 @@ export class DatabaseStorage implements IStorage {
       
       // Log when we have course context but no match found
       if (!result[0] && process.env.NODE_ENV === 'development') {
-        console.log(`No course-specific material found for LOID ${loid} in course ${courseNumber}, falling back to LOID-only matching`);
+        console.log(`No course-specific material found for LOID ${loid} in course ${courseNumber}`);
+      }
+      
+      // CRITICAL FIX: When we have a specific course context, DO NOT fall back to LOID-only matching
+      // This prevents cross-course contamination (e.g., CPCU 552 questions getting AIC 302 materials)
+      if (!result[0]) {
+        return undefined; // Return undefined when no course-specific material found
       }
     }
     
-    // Fall back to LOID-only matching (current behavior)
-    if (!result[0]) {
+    // Fall back to LOID-only matching ONLY when no course number is provided
+    // This maintains backward compatibility for cases without course context
+    if (!result[0] && !courseNumber) {
       // First try exact match
       result = await db.select()
         .from(courseMaterials)
