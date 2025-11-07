@@ -6510,6 +6510,74 @@ Remember, your goal is to support student comprehension through meaningful feedb
           const aiSettings = await storage.getAiSettings();
           const activePrompt = await storage.getActivePromptVersion();
           
+          // Get the base question to access LOID - FIXING DEMO TO USE LOID-BASED RETRIEVAL
+          const baseQuestion = await storage.getQuestion(questionVersion.questionId);
+          let courseMaterial = null;
+          
+          if (baseQuestion?.loid) {
+            // For demo/unauthenticated routes, derive course from question
+            const courseNumber = await getCourseNumberForQuestion(
+              questionVersion.questionId,
+              undefined // No session context in demo
+            );
+            
+            courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+            
+            // Comprehensive development logging for demo chatbot material retrieval
+            if (process.env.NODE_ENV === 'development') {
+              console.log("╔════════════════════════════════════════════════════════════════════╗");
+              console.log("║              CHATBOT COURSE MATERIAL RETRIEVAL (Demo)             ║");
+              console.log("╠════════════════════════════════════════════════════════════════════╣");
+              console.log("║ Question Details:");
+              console.log("║   - Question ID:", questionVersion.questionId);
+              console.log("║   - Question Version ID:", questionVersionId);
+              console.log("║   - Question Type:", questionVersion.questionType);
+              console.log("║   - User's Chosen Answer:", chosenAnswer);
+              console.log("║   - Correct Answer:", questionVersion.correctAnswer);
+              console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
+              console.log("╠════════════════════════════════════════════════════════════════════╣");
+              console.log("║ LOID & Course Context:");
+              console.log("║   - LOID:", baseQuestion.loid);
+              console.log("║   - Course Number (derived):", courseNumber || "(none - using LOID-only)");
+              console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
+              if (courseMaterial) {
+                console.log("║   - Material ID:", courseMaterial.id);
+                console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+                console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
+                console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+              }
+              console.log("║   - TopicFocus (legacy fallback):", questionVersion.topicFocus ? `${questionVersion.topicFocus.substring(0, 50)}...` : "(none)");
+              console.log("╠════════════════════════════════════════════════════════════════════╣");
+              console.log("║ Chat Context:");
+              console.log("║   - Is Follow-up Message:", !!userMessage);
+              console.log("║   - Conversation History Length:", conversationHistory?.length || 0);
+              console.log("║   - Stream ID:", streamId);
+              console.log("║   - User ID: demo");
+              console.log("║   - Is Mobile:", isMobile || false);
+              console.log("╚════════════════════════════════════════════════════════════════════╝");
+              
+              if (!courseNumber) {
+                console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid} in demo mode, using LOID-only matching (may cause cross-course contamination)`);
+              }
+            }
+          }
+          
+          // Get source material - prefer LOID-based material, fallback to topicFocus
+          let sourceMaterial = "No additional source material provided.";
+          if (courseMaterial) {
+            // Clean course material for mobile (removes URLs) if needed
+            sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
+            if (process.env.NODE_ENV === 'development') {
+              console.log("✅ Using LOID-based course material for demo chatbot");
+            }
+          } else if (questionVersion.topicFocus) {
+            // Fallback to topicFocus if no LOID material found
+            sourceMaterial = questionVersion.topicFocus;
+            if (process.env.NODE_ENV === 'development') {
+              console.log("⚠️  FALLBACK: Using topicFocus instead of LOID material for demo chatbot");
+            }
+          }
+          
           let prompt;
           let systemMessage: string | undefined;
           
@@ -6551,7 +6619,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
               .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
               .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-              .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+              .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
             
             if (process.env.NODE_ENV === 'development') {
               if (process.env.NODE_ENV === 'development') {
@@ -6602,7 +6670,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
               .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
               .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
               .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-              .replace(/\{\{COURSE_MATERIAL\}\}/g, questionVersion.topicFocus || "No additional source material provided.");
+              .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
             
             // Store the system message for reuse in follow-up messages
             stream.storedSystemMessage = systemMessage;
