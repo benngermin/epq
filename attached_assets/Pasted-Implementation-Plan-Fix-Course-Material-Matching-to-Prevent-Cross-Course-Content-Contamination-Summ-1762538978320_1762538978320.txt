@@ -1,0 +1,130 @@
+Implementation Plan: Fix Course Material Matching to Prevent Cross-Course Content Contamination
+Summary & Context
+I have an educational application where students practice questions and receive AI-generated feedback when they get answers wrong. The AI chatbot uses course material content to provide contextual explanations.
+
+Current Problem: The system currently matches course materials using only the LOID (Learning Object ID). Since LOIDs can be shared across multiple courses (e.g., the same learning object appears in both "CPCU 500" and "AIC 303"), the wrong course's material might be returned, causing incorrect or irrelevant explanations.
+
+Required Solution: Update the getCourseMaterialByLoid function to match on both LOID AND course number to ensure the correct course-specific material is always retrieved.
+
+Data Structure Context
+The course_materials table has these fields:
+
+loid (text): Learning Object ID - can exist in multiple courses
+course (text): Course number like "CPCU 500", "AIC 303"
+assignment (text): Assignment name (we're ignoring this for now)
+content (text): The actual learning material content
+The hierarchy is: Courses → Assignments → Learning Objects
+
+Implementation Instructions
+I need you to implement a fix for the course material matching system. Here are the specific changes needed:
+
+Step 1: Update the Storage Interface
+Modify the IStorage interface in server/storage.ts to update the getCourseMaterialByLoid method signature:
+
+// Change from:
+getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined>;
+// To:
+getCourseMaterialByLoid(
+  loid: string, 
+  courseNumber?: string
+): Promise<CourseMaterial | undefined>;
+
+Step 2: Update the Storage Implementation
+In the DbStorage class in server/storage.ts, update the getCourseMaterialByLoid implementation:
+
+If courseNumber is provided, match on both LOID and course
+Fall back to LOID-only matching for backward compatibility
+Handle AI/Non-AI course variants (e.g., "CPCU 500" should match "CPCU 500 AI")
+The implementation should:
+
+First try exact match on LOID + course
+Then try base course match (for AI/Non-AI variants)
+Finally fall back to LOID-only if no course provided
+Step 3: Create Helper Function for Course Resolution
+Add a new helper function in server/routes.ts to get the course number for a question:
+
+async function getCourseNumberForQuestion(
+  questionId: number,
+  sessionCourseNumber?: string
+): Promise<string | undefined> {
+  // If session has course number, use it
+  if (sessionCourseNumber) return sessionCourseNumber;
+  
+  // Otherwise derive from question relationships
+  // Question → QuestionSet → CourseQuestionSets → Course
+  // Return the course number
+}
+
+Step 4: Update Session to Store Course Number
+In the authentication flow (server/auth.ts or server/cognito-auth.ts), when a user logs in and we have a courseId:
+
+Look up the course to get its courseNumber
+Store both courseId and courseNumber in the session
+This eliminates the need for repeated lookups
+Step 5: Update All Chatbot Endpoints
+Update these endpoints to pass course context to getCourseMaterialByLoid:
+
+/api/chatbot/stream-sse (authenticated route)
+/api/chatbot (fallback non-streaming)
+/api/demo/chatbot/stream-sse (unauthenticated demo)
+/api/mobile-view/chatbot/stream-sse (unauthenticated mobile)
+For each endpoint, in the section where it calls getCourseMaterialByLoid:
+
+// Old code:
+if (baseQuestion?.loid) {
+  courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+}
+// New code:
+if (baseQuestion?.loid) {
+  // Get course context (from session or derive from question)
+  const courseNumber = await getCourseNumberForQuestion(
+    questionVersion.questionId,
+    req.session?.courseNumber
+  );
+  
+  courseMaterial = await storage.getCourseMaterialByLoid(
+    baseQuestion.loid,
+    courseNumber
+  );
+  
+  // Log when falling back to LOID-only
+  if (!courseNumber && process.env.NODE_ENV === 'development') {
+    console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
+  }
+}
+
+Step 6: Handle Demo/Mobile Routes
+For unauthenticated routes (/api/demo/* and /api/mobile-view/*):
+
+These don't have session context
+Derive course number from the question's relationships
+The helper function should handle this automatically
+Step 7: Update the SQL Query Logic
+In the getCourseMaterialByLoid implementation, use proper SQL to handle:
+
+Exact course match
+Base course match (for AI/Non-AI variants)
+Fallback to LOID-only
+Make sure to:
+
+Handle null courseNumber gracefully
+Use LIMIT 1 to get consistent results
+Log when multiple matches are found (for debugging)
+Testing Instructions
+After implementation, test these scenarios:
+
+Normal authenticated flow: User logs in to a course, gets a question wrong, chatbot should use that course's material
+Demo flow: Unauthenticated user in demo mode should still get appropriate course material
+Cross-course LOID: If you add the same LOID to multiple courses in the database, ensure the correct course's material is returned
+Backward compatibility: Routes without course context should still work (with warning logs)
+Expected Behavior
+When course context is available: Return course-specific material
+When course context is missing: Fall back to LOID-only matching (current behavior)
+Log warnings in development when falling back
+No breaking changes to existing functionality
+Important Notes
+We're NOT matching on assignment at this time - just LOID + course
+The course field in course_materials contains text like "CPCU 500", not integer IDs
+Session may store courseId (integer) so you'll need to look up the courseNumber
+Some courses have AI/Non-AI variants that should be handled (e.g., "CPCU 500" and "CPCU 500 AI")
+This implementation will prevent cross-course content contamination while maintaining backward compatibility.
