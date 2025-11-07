@@ -2712,9 +2712,43 @@ export function registerRoutes(app: Express): Server {
         
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
         
-        // Log when falling back to LOID-only
-        if (!courseNumber && process.env.NODE_ENV === 'development') {
-          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
+        // Comprehensive development logging for SSE chatbot material retrieval
+        if (process.env.NODE_ENV === 'development') {
+          console.log("╔════════════════════════════════════════════════════════════════════╗");
+          console.log("║         CHATBOT COURSE MATERIAL RETRIEVAL (SSE Endpoint)          ║");
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ Question Details:");
+          console.log("║   - Question ID:", questionVersion.questionId);
+          console.log("║   - Question Version ID:", questionVersionId);
+          console.log("║   - Question Type:", questionVersion.questionType);
+          console.log("║   - User's Chosen Answer:", chosenAnswer);
+          console.log("║   - Correct Answer:", questionVersion.correctAnswer);
+          console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ LOID & Course Context:");
+          console.log("║   - LOID:", baseQuestion.loid);
+          console.log("║   - Session Course Number:", req.session?.courseNumber || "(none)");
+          console.log("║   - Derived Course Number:", courseNumber || "(none - using LOID-only)");
+          console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
+          if (courseMaterial) {
+            console.log("║   - Material ID:", courseMaterial.id);
+            console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+            console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
+            console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+            console.log("║   - First 100 chars of content:", courseMaterial.content?.substring(0, 100) + "...");
+          }
+          console.log("║   - TopicFocus (fallback):", questionVersion.topicFocus ? `${questionVersion.topicFocus.substring(0, 50)}...` : "(none)");
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ Chat Context:");
+          console.log("║   - Is Follow-up Message:", !!userMessage);
+          console.log("║   - Conversation History Length:", conversationHistory?.length || 0);
+          console.log("║   - User ID:", userId);
+          console.log("║   - Is Mobile:", isMobile || false);
+          console.log("╚════════════════════════════════════════════════════════════════════╝");
+          
+          if (!courseNumber) {
+            console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid}, using LOID-only matching (may cause cross-course contamination)`);
+          }
         }
       }
       
