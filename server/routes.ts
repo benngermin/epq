@@ -560,6 +560,45 @@ async function streamOpenRouterToBuffer(
   // This prevents double cleanup and timing conflicts
 }
 
+// Helper function to get course number for a question
+async function getCourseNumberForQuestion(
+  questionId: number,
+  sessionCourseNumber?: string
+): Promise<string | undefined> {
+  // If session has course number, use it
+  if (sessionCourseNumber) return sessionCourseNumber;
+  
+  // Otherwise derive from question relationships
+  // Question → QuestionSet → CourseQuestionSets → Course
+  try {
+    const result = await db.select({
+      courseNumber: courses.courseNumber
+    })
+      .from(questions)
+      .innerJoin(questionSets, eq(questions.questionSetId, questionSets.id))
+      .innerJoin(courseQuestionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
+      .innerJoin(courses, eq(courseQuestionSets.courseId, courses.id))
+      .where(eq(questions.id, questionId))
+      .limit(1);
+    
+    if (result[0]) {
+      return result[0].courseNumber;
+    }
+    
+    // Log when we can't find course for question
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Warning: Could not find course number for question ID ${questionId}`);
+    }
+    
+    return undefined;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`Error getting course number for question ${questionId}:`, error);
+    }
+    return undefined;
+  }
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -2278,10 +2317,18 @@ export function registerRoutes(app: Express): Server {
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        if (courseMaterial) {
+        // Derive course from question relationships
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          undefined // No session context available
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
         }
       }
 
@@ -2657,7 +2704,18 @@ export function registerRoutes(app: Express): Server {
       let courseMaterial = null;
       
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        // Get course context (from session or derive from question)
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          req.session?.courseNumber
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
+        }
       }
       
       const aiSettings = await storage.getAiSettings();
@@ -2992,10 +3050,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        if (courseMaterial) {
+        // Derive course from question relationships
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          undefined // No session context available
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
         }
       }
 
@@ -3204,10 +3270,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const baseQuestion = await storage.getQuestion(questionVersion.questionId);
       let courseMaterial = null;
       
-      
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
-        if (courseMaterial) {
+        // Get course context (from session or derive from question)
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          req.session?.courseNumber
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
         }
       }
 
@@ -3417,7 +3491,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
         if (process.env.NODE_ENV === 'development') {
           console.log(`Fetching course material for LOID: ${question[0].loid}`);
         }
-        const courseMaterial = await storage.getCourseMaterialByLoid(question[0].loid);
+        // For static explanation generation, derive course from question
+        const courseNumber = await getCourseNumberForQuestion(
+          question[0].id,
+          undefined // No session context for static generation
+        );
+        
+        const courseMaterial = await storage.getCourseMaterialByLoid(question[0].loid, courseNumber);
         if (courseMaterial) {
           learningContent = courseMaterial.content;
           if (process.env.NODE_ENV === 'development') {
@@ -6688,7 +6768,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let courseMaterial = null;
       
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        // For demo/unauthenticated routes, derive course from question
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          undefined // No session context in demo mode
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid} in demo mode, using LOID-only matching`);
+        }
       }
       
       const aiSettings = await storage.getAiSettings();
@@ -7114,7 +7205,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let courseMaterial = null;
       
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        // For mobile-view/unauthenticated routes, derive course from question
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          undefined // No session context in mobile view
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid} in mobile view init, using LOID-only matching`);
+        }
       }
       
       // Get AI settings
@@ -7300,7 +7402,18 @@ Remember, your goal is to support student comprehension through meaningful feedb
       let courseMaterial = null;
       
       if (baseQuestion?.loid) {
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid);
+        // For mobile/unauthenticated routes, derive course from question
+        const courseNumber = await getCourseNumberForQuestion(
+          questionVersion.questionId,
+          undefined // No session context in mobile view
+        );
+        
+        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        // Log when falling back to LOID-only
+        if (!courseNumber && process.env.NODE_ENV === 'development') {
+          console.log(`Warning: No course context for LOID ${baseQuestion.loid} in mobile view, using LOID-only matching`);
+        }
       }
       
       const aiSettings = await storage.getAiSettings();
@@ -8340,7 +8453,13 @@ Remember, your goal is to support student comprehension through meaningful feedb
       // Get learning content from courseMaterials using the question's LOID
       let learningContent = "";
       if (question.loid) {
-        const courseMaterial = await storage.getCourseMaterialByLoid(question.loid);
+        // For admin endpoint, derive course from question
+        const courseNumber = await getCourseNumberForQuestion(
+          questionId,
+          req.session?.courseNumber
+        );
+        
+        const courseMaterial = await storage.getCourseMaterialByLoid(question.loid, courseNumber);
         if (courseMaterial) {
           learningContent = courseMaterial.content;
         } else {

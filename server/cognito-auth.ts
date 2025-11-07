@@ -284,6 +284,9 @@ export class CognitoAuth {
             }
 
             if (course) {
+              // Store courseNumber in session for use in chatbot endpoints
+              req.session.courseNumber = course.courseNumber;
+              
               // Get the first question set for this course
               const questionSets = await storage.getQuestionSetsByCourse(course.id);
               if (process.env.NODE_ENV === 'development') {

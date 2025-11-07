@@ -275,7 +275,7 @@ export interface IStorage {
   updateQuestionSetCount(questionSetId: number): Promise<void>;
   
   // Course material methods
-  getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined>;
+  getCourseMaterialByLoid(loid: string, courseNumber?: string): Promise<CourseMaterial | undefined>;
   
   // Chatbot log methods
   getChatbotLogs(): Promise<ChatbotLog[]>;
@@ -2258,80 +2258,148 @@ export class DatabaseStorage implements IStorage {
     return { imported, updated, skipped };
   }
 
-  async getCourseMaterialByLoid(loid: string): Promise<CourseMaterial | undefined> {
-    // First try exact match
-    let result = await db.select()
-      .from(courseMaterials)
-      .where(eq(courseMaterials.loid, loid))
-      .limit(1);
+  async getCourseMaterialByLoid(loid: string, courseNumber?: string): Promise<CourseMaterial | undefined> {
+    let result: CourseMaterial[] = [];
     
-    // If no exact match, try without leading zeros from input
-    if (!result[0] && loid) {
-      const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+    // If courseNumber is provided, try course-specific matching first
+    if (courseNumber) {
+      // First try exact match on LOID + course
       result = await db.select()
         .from(courseMaterials)
-        .where(eq(courseMaterials.loid, loidWithoutLeadingZeros))
-        .limit(1);
-    }
-    
-    // If still no match, try matching with version suffix pattern (case-insensitive)
-    if (!result[0] && loid) {
-      result = await db.select()
-        .from(courseMaterials)
-        .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`)
-        .limit(1);
-    }
-    
-    // If still no match, try version suffix pattern without leading zeros
-    if (!result[0] && loid) {
-      const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
-      result = await db.select()
-        .from(courseMaterials)
-        .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`)
-        .limit(1);
-    }
-    
-    // NEW STRATEGY: Normalize database LOIDs by removing leading zeros AND version suffixes
-    // This handles cases where question has "7198" but database has "07198.v3"
-    if (!result[0] && loid) {
-      // Normalize the input LOID (remove leading zeros)
-      const normalizedInputLoid = loid.replace(/^0+/, '') || '0'; // Keep '0' if all zeros
-      
-      // Query using SQL to normalize database LOIDs
-      // Remove leading zeros: REGEXP_REPLACE(loid, '^0+', '', 'g')
-      // Remove version suffix: REGEXP_REPLACE(..., '\.[^.]+$', '', 'g')
-      result = await db.select()
-        .from(courseMaterials)
-        .where(sql`
-          REGEXP_REPLACE(
-            REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
-            '\.[^.]+$', '', 'g'
-          ) = ${normalizedInputLoid}
-        `)
+        .where(and(
+          eq(courseMaterials.loid, loid),
+          eq(courseMaterials.course, courseNumber)
+        ))
         .limit(1);
       
-      // Log for debugging when this strategy is used
-      if (result[0]) {
-        console.log(`LOID match found using normalization: Question LOID "${loid}" matched with Course Material LOID "${result[0].loid}"`);
+      // If no exact match, try without leading zeros from input
+      if (!result[0] && loid) {
+        const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+        result = await db.select()
+          .from(courseMaterials)
+          .where(and(
+            eq(courseMaterials.loid, loidWithoutLeadingZeros),
+            eq(courseMaterials.course, courseNumber)
+          ))
+          .limit(1);
+      }
+      
+      // If still no match, try base course matching (for AI/Non-AI variants)
+      if (!result[0]) {
+        // Remove "AI" or "Non-AI" suffix from course number to get base course
+        const baseCourseNumber = courseNumber.replace(/\s+(AI|Non-AI)$/i, '').trim();
+        
+        if (baseCourseNumber !== courseNumber) {
+          // Try matching with base course number
+          result = await db.select()
+            .from(courseMaterials)
+            .where(and(
+              eq(courseMaterials.loid, loid),
+              sql`${courseMaterials.course} LIKE ${baseCourseNumber} || '%'`
+            ))
+            .limit(1);
+          
+          // If still no match, try without leading zeros
+          if (!result[0] && loid) {
+            const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+            result = await db.select()
+              .from(courseMaterials)
+              .where(and(
+                eq(courseMaterials.loid, loidWithoutLeadingZeros),
+                sql`${courseMaterials.course} LIKE ${baseCourseNumber} || '%'`
+              ))
+              .limit(1);
+          }
+        }
+      }
+      
+      // Log when we have course context but no match found
+      if (!result[0] && process.env.NODE_ENV === 'development') {
+        console.log(`No course-specific material found for LOID ${loid} in course ${courseNumber}, falling back to LOID-only matching`);
       }
     }
     
-    // Final fallback: Try with leading zeros added to input and normalized database LOIDs
-    // This handles edge cases where input might be missing leading zeros
-    if (!result[0] && loid) {
-      // Pad the input with a leading zero if it doesn't have one
-      const paddedLoid = loid.match(/^0/) ? loid : '0' + loid;
-      const normalizedPaddedLoid = paddedLoid.replace(/^0+/, '') || '0';
-      
+    // Fall back to LOID-only matching (current behavior)
+    if (!result[0]) {
+      // First try exact match
       result = await db.select()
         .from(courseMaterials)
-        .where(sql`
-          REGEXP_REPLACE(
-            REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
-            '\.[^.]+$', '', 'g'
-          ) = ${normalizedPaddedLoid}
-        `)
+        .where(eq(courseMaterials.loid, loid))
         .limit(1);
+      
+      // If no exact match, try without leading zeros from input
+      if (!result[0] && loid) {
+        const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+        result = await db.select()
+          .from(courseMaterials)
+          .where(eq(courseMaterials.loid, loidWithoutLeadingZeros))
+          .limit(1);
+      }
+      
+      // If still no match, try matching with version suffix pattern (case-insensitive)
+      if (!result[0] && loid) {
+        result = await db.select()
+          .from(courseMaterials)
+          .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`)
+          .limit(1);
+      }
+      
+      // If still no match, try version suffix pattern without leading zeros
+      if (!result[0] && loid) {
+        const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+        result = await db.select()
+          .from(courseMaterials)
+          .where(sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`)
+          .limit(1);
+      }
+      
+      // NEW STRATEGY: Normalize database LOIDs by removing leading zeros AND version suffixes
+      // This handles cases where question has "7198" but database has "07198.v3"
+      if (!result[0] && loid) {
+        // Normalize the input LOID (remove leading zeros)
+        const normalizedInputLoid = loid.replace(/^0+/, '') || '0'; // Keep '0' if all zeros
+        
+        // Query using SQL to normalize database LOIDs
+        // Remove leading zeros: REGEXP_REPLACE(loid, '^0+', '', 'g')
+        // Remove version suffix: REGEXP_REPLACE(..., '\.[^.]+$', '', 'g')
+        result = await db.select()
+          .from(courseMaterials)
+          .where(sql`
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
+              '\.[^.]+$', '', 'g'
+            ) = ${normalizedInputLoid}
+          `)
+          .limit(1);
+        
+        // Log for debugging when this strategy is used
+        if (result[0]) {
+          console.log(`LOID match found using normalization: Question LOID "${loid}" matched with Course Material LOID "${result[0].loid}"`);
+        }
+      }
+      
+      // Final fallback: Try with leading zeros added to input and normalized database LOIDs
+      // This handles edge cases where input might be missing leading zeros
+      if (!result[0] && loid) {
+        // Pad the input with a leading zero if it doesn't have one
+        const paddedLoid = loid.match(/^0/) ? loid : '0' + loid;
+        const normalizedPaddedLoid = paddedLoid.replace(/^0+/, '') || '0';
+        
+        result = await db.select()
+          .from(courseMaterials)
+          .where(sql`
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(${courseMaterials.loid}, '^0+', '', 'g'),
+              '\.[^.]+$', '', 'g'
+            ) = ${normalizedPaddedLoid}
+          `)
+          .limit(1);
+      }
+      
+      // Log when falling back to LOID-only
+      if (courseNumber && result[0] && process.env.NODE_ENV === 'development') {
+        console.log(`Warning: No course context for LOID ${loid}, using LOID-only matching (found in course ${result[0].course})`);
+      }
     }
     
     return result[0];
