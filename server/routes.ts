@@ -7313,9 +7313,41 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
         
-        // Log when falling back to LOID-only
-        if (!courseNumber && process.env.NODE_ENV === 'development') {
-          console.log(`Warning: No course context for LOID ${baseQuestion.loid} in mobile view init, using LOID-only matching`);
+        // Comprehensive development logging for mobile-view chatbot material retrieval
+        if (process.env.NODE_ENV === 'development') {
+          console.log("╔════════════════════════════════════════════════════════════════════╗");
+          console.log("║           CHATBOT COURSE MATERIAL RETRIEVAL (Mobile-View)         ║");
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ Question Details:");
+          console.log("║   - Question ID:", questionVersion.questionId);
+          console.log("║   - Question Version ID:", questionVersionId);
+          console.log("║   - Question Type:", questionVersion.questionType);
+          console.log("║   - User's Chosen Answer:", chosenAnswer);
+          console.log("║   - Correct Answer:", questionVersion.correctAnswer);
+          console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ LOID & Course Context:");
+          console.log("║   - LOID:", baseQuestion.loid);
+          console.log("║   - Course Number (derived):", courseNumber || "(none - using LOID-only)");
+          console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
+          if (courseMaterial) {
+            console.log("║   - Material ID:", courseMaterial.id);
+            console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+            console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
+            console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+          }
+          console.log("╠════════════════════════════════════════════════════════════════════╣");
+          console.log("║ Chat Context:");
+          console.log("║   - Is Follow-up Message:", !!userMessage);
+          console.log("║   - Conversation History Length:", conversationHistory?.length || 0);
+          console.log("║   - Stream ID:", streamId);
+          console.log("║   - User ID: mobile-view");
+          console.log("║   - Is Mobile:", isMobile || false);
+          console.log("╚════════════════════════════════════════════════════════════════════╝");
+          
+          if (!courseNumber) {
+            console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid} in mobile view init, using LOID-only matching (may cause cross-course contamination)`);
+          }
         }
       }
       
