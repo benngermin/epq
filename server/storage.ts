@@ -2284,6 +2284,29 @@ export class DatabaseStorage implements IStorage {
           .limit(1);
       }
       
+      // Try matching with version suffix (e.g., LOID "02032" matches "02032.v5")
+      if (!result[0] && loid) {
+        result = await db.select()
+          .from(courseMaterials)
+          .where(and(
+            sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`,
+            eq(courseMaterials.course, courseNumber)
+          ))
+          .limit(1);
+      }
+      
+      // Try version suffix matching without leading zeros
+      if (!result[0] && loid) {
+        const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+        result = await db.select()
+          .from(courseMaterials)
+          .where(and(
+            sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`,
+            eq(courseMaterials.course, courseNumber)
+          ))
+          .limit(1);
+      }
+      
       // If still no match, try base course matching (for AI/Non-AI variants)
       if (!result[0]) {
         // Remove "AI" or "Non-AI" suffix from course number to get base course
@@ -2306,6 +2329,29 @@ export class DatabaseStorage implements IStorage {
               .from(courseMaterials)
               .where(and(
                 eq(courseMaterials.loid, loidWithoutLeadingZeros),
+                sql`${courseMaterials.course} LIKE ${baseCourseNumber} || '%'`
+              ))
+              .limit(1);
+          }
+          
+          // Try version suffix matching with base course
+          if (!result[0] && loid) {
+            result = await db.select()
+              .from(courseMaterials)
+              .where(and(
+                sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loid}) || '.%'`,
+                sql`${courseMaterials.course} LIKE ${baseCourseNumber} || '%'`
+              ))
+              .limit(1);
+          }
+          
+          // Try version suffix matching with base course and without leading zeros
+          if (!result[0] && loid) {
+            const loidWithoutLeadingZeros = loid.replace(/^0+/, '');
+            result = await db.select()
+              .from(courseMaterials)
+              .where(and(
+                sql`LOWER(${courseMaterials.loid}) LIKE LOWER(${loidWithoutLeadingZeros}) || '.%'`,
                 sql`${courseMaterials.course} LIKE ${baseCourseNumber} || '%'`
               ))
               .limit(1);
