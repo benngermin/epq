@@ -25,13 +25,15 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, feedbackType }: Feedb
   useEffect(() => {
     if (isOpen) {
       setMessage("");
-      // Focus textarea when modal opens
-      setTimeout(() => {
-        const textarea = document.querySelector('textarea');
-        textarea?.focus();
-      }, 100);
+      // Focus textarea when modal opens (but skip for mobile-view to prevent unwanted keyboard)
+      if (!isMobileView) {
+        setTimeout(() => {
+          const textarea = document.querySelector('textarea');
+          textarea?.focus();
+        }, 100);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isMobileView]);
 
   // Handle ESC key press
   useEffect(() => {

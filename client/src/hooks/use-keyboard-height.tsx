@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface KeyboardState {
   isVisible: boolean;
@@ -14,6 +14,10 @@ export function useKeyboardHeight(): KeyboardState {
     isVisible: false,
     height: 0
   });
+  
+  // Use refs to track dynamic baseline height
+  const baselineHeightRef = useRef<number>(0);
+  const lastOrientationRef = useRef<string>("");
 
   useEffect(() => {
     // Check if Visual Viewport API is available
@@ -21,21 +25,43 @@ export function useKeyboardHeight(): KeyboardState {
       return;
     }
 
-    // Store initial viewport height
-    const initialHeight = window.visualViewport.height;
-    const windowHeight = window.innerHeight;
+    // Initialize baseline height
+    baselineHeightRef.current = window.innerHeight;
+    lastOrientationRef.current = window.screen.orientation?.type || "";
 
     const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || windowHeight;
-      const heightDifference = windowHeight - currentHeight;
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
       
-      // Consider keyboard visible if viewport height reduces by more than 100px
-      // This threshold helps avoid false positives from browser UI changes
-      const keyboardVisible = heightDifference > 100;
+      const currentOrientation = window.screen.orientation?.type || "";
+      const currentWindowHeight = window.innerHeight;
+      
+      // Reset baseline if orientation changed
+      if (currentOrientation !== lastOrientationRef.current) {
+        baselineHeightRef.current = currentWindowHeight;
+        lastOrientationRef.current = currentOrientation;
+      }
+      
+      // Calculate height difference from current baseline
+      const currentViewportHeight = visualViewport.height;
+      const heightDifference = baselineHeightRef.current - currentViewportHeight;
+      
+      // Use multiple signals to detect keyboard:
+      // 1. Viewport height reduces by more than 100px
+      // 2. Visual viewport is offset from top (indicates keyboard push)
+      const hasSignificantReduction = heightDifference > 100;
+      const hasViewportOffset = visualViewport.offsetTop > 0;
+      
+      const keyboardVisible = hasSignificantReduction || hasViewportOffset;
+      
+      // If keyboard just became hidden, reset baseline
+      if (!keyboardVisible && keyboardState.isVisible) {
+        baselineHeightRef.current = currentWindowHeight;
+      }
       
       setKeyboardState({
         isVisible: keyboardVisible,
-        height: keyboardVisible ? heightDifference : 0
+        height: keyboardVisible ? Math.max(heightDifference, 0) : 0
       });
     };
 
@@ -43,6 +69,8 @@ export function useKeyboardHeight(): KeyboardState {
     window.visualViewport.addEventListener('resize', handleViewportChange);
     window.visualViewport.addEventListener('scroll', handleViewportChange);
     
+    // Listen to orientation changes
+    window.addEventListener('orientationchange', handleViewportChange);
     // Also listen to window resize as fallback
     window.addEventListener('resize', handleViewportChange);
     
@@ -52,9 +80,10 @@ export function useKeyboardHeight(): KeyboardState {
     return () => {
       window.visualViewport?.removeEventListener('resize', handleViewportChange);
       window.visualViewport?.removeEventListener('scroll', handleViewportChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
       window.removeEventListener('resize', handleViewportChange);
     };
-  }, []);
+  }, [keyboardState.isVisible]);
 
   return keyboardState;
 }
