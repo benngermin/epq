@@ -917,8 +917,6 @@ export default function QuestionSetPractice() {
                   <span>Questions Answered</span>
                   <span>{Object.keys(userAnswers).length} / {questions?.length || 0}</span>
                 </div>
-                {/* Debug output */}
-                {console.log('[Progress Debug] Current userAnswers:', userAnswers, 'Total:', Object.keys(userAnswers).length)}
               </div>
                 
               {/* Question list - with proper scrolling */}
