@@ -26,6 +26,14 @@ I prefer iterative development with regular, small commits. I value clear, conci
   - Adding safeguards to prevent duplicate initial AI responses
   - Implementing proper cleanup and state management when switching between questions
 
+## Recent Changes (November 2025)
+- **Improved mobile-view feedback submission**: Fixed critical keyboard overlap issues on mobile devices when submitting feedback. Implemented keyboard-aware positioning for the FeedbackModal and navigation controls specifically for the `/mobile-view` path. Changes include:
+  - Created a Visual Viewport API-based keyboard detection hook that properly handles orientation changes and baseline viewport height tracking
+  - Updated FeedbackModal to dynamically position above the keyboard on mobile-view paths with scrollable content areas
+  - Fixed navigation buttons to avoid keyboard overlap by adjusting their position when keyboard is visible
+  - Prevented unwanted keyboard activation by disabling autofocus on mobile-view paths
+  - Enhanced overall mobile responsiveness for better user experience when providing feedback
+
 ## System Architecture
 The application follows a client-server architecture.
 - **Frontend**: Built with React, TypeScript, Vite, Tailwind CSS, and shadcn/ui for a modern, responsive user interface. UI/UX emphasizes a clean, intuitive design suitable for both desktop and mobile views, including specific considerations for webview environments.
