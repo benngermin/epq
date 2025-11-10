@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ function NavigationErrorBoundary({ children }: { children: React.ReactNode }) {
 export default function QuestionSetPractice() {
   const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const isMobile = useIsMobile();
+  const { isVisible: isKeyboardVisible, height: keyboardHeight } = useKeyboardHeight();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/question-set/:id");
   const [demoMatch, demoParams] = useRoute("/demo/question-set/:id");
@@ -1022,11 +1024,20 @@ export default function QuestionSetPractice() {
       </div>
 
       {/* Navigation Controls - Fixed footer on mobile, normal on desktop */}
-      <div className="bg-background border-t border-border flex-shrink-0 
-        fixed bottom-0 left-0 right-0 md:static
-        p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
-        z-30 md:z-auto
-        pointer-events-none">
+      <div 
+        className="bg-background border-t border-border flex-shrink-0 
+          fixed bottom-0 left-0 right-0 md:static
+          p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4 
+          z-30 md:z-auto
+          pointer-events-none"
+        style={{
+          // In mobile-view mode, adjust position when keyboard is visible
+          ...(isMobileView && isMobile && isKeyboardVisible ? {
+            bottom: `${keyboardHeight}px`,
+            transition: 'bottom 0.3s ease-in-out'
+          } : {})
+        }}
+      >
         <NavigationErrorBoundary>
           <div className="max-w-4xl mx-auto flex justify-between pointer-events-auto">
             <Button
