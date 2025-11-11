@@ -7511,6 +7511,62 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       const parsed = feedbackSchema.parse(req.body);
       
+      // Get additional context for feedback and Notion sync
+      let questionText = undefined;
+      let courseName = undefined;
+      let courseNumber = undefined;
+      let courseId = undefined;
+      let questionSetId = undefined;
+      let questionSetTitle = undefined;
+      let questionId = undefined;
+      let loid = undefined;
+      let originalQuestionNumber = undefined;
+      let questionSetDisplayOrder = undefined;
+      
+      if (parsed.questionVersionId) {
+        try {
+          const questionVersion = await storage.getQuestionVersion(parsed.questionVersionId);
+          if (questionVersion) {
+            questionText = questionVersion.questionText;
+            
+            // Get the base question to access LOID and IDs
+            const question = await storage.getQuestion(questionVersion.questionId);
+            if (question) {
+              questionId = question.id;
+              loid = question.loid;
+              originalQuestionNumber = question.originalQuestionNumber;
+              
+              const questionSet = await storage.getQuestionSet(question.questionSetId);
+              if (questionSet) {
+                questionSetId = questionSet.id;
+                questionSetTitle = questionSet.title;
+                
+                // Get courses associated with this question set
+                const courses = await storage.getCoursesForQuestionSet(questionSet.id);
+                if (courses.length > 0) {
+                  const course = courses[0];
+                  courseId = course.id;
+                  courseName = course.courseTitle;
+                  courseNumber = course.courseNumber;
+                  
+                  // Get the display order (question set number) for this question set in this course
+                  questionSetDisplayOrder = await storage.getQuestionSetDisplayOrder(courseId, questionSetId);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching question context:', err);
+          }
+        }
+      }
+
+      // Get the base URL from the request
+      const protocol = req.get('x-forwarded-proto') || req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
       // For mobile-view mode, we store feedback with a special mobile user ID (-2)
       await storage.createChatbotFeedback({
         userId: -2, // Mobile-view user ID
@@ -7519,6 +7575,19 @@ Remember, your goal is to support student comprehension through meaningful feedb
         feedbackMessage: parsed.message || null,
         questionVersionId: parsed.questionVersionId || null,
         conversation: parsed.conversation || null,
+        courseId,
+        questionSetId,
+        questionId,
+        loid,
+        userName: 'Mobile User',
+        userEmail: 'mobile@user.com',
+        questionText,
+        courseName,
+        courseNumber,
+        questionSetTitle,
+        questionNumber: originalQuestionNumber,
+        questionSetNumber: questionSetDisplayOrder,
+        baseUrl,
       });
 
       res.json({ success: true });
