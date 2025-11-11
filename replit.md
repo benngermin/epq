@@ -39,6 +39,7 @@ I prefer iterative development with regular, small commits. I value clear, conci
   - Falls back to window.innerHeight tracking with focus/blur events for Flutter compatibility
   - Provides a global function `window.__flutterKeyboardHeightUpdate` that Flutter apps can call to directly communicate keyboard height
   - Ensures keyboard-aware positioning works in both mobile browsers and Flutter app WebViews
+- **Fixed mobile-view feedback submission error**: Resolved the "Failed to submit feedback" error by updating the mobile-view feedback endpoint to include all required context fields (courseId, questionSetId, loid, etc.) that were missing. Mobile feedback now includes proper course context and user attribution (using 'Mobile User' placeholder) ensuring successful submission and integration with Notion/Slack tracking systems
 
 ## System Architecture
 The application follows a client-server architecture.
