@@ -40,6 +40,7 @@ I prefer iterative development with regular, small commits. I value clear, conci
   - Provides a global function `window.__flutterKeyboardHeightUpdate` that Flutter apps can call to directly communicate keyboard height
   - Ensures keyboard-aware positioning works in both mobile browsers and Flutter app WebViews
 - **Fixed mobile-view feedback submission error**: Resolved the "Failed to submit feedback" error by updating the mobile-view feedback endpoint to include all required context fields (courseId, questionSetId, loid, etc.) that were missing. Mobile feedback now includes proper course context and user attribution (using 'Mobile User' placeholder) ensuring successful submission and integration with Notion/Slack tracking systems
+- **Fixed mobile-view and demo feedback database constraint error** (November 11, 2025): Resolved a critical issue where mobile-view and demo feedback submissions were failing with 500 errors due to foreign key constraint violations. The endpoints were attempting to use special user IDs (-1 for demo, -2 for mobile-view) that didn't exist in the users table. Fixed by using NULL for user_id instead, which respects the foreign key constraint while properly identifying unauthenticated feedback submissions
 
 ## System Architecture
 The application follows a client-server architecture.
