@@ -2732,9 +2732,9 @@ export function registerRoutes(app: Express): Server {
           console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
           if (courseMaterial) {
             console.log("║   - Material ID:", courseMaterial.id);
-            console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+            console.log("║   - Material Course:", courseMaterial.course);
             console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-            console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+            console.log("║   - Material Assignment:", courseMaterial.assignment);
             console.log("║   - First 100 chars of content:", courseMaterial.content?.substring(0, 100) + "...");
           }
           console.log("║   - TopicFocus (fallback):", questionVersion.topicFocus ? `${questionVersion.topicFocus.substring(0, 50)}...` : "(none)");
@@ -3112,9 +3112,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
           if (courseMaterial) {
             console.log("║   - Material ID:", courseMaterial.id);
-            console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+            console.log("║   - Material Course:", courseMaterial.course);
             console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-            console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+            console.log("║   - Material Assignment:", courseMaterial.assignment);
           }
           console.log("╠════════════════════════════════════════════════════════════════════╣");
           console.log("║ Chat Context:");
@@ -6576,9 +6576,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
               console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
               if (courseMaterial) {
                 console.log("║   - Material ID:", courseMaterial.id);
-                console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+                console.log("║   - Material Course:", courseMaterial.course);
                 console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-                console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+                console.log("║   - Material Assignment:", courseMaterial.assignment);
               }
               console.log("║   - TopicFocus (legacy fallback):", questionVersion.topicFocus ? `${questionVersion.topicFocus.substring(0, 50)}...` : "(none)");
               console.log("╠════════════════════════════════════════════════════════════════════╣");
@@ -7366,9 +7366,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
           console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
           if (courseMaterial) {
             console.log("║   - Material ID:", courseMaterial.id);
-            console.log("║   - Material Course Number:", courseMaterial.courseNumber);
+            console.log("║   - Material Course:", courseMaterial.course);
             console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-            console.log("║   - Material Title:", courseMaterial.title || "(no title)");
+            console.log("║   - Material Assignment:", courseMaterial.assignment);
           }
           console.log("╠════════════════════════════════════════════════════════════════════╣");
           console.log("║ Chat Context:");
