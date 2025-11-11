@@ -7,6 +7,8 @@ import { HtmlLinkRenderer } from "@/components/html-link-renderer";
 import { FeedbackButtons } from "@/components/feedback-buttons";
 import { useSSEStream } from "@/hooks/use-sse-stream";
 import { useLocation } from "wouter";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SimpleStreamingChatProps {
   questionVersionId: number;
@@ -32,6 +34,8 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
   
   // Check if we're on mobile view
   const isMobileView = location.startsWith("/mobile-view");
+  const isMobile = useIsMobile();
+  const { isVisible: isKeyboardVisible, height: keyboardHeight } = useKeyboardHeight();
 
   // Set up SSE streaming hook
   const { isStreaming, startStream, stopStream } = useSSEStream({
@@ -316,7 +320,19 @@ export function SimpleStreamingChat({ questionVersionId, chosenAnswer, correctAn
       </div>
 
       {/* Footer with composer and Review Question button */}
-      <div className="sticky bottom-0 bg-white dark:bg-gray-950 border-t z-10">
+      <div 
+        className="sticky bottom-0 bg-white dark:bg-gray-950 border-t z-10"
+        style={{
+          // In mobile-view mode on mobile, adjust position when keyboard is visible
+          ...(isMobileView && isMobile && isKeyboardVisible ? {
+            bottom: `${keyboardHeight}px`,
+            position: 'fixed' as const,
+            left: 0,
+            right: 0,
+            transition: 'bottom 0.3s ease-in-out'
+          } : {})
+        }}
+      >
         <div className="p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
           <div className="flex space-x-2">
             <Input
