@@ -6845,9 +6845,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
       const parsed = feedbackSchema.parse(req.body);
       
-      // For demo mode, we store feedback with a special demo user ID (-1)
+      // For demo mode, we store feedback without a user ID (NULL)
       await storage.createChatbotFeedback({
-        userId: -1, // Demo user ID
+        userId: null, // Demo feedback doesn't require authentication
         messageId: parsed.messageId,
         feedbackType: parsed.type,
         feedbackMessage: parsed.message || null,
@@ -7567,9 +7567,9 @@ Remember, your goal is to support student comprehension through meaningful feedb
       const host = req.get('host');
       const baseUrl = `${protocol}://${host}`;
       
-      // For mobile-view mode, we store feedback with a special mobile user ID (-2)
+      // For mobile-view mode, we store feedback without a user ID (NULL)
       await storage.createChatbotFeedback({
-        userId: -2, // Mobile-view user ID
+        userId: null, // Mobile-view feedback doesn't require authentication
         messageId: parsed.messageId,
         feedbackType: parsed.type,
         feedbackMessage: parsed.message || null,
