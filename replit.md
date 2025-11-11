@@ -34,6 +34,11 @@ I prefer iterative development with regular, small commits. I value clear, conci
   - Prevented unwanted keyboard activation by disabling autofocus on mobile-view paths
   - Enhanced overall mobile responsiveness for better user experience when providing feedback
 - **Fixed chat interface keyboard overlap**: Updated SimpleStreamingChat component to be keyboard-aware on mobile-view paths. The chat input and buttons now properly position themselves above the keyboard when it appears, preventing the keyboard from covering the interface elements
+- **Flutter WebView keyboard compatibility**: Implemented a dual-strategy keyboard detection system that automatically switches between Visual Viewport API (for browsers) and focus/blur event detection (for Flutter WebViews). The system now:
+  - Detects when running in /mobile-view path or WebView environment
+  - Falls back to window.innerHeight tracking with focus/blur events for Flutter compatibility
+  - Provides a global function `window.__flutterKeyboardHeightUpdate` that Flutter apps can call to directly communicate keyboard height
+  - Ensures keyboard-aware positioning works in both mobile browsers and Flutter app WebViews
 
 ## System Architecture
 The application follows a client-server architecture.
