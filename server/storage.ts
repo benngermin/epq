@@ -2914,11 +2914,11 @@ export class DatabaseStorage implements IStorage {
   }> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate || endDate) {
-      dateConditions.push(
-        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
-        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
-      );
+    if (startDate) {
+      dateConditions.push(gte(userAnswers.answeredAt, startDate));
+    }
+    if (endDate) {
+      dateConditions.push(lte(userAnswers.answeredAt, endDate));
     }
 
     // Stats by question set
@@ -2957,7 +2957,15 @@ export class DatabaseStorage implements IStorage {
       successRate: stat.totalAttempts ? Number(stat.correctAttempts) / Number(stat.totalAttempts) * 100 : 0
     }));
 
-    // Most failed questions
+    // Most failed questions - rebuild date conditions for this query
+    const mostFailedDateConditions = [];
+    if (startDate) {
+      mostFailedDateConditions.push(gte(userAnswers.answeredAt, startDate));
+    }
+    if (endDate) {
+      mostFailedDateConditions.push(lte(userAnswers.answeredAt, endDate));
+    }
+
     let mostFailedQuery = db.select({
       questionId: questions.id,
       questionText: questionVersions.questionText,
@@ -2970,8 +2978,8 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id));
     
-    if (dateConditions.length > 0) {
-      mostFailedQuery = mostFailedQuery.where(and(...dateConditions));
+    if (mostFailedDateConditions.length > 0) {
+      mostFailedQuery = mostFailedQuery.where(and(...mostFailedDateConditions));
     }
     
     const mostFailedResult = await mostFailedQuery
@@ -3400,11 +3408,11 @@ export class DatabaseStorage implements IStorage {
   }>> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate || endDate) {
-      dateConditions.push(
-        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
-        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
-      );
+    if (startDate) {
+      dateConditions.push(gte(userAnswers.answeredAt, startDate));
+    }
+    if (endDate) {
+      dateConditions.push(lte(userAnswers.answeredAt, endDate));
     }
 
     let courseStatsQuery = db.select({
