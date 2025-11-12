@@ -22,11 +22,11 @@ interface ChatbotLog {
   createdAt: string;
 }
 
-export function ChatbotLogsSection() {
+export function ChatbotMetricsSection() {
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
 
   const { data: logs = [], isLoading } = useQuery<ChatbotLog[]>({
-    queryKey: ['/api/admin/chatbot-logs'],
+    queryKey: ['/api/admin/chatbot-metrics'],
   });
 
   if (isLoading) {
@@ -35,7 +35,7 @@ export function ChatbotLogsSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Loading Chatbot Logs...
+            Loading Chatbot Metrics...
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -56,7 +56,7 @@ export function ChatbotLogsSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          Chatbot Interaction Logs
+          Chatbot Interaction Metrics
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Total interactions: {logs.length}
@@ -68,7 +68,7 @@ export function ChatbotLogsSection() {
             {logs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No chatbot interactions logged yet</p>
+                <p>No chatbot interactions recorded yet</p>
               </div>
             ) : (
               logs.map((log: ChatbotLog) => (
