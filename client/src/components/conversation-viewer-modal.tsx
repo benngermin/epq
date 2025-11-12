@@ -49,7 +49,7 @@ export function ConversationViewerModal({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/logs/feedback/${feedbackId}`);
+      const response = await fetch(`/api/admin/metrics/feedback/${feedbackId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch conversation");
       }

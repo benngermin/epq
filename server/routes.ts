@@ -4019,7 +4019,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/chatbot-logs", requireAdmin, async (req, res) => {
+  app.get("/api/admin/chatbot-metrics", requireAdmin, async (req, res) => {
     try {
       const logs = await storage.getChatbotLogs();
       res.json(logs);
