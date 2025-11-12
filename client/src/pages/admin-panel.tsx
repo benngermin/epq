@@ -24,8 +24,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { AdminLayout } from "@/components/AdminLayout";
 
-// Lazy load the AppLogsSection component to reduce initial bundle size
-const AppLogsSection = lazy(() => import("@/components/app-logs-section").then(module => ({ default: module.AppLogsSection })));
+// Lazy load the AppMetricsSection component to reduce initial bundle size
+const AppMetricsSection = lazy(() => import("@/components/app-metrics-section").then(module => ({ default: module.AppMetricsSection })));
 import type { AiSettings, PromptVersion } from "@shared/schema";
 
 
@@ -1382,7 +1382,7 @@ export default function AdminPanel() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="content">Content Management</TabsTrigger>
             <TabsTrigger value="settings">Chatbot</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="metrics">Metrics</TabsTrigger>
           </TabsList>
 
           <div className="space-y-6">
@@ -1869,13 +1869,13 @@ export default function AdminPanel() {
               </div>
             </TabsContent>
 
-            {/* Logs Tab */}
-            <TabsContent value="logs">
+            {/* Metrics Tab */}
+            <TabsContent value="metrics">
               <div className="space-y-6">
                 <Suspense fallback={
                   <Card>
                     <CardHeader>
-                      <CardTitle>Loading Logs...</CardTitle>
+                      <CardTitle>Loading Metrics...</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="animate-pulse space-y-4">
@@ -1886,7 +1886,7 @@ export default function AdminPanel() {
                     </CardContent>
                   </Card>
                 }>
-                  <AppLogsSection />
+                  <AppMetricsSection />
                 </Suspense>
               </div>
             </TabsContent>

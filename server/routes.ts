@@ -4029,8 +4029,8 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Comprehensive logs endpoints
-  app.get("/api/admin/logs/overview", requireAdmin, async (req, res) => {
+  // Comprehensive metrics endpoints
+  app.get("/api/admin/metrics/overview", requireAdmin, async (req, res) => {
     try {
       // Disable caching for real-time stats
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -4047,7 +4047,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/users", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/users", requireAdmin, async (req, res) => {
     try {
       const userStats = await storage.getUserStats();
       res.json(userStats);
@@ -4057,7 +4057,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/questions", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/questions", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
@@ -4070,7 +4070,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/courses", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/courses", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
@@ -4083,7 +4083,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/feedback", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/feedback", requireAdmin, async (req, res) => {
     try {
       const feedbackData = await storage.getChatbotFeedback();
       res.json(feedbackData);
@@ -4093,7 +4093,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/feedback/:id", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/feedback/:id", requireAdmin, async (req, res) => {
     try {
       const feedbackId = parseInt(req.params.id);
       if (isNaN(feedbackId)) {
@@ -4112,7 +4112,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/question-set-usage", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/question-set-usage", requireAdmin, async (req, res) => {
     try {
       const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
       
@@ -4134,7 +4134,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/questions-answered", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/questions-answered", requireAdmin, async (req, res) => {
     try {
       const { groupBy = 'day', viewType = 'date', timeRange = 'all' } = req.query;
       
@@ -4156,7 +4156,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/question-set/:questionSetId/details", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/question-set/:questionSetId/details", requireAdmin, async (req, res) => {
     try {
       const questionSetId = parseInt(req.params.questionSetId);
       const { startDate, endDate } = req.query;
@@ -4175,7 +4175,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  app.get("/api/admin/logs/engagement-metrics", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/engagement-metrics", requireAdmin, async (req, res) => {
     try {
       const { period, startDate, endDate } = req.query;
       
@@ -4220,7 +4220,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
   });
 
   // Custom usage summary endpoint for specific date range
-  app.get("/api/admin/logs/usage-summary", requireAdmin, async (req, res) => {
+  app.get("/api/admin/metrics/usage-summary", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
       
