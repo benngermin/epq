@@ -64,7 +64,7 @@ import {
   AreaChart,
   LabelList,
 } from "recharts";
-import { CourseHierarchyMetrics } from "./course-hierarchy-metrics";
+import { CourseHierarchyLogs } from "./course-hierarchy-logs";
 import { ConversationViewerModal } from "./conversation-viewer-modal";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -173,7 +173,7 @@ interface EngagementMetrics {
   retentionRate: number;
 }
 
-export function AppMetricsSection() {
+export function AppLogsSection() {
   // State for time scale filter
   const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month' | 'all'>('day');
   
@@ -198,9 +198,9 @@ export function AppMetricsSection() {
   const { toast } = useToast();
 
   const { data: overallStats, isLoading: overallLoading } = useQuery<OverallStats>({
-    queryKey: ["/api/admin/metrics/overview", timeScale],
+    queryKey: ["/api/admin/logs/overview", timeScale],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/metrics/overview?timeScale=${timeScale}`);
+      const response = await fetch(`/api/admin/logs/overview?timeScale=${timeScale}`);
       if (!response.ok) throw new Error('Failed to fetch overview stats');
       return response.json();
     },
@@ -208,19 +208,19 @@ export function AppMetricsSection() {
   });
 
   const { data: userStats, isLoading: usersLoading } = useQuery<UserStat[]>({
-    queryKey: ["/api/admin/metrics/users"],
+    queryKey: ["/api/admin/logs/users"],
   });
 
   const { data: questionStats, isLoading: questionsLoading } = useQuery<QuestionStats>({
-    queryKey: ["/api/admin/metrics/questions"],
+    queryKey: ["/api/admin/logs/questions"],
   });
 
   const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
-    queryKey: ["/api/admin/metrics/courses"],
+    queryKey: ["/api/admin/logs/courses"],
   });
 
   const { data: feedbackData, isLoading: feedbackLoading } = useQuery<FeedbackData[]>({
-    queryKey: ["/api/admin/metrics/feedback"],
+    queryKey: ["/api/admin/logs/feedback"],
   });
 
   // Check for feedbackId in URL params to auto-open feedback
@@ -252,7 +252,7 @@ export function AppMetricsSection() {
   }, [feedbackData, feedbackLoading]);
 
   const { data: engagementMetrics, isLoading: engagementLoading } = useQuery<EngagementMetrics>({
-    queryKey: ["/api/admin/metrics/engagement-metrics", dateRange],
+    queryKey: ["/api/admin/logs/engagement-metrics", dateRange],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (dateRange?.from) {
@@ -261,7 +261,7 @@ export function AppMetricsSection() {
       if (dateRange?.to) {
         params.append('endDate', format(endOfDay(dateRange.to), 'yyyy-MM-dd'));
       }
-      const response = await fetch(`/api/admin/metrics/engagement-metrics?${params.toString()}`);
+      const response = await fetch(`/api/admin/logs/engagement-metrics?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch engagement metrics');
       return response.json();
     },
@@ -278,9 +278,9 @@ export function AppMetricsSection() {
 
   // Fetch question set usage data
   const { data: questionSetUsageData, isLoading: questionSetUsageLoading } = useQuery<UsageData[]>({
-    queryKey: ["/api/admin/metrics/question-set-usage", { groupBy: questionSetGroupBy, viewType: questionSetViewType, timeRange: questionSetTimeRange }],
+    queryKey: ["/api/admin/logs/question-set-usage", { groupBy: questionSetGroupBy, viewType: questionSetViewType, timeRange: questionSetTimeRange }],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/metrics/question-set-usage?groupBy=${questionSetGroupBy}&viewType=${questionSetViewType}&timeRange=${questionSetTimeRange}`);
+      const response = await fetch(`/api/admin/logs/question-set-usage?groupBy=${questionSetGroupBy}&viewType=${questionSetViewType}&timeRange=${questionSetTimeRange}`);
       if (!response.ok) throw new Error('Failed to fetch question set usage');
       return response.json();
     },
@@ -288,9 +288,9 @@ export function AppMetricsSection() {
 
   // Fetch questions answered data
   const { data: questionsAnsweredData, isLoading: questionsAnsweredLoading } = useQuery<UsageData[]>({
-    queryKey: ["/api/admin/metrics/questions-answered", { groupBy: questionsAnsweredGroupBy, viewType: questionsAnsweredViewType, timeRange: questionsAnsweredTimeRange }],
+    queryKey: ["/api/admin/logs/questions-answered", { groupBy: questionsAnsweredGroupBy, viewType: questionsAnsweredViewType, timeRange: questionsAnsweredTimeRange }],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/metrics/questions-answered?groupBy=${questionsAnsweredGroupBy}&viewType=${questionsAnsweredViewType}&timeRange=${questionsAnsweredTimeRange}`);
+      const response = await fetch(`/api/admin/logs/questions-answered?groupBy=${questionsAnsweredGroupBy}&viewType=${questionsAnsweredViewType}&timeRange=${questionsAnsweredTimeRange}`);
       if (!response.ok) throw new Error('Failed to fetch questions answered');
       return response.json();
     },
@@ -1385,7 +1385,7 @@ export function AppMetricsSection() {
 
         {/* Courses Tab - Now shows hierarchical view */}
         <TabsContent value="courses">
-          <CourseHierarchyMetrics />
+          <CourseHierarchyLogs />
         </TabsContent>
 
         {/* Feedback Tab */}

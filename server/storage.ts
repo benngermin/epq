@@ -2788,11 +2788,11 @@ export class DatabaseStorage implements IStorage {
   }> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate) {
-      dateConditions.push(gte(userAnswers.answeredAt, startDate));
-    }
-    if (endDate) {
-      dateConditions.push(lte(userAnswers.answeredAt, endDate));
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
     }
     // Get question set info
     const questionSetInfo = await db.select({
@@ -2914,15 +2914,15 @@ export class DatabaseStorage implements IStorage {
   }> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate) {
-      dateConditions.push(gte(userAnswers.answeredAt, startDate));
-    }
-    if (endDate) {
-      dateConditions.push(lte(userAnswers.answeredAt, endDate));
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
     }
 
     // Stats by question set
-    let byQuestionSetQuery = db.select({
+    const byQuestionSetQuery = await db.select({
       questionSetId: questionSets.id,
       questionSetTitle: questionSets.title,
       courseTitle: courses.courseTitle,
@@ -2932,22 +2932,16 @@ export class DatabaseStorage implements IStorage {
       incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
     })
     .from(questionSets)
-    .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
-    .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
+    .innerJoin(courses, eq(courses.id, questionSets.courseId))
     .innerJoin(questions, eq(questions.questionSetId, questionSets.id))
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
-    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id));
-    
-    if (dateConditions.length > 0) {
-      byQuestionSetQuery = byQuestionSetQuery.where(and(...dateConditions));
-    }
-    
-    const byQuestionSetResult = await byQuestionSetQuery
-      .groupBy(questionSets.id, questionSets.title, courses.courseTitle, questionSets.isAi)
-      .having(sql`COUNT(${userAnswers.id}) > 0`)
-      .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+    .groupBy(questionSets.id, questionSets.title, courses.courseTitle, questionSets.isAi)
+    .having(sql`COUNT(${userAnswers.id}) > 0`)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
-    const byQuestionSet = byQuestionSetResult.map(stat => ({
+    const byQuestionSet = byQuestionSetQuery.map(stat => ({
       questionSetId: stat.questionSetId,
       questionSetTitle: stat.questionSetTitle,
       courseTitle: stat.courseTitle,
@@ -2958,16 +2952,8 @@ export class DatabaseStorage implements IStorage {
       successRate: stat.totalAttempts ? Number(stat.correctAttempts) / Number(stat.totalAttempts) * 100 : 0
     }));
 
-    // Most failed questions - rebuild date conditions for this query
-    const mostFailedDateConditions = [];
-    if (startDate) {
-      mostFailedDateConditions.push(gte(userAnswers.answeredAt, startDate));
-    }
-    if (endDate) {
-      mostFailedDateConditions.push(lte(userAnswers.answeredAt, endDate));
-    }
-
-    let mostFailedQuery = db.select({
+    // Most failed questions
+    const mostFailedQuery = await db.select({
       questionId: questions.id,
       questionText: questionVersions.questionText,
       questionSetTitle: questionSets.title,
@@ -2977,19 +2963,14 @@ export class DatabaseStorage implements IStorage {
     .from(questions)
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .innerJoin(questionSets, eq(questionSets.id, questions.questionSetId))
-    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id));
-    
-    if (mostFailedDateConditions.length > 0) {
-      mostFailedQuery = mostFailedQuery.where(and(...mostFailedDateConditions));
-    }
-    
-    const mostFailedResult = await mostFailedQuery
+    .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
     .groupBy(questions.id, questionVersions.questionText, questionSets.title)
     .having(sql`COUNT(${userAnswers.id}) > 0 AND SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END) > 0`)
     .orderBy(desc(sql`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`))
     .limit(20);
 
-    const mostFailedQuestions = mostFailedResult.map(stat => ({
+    const mostFailedQuestions = mostFailedQuery.map(stat => ({
       questionId: stat.questionId,
       questionText: stat.questionText.substring(0, 100) + (stat.questionText.length > 100 ? '...' : ''),
       questionSetTitle: stat.questionSetTitle,
@@ -3409,14 +3390,14 @@ export class DatabaseStorage implements IStorage {
   }>> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate) {
-      dateConditions.push(gte(userAnswers.answeredAt, startDate));
-    }
-    if (endDate) {
-      dateConditions.push(lte(userAnswers.answeredAt, endDate));
+    if (startDate || endDate) {
+      dateConditions.push(
+        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
+        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
+      );
     }
 
-    let courseStatsQuery = db.select({
+    const courseStatsQuery = await db.select({
       courseId: courses.id,
       courseNumber: courses.courseNumber,
       courseTitle: courses.courseTitle,
@@ -3428,22 +3409,16 @@ export class DatabaseStorage implements IStorage {
       correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`
     })
     .from(courses)
-    .leftJoin(courseQuestionSets, eq(courseQuestionSets.courseId, courses.id))
-    .leftJoin(questionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
+    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
     .leftJoin(questions, eq(questions.questionSetId, questionSets.id))
     .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
-    .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId));
-    
-    if (dateConditions.length > 0) {
-      courseStatsQuery = courseStatsQuery.where(and(...dateConditions));
-    }
-    
-    const courseStatsResult = await courseStatsQuery
-      .groupBy(courses.id, courses.courseNumber, courses.courseTitle, courses.isAi)
-      .orderBy(desc(sql`COUNT(${userAnswers.id})`));
+    .leftJoin(userTestRuns, eq(userTestRuns.id, userAnswers.userTestRunId))
+    .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+    .groupBy(courses.id, courses.courseNumber, courses.courseTitle, courses.isAi)
+    .orderBy(desc(sql`COUNT(${userAnswers.id})`));
 
-    return courseStatsResult.map(stat => ({
+    return courseStatsQuery.map(stat => ({
       courseId: stat.courseId,
       courseNumber: stat.courseNumber,
       courseTitle: stat.courseTitle,

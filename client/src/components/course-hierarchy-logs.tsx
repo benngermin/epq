@@ -100,7 +100,7 @@ interface QuestionSetDetailedStats {
   }>;
 }
 
-export function CourseHierarchyMetrics() {
+export function CourseHierarchyLogs() {
   const [expandedCourses, setExpandedCourses] = useState<Set<number>>(new Set());
   const [expandedQuestionSets, setExpandedQuestionSets] = useState<Set<number>>(new Set());
   const [questionSetDetails, setQuestionSetDetails] = useState<Map<number, QuestionSetDetailedStats>>(new Map());
@@ -121,9 +121,9 @@ export function CourseHierarchyMetrics() {
 
   // Fetch course stats
   const { data: courseStats, isLoading: coursesLoading } = useQuery<CourseStat[]>({
-    queryKey: ["/api/admin/metrics/courses", queryString],
+    queryKey: ["/api/admin/logs/courses", queryString],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/metrics/courses${queryString ? `?${queryString}` : ''}`);
+      const response = await fetch(`/api/admin/logs/courses${queryString ? `?${queryString}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch courses');
       return response.json();
     },
@@ -133,9 +133,9 @@ export function CourseHierarchyMetrics() {
   const { data: questionStats, isLoading: questionsLoading } = useQuery<{
     byQuestionSet: QuestionSetStat[];
   }>({
-    queryKey: ["/api/admin/metrics/questions", queryString],
+    queryKey: ["/api/admin/logs/questions", queryString],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/metrics/questions${queryString ? `?${queryString}` : ''}`);
+      const response = await fetch(`/api/admin/logs/questions${queryString ? `?${queryString}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch questions');
       return response.json();
     },
@@ -152,7 +152,7 @@ export function CourseHierarchyMetrics() {
     setLoadingQuestionSets(prev => new Set(prev).add(questionSetId));
     
     try {
-      const response = await fetch(`/api/admin/metrics/question-set/${questionSetId}/details${queryString ? `?${queryString}` : ''}`);
+      const response = await fetch(`/api/admin/logs/question-set/${questionSetId}/details${queryString ? `?${queryString}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch question set details');
       const data: QuestionSetDetailedStats = await response.json();
       
