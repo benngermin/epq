@@ -2788,11 +2788,11 @@ export class DatabaseStorage implements IStorage {
   }> {
     // Build date conditions
     const dateConditions = [];
-    if (startDate || endDate) {
-      dateConditions.push(
-        ...(startDate ? [gte(userAnswers.answeredAt, startDate)] : []),
-        ...(endDate ? [lte(userAnswers.answeredAt, endDate)] : [])
-      );
+    if (startDate) {
+      dateConditions.push(gte(userAnswers.answeredAt, startDate));
+    }
+    if (endDate) {
+      dateConditions.push(lte(userAnswers.answeredAt, endDate));
     }
     // Get question set info
     const questionSetInfo = await db.select({
@@ -2932,7 +2932,8 @@ export class DatabaseStorage implements IStorage {
       incorrectAttempts: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 0 ELSE 1 END)`
     })
     .from(questionSets)
-    .innerJoin(courses, eq(courses.id, questionSets.courseId))
+    .innerJoin(courseQuestionSets, eq(courseQuestionSets.questionSetId, questionSets.id))
+    .innerJoin(courses, eq(courses.id, courseQuestionSets.courseId))
     .innerJoin(questions, eq(questions.questionSetId, questionSets.id))
     .innerJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id));
@@ -3427,7 +3428,8 @@ export class DatabaseStorage implements IStorage {
       correctAnswers: sql<number>`SUM(CASE WHEN ${userAnswers.isCorrect} THEN 1 ELSE 0 END)`
     })
     .from(courses)
-    .leftJoin(questionSets, eq(questionSets.courseId, courses.id))
+    .leftJoin(courseQuestionSets, eq(courseQuestionSets.courseId, courses.id))
+    .leftJoin(questionSets, eq(questionSets.id, courseQuestionSets.questionSetId))
     .leftJoin(questions, eq(questions.questionSetId, questionSets.id))
     .leftJoin(questionVersions, eq(questionVersions.questionId, questions.id))
     .leftJoin(userAnswers, eq(userAnswers.questionVersionId, questionVersions.id))
