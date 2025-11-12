@@ -6154,7 +6154,7 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Redirect to the admin dashboard with the feedback ID in the query params
       // This will open the admin dashboard and automatically show the feedback modal
-      res.redirect(`/admin?tab=logs&subtab=feedback&feedbackId=${feedbackId}`);
+      res.redirect(`/admin?tab=metrics&subtab=feedback&feedbackId=${feedbackId}`);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error redirecting to feedback:", error);
