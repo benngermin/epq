@@ -27,7 +27,7 @@ I prefer iterative development with regular, small commits. I value clear, conci
   - Implementing proper cleanup and state management when switching between questions
 
 ## Recent Changes (November 2025)
-- **Filtered course displays to only show AI courses** (November 13, 2025): Updated the admin interface and frontend course dropdown to only display AI courses. Since question sets are shared between AI and Non-AI course versions, showing only AI courses eliminates confusion about duplicates while maintaining full content access. Non-AI courses remain in the database but are filtered out in the UI.
+- **Reverted AI-only course filtering** (November 13, 2025): Initially added filtering to show only AI courses, but reverted this change when it was discovered to be hiding valid courses. The real issue was that production and development databases are separate, so courses added to production don't automatically appear in development. Solution: Use the CSV upload feature in Admin Panel → Content Management → Static Explanations → Upload Courses to import production courses into development.
 - **Improved mobile-view feedback submission**: Fixed critical keyboard overlap issues on mobile devices when submitting feedback. Implemented keyboard-aware positioning for the FeedbackModal and navigation controls specifically for the `/mobile-view` path. Changes include:
   - Created a Visual Viewport API-based keyboard detection hook that properly handles orientation changes and baseline viewport height tracking
   - Updated FeedbackModal to dynamically position above the keyboard on mobile-view paths with scrollable content areas
