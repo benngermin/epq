@@ -697,8 +697,10 @@ export default function QuestionSetPractice() {
                   <SelectContent>
                     {courses
                       ?.filter((c: any) => {
-                        // Show Test Course even without question sets
+                        // Show Test Course even without question sets (for debugging)
                         if (c.courseNumber === 'Test Course') return true;
+                        // Only show AI courses (filter out Non-AI duplicates)
+                        if (!c.isAi) return false;
                         // For other courses, only show if they have question sets
                         return c.questionSets && c.questionSets.length > 0;
                       })
