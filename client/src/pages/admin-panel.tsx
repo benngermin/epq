@@ -1630,6 +1630,7 @@ export default function AdminPanel() {
                     <div className="text-center py-8">Loading courses...</div>
                   ) : courses && Array.isArray(courses) && courses.length > 0 ? (
                     (courses as any[])
+                      .filter((course: any) => course.isAi) // Only show AI courses
                       .sort((a: any, b: any) => {
                         // First, sort by whether the course has question sets (populated courses first)
                         const aHasQuestionSets = a.questionSetCount > 0 ? 1 : 0;
