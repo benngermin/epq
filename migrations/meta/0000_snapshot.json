@@ -196,6 +196,136 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.missing_course_material_logs": {
+      "name": "missing_course_material_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "question_version_id": {
+          "name": "question_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "loid": {
+          "name": "loid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_number": {
+          "name": "course_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_payload": {
+          "name": "request_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "missing_course_material_logs_loid_idx": {
+          "name": "missing_course_material_logs_loid_idx",
+          "columns": [
+            "loid"
+          ],
+          "isUnique": false
+        },
+        "missing_course_material_logs_question_version_id_idx": {
+          "name": "missing_course_material_logs_question_version_id_idx",
+          "columns": [
+            "question_version_id"
+          ],
+          "isUnique": false
+        },
+        "missing_course_material_logs_course_number_idx": {
+          "name": "missing_course_material_logs_course_number_idx",
+          "columns": [
+            "course_number"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "missing_course_material_logs_question_version_id_question_versions_id_fk": {
+          "name": "missing_course_material_logs_question_version_id_question_versions_id_fk",
+          "tableFrom": "missing_course_material_logs",
+          "tableTo": "question_versions",
+          "columnsFrom": [
+            "question_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "missing_course_material_logs_question_id_questions_id_fk": {
+          "name": "missing_course_material_logs_question_id_questions_id_fk",
+          "tableFrom": "missing_course_material_logs",
+          "tableTo": "questions",
+          "columnsFrom": [
+            "question_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "missing_course_material_logs_user_id_users_id_fk": {
+          "name": "missing_course_material_logs_user_id_users_id_fk",
+          "tableFrom": "missing_course_material_logs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.chatbot_logs": {
       "name": "chatbot_logs",
       "schema": "",

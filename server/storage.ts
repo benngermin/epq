@@ -1,7 +1,7 @@
 import {
   users, courses, courseExternalMappings, courseQuestionSets, questionSets, questions, questionVersions, 
   userTestRuns, userAnswers, aiSettings, promptVersions, courseMaterials, chatbotLogs,
-  chatbotFeedback, userCourseProgress, dailyActivitySummary, openRouterConfig, appSettings,
+  chatbotFeedback, missingCourseMaterialLogs, userCourseProgress, dailyActivitySummary, openRouterConfig, appSettings,
   type User, type InsertUser, type Course, type InsertCourse,
   type QuestionSet, type InsertQuestionSet, 
   type CourseQuestionSet, type InsertCourseQuestionSet,
@@ -9,7 +9,7 @@ import {
   type UserTestRun, type InsertUserTestRun, type UserAnswer, type InsertUserAnswer, 
   type AiSettings, type InsertAiSettings, type PromptVersion, type InsertPromptVersion,
   type CourseMaterial, type InsertCourseMaterial, type ChatbotLog, type InsertChatbotLog,
-  type ChatbotFeedback, type InsertChatbotFeedback,
+  type ChatbotFeedback, type InsertChatbotFeedback, type MissingCourseMaterialLog, type InsertMissingCourseMaterialLog,
   type UserCourseProgress, type InsertUserCourseProgress,
   type DailyActivitySummary, type InsertDailyActivitySummary,
   type OpenRouterConfig, type InsertOpenRouterConfig,
@@ -276,6 +276,7 @@ export interface IStorage {
   
   // Course material methods
   getCourseMaterialByLoid(loid: string, courseNumber?: string): Promise<CourseMaterial | undefined>;
+  logMissingCourseMaterial(log: InsertMissingCourseMaterialLog): Promise<MissingCourseMaterialLog>;
   
   // Chatbot log methods
   getChatbotLogs(): Promise<ChatbotLog[]>;
@@ -2460,6 +2461,11 @@ export class DatabaseStorage implements IStorage {
 
   async getChatbotLogs(): Promise<ChatbotLog[]> {
     return await db.select().from(chatbotLogs).orderBy(desc(chatbotLogs.createdAt));
+  }
+
+  async logMissingCourseMaterial(log: InsertMissingCourseMaterialLog): Promise<MissingCourseMaterialLog> {
+    const [entry] = await db.insert(missingCourseMaterialLogs).values(log).returning();
+    return entry;
   }
 
   async createChatbotLog(log: InsertChatbotLog): Promise<ChatbotLog> {

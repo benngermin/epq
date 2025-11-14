@@ -150,416 +150,6 @@ async function callOpenRouter(prompt: string, settings: any, userId?: number, sy
   }
 }
 
-// In-memory store for active streams - declare at module level
-const activeStreams = new Map<string, { 
-  chunks: string[], 
-  done: boolean, 
-  error?: string,
-  lastActivity: number,
-  aborted?: boolean,
-  conversationHistory?: Array<{ role: string, content: string }>, // Store conversation history
-  storedSystemMessage?: string, // Store the system message once when created
-  questionVersionId?: number // Track which question this stream belongs to
-}>();
-
-// Heartbeat interval to detect stalled streams
-const STREAM_HEARTBEAT_INTERVAL = 30000; // 30 seconds
-const STREAM_TIMEOUT = 120000; // 2 minutes
-
-// Store interval IDs for cleanup
-let streamHeartbeatInterval: NodeJS.Timeout;
-let streamCleanupInterval: NodeJS.Timeout;
-
-// Start heartbeat monitor for streams
-streamHeartbeatInterval = setInterval(() => {
-  const now = Date.now();
-  // Create a copy of the entries to avoid modification during iteration
-  const streamEntries = Array.from(activeStreams.entries());
-  
-  streamEntries.forEach(([streamId, stream]) => {
-    if (!stream.done && !stream.aborted && (now - stream.lastActivity) > STREAM_TIMEOUT) {
-      // Stream timeout - marking as done
-      stream.error = "Stream timed out. Please try again.";
-      stream.done = true;
-    }
-  });
-}, STREAM_HEARTBEAT_INTERVAL);
-
-// Track streams being cleaned up to prevent race conditions
-const cleaningStreams = new Set<string>();
-
-// Cleanup function to prevent memory leaks
-function cleanupStream(streamId: string) {
-  // Prevent concurrent cleanup of the same stream
-  if (cleaningStreams.has(streamId)) {
-    return;
-  }
-  
-  cleaningStreams.add(streamId);
-  
-  try {
-    const stream = activeStreams.get(streamId);
-    if (stream) {
-      // Clear large data first
-      stream.chunks = [];
-      // Clear error stream data to prevent memory leak
-      if (stream.error) {
-        stream.error = undefined;
-      }
-      // Then delete the stream
-      activeStreams.delete(streamId);
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error cleaning up stream:', error);
-    }
-    // Force delete even if there was an error
-    activeStreams.delete(streamId);
-  } finally {
-    cleaningStreams.delete(streamId);
-  }
-}
-
-// Clean up old streams periodically to prevent memory buildup
-streamCleanupInterval = setInterval(() => {
-  const now = Date.now();
-  const oldStreamAge = 5 * 60 * 1000; // 5 minutes (reduced from 10)
-  const staleStreamAge = 10 * 60 * 1000; // 10 minutes for stale streams
-  
-  // Create a copy of the stream IDs to avoid modification during iteration
-  const streamIds = Array.from(activeStreams.keys());
-  
-  streamIds.forEach((streamId) => {
-    const stream = activeStreams.get(streamId);
-    if (!stream) return; // Stream may have been deleted already
-    
-    // Clean up completed/aborted streams after 5 minutes
-    if ((stream.done || stream.aborted) && (now - stream.lastActivity) > oldStreamAge) {
-      cleanupStream(streamId);
-    }
-    // Force clean up any stream older than 10 minutes regardless of state
-    else if ((now - stream.lastActivity) > staleStreamAge) {
-      // Force cleaning stale stream
-      stream.done = true;
-      stream.error = "Stream expired";
-      cleanupStream(streamId);
-    }
-  });
-  
-  // Also log current stream count for monitoring
-  if (activeStreams.size > 10) {
-    // High number of active streams
-  }
-}, 60000); // Run every minute
-
-// Cleanup intervals on process termination
-let shutdownInProgress = false;
-
-const shutdownCleanup = () => {
-  if (shutdownInProgress) return;
-  shutdownInProgress = true;
-  
-  if (streamHeartbeatInterval) clearInterval(streamHeartbeatInterval);
-  if (streamCleanupInterval) clearInterval(streamCleanupInterval);
-  
-  // Clear all active streams
-  activeStreams.forEach((stream, streamId) => {
-    stream.done = true;
-    stream.error = 'Server shutting down';
-  });
-  activeStreams.clear();
-  cleaningStreams.clear();
-};
-
-process.on('SIGINT', shutdownCleanup);
-process.on('SIGTERM', shutdownCleanup);
-process.on('exit', shutdownCleanup);
-
-// Streaming OpenRouter integration for buffer approach
-async function streamOpenRouterToBuffer(
-  prompt: string, 
-  settings: any, 
-  streamId: string, 
-  userId?: number, 
-  systemMessage?: string,
-  conversationHistory?: Array<{ role: string, content: string }>
-) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  
-  const stream = activeStreams.get(streamId);
-  if (!stream) {
-    return;
-  }
-  
-  if (!apiKey) {
-    stream.error = "I'm sorry, but the AI assistant is not configured. Please contact your administrator to set up the OpenRouter API key.";
-    stream.done = true;
-    return;
-  }
-
-  const startTime = Date.now();
-  const modelName = settings?.modelName || "anthropic/claude-sonnet-4";
-  const temperature = 0;
-  
-  // Set max tokens to 56000 for all models as requested
-  let maxTokens = 56000; // Use 56000 tokens for all API calls
-
-  try {
-    let messages = [];
-    
-    // If we have conversation history, use it instead of creating a new conversation
-    if (conversationHistory && conversationHistory.length > 0) {
-      messages = [...conversationHistory];
-      // Add the new user message to the existing conversation
-      messages.push({ role: "user", content: prompt });
-      
-    } else {
-      // Initial conversation - use system message if provided
-      if (systemMessage) {
-        messages.push({ role: "system", content: systemMessage });
-      }
-      messages.push({ role: "user", content: prompt });
-    }
-
-
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: true,
-        reasoning: {
-          effort: "medium"
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      // OpenRouter API error
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
-    }
-
-    let fullResponse = "";
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-
-    if (!reader) {
-      throw new Error("No response stream available");
-    }
-
-    let buffer = '';
-    let isDone = false;
-    let readerCancelled = false; // Track if reader has been cancelled
-    const streamStartTime = Date.now();
-    const STREAM_MAX_DURATION = 60000; // 60 seconds max for a single stream
-    
-    // Helper function to safely cancel the reader once
-    const cancelReader = async () => {
-      if (readerCancelled || !reader) return;
-      readerCancelled = true;
-      
-      try {
-        await reader.cancel();
-      } catch (e) {
-        // Log cancellation errors in development
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Reader cancellation error (may be already closed):', e);
-        }
-      }
-    };
-    
-    try {
-      while (true) {
-        // Check if stream was aborted
-        if (stream.aborted) {
-          await cancelReader();
-          break;
-        }
-        
-        // Check if stream has been running too long
-        if (Date.now() - streamStartTime > STREAM_MAX_DURATION) {
-          // Stream exceeded max duration
-          stream.error = "Response took too long. Please try again.";
-          await cancelReader();
-          break;
-        }
-
-        let readResult;
-        try {
-          readResult = await reader.read();
-        } catch (readError) {
-          // Handle read errors gracefully
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Stream read error:', readError);
-          }
-          stream.error = "Stream reading failed. Please try again.";
-          await cancelReader();
-          break;
-        }
-        
-        const { done, value } = readResult;
-        
-        if (done) {
-          break;
-        }
-      
-      const chunk = decoder.decode(value, { stream: true });
-      buffer += chunk;
-      
-      // Process complete lines
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep incomplete line in buffer
-      
-      for (const line of lines) {
-        if (line.trim() === '') continue;
-        
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim();
-          
-          if (data === '[DONE]') {
-            isDone = true;
-            break;
-          }
-          
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-            
-            if (content && typeof content === 'string') {
-              fullResponse += content;
-              // Store accumulated content, not individual chunks
-              stream.chunks = [fullResponse];
-              stream.lastActivity = Date.now(); // Update activity timestamp
-            }
-            
-            // Check for finish reason which might indicate premature end
-            const finishReason = parsed.choices?.[0]?.finish_reason;
-            if (finishReason) {
-              if (finishReason === 'length') {
-                // Stream hit max token limit
-              }
-              // Mark as done when we receive a finish reason
-              isDone = true;
-              break;
-            }
-          } catch (e) {
-            // Log parsing errors for debugging
-            if (data && data !== '') {
-              // Failed to parse streaming chunk
-            }
-          }
-        }
-      }
-      
-      if (isDone) {
-        break;
-      }
-    }
-    
-    // Process any remaining data in buffer
-    if (buffer.trim() && buffer.startsWith('data: ')) {
-      const data = buffer.slice(6).trim();
-      if (data && data !== '[DONE]') {
-        try {
-          const parsed = JSON.parse(data);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content && typeof content === 'string') {
-            fullResponse += content;
-            stream.chunks = [fullResponse];
-          }
-        } catch (e) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn(`Failed to parse final buffer: ${(e as Error).message}`);
-          }
-        }
-      }
-    }
-    } catch (error) {
-      // Stream processing error
-      stream.error = error instanceof Error ? error.message : 'Stream processing failed';
-      throw error;
-    } finally {
-      // Always cancel the reader to free resources
-      await cancelReader();
-    }
-
-    const responseTime = Date.now() - startTime;
-    
-    // Stream completion details removed
-
-    // Log the complete interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse: fullResponse,
-        temperature: 0,
-        maxTokens,
-        responseTime,
-      });
-    } catch (logError) {
-      // Log error when saving chatbot interaction fails
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to save chatbot interaction log:', logError);
-      }
-    }
-    
-    // Mark stream as done after successful completion
-    stream.done = true;
-    stream.chunks = [fullResponse]; // Ensure final content is set
-
-  } catch (error) {
-    // OpenRouter streaming error
-    const errorResponse = "I'm sorry, there was an error connecting to the AI service. Please try again later.";
-    
-    // Ensure stream state is properly set
-    if (stream) {
-      stream.error = errorResponse;
-      stream.done = true;
-      stream.lastActivity = Date.now();
-    }
-    
-    // Log the error interaction
-    try {
-      await storage.createChatbotLog({
-        userId,
-        modelName,
-        systemMessage,
-        userMessage: prompt,
-        aiResponse: errorResponse,
-        temperature: 0,
-        maxTokens,
-        responseTime: Date.now() - startTime,
-      });
-    } catch (logError) {
-      // Error logging failed, but continue cleanup
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to log error interaction:', logError);
-      }
-    }
-  } finally {
-    // Ensure stream is marked as done in all cases
-    if (stream && !stream.done) {
-      stream.done = true;
-      stream.lastActivity = Date.now();
-    }
-  }
-
-  
-  // Don't set individual cleanup timeout - let the global cleanup handle it
-  // This prevents double cleanup and timing conflicts
-}
-
 // Helper function to get course number for a question
 async function getCourseNumberForQuestion(
   questionId: number,
@@ -2302,254 +1892,105 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Simple chatbot response (non-streaming)
-  app.post("/api/chatbot/simple-response", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage } = req.body;
-      const userId = req.user!.id;
-
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        return res.status(404).json({ error: "Question not found" });
-      }
-
-      // Get the base question to access LOID
-      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-      let courseMaterial = null;
-      
-      if (baseQuestion?.loid) {
-        // Derive course from question relationships
-        const courseNumber = await getCourseNumberForQuestion(
-          questionVersion.questionId,
-          undefined // No session context available
-        );
-        
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
-        
-        // Log when falling back to LOID-only
-        if (!courseNumber && process.env.NODE_ENV === 'development') {
-          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
-        }
-      }
-
-      // Get AI settings
-      const aiSettings = await storage.getAiSettings();
-      if (!aiSettings) {
-        return res.status(500).json({ error: "AI settings not configured" });
-      }
-
-      // Get active prompt
-      const activePrompt = await storage.getActivePromptVersion();
-      if (!activePrompt) {
-        return res.status(500).json({ error: "No active prompt configured" });
-      }
-
-      // Call OpenRouter to get response
-      const response = await callOpenRouter(
-        activePrompt.promptText,
-        aiSettings,
-        userId,
-        JSON.stringify({
-          question: questionVersion.questionText,
-          answerChoices: questionVersion.answerChoices,
-          correctAnswer: questionVersion.correctAnswer,
-          chosenAnswer: chosenAnswer,
-          userMessage: userMessage,
-          courseMaterial: courseMaterial ? {
-            assignment: courseMaterial.assignment,
-            content: courseMaterial.content
-          } : null
-        })
-      );
-
-      res.json({ response });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Simple chatbot error:", error);
-      }
-      res.status(500).json({ error: "Failed to get AI response" });
-    }
-  });
-
-  // Initialize streaming
-  app.post("/api/chatbot/stream-init", requireAuth, aiRateLimiter.middleware(), async (req, res) => {
-    // Initialize streaming chatbot response
-    
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
-      const userId = req.user!.id;
-
-      // Include user ID and question ID in stream ID for better tracking and isolation
-      const streamId = `${userId}_q${questionVersionId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Clean up any existing streams for this user AND question to prevent conflicts
-      const streamEntries = Array.from(activeStreams.entries());
-      const questionStreamPattern = new RegExp(`^${userId}_q${questionVersionId}_`);
-      for (const [existingStreamId, stream] of streamEntries) {
-        // Only clean up streams for the same user AND same question
-        if (questionStreamPattern.test(existingStreamId)) {
-          // Mark old stream as aborted before deletion
-          stream.aborted = true;
-          stream.done = true;
-          stream.error = "New stream started";
-          // Schedule cleanup instead of immediate deletion to allow final fetch
-          setTimeout(() => cleanupStream(existingStreamId), 1000);
-        }
-      }
-      
-      // Validate conversation history if provided
-      let validatedHistory = conversationHistory || [];
-      if (conversationHistory && conversationHistory.length > 0) {
-        // Check if the conversation history has a system message
-        const hasSystemMessage = conversationHistory.some((msg: any) => msg.role === "system");
-        if (!hasSystemMessage) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn(`Warning: Conversation history for question ${questionVersionId} missing system message`);
-          }
-          // Reset to empty if system message is missing
-          validatedHistory = [];
-        } else if (process.env.NODE_ENV === 'development') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`✓ Valid conversation history with system message for question ${questionVersionId}`);
-          }
-        }
-      }
-      
-      // Initialize stream with timestamp - use validated conversation history
-      activeStreams.set(streamId, { 
-        chunks: [], 
-        done: false, 
-        lastActivity: Date.now(),
-        aborted: false,
-        conversationHistory: validatedHistory, // Use validated history
-        storedSystemMessage: undefined, // Will be set on first message
-        questionVersionId: questionVersionId // Track which question this stream belongs to
-      });
-      
-      // Start background processing with mobile flag
-      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, req.user!.id, isMobile);
-      
-      res.json({ streamId });
-    } catch (error) {
-      // Error initializing stream
-      res.status(500).json({ error: "Failed to initialize stream" });
-    }
-  });
-
-  // Get stream chunk
-  app.get("/api/chatbot/stream-chunk/:streamId", requireAuth, async (req, res) => {
-    const streamId = req.params.streamId;
-    const cursor = parseInt(req.query.cursor as string) || 0;
-    const stream = activeStreams.get(streamId);
-    
-    if (!stream) {
-      return res.status(404).json({ error: "Stream not found" });
-    }
-    
-    // Check if stream was aborted
-    if (stream.aborted) {
-      return res.json({
-        content: "",
-        newContent: "",
-        cursor: 0,
-        done: true,
-        error: "Stream was aborted"
-      });
-    }
-    
-    // Update activity timestamp for active streams
-    if (!stream.done) {
-      stream.lastActivity = Date.now();
-    }
-    
-    // Get full accumulated content
-    const fullContent = stream.chunks.join('');
-    
-    // Return only new content since cursor position
-    const newContent = cursor < fullContent.length ? fullContent.slice(cursor) : '';
-    
-    // Set appropriate cache headers to reduce overhead
-    res.set({
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'X-Content-Type-Options': 'nosniff'
-    });
-    
-    // Final chunk details removed
-    
-    res.json({
-      content: fullContent, // Still send full content for compatibility
-      newContent, // New incremental content
-      cursor: fullContent.length, // New cursor position
-      done: stream.done,
-      error: stream.error,
-      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
-    });
-    
-    // Clean up finished streams
-    if (stream.done) {
-      // Clear chunks after sending final response
-      // Clean up both successful and error streams
-      setTimeout(() => {
-        cleanupStream(streamId);
-      }, 2000); // Slightly longer delay to ensure client gets final response
-    }
-  });
-
-  // Abort stream endpoint
-  app.post("/api/chatbot/stream-abort/:streamId", requireAuth, async (req, res) => {
-    const streamId = req.params.streamId;
-    const userId = req.user!.id;
-    
-    // Validate that the stream belongs to the current user
-    if (!streamId.startsWith(`${userId}_`)) {
-      return res.status(403).json({ error: "Unauthorized to abort this stream" });
-    }
-    
-    const stream = activeStreams.get(streamId);
-    
-    if (stream) {
-      stream.aborted = true;
-      stream.done = true;
-      stream.error = "Stream aborted by user";
-    }
-    
-    res.json({ success: true });
-  });
-
   // ============= PHASE 1C: OpenRouter Streaming Function =============
   async function streamOpenRouterDirectly(
-    res: any, 
-    messages: Array<{ role: string, content: string }>,
-    conversationHistory: Array<{ role: string, content: string }>,
-    config?: { modelName?: string; reasoning?: string }
+    res: Response, 
+    messages: Array<{ role: string; content: string }>,
+    conversationHistory: Array<{ role: string; content: string }>,
+    config?: { modelName?: string; reasoning?: string },
+    logOptions?: {
+      userId?: number | null;
+      systemMessage?: string | null;
+      userMessage?: string | null;
+    },
+    streamOptions?: { abortSignal?: AbortSignal }
   ) {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    
-    if (!apiKey) {
-      res.write(`data: {"type":"error","message":"AI assistant is not configured"}\n\n`);
-      res.end();
-      return;
-    }
-
-    // Get config from database or use provided config (AI Settings)
-    let aiConfig: any = config;
-    if (!aiConfig) {
-      aiConfig = await storage.getAiSettings();
-    }
-    
-    if (!aiConfig) {
-      res.write(`data: {"type":"error","message":"AI settings not found. Please configure in admin panel."}\n\n`);
-      res.end();
-      return;
-    }
-
-    const modelName = aiConfig.modelName || "anthropic/claude-3.5-sonnet";
-    const reasoning = aiConfig.reasoning || "none";
     const temperature = 0;
     const maxTokens = 56000;
+    const startTime = Date.now();
+    let modelName = config?.modelName || "anthropic/claude-3.5-sonnet";
+    const abortSignal = streamOptions?.abortSignal;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+    let clientAborted = abortSignal?.aborted ?? false;
+    
+    const sendEvent = (payload: Record<string, unknown>) => {
+      if (clientAborted || res.writableEnded) {
+        return;
+      }
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    const endStream = () => {
+      if (!res.writableEnded) {
+        res.end();
+      }
+    };
+
+    const getLastUserMessage = () => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          return messages[i].content;
+        }
+      }
+      return "No user message provided";
+    };
+
+    const logInteraction = async (aiResponse: string) => {
+      if (!logOptions) {
+        return;
+      }
+      
+      try {
+        await storage.createChatbotLog({
+          userId: logOptions.userId ?? null,
+          modelName,
+          systemMessage: logOptions.systemMessage ?? null,
+          userMessage: logOptions.userMessage ?? getLastUserMessage(),
+          aiResponse,
+          temperature,
+          maxTokens,
+          responseTime: Date.now() - startTime,
+        });
+      } catch (logError) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to save chatbot interaction log:', logError);
+          }
+      }
+    };
+
+    const abortListener = () => {
+      clientAborted = true;
+      if (reader) {
+        reader.cancel().catch(() => {});
+      }
+    };
+    abortSignal?.addEventListener('abort', abortListener);
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
     
     try {
+      if (!apiKey) {
+        sendEvent({ type: "error", message: "AI assistant is not configured" });
+        await logInteraction("OpenRouter API key not configured");
+        endStream();
+        return;
+      }
+
+      // Get config from database or use provided config (AI Settings)
+      let aiConfig: any = config;
+      if (!aiConfig) {
+        aiConfig = await storage.getAiSettings();
+      }
+      
+      if (!aiConfig) {
+        sendEvent({ type: "error", message: "AI settings not found. Please configure in admin panel." });
+        await logInteraction("AI settings not found");
+        endStream();
+        return;
+      }
+
+      modelName = aiConfig.modelName || modelName;
+      const reasoning = aiConfig.reasoning || "none";
       
       // Build request body
       const requestBody: any = {
@@ -2574,18 +2015,21 @@ export function registerRoutes(app: Express): Server {
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.APP_URL || "http://localhost:5000",
         },
+        signal: abortSignal,
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("[SSE OpenRouter] API error:", response.status, errorText);
-        res.write(`data: {"type":"error","message":"OpenRouter API error: ${response.status}"}\n\n`);
-        res.end();
+        const errorMessage = `OpenRouter API error: ${response.status}`;
+        sendEvent({ type: "error", message: errorMessage });
+        endStream();
+        await logInteraction(errorMessage);
         return;
       }
 
-      const reader = response.body?.getReader();
+      reader = response.body?.getReader() || null;
       const decoder = new TextDecoder();
       
       if (!reader) {
@@ -2596,7 +2040,7 @@ export function registerRoutes(app: Express): Server {
       let buffer = '';
       let chunkCount = 0;
 
-      while (true) {
+      while (!clientAborted) {
         const { done, value } = await reader.read();
         
         if (done) {
@@ -2627,10 +2071,10 @@ export function registerRoutes(app: Express): Server {
               chunkCount++;
               
               // Send FULL accumulated response (not just delta!)
-              res.write(`data: ${JSON.stringify({
+              sendEvent({
                 type: "chunk", 
                 content: fullResponse
-              })}\n\n`);
+              });
               
               // Log progress every 10 chunks
               if (chunkCount % 10 === 0) {
@@ -2647,23 +2091,64 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
+      if (clientAborted) {
+        await logInteraction("Client disconnected before completion");
+        return;
+      }
+
       // Build updated conversation history
       const updatedHistory = [...conversationHistory];
       // Add the assistant's response
       updatedHistory.push({ role: "assistant", content: fullResponse });
       
       // Send done message with updated conversation history
-      res.write(`data: ${JSON.stringify({
+      sendEvent({
         type: "done",
         conversationHistory: updatedHistory
-      })}\n\n`);
+      });
       
-      res.end();
+      endStream();
+      await logInteraction(fullResponse);
       
     } catch (error) {
+      if (clientAborted) {
+        await logInteraction("Client disconnected before completion");
+        return;
+      }
+
       console.error("[SSE OpenRouter] Stream error:", error);
-      res.write(`data: {"type":"error","message":"Stream processing error"}\n\n`);
-      res.end();
+      const errorMessage = error instanceof Error ? error.message : "Stream processing error";
+      sendEvent({ type: "error", message: "Stream processing error" });
+      endStream();
+      await logInteraction(errorMessage);
+    } finally {
+      abortSignal?.removeEventListener('abort', abortListener);
+    }
+  }
+
+  async function trackMissingCourseMaterial(options: {
+    endpoint: "authenticated" | "demo" | "mobile";
+    questionVersionId: number;
+    questionId: number;
+    loid: string;
+    courseNumber?: string;
+    userId?: number | null;
+    requestPayload?: Record<string, unknown>;
+  }) {
+    try {
+      await storage.logMissingCourseMaterial({
+        questionVersionId: options.questionVersionId,
+        questionId: options.questionId,
+        loid: options.loid,
+        courseNumber: options.courseNumber || null,
+        endpoint: options.endpoint,
+        userId: options.userId ?? null,
+        requestPayload: options.requestPayload || null,
+      });
+    } catch (logError) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to record missing course material log:", logError);
+      }
     }
   }
 
@@ -2711,6 +2196,23 @@ export function registerRoutes(app: Express): Server {
         );
         
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
+        
+        if (!courseMaterial) {
+          await trackMissingCourseMaterial({
+            endpoint: "authenticated",
+            questionVersionId,
+            questionId: questionVersion.questionId,
+            loid: baseQuestion.loid,
+            courseNumber: courseNumber || undefined,
+            userId,
+            requestPayload: {
+              chosenAnswer,
+              userMessage,
+              conversationHistoryLength: conversationHistory?.length || 0,
+              isMobile: !!isMobile
+            }
+          });
+        }
         
         // Comprehensive development logging for SSE chatbot material retrieval
         if (process.env.NODE_ENV === 'development') {
@@ -2795,12 +2297,33 @@ export function registerRoutes(app: Express): Server {
       
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
+      const logUserMessage = userMessage && userMessage.trim() !== ""
+        ? userMessage
+        : "Please provide feedback on my answer.";
       
-      // Call streamOpenRouterDirectly with AI settings - convert null to undefined
-      await streamOpenRouterDirectly(res, messages, historyToPass, {
-        modelName: aiSettings.modelName || undefined,
-        reasoning: aiSettings.reasoning || undefined
-      });
+      const abortController = new AbortController();
+      const handleClientClose = () => {
+        if (!abortController.signal.aborted) {
+          abortController.abort();
+        }
+      };
+      req.on('close', handleClientClose);
+
+      try {
+        // Call streamOpenRouterDirectly with AI settings - convert null to undefined
+        await streamOpenRouterDirectly(res, messages, historyToPass, {
+          modelName: aiSettings.modelName || undefined,
+          reasoning: aiSettings.reasoning || undefined
+        }, {
+          userId,
+          systemMessage,
+          userMessage: logUserMessage
+        }, {
+          abortSignal: abortController.signal
+        });
+      } finally {
+        req.removeListener('close', handleClientClose);
+      }
       
     } catch (error) {
       console.error("[SSE] Error in stream-sse endpoint:", error);
@@ -3039,416 +2562,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     
     return cleaned;
   }
-
-  // Background stream processing
-  async function processStreamInBackground(streamId: string, questionVersionId: number, chosenAnswer: string, userMessage: string | undefined, userId: number, isMobile?: boolean) {
-    const stream = activeStreams.get(streamId);
-    if (!stream || stream.aborted) return;
-    
-    try {
-      // Log conversation history validation
-      if (process.env.NODE_ENV === 'development' && userMessage) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("=== CONVERSATION VALIDATION ===");
-          console.log("Current Question Version ID:", questionVersionId);
-          console.log("Stream Question Version ID:", stream.questionVersionId);
-          console.log("Conversation History Length:", stream.conversationHistory?.length || 0);
-          console.log("Is Follow-up Message:", !!userMessage);
-          console.log("================================");
-        }
-      }
-
-      // Process stream with proper chosenAnswer handling
-
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        stream.error = "Question not found";
-        stream.done = true;
-        return;
-      }
-      
-      // Debug: Log the raw questionVersion data
-      if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("===== RAW QUESTION VERSION DATA =====");
-          console.log("Question Version ID:", questionVersionId);
-          console.log("Question Type:", questionVersion.questionType);
-          console.log("Correct Answer:", questionVersion.correctAnswer);
-          console.log("Answer Choices:", JSON.stringify(questionVersion.answerChoices));
-          console.log("Blanks:", JSON.stringify(questionVersion.blanks));
-          console.log("====================================");
-        }
-      }
-
-      // Get the base question to access LOID
-      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-      let courseMaterial = null;
-      
-      if (baseQuestion?.loid) {
-        // Derive course from question relationships
-        const courseNumber = await getCourseNumberForQuestion(
-          questionVersion.questionId,
-          undefined // No session context available
-        );
-        
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
-        
-        // Comprehensive development logging for chatbot material retrieval
-        if (process.env.NODE_ENV === 'development') {
-          console.log("╔════════════════════════════════════════════════════════════════════╗");
-          console.log("║         CHATBOT COURSE MATERIAL RETRIEVAL (Authenticated)         ║");
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ Question Details:");
-          console.log("║   - Question ID:", questionVersion.questionId);
-          console.log("║   - Question Version ID:", questionVersionId);
-          console.log("║   - Question Type:", questionVersion.questionType);
-          console.log("║   - User's Chosen Answer:", chosenAnswer);
-          console.log("║   - Correct Answer:", questionVersion.correctAnswer);
-          console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ LOID & Course Context:");
-          console.log("║   - LOID:", baseQuestion.loid);
-          console.log("║   - Course Number (derived):", courseNumber || "(none - using LOID-only)");
-          console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
-          if (courseMaterial) {
-            console.log("║   - Material ID:", courseMaterial.id);
-            console.log("║   - Material Course:", courseMaterial.course);
-            console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-            console.log("║   - Material Assignment:", courseMaterial.assignment);
-          }
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ Chat Context:");
-          console.log("║   - Is Follow-up Message:", !!userMessage);
-          console.log("║   - Conversation History Length:", stream.conversationHistory?.length || 0);
-          console.log("║   - Stream ID:", streamId);
-          console.log("║   - User ID:", userId);
-          console.log("║   - Is Mobile:", isMobile || false);
-          console.log("╚════════════════════════════════════════════════════════════════════╝");
-          
-          if (!courseNumber) {
-            console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid}, using LOID-only matching (may cause cross-course contamination)`);
-          }
-        }
-      }
-
-      const aiSettings = await storage.getAiSettings();
-      const activePrompt = await storage.getActivePromptVersion();
-      
-      // Get source material for both initial and follow-up responses
-      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
-      
-      if (courseMaterial) {
-        // Clean course material for mobile (removes URLs)
-        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
-      } else {
-      }
-      
-      let prompt;
-      let systemMessage: string | undefined;
-      
-      if (userMessage) {
-        // For follow-up messages, simply use the user's message as the prompt
-        prompt = userMessage;
-        
-        // For follow-up messages, we need to ensure the system message exists
-        // Since each request creates a new stream, we must reconstruct it
-        const formattedChoices = questionVersion.answerChoices.join('\n');
-        const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        
-        const systemPromptTemplate = activePrompt?.promptText || 
-          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Next, review the provided source material that was used to create this assessment content:
-<course_material>
-{{COURSE_MATERIAL}}
-</course_material>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
-
-##Criteria:
-- Only use the provided content
-- Use clear, jargon-free wording
-- State clearly why each choice is ✅ Correct or ❌ Incorrect.
-- In 2-4 sentences, explain the concept that makes the choice right or wrong.
-- Paraphrase relevant ideas and reference section titles from the Source Material
-- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
-        
-        // Extract correct answer, handling select_from_list questions with blanks
-        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
-        
-        // Substitute variables in the system message
-        systemMessage = systemPromptTemplate
-          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
-          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log("=== FOLLOW-UP MESSAGE ===");
-          console.log("Reconstructing system message for new stream");
-          console.log("=========================");
-        }
-        
-        // Ensure it's in the conversation history
-        if (stream.conversationHistory) {
-          const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
-          if (!hasSystemMessage) {
-            stream.conversationHistory.unshift({ role: "system", content: systemMessage });
-          }
-        }
-      } else {
-        // Initial message - create and store the system message
-        const formattedChoices = questionVersion.answerChoices.join('\n');
-        const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        
-        const systemPromptTemplate = activePrompt?.promptText || 
-          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Next, review the provided source material that was used to create this assessment content:
-<course_material>
-{{COURSE_MATERIAL}}
-</course_material>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
-
-##Criteria:
-- Only use the provided content
-- Use clear, jargon-free wording
-- State clearly why each choice is ✅ Correct or ❌ Incorrect.
-- In 2-4 sentences, explain the concept that makes the choice right or wrong.
-- Paraphrase relevant ideas and reference section titles from the Source Material
-- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
-        
-        // Extract correct answer, handling select_from_list questions with blanks
-        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
-        
-        // Substitute variables in the system message
-        systemMessage = systemPromptTemplate
-          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
-          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-        
-        // Store the system message for reuse in follow-up messages
-        stream.storedSystemMessage = systemMessage;
-        
-        // Debug logging for fill-in-the-blank questions
-        if (process.env.NODE_ENV === 'development') {
-          console.log("===== CHATBOT STREAM DEBUG =====");
-          console.log("Question Type:", questionVersion.questionType);
-          console.log("Question ID:", questionVersion.id);
-          console.log("Correct Answer from DB:", questionVersion.correctAnswer);
-          console.log("Effective Correct Answer (after blanks extraction):", effectiveCorrectAnswer);
-          console.log("Using Blanks Fallback:", questionVersion.questionType === 'select_from_list' && !questionVersion.correctAnswer && questionVersion.blanks);
-          console.log("Answer Choices:", questionVersion.answerChoices);
-          console.log("Blanks:", questionVersion.blanks);
-          console.log("Source Material:", sourceMaterial?.substring(0, 100));
-          console.log("LOID:", baseQuestion?.loid);
-          console.log("Course Material Found:", courseMaterial ? "Yes" : "No");
-          console.log("System Message Preview (first 500 chars):", systemMessage?.substring(0, 500));
-          console.log("================================");
-        }
-        
-        // Set the prompt for initial message
-        prompt = "Please provide feedback on my answer.";
-        
-        // Store the initial system message in conversation history
-        if (stream.conversationHistory) {
-          stream.conversationHistory.push({ role: "system", content: systemMessage });
-        }
-      }
-
-      // Call OpenRouter with streaming and conversation history
-      await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, systemMessage, stream.conversationHistory);
-      
-      // After successful response, update conversation history
-      if (!stream.error && stream.chunks && stream.chunks.length > 0) {
-        const aiResponse = stream.chunks[stream.chunks.length - 1];
-        if (stream.conversationHistory) {
-          // Add user message to history (if not already added)
-          if (!userMessage || stream.conversationHistory[stream.conversationHistory.length - 1]?.content !== prompt) {
-            stream.conversationHistory.push({ role: "user", content: prompt });
-          }
-          // Add AI response to history
-          stream.conversationHistory.push({ role: "assistant", content: aiResponse });
-        }
-      }
-      
-    } catch (error) {
-      // Background processing error
-      const stream = activeStreams.get(streamId);
-      if (stream) {
-        stream.error = "Failed to process request";
-        stream.done = true;
-      }
-    }
-  }
-
-  // AI chatbot route - non-streaming (fallback)
-  app.post("/api/chatbot", requireAuth, async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile } = req.body;
-      
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        return res.status(404).json({ message: "Question not found" });
-      }
-
-      // Get the base question to access LOID
-      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-      let courseMaterial = null;
-      
-      if (baseQuestion?.loid) {
-        // Get course context (from session or derive from question)
-        const courseNumber = await getCourseNumberForQuestion(
-          questionVersion.questionId,
-          req.session?.courseNumber
-        );
-        
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
-        
-        // Log when falling back to LOID-only
-        if (!courseNumber && process.env.NODE_ENV === 'development') {
-          console.log(`Warning: No course context for LOID ${baseQuestion.loid}, using LOID-only matching`);
-        }
-      }
-
-      const aiSettings = await storage.getAiSettings();
-      const activePrompt = await storage.getActivePromptVersion();
-      
-      // Get source material for both initial and follow-up responses
-      let sourceMaterial = questionVersion.topicFocus || "No additional source material provided.";
-      
-      if (courseMaterial) {
-        // Clean course material for mobile (removes URLs)
-        sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
-      } else {
-      }
-      
-      let prompt;
-      if (userMessage) {
-        // Follow-up question with course material context and selected answer
-        const selectedAnswerText = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-        
-        prompt = `${userMessage}
-
-Context: Question was "${questionVersion.questionText}" with choices ${questionVersion.answerChoices.join(', ')}. 
-Student selected: ${selectedAnswerText}
-The correct answer is ${extractCorrectAnswerFromBlanks(questionVersion)}.
-
-Relevant course material:
-${sourceMaterial}
-
-Please provide a helpful response based on the course material above, keeping in mind what the student selected.`;
-        
-        // Strip link_handling section if on mobile for follow-up prompts
-      } else {
-        // Initial explanation with variable substitution
-        let systemPrompt = activePrompt?.promptText || 
-          `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Next, review the provided source material that was used to create this assessment content:
-<course_material>
-{{COURSE_MATERIAL}}
-</course_material>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive. Ensure that you comply with all of the following criteria:
-
-##Criteria:
-- Only use the provided content
-- Use clear, jargon-free wording
-- State clearly why each choice is ✅ Correct or ❌ Incorrect.
-- In 2-4 sentences, explain the concept that makes the choice right or wrong.
-- Paraphrase relevant ideas and reference section titles from the Source Material
-- End with one motivating tip (≤ 1 sentence) suggesting what to review next.`;
-        
-        // Format answer choices as a list
-        const formattedChoices = questionVersion.answerChoices.join('\n');
-
-        // Ensure chosenAnswer is not empty or undefined
-        const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-
-        // Extract correct answer, handling select_from_list questions with blanks
-        const effectiveCorrectAnswer = extractCorrectAnswerFromBlanks(questionVersion);
-        
-        // Substitute variables in the prompt
-        systemPrompt = systemPrompt
-          .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-          .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-          .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-          .replace(/\{\{CORRECT_ANSWER\}\}/g, effectiveCorrectAnswer)
-          .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-        
-
-        
-        // Strip link_handling section if on mobile
-        
-        prompt = systemPrompt;
-      }
-
-      const response = await callOpenRouter(prompt, aiSettings, req.user!.id, activePrompt?.promptText);
-      res.json({ response });
-    } catch (error) {
-      console.error("Error calling chatbot:", error);
-      res.status(500).json({ message: "Failed to get AI response" });
-    }
-  });
 
   // AI Settings admin routes
   app.get("/api/admin/ai-settings", requireAdmin, async (req, res) => {
@@ -6507,326 +5620,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
     }
   });
 
-  // Demo chatbot endpoints - No authentication required
-  // Initialize streaming for demo
-  app.post("/api/demo/chatbot/stream-init", aiRateLimiter.middleware(), async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
-      
-      // Use a demo user ID
-      const userId = -1; // Demo user ID
-      
-      const questionVersion = await storage.getQuestionVersion(questionVersionId);
-      if (!questionVersion) {
-        return res.status(404).json({ message: "Question version not found" });
-      }
-      
-      const settings = await storage.getAiSettings();
-      
-      // Generate a stream ID for this session
-      const streamId = `demo_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      
-      // Initialize stream storage with correct structure
-      activeStreams.set(streamId, {
-        chunks: [],
-        done: false,
-        lastActivity: Date.now(),
-        aborted: false,
-        conversationHistory: conversationHistory || []
-      });
-      
-      // Start async processing
-      (async () => {
-        const stream = activeStreams.get(streamId);
-        if (!stream || stream.aborted) return;
-        
-        try {
-          const aiSettings = await storage.getAiSettings();
-          const activePrompt = await storage.getActivePromptVersion();
-          
-          // Get the base question to access LOID - FIXING DEMO TO USE LOID-BASED RETRIEVAL
-          const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-          let courseMaterial = null;
-          
-          if (baseQuestion?.loid) {
-            // For demo/unauthenticated routes, derive course from question
-            const courseNumber = await getCourseNumberForQuestion(
-              questionVersion.questionId,
-              undefined // No session context in demo
-            );
-            
-            courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
-            
-            // Comprehensive development logging for demo chatbot material retrieval
-            if (process.env.NODE_ENV === 'development') {
-              console.log("╔════════════════════════════════════════════════════════════════════╗");
-              console.log("║              CHATBOT COURSE MATERIAL RETRIEVAL (Demo)             ║");
-              console.log("╠════════════════════════════════════════════════════════════════════╣");
-              console.log("║ Question Details:");
-              console.log("║   - Question ID:", questionVersion.questionId);
-              console.log("║   - Question Version ID:", questionVersionId);
-              console.log("║   - Question Type:", questionVersion.questionType);
-              console.log("║   - User's Chosen Answer:", chosenAnswer);
-              console.log("║   - Correct Answer:", questionVersion.correctAnswer);
-              console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
-              console.log("╠════════════════════════════════════════════════════════════════════╣");
-              console.log("║ LOID & Course Context:");
-              console.log("║   - LOID:", baseQuestion.loid);
-              console.log("║   - Course Number (derived):", courseNumber || "(none - using LOID-only)");
-              console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
-              if (courseMaterial) {
-                console.log("║   - Material ID:", courseMaterial.id);
-                console.log("║   - Material Course:", courseMaterial.course);
-                console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-                console.log("║   - Material Assignment:", courseMaterial.assignment);
-              }
-              console.log("║   - TopicFocus (legacy fallback):", questionVersion.topicFocus ? `${questionVersion.topicFocus.substring(0, 50)}...` : "(none)");
-              console.log("╠════════════════════════════════════════════════════════════════════╣");
-              console.log("║ Chat Context:");
-              console.log("║   - Is Follow-up Message:", !!userMessage);
-              console.log("║   - Conversation History Length:", conversationHistory?.length || 0);
-              console.log("║   - Stream ID:", streamId);
-              console.log("║   - User ID: demo");
-              console.log("║   - Is Mobile:", isMobile || false);
-              console.log("╚════════════════════════════════════════════════════════════════════╝");
-              
-              if (!courseNumber) {
-                console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid} in demo mode, using LOID-only matching (may cause cross-course contamination)`);
-              }
-            }
-          }
-          
-          // Get source material - prefer LOID-based material, fallback to topicFocus
-          let sourceMaterial = "No additional source material provided.";
-          if (courseMaterial) {
-            // Clean course material for mobile (removes URLs) if needed
-            sourceMaterial = cleanCourseMaterialForMobile(courseMaterial.content, isMobile || false);
-            if (process.env.NODE_ENV === 'development') {
-              console.log("✅ Using LOID-based course material for demo chatbot");
-            }
-          } else if (questionVersion.topicFocus) {
-            // Fallback to topicFocus if no LOID material found
-            sourceMaterial = questionVersion.topicFocus;
-            if (process.env.NODE_ENV === 'development') {
-              console.log("⚠️  FALLBACK: Using topicFocus instead of LOID material for demo chatbot");
-            }
-          }
-          
-          let prompt;
-          let systemMessage: string | undefined;
-          
-          if (userMessage) {
-            // For follow-up messages, simply use the user's message as the prompt
-            prompt = userMessage;
-            
-            // For follow-up messages, we need to ensure the system message exists
-            // Since each request creates a new stream, we must reconstruct it
-            const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
-            const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-            
-            const systemPromptTemplate = activePrompt?.promptText || 
-              `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive.`;
-            
-            // Substitute variables in the system message
-            systemMessage = systemPromptTemplate
-              .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-              .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-              .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-              .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-              .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-            
-            if (process.env.NODE_ENV === 'development') {
-              if (process.env.NODE_ENV === 'development') {
-                console.log("=== DEMO FOLLOW-UP MESSAGE ===");
-                console.log("Reconstructing system message for new stream");
-                console.log("==============================");
-              }
-            }
-            
-            // Ensure it's in the conversation history
-            if (stream.conversationHistory) {
-              const hasSystemMessage = stream.conversationHistory.some(msg => msg.role === "system");
-              if (!hasSystemMessage) {
-                stream.conversationHistory.unshift({ role: "system", content: systemMessage });
-              }
-            }
-          } else {
-            // Initial message - create and store the system message
-            const formattedChoices = questionVersion.answerChoices ? questionVersion.answerChoices.join('\n') : '';
-            const selectedAnswer = chosenAnswer && chosenAnswer.trim() !== '' ? chosenAnswer : "No answer was selected";
-            
-            const systemPromptTemplate = activePrompt?.promptText || 
-              `Write feedback designed to help students understand why answers to practice questions are correct or incorrect.
-
-First, carefully review the assessment content:
-
-<assessment_item>
-{{QUESTION_TEXT}}
-</assessment_item>
-
-<answer_choices>
-{{ANSWER_CHOICES}}
-</answer_choices>
-
-<selected_answer>
-{{SELECTED_ANSWER}}
-</selected_answer>
-
-<correct_answer>
-{{CORRECT_ANSWER}}
-</correct_answer>
-
-Remember, your goal is to support student comprehension through meaningful feedback that is positive and supportive.`;
-            
-            // Substitute variables in the system message
-            systemMessage = systemPromptTemplate
-              .replace(/\{\{QUESTION_TEXT\}\}/g, questionVersion.questionText)
-              .replace(/\{\{ANSWER_CHOICES\}\}/g, formattedChoices)
-              .replace(/\{\{SELECTED_ANSWER\}\}/g, selectedAnswer)
-              .replace(/\{\{CORRECT_ANSWER\}\}/g, questionVersion.correctAnswer)
-              .replace(/\{\{COURSE_MATERIAL\}\}/g, sourceMaterial);
-            
-            // Store the system message for reuse in follow-up messages
-            stream.storedSystemMessage = systemMessage;
-            
-            // Set the prompt for initial message
-            prompt = "Please provide feedback on my answer.";
-            
-            // Store the initial system message in conversation history
-            if (stream.conversationHistory) {
-              stream.conversationHistory.push({ role: "system", content: systemMessage });
-            }
-          }
-          
-          // For mobile, add instruction to be concise
-          if (isMobile) {
-            systemMessage = (systemMessage || "") + "\n\nIMPORTANT: The user is on a mobile device. Keep your response concise and well-formatted for mobile viewing. Use short paragraphs and clear structure.";
-          }
-          
-          // Use the streaming function for real-time responses like authenticated users
-          await streamOpenRouterToBuffer(prompt, aiSettings, streamId, userId, systemMessage, stream.conversationHistory);
-          
-          // After successful response, update conversation history
-          if (!stream.error && stream.chunks && stream.chunks.length > 0) {
-            const aiResponse = stream.chunks.join('');
-            if (stream.conversationHistory) {
-              // Add user message to history (if not already added)
-              if (!userMessage || stream.conversationHistory[stream.conversationHistory.length - 1]?.content !== prompt) {
-                stream.conversationHistory.push({ role: "user", content: prompt });
-              }
-              // Add AI response to history
-              stream.conversationHistory.push({ role: "assistant", content: aiResponse });
-            }
-          }
-          
-        } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error("Error in demo chatbot stream processing:", error);
-          }
-          if (stream) {
-            stream.error = error instanceof Error ? error.message : "Unknown error occurred";
-            stream.done = true;
-            stream.lastActivity = Date.now();
-          }
-        }
-      })();
-      
-      res.json({ streamId });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error initializing demo chatbot stream:", error);
-      }
-      res.status(500).json({ message: "Failed to initialize chat stream" });
-    }
-  });
-
-  // Get stream chunk for demo
-  app.get("/api/demo/chatbot/stream-chunk/:streamId", async (req, res) => {
-    const streamId = req.params.streamId;
-    const cursor = parseInt(req.query.cursor as string) || 0;
-    const stream = activeStreams.get(streamId);
-    
-    if (!stream) {
-      return res.status(404).json({ error: "Stream not found" });
-    }
-    
-    // Check if stream was aborted
-    if (stream.aborted) {
-      return res.json({
-        content: "",
-        newContent: "",
-        cursor: 0,
-        done: true,
-        error: "Stream was aborted"
-      });
-    }
-    
-    // Update activity timestamp for active streams
-    if (!stream.done) {
-      stream.lastActivity = Date.now();
-    }
-    
-    // Get full accumulated content
-    const fullContent = stream.chunks.join('');
-    
-    // Return only new content since cursor position
-    const newContent = cursor < fullContent.length ? fullContent.slice(cursor) : '';
-    
-    res.json({
-      content: fullContent, // Still send full content for compatibility
-      newContent, // New incremental content
-      cursor: fullContent.length, // New cursor position
-      done: stream.done,
-      error: stream.error,
-      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
-    });
-    
-    // Clean up finished streams
-    if (stream.done) {
-      setTimeout(() => {
-        activeStreams.delete(streamId);
-      }, 2000);
-    }
-  });
-
-  // Abort stream for demo
-  app.post("/api/demo/chatbot/stream-abort/:streamId", async (req, res) => {
-    const streamId = req.params.streamId;
-    
-    // Clean up the stream
-    const stream = activeStreams.get(streamId);
-    if (stream) {
-      stream.done = true;
-      stream.error = "Stream aborted by user";
-      // Clean up after a delay
-      setTimeout(() => {
-        activeStreams.delete(streamId);
-      }, 5000);
-    }
-    
-    res.json({ success: true });
-  });
-
   // Demo feedback endpoint - allows demo users to submit feedback
   app.post("/api/demo/feedback", async (req, res) => {
     try {
@@ -6910,6 +5703,23 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
         
+        if (!courseMaterial) {
+          await trackMissingCourseMaterial({
+            endpoint: "demo",
+            questionVersionId,
+            questionId: questionVersion.questionId,
+            loid: baseQuestion.loid,
+            courseNumber: courseNumber || undefined,
+            userId: null,
+            requestPayload: {
+              chosenAnswer,
+              userMessage,
+              conversationHistoryLength: conversationHistory?.length || 0,
+              isMobile: !!isMobile
+            }
+          });
+        }
+        
         // Log when falling back to LOID-only
         if (!courseNumber && process.env.NODE_ENV === 'development') {
           console.log(`Warning: No course context for LOID ${baseQuestion.loid} in demo mode, using LOID-only matching`);
@@ -6959,12 +5769,33 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
+      const logUserMessage = userMessage && userMessage.trim() !== ""
+        ? userMessage
+        : "Please provide feedback on my answer.";
       
-      // Call streamOpenRouterDirectly with AI settings - convert null to undefined
-      await streamOpenRouterDirectly(res, messages, historyToPass, {
-        modelName: aiSettings.modelName || undefined,
-        reasoning: aiSettings.reasoning || undefined
-      });
+      const abortController = new AbortController();
+      const handleClientClose = () => {
+        if (!abortController.signal.aborted) {
+          abortController.abort();
+        }
+      };
+      req.on('close', handleClientClose);
+
+      try {
+        // Call streamOpenRouterDirectly with AI settings - convert null to undefined
+        await streamOpenRouterDirectly(res, messages, historyToPass, {
+          modelName: aiSettings.modelName || undefined,
+          reasoning: aiSettings.reasoning || undefined
+        }, {
+          userId: null,
+          systemMessage,
+          userMessage: logUserMessage
+        }, {
+          abortSignal: abortController.signal
+        });
+      } finally {
+        req.removeListener('close', handleClientClose);
+      }
       
     } catch (error) {
       console.error("[Demo SSE] Error in stream-sse endpoint:", error);
@@ -7309,190 +6140,6 @@ Remember, your goal is to support student comprehension through meaningful feedb
 
   // Mobile-view chatbot endpoints - No authentication required
   // Initialize streaming for mobile-view
-  app.post("/api/mobile-view/chatbot/stream-init", aiRateLimiter.middleware(), async (req, res) => {
-    try {
-      const { questionVersionId, chosenAnswer, userMessage, isMobile, conversationHistory } = req.body;
-      
-      // Generate stream ID with mobile-view user ID (-2)
-      const streamId = `mobile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Clean up any existing streams for mobile-view
-      const streamEntries = Array.from(activeStreams.entries());
-      const mobileStreamPattern = /^mobile_/;
-      for (const [existingStreamId, stream] of streamEntries) {
-        if (mobileStreamPattern.test(existingStreamId)) {
-          if (!stream.done && Date.now() - stream.lastActivity > 60000) {
-            stream.done = true;
-            stream.error = "Stream expired";
-          }
-        }
-      }
-      
-      // Get question version to build context
-      const questionVersion = await storage.getQuestionVersionById(questionVersionId);
-      if (!questionVersion) {
-        return res.status(404).json({ error: "Question not found" });
-      }
-      
-      // Get the base question to access LOID
-      const baseQuestion = await storage.getQuestion(questionVersion.questionId);
-      let courseMaterial = null;
-      
-      if (baseQuestion?.loid) {
-        // For mobile-view/unauthenticated routes, derive course from question
-        const courseNumber = await getCourseNumberForQuestion(
-          questionVersion.questionId,
-          undefined // No session context in mobile view
-        );
-        
-        courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
-        
-        // Comprehensive development logging for mobile-view chatbot material retrieval
-        if (process.env.NODE_ENV === 'development') {
-          console.log("╔════════════════════════════════════════════════════════════════════╗");
-          console.log("║           CHATBOT COURSE MATERIAL RETRIEVAL (Mobile-View)         ║");
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ Question Details:");
-          console.log("║   - Question ID:", questionVersion.questionId);
-          console.log("║   - Question Version ID:", questionVersionId);
-          console.log("║   - Question Type:", questionVersion.questionType);
-          console.log("║   - User's Chosen Answer:", chosenAnswer);
-          console.log("║   - Correct Answer:", questionVersion.correctAnswer);
-          console.log("║   - Is Correct:", chosenAnswer === questionVersion.correctAnswer);
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ LOID & Course Context:");
-          console.log("║   - LOID:", baseQuestion.loid);
-          console.log("║   - Course Number (derived):", courseNumber || "(none - using LOID-only)");
-          console.log("║   - Course Material Found:", courseMaterial ? "Yes" : "No");
-          if (courseMaterial) {
-            console.log("║   - Material ID:", courseMaterial.id);
-            console.log("║   - Material Course:", courseMaterial.course);
-            console.log("║   - Material Content Length:", courseMaterial.content?.length || 0, "chars");
-            console.log("║   - Material Assignment:", courseMaterial.assignment);
-          }
-          console.log("╠════════════════════════════════════════════════════════════════════╣");
-          console.log("║ Chat Context:");
-          console.log("║   - Is Follow-up Message:", !!userMessage);
-          console.log("║   - Conversation History Length:", conversationHistory?.length || 0);
-          console.log("║   - Stream ID:", streamId);
-          console.log("║   - User ID: mobile-view");
-          console.log("║   - Is Mobile:", isMobile || false);
-          console.log("╚════════════════════════════════════════════════════════════════════╝");
-          
-          if (!courseNumber) {
-            console.warn(`⚠️  WARNING: No course context for LOID ${baseQuestion.loid} in mobile view init, using LOID-only matching (may cause cross-course contamination)`);
-          }
-        }
-      }
-      
-      // Get AI settings
-      const aiSettings = await storage.getAiSettings();
-      if (!aiSettings) {
-        return res.status(500).json({ error: "AI settings not configured" });
-      }
-      
-      // Get active prompt
-      const activePrompt = await storage.getActivePromptVersion();
-      if (!activePrompt) {
-        return res.status(500).json({ error: "No active prompt configured" });
-      }
-      
-      // Build complete context for mobile-view
-      const contextData = {
-        question: questionVersion.questionText,
-        answerChoices: questionVersion.answerChoices,
-        correctAnswer: questionVersion.correctAnswer,
-        chosenAnswer: chosenAnswer,
-        userMessage: userMessage,
-        courseMaterial: courseMaterial ? {
-          assignment: courseMaterial.assignment,
-          content: courseMaterial.content
-        } : null
-      };
-      
-      // Initialize stream
-      activeStreams.set(streamId, { 
-        chunks: [], 
-        done: false,
-        lastActivity: Date.now(),
-        conversationHistory: conversationHistory || [],
-        storedSystemMessage: JSON.stringify(contextData),
-        questionVersionId
-      });
-      
-      // Start streaming in background using processStreamInBackground
-      // Note: Mobile-view uses -2 as user ID
-      processStreamInBackground(streamId, questionVersionId, chosenAnswer, userMessage, -2, isMobile).catch(error => {
-        if (process.env.NODE_ENV === 'development') {
-          console.error("Mobile-view streaming error:", error);
-        }
-        const stream = activeStreams.get(streamId);
-        if (stream) {
-          stream.error = "Failed to get AI response. Please try again.";
-          stream.done = true;
-        }
-      });
-      
-      res.json({ streamId });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Mobile-view streaming chatbot error:", error);
-      }
-      res.status(500).json({ error: "Failed to initialize chat stream" });
-    }
-  });
-
-  // Get stream chunk for mobile-view
-  app.get("/api/mobile-view/chatbot/stream-chunk/:streamId", async (req, res) => {
-    const streamId = req.params.streamId;
-    const cursor = parseInt(req.query.cursor as string) || 0;
-    const stream = activeStreams.get(streamId);
-    
-    if (!stream) {
-      return res.status(404).json({ error: "Stream not found" });
-    }
-    
-    // Update activity timestamp
-    stream.lastActivity = Date.now();
-    
-    // Join all chunks and send the new content since cursor
-    const fullContent = stream.chunks.join('');
-    const newContent = fullContent.substring(cursor);
-    
-    res.json({
-      content: newContent,
-      cursor: fullContent.length,
-      done: stream.done,
-      error: stream.error,
-      conversationHistory: stream.done && !stream.error ? stream.conversationHistory : undefined
-    });
-    
-    // Clean up finished streams
-    if (stream.done) {
-      setTimeout(() => {
-        activeStreams.delete(streamId);
-      }, 2000);
-    }
-  });
-
-  // Abort stream for mobile-view
-  app.post("/api/mobile-view/chatbot/stream-abort/:streamId", async (req, res) => {
-    const streamId = req.params.streamId;
-    
-    // Clean up the stream
-    const stream = activeStreams.get(streamId);
-    if (stream) {
-      stream.done = true;
-      stream.error = "Stream aborted by user";
-      // Clean up after a delay
-      setTimeout(() => {
-        activeStreams.delete(streamId);
-      }, 5000);
-    }
-    
-    res.json({ success: true });
-  });
-
   // Mobile-view feedback endpoint
   app.post("/api/mobile-view/feedback", async (req, res) => {
     try {
@@ -7645,6 +6292,23 @@ Remember, your goal is to support student comprehension through meaningful feedb
         
         courseMaterial = await storage.getCourseMaterialByLoid(baseQuestion.loid, courseNumber);
         
+        if (!courseMaterial) {
+          await trackMissingCourseMaterial({
+            endpoint: "mobile",
+            questionVersionId,
+            questionId: questionVersion.questionId,
+            loid: baseQuestion.loid,
+            courseNumber: courseNumber || undefined,
+            userId: null,
+            requestPayload: {
+              chosenAnswer,
+              userMessage,
+              conversationHistoryLength: conversationHistory?.length || 0,
+              isMobile: !!isMobile
+            }
+          });
+        }
+        
         // Log when falling back to LOID-only
         if (!courseNumber && process.env.NODE_ENV === 'development') {
           console.log(`Warning: No course context for LOID ${baseQuestion.loid} in mobile view, using LOID-only matching`);
@@ -7694,12 +6358,33 @@ Remember, your goal is to support student comprehension through meaningful feedb
       
       // Create initial conversation history if needed
       const historyToPass = conversationHistory || [{ role: "system", content: systemMessage }];
+      const logUserMessage = userMessage && userMessage.trim() !== ""
+        ? userMessage
+        : "Please provide feedback on my answer.";
       
-      // Call streamOpenRouterDirectly with AI settings - convert null to undefined
-      await streamOpenRouterDirectly(res, messages, historyToPass, {
-        modelName: aiSettings.modelName || undefined,
-        reasoning: aiSettings.reasoning || undefined
-      });
+      const abortController = new AbortController();
+      const handleClientClose = () => {
+        if (!abortController.signal.aborted) {
+          abortController.abort();
+        }
+      };
+      req.on('close', handleClientClose);
+
+      try {
+        // Call streamOpenRouterDirectly with AI settings - convert null to undefined
+        await streamOpenRouterDirectly(res, messages, historyToPass, {
+          modelName: aiSettings.modelName || undefined,
+          reasoning: aiSettings.reasoning || undefined
+        }, {
+          userId: null,
+          systemMessage,
+          userMessage: logUserMessage
+        }, {
+          abortSignal: abortController.signal
+        });
+      } finally {
+        req.removeListener('close', handleClientClose);
+      }
       
     } catch (error) {
       console.error("[Mobile SSE] Error in stream-sse endpoint:", error);

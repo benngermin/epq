@@ -172,6 +172,18 @@ export const chatbotFeedback = pgTable("chatbot_feedback", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const missingCourseMaterialLogs = pgTable("missing_course_material_logs", {
+  id: serial("id").primaryKey(),
+  questionVersionId: integer("question_version_id").references(() => questionVersions.id).notNull(),
+  questionId: integer("question_id").references(() => questions.id).notNull(),
+  loid: text("loid").notNull(),
+  courseNumber: text("course_number"),
+  endpoint: text("endpoint").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  requestPayload: jsonb("request_payload").$type<Record<string, unknown> | null>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Track user progress through courses for better analytics
 export const userCourseProgress = pgTable("user_course_progress", {
   id: serial("id").primaryKey(),
@@ -334,6 +346,7 @@ export const insertPromptVersionSchema = createInsertSchema(promptVersions);
 export const insertCourseMaterialSchema = createInsertSchema(courseMaterials);
 export const insertChatbotLogSchema = createInsertSchema(chatbotLogs);
 export const insertChatbotFeedbackSchema = createInsertSchema(chatbotFeedback);
+export const insertMissingCourseMaterialLogSchema = createInsertSchema(missingCourseMaterialLogs);
 export const insertUserCourseProgressSchema = createInsertSchema(userCourseProgress);
 export const insertDailyActivitySummarySchema = createInsertSchema(dailyActivitySummary);
 export const insertOpenRouterConfigSchema = createInsertSchema(openRouterConfig);
@@ -367,6 +380,8 @@ export type ChatbotLog = typeof chatbotLogs.$inferSelect;
 export type InsertChatbotLog = z.infer<typeof insertChatbotLogSchema>;
 export type ChatbotFeedback = typeof chatbotFeedback.$inferSelect;
 export type InsertChatbotFeedback = z.infer<typeof insertChatbotFeedbackSchema>;
+export type MissingCourseMaterialLog = typeof missingCourseMaterialLogs.$inferSelect;
+export type InsertMissingCourseMaterialLog = z.infer<typeof insertMissingCourseMaterialLogSchema>;
 export type UserCourseProgress = typeof userCourseProgress.$inferSelect;
 export type InsertUserCourseProgress = z.infer<typeof insertUserCourseProgressSchema>;
 export type DailyActivitySummary = typeof dailyActivitySummary.$inferSelect;
